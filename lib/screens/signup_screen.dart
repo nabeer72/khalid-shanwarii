@@ -1,0 +1,707 @@
+import 'package:dio/dio.dart';
+import 'package:uuid/uuid.dart';
+import 'package:mobile_app/services/connectivity_service.dart';
+import 'package:flutter/material.dart';
+import 'package:mobile_app/services/api_service.dart';
+import 'package:mobile_app/screens/home_screen.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/db/database_helper.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+class SignupScreen extends StatefulWidget {
+  const SignupScreen({super.key});
+
+  @override
+  State<SignupScreen> createState() => _SignupScreenState();
+}
+
+class _SignupScreenState extends State<SignupScreen>
+    with SingleTickerProviderStateMixin {
+  final theme = ThemeProvider.instance;
+  final _businessNameCtrl = TextEditingController(text: 'My Store');
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
+  final _confirmPassCtrl = TextEditingController();
+  final _api = ApiService();
+  final _dbHelper = DatabaseHelper.instance;
+  final _storage = const FlutterSecureStorage();
+  final _connectivity = ConnectivityService.instance;
+  bool _loading = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
+  String _selectedBusinessType = 'general';
+  late AnimationController _animController;
+  late Animation<double> _fadeAnim;
+
+  final List<Map<String, dynamic>> _businessTypes = [
+    {
+      'id': 'general',
+      'name': 'General Store',
+      'icon': '🏪',
+      'desc': 'Retail, convenience'
+    },
+    {
+      'id': 'garments',
+      'name': 'Garments',
+      'icon': '👕',
+      'desc': 'Clothing, fashion'
+    },
+    {
+      'id': 'produce',
+      'name': 'Produce',
+      'icon': '🥬',
+      'desc': 'Fruits, vegetables'
+    },
+    {
+      'id': 'restaurant',
+      'name': 'Restaurant',
+      'icon': '🍽️',
+      'desc': 'Food, cafe, bakery'
+    },
+    {
+      'id': 'electronics',
+      'name': 'Electronics',
+      'icon': '📱',
+      'desc': 'Gadgets, tech'
+    },
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000));
+    _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
+        CurvedAnimation(parent: _animController, curve: Curves.easeOut));
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _businessNameCtrl.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    super.dispose();
+  }
+
+  void _signup() async {
+    // Validate fields
+    if (_businessNameCtrl.text.isEmpty) {
+      _showError('Please enter a business name');
+      return;
+    }
+    if (_emailCtrl.text.isEmpty) {
+      _showError('Please enter an email');
+      return;
+    }
+    if (_passCtrl.text.isEmpty) {
+      _showError('Please enter a password');
+      return;
+    }
+    if (_passCtrl.text != _confirmPassCtrl.text) {
+      _showError('Passwords do not match');
+      return;
+    }
+
+    setState(() => _loading = true);
+
+    try {
+      // Check if email already exists locally for immediate feedback
+      final localUser = await _dbHelper.getUserByEmail(_emailCtrl.text.trim());
+      if (localUser != null) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Account Exists'),
+              content: const Text('An account with this email already exists locally. Please login instead.'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('OK'),
+                ),
+              ],
+            ),
+          );
+        }
+        setState(() => _loading = false);
+        return;
+      }
+
+      // Check connection status
+      final status = await _connectivity.getConnectionStatus();
+      print('🌐 [SIGNUP] Connection status: $status');
+
+      // Generate UUIDs for user and business
+      final String businessId =
+          DateTime.now().millisecondsSinceEpoch.toString();
+      final String userId = '${businessId}_user';
+      final String now = DateTime.now().toIso8601String();
+
+      bool apiSuccess = false;
+      int isSynced = 0;
+
+      // If Online & Fast, try API first
+      if (status == ConnectionStatus.online) {
+        try {
+          final response = await _api
+              .signup(
+                email: _emailCtrl.text,
+                password: _passCtrl.text,
+                businessName: _businessNameCtrl.text,
+                businessType: _selectedBusinessType,
+              )
+              .timeout(const Duration(seconds: 10));
+
+          if (response?.statusCode == 200 || response?.statusCode == 201) {
+            apiSuccess = true;
+            isSynced = 1;
+            print('✅ [SIGNUP] API signup successful');
+
+            if (response?.data['token'] != null) {
+              await _storage.write(
+                  key: 'auth_token', value: response!.data['token']);
+            }
+            if (response?.data['user']?['branch_id'] != null) {
+               await _storage.write(key: 'branch_id', value: response!.data['user']?['branch_id'].toString());
+            }
+          }
+        } catch (e) {
+          print('⚠️ [SIGNUP] API signup error: $e');
+          if (e is DioException && e.response?.statusCode == 422) {
+            final data = e.response?.data;
+            if (data is Map && (data['message']?.toString().contains('already exists') == true || 
+                data['errors']?.toString().contains('taken') == true)) {
+              if (mounted) {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Account Exists'),
+                    content: const Text('An account with this email already exists. Please login instead.'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('OK'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              setState(() => _loading = false);
+              return;
+            }
+          }
+          print('⚠️ [SIGNUP] Falling back to local signup due to API error');
+        }
+      }
+
+      // Save business to local database
+      await _dbHelper.insertBusiness({
+        'id': businessId,
+        'name': _businessNameCtrl.text,
+        'business_type': _selectedBusinessType,
+        'owner_user_id': userId,
+        'status': 1,
+        'created_at': now,
+        'updated_at': now,
+      }, isSynced: isSynced);
+
+      // Create a default Main Branch for the business
+      final String branchId = isSynced == 1 && _storage.read(key: 'branch_id') != null 
+          ? (await _storage.read(key: 'branch_id'))!
+          : const Uuid().v4();
+      
+      await _dbHelper.insertBranch({
+        'id': branchId,
+        'business_id': businessId,
+        'user_id': userId,
+        'name': 'Main Branch',
+        'branch_title': 'Main Branch',
+        'branch_code': 'MAIN',
+        'status': 1,
+        'is_main_branch': '1',
+        'created_at': now,
+        'updated_at': now,
+      });
+      // Ensure branch insertion is synced if API was successful
+      if (isSynced == 1) {
+          final db = await _dbHelper.database;
+          await db.update('branches', {'is_synced': 1}, where: 'id = ?', whereArgs: [branchId]);
+      }
+
+      // Save user to local database
+      await _dbHelper.insertUser({
+        'id': userId,
+        'business_id': businessId,
+        'name': _businessNameCtrl.text,
+        'email': _emailCtrl.text,
+        'password': _passCtrl.text,
+        'role': 'admin',
+        'status': 1,
+        'created_at': now,
+        'updated_at': now,
+      }, isSynced: isSynced);
+
+      // Store user ID and email in secure storage
+      await _storage.write(key: 'user_id', value: userId);
+      await _storage.write(key: 'user_email', value: _emailCtrl.text);
+      await _storage.write(key: 'business_id', value: businessId);
+
+      // Set business configuration
+      BusinessConfig.instance.businessId = businessId;
+      BusinessConfig.instance.adminId = userId;
+      BusinessConfig.instance.branchId = branchId;
+      BusinessConfig.instance.activeBranchIds = [branchId];
+      BusinessConfig.instance.businessType = _selectedBusinessType;
+      BusinessConfig.instance.businessName = _businessNameCtrl.text;
+
+      // Persist to settings table
+      await _dbHelper.setSetting('business_name', _businessNameCtrl.text);
+      await _dbHelper.setSetting('business_type', _selectedBusinessType);
+
+      // If not synced yet (offline/slow/failed API), trigger background sync
+      if (!apiSuccess) {
+        _syncToBackendInBackground(userId, businessId);
+      }
+
+      // Navigate to home screen
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(apiSuccess
+              ? 'Account created and synced!'
+              : 'Account created locally (will sync later)'),
+          backgroundColor: ThemeProvider.businessColors[_selectedBusinessType],
+        ));
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()));
+      }
+    } catch (e) {
+      if (mounted) {
+        print('❌ [SIGNUP] Signup error: $e');
+        _showError('Signup failed: $e');
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  // Background sync to API
+  Future<void> _syncToBackendInBackground(
+      String userId, String businessId) async {
+    try {
+      print('🔄 [SIGNUP] Attempting backend sync...');
+      final response = await _api.signup(
+        email: _emailCtrl.text,
+        password: _passCtrl.text,
+        businessName: _businessNameCtrl.text,
+        businessType: _selectedBusinessType,
+      );
+
+      if (response?.statusCode == 200 || response?.statusCode == 201) {
+        print('✅ [SIGNUP] Backend sync successful');
+        // Mark as synced
+        await _dbHelper.updateUserSyncStatus(userId, 1);
+        await _dbHelper.updateBusinessSyncStatus(businessId, 1);
+
+        // Store backend token
+        if (response?.data['token'] != null) {
+          await _storage.write(
+              key: 'auth_token', value: response!.data['token']);
+        }
+      }
+    } catch (e) {
+      print('⚠️ [SIGNUP] Backend sync failed (will retry later): $e');
+      // Not a critical error - user can still use app offline
+      // Sync service will pick it up later
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: ThemeProvider.error));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: theme.background,
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [theme.background, theme.surface],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+          ),
+          // Content
+          SafeArea(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 480),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 20),
+                        // Back button
+                        IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: Icon(Icons.arrow_back_rounded,
+                              color: theme.iconColor),
+                        ),
+                        const SizedBox(height: 20),
+                        // Logo
+                        Center(
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: theme.isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.black.withOpacity(0.05),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                  color: theme.iconColor.withOpacity(0.1)),
+                            ),
+                            child: Icon(Icons.person_add_rounded,
+                                color: theme.iconColor, size: 48),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Center(
+                            child: Text('Create Account',
+                                style: TextStyle(
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.textPrimary))),
+                        Center(
+                            child: Text('Start your business journey',
+                                style: TextStyle(color: theme.textSecondary))),
+
+                        const SizedBox(height: 40),
+
+                        // Business Type Selection
+                        Text('Select Your Business Type',
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 100,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _businessTypes.length,
+                            itemBuilder: (ctx, i) {
+                              final bt = _businessTypes[i];
+                              final selected =
+                                  _selectedBusinessType == bt['id'];
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedBusinessType = bt['id'];
+                                    // Auto-fill business name based on selected type
+                                    _businessNameCtrl.text = bt['name'];
+                                  });
+                                },
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 100,
+                                  margin: const EdgeInsets.only(right: 12),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? ThemeProvider.businessColors[bt['id']]
+                                        : theme.card,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                        color: selected
+                                            ? ThemeProvider
+                                                .businessColors[bt['id']]!
+                                            : theme.divider,
+                                        width: 2),
+                                    boxShadow: selected
+                                        ? [
+                                            BoxShadow(
+                                                color: ThemeProvider
+                                                    .businessColors[bt['id']]!
+                                                    .withAlpha(60),
+                                                blurRadius: 12)
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(bt['icon'],
+                                          style: const TextStyle(fontSize: 28)),
+                                      const SizedBox(height: 4),
+                                      Text(bt['name'],
+                                          style: TextStyle(
+                                              color: selected
+                                                  ? Colors.white
+                                                  : theme.textPrimary,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600),
+                                          textAlign: TextAlign.center),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Business Name
+                        Text('Business Name',
+                            style: TextStyle(
+                                color: theme.textSecondary, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _businessNameCtrl,
+                          style: TextStyle(color: theme.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'Enter your business name',
+                            hintStyle: TextStyle(color: theme.textHint),
+                            prefixIcon: Icon(Icons.store_outlined,
+                                color: theme.iconColor),
+                            filled: true,
+                            fillColor: theme.card,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? Colors.transparent
+                                        : Colors.black.withOpacity(0.3))),
+                            focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? theme.highlight
+                                        : Colors.black.withOpacity(0.6),
+                                    width: 2)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Email
+                        Text('Email',
+                            style: TextStyle(
+                                color: theme.textSecondary, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _emailCtrl,
+                          keyboardType: TextInputType.emailAddress,
+                          style: TextStyle(color: theme.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'admin@example.com',
+                            hintStyle: TextStyle(color: theme.textHint),
+                            prefixIcon: Icon(Icons.email_outlined,
+                                color: theme.iconColor),
+                            filled: true,
+                            fillColor: theme.card,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? Colors.transparent
+                                        : Colors.black.withOpacity(0.3))),
+                            focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? theme.highlight
+                                        : Colors.black.withOpacity(0.6),
+                                    width: 2)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Password
+                        Text('Password',
+                            style: TextStyle(
+                                color: theme.textSecondary, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _passCtrl,
+                          obscureText: _obscurePassword,
+                          style: TextStyle(color: theme.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            hintStyle: TextStyle(color: theme.textHint),
+                            prefixIcon: Icon(Icons.lock_outlined,
+                                color: theme.iconColor),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: theme.iconColor,
+                              ),
+                              onPressed: () => setState(
+                                  () => _obscurePassword = !_obscurePassword),
+                            ),
+                            filled: true,
+                            fillColor: theme.card,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? Colors.transparent
+                                        : Colors.black.withOpacity(0.3))),
+                            focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? theme.highlight
+                                        : Colors.black.withOpacity(0.6),
+                                    width: 2)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Confirm Password
+                        Text('Confirm Password',
+                            style: TextStyle(
+                                color: theme.textSecondary, fontSize: 12)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _confirmPassCtrl,
+                          obscureText: _obscureConfirmPassword,
+                          style: TextStyle(color: theme.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            hintStyle: TextStyle(color: theme.textHint),
+                            prefixIcon: Icon(Icons.lock_outlined,
+                                color: theme.iconColor),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: theme.iconColor,
+                              ),
+                              onPressed: () => setState(() =>
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword),
+                            ),
+                            filled: true,
+                            fillColor: theme.card,
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? Colors.transparent
+                                        : Colors.black.withOpacity(0.3))),
+                            focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide(
+                                    color: theme.isDark
+                                        ? theme.highlight
+                                        : Colors.black.withOpacity(0.6),
+                                    width: 2)),
+                          ),
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Signup Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: _loading
+                              ? Center(
+                                  child: CircularProgressIndicator(
+                                      color: theme.highlight))
+                              : ElevatedButton(
+                                  onPressed: _signup,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: ThemeProvider
+                                        .businessColors[_selectedBusinessType],
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(14)),
+                                    elevation: 4,
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Text('CREATE ACCOUNT',
+                                          style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold)),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward_rounded),
+                                    ],
+                                  ),
+                                ),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Login link
+                        Center(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text('Already have an account? ',
+                                  style: TextStyle(color: theme.textSecondary)),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                style: TextButton.styleFrom(
+                                    padding: EdgeInsets.zero,
+                                    minimumSize: const Size(0, 0)),
+                                child: Text('Login',
+                                    style: TextStyle(
+                                        color: ThemeProvider.businessColors[
+                                            _selectedBusinessType],
+                                        fontWeight: FontWeight.bold)),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Theme toggle
+                        Center(
+                          child: TextButton.icon(
+                            onPressed: () =>
+                                setState(() => theme.toggleTheme()),
+                            icon: Icon(
+                                theme.isDark
+                                    ? Icons.light_mode_rounded
+                                    : Icons.dark_mode_rounded,
+                                color: theme.iconColor,
+                                size: 18),
+                            label: Text(
+                                theme.isDark ? 'Light Mode' : 'Dark Mode',
+                                style: TextStyle(color: theme.textSecondary)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

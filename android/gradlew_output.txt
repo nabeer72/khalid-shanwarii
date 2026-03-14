@@ -1,0 +1,106 @@
+﻿> Task :gradle:checkKotlinGradlePluginConfigurationErrors SKIPPED
+> Task :gradle:compileKotlin UP-TO-DATE
+> Task :gradle:compileJava NO-SOURCE
+> Task :gradle:compileGroovy NO-SOURCE
+> Task :gradle:pluginDescriptors UP-TO-DATE
+> Task :gradle:processResources UP-TO-DATE
+> Task :gradle:classes UP-TO-DATE
+> Task :gradle:jar UP-TO-DATE
+> Task :app:DebugMinSdkCheck
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+> Task :app:checkKotlinGradlePluginConfigurationErrors SKIPPED
+
+> Task :app:compileFlutterBuildDebug
+.\gradlew : 
+lib/screens/product_list_screen.dart:4:1: 
+Error: 'Category' is imported from both 'package
+:flutter/src/foundation/annotations.dart' and 
+'package:mobile_app/models/product.dart'.
+At line:1 char:1
++ .\gradlew assembleDebug 2>&1 | Out-File 
+-FilePath gradlew_output.txt  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: 
+(lib    /screens/pro.../product.dart'.:String) 
+[], R    emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+import 'package:mobile_app/models/product.dart';
+^^^^^^^^
+lib/screens/product_list_screen.dart:37:51: 
+Error: 'Category' is imported from both 'package
+:flutter/src/foundation/annotations.dart' and 
+'package:mobile_app/models/product.dart'.
+          _categories = categoriesData.map((c) 
+=> Category.fromMap(c)).toList();
+                                                
+  ^^^^^^^^
+lib/screens/product_list_screen.dart:133:61: 
+Error: The getter 'id' isn't defined for the 
+type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an 
+existing getter, or defining a getter or field 
+named 'id'.
+                      .map((c) => 
+DropdownMenuItem(value: c.id, child: 
+Text(c.name)))
+                                                
+            ^^
+lib/screens/product_list_screen.dart:133:79: 
+Error: The getter 'name' isn't defined for the 
+type 'Object?'.
+ - 'Object' is from 'dart:core'.
+Try correcting the name to the name of an 
+existing getter, or defining a getter or field 
+named 'name'.
+                      .map((c) => 
+DropdownMenuItem(value: c.id, child: 
+Text(c.name)))
+                                                
+                              ^^^^
+lib/screens/product_list_screen.dart:134:24: 
+Error: The argument type 'List<dynamic>' can't 
+be assigned to the parameter type 
+'List<DropdownMenuItem<String>>?'.
+ - 'List' is from 'dart:core'.
+ - 'DropdownMenuItem' is from 
+'package:flutter/src/material/dropdown.dart' ('/
+D:/flutter/packages/flutter/lib/src/material/dro
+pdown.dart').
+                      .toList(),
+                       ^
+Target kernel_snapshot_program failed: Exception
+
+
+> Task :app:compileFlutterBuildDebug FAILED
+
+[Incubating] Problems report is available at: file:///D:/Laravel%20Projects/sata-pos/mobile_app/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:compileFlutterBuildDebug'.
+> Process 'command 
+'D:\flutter\bin\flutter.bat'' finished with 
+non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack 
+trace.
+> Run with --info or --debug option to get more 
+log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.14/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 10s
+6 actionable tasks: 2 executed, 4 up-to-date

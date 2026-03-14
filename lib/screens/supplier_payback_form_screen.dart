@@ -1,0 +1,526 @@
+import 'package:flutter/material.dart';
+import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/db/database_helper.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
+
+class SupplierPaybackFormScreen extends StatefulWidget {
+  final Supplier supplier;
+
+  const SupplierPaybackFormScreen({super.key, required this.supplier});
+
+  @override
+  State<SupplierPaybackFormScreen> createState() => _SupplierPaybackFormScreenState();
+}
+
+class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
+  final theme = ThemeProvider.instance;
+  final _formKey = GlobalKey<FormState>();
+  final _paidAmountCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
+  DateTime _selectedDate = DateTime.now();
+  double _creditBalance = 0.0;
+  List<Map<String, dynamic>> _staffMembers = [];
+  String? _selectedStaff;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _paidAmountCtrl.dispose();
+    _noteCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final balance = await DatabaseHelper.instance.getSupplierCreditBalance(widget.supplier.id);
+      final employees = await DatabaseHelper.instance.getEmployees();
+      
+      if (mounted) {
+        setState(() {
+          _creditBalance = balance;
+          _staffMembers = employees;
+          if (_staffMembers.isNotEmpty) {
+            _selectedStaff = _staffMembers.first['name'];
+          }
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading payback data: $e');
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  double get _paidAmount => double.tryParse(_paidAmountCtrl.text) ?? 0.0;
+  double get _remainingBalance => _creditBalance - _paidAmount;
+
+  Future<void> _recordPayback() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    if (_selectedStaff == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a staff member'),
+          backgroundColor: ThemeProvider.error,
+        ),
+      );
+      return;
+    }
+
+    if (_paidAmount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid payment amount'),
+          backgroundColor: ThemeProvider.error,
+        ),
+      );
+      return;
+    }
+
+    if (_paidAmount > _creditBalance + 0.01) { // Allowing small float epsilon
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment amount cannot exceed owed balance'),
+          backgroundColor: ThemeProvider.error,
+        ),
+      );
+      return;
+    }
+
+    final payback = {
+      'id': const Uuid().v4(),
+      'supplier_id': widget.supplier.id,
+      'amount': _paidAmount,
+      'paid_by': _selectedStaff,
+      'payment_date': _selectedDate.toIso8601String(),
+      'notes': _noteCtrl.text.trim(),
+      'created_at': DateTime.now().toIso8601String(),
+    };
+
+    try {
+      await DatabaseHelper.instance.insertSupplierPayback(payback);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Payback recorded successfully'),
+            backgroundColor: ThemeProvider.success,
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      debugPrint('Error recording payback: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: ThemeProvider.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _selectDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            colorScheme: ColorScheme.dark(
+              primary: theme.highlight,
+              surface: theme.surface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          'Record Payback',
+          style: TextStyle(
+            color: theme.textPrimary,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.5,
+          ),
+        ),
+        leading: BackButton(color: theme.textPrimary),
+      ),
+      body: theme.glassBackground(
+        child: SafeArea(
+          child: _loading
+            ? Center(child: CircularProgressIndicator(color: theme.highlight))
+            : Column(
+                children: [
+                   Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Supplier Info Card
+                            Container(
+                              padding: const EdgeInsets.all(20),
+                              decoration: theme.glassDecoration,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: theme.highlight.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        widget.supplier.name[0].toUpperCase(),
+                                        style: TextStyle(
+                                          color: theme.highlight,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          widget.supplier.name,
+                                          style: TextStyle(
+                                            color: theme.textPrimary,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Supplier ID: ${widget.supplier.id.substring(0, 8)}',
+                                          style: TextStyle(color: theme.textSecondary, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 24),
+
+                            // Owed Balance Info
+                             Container(
+                               padding: const EdgeInsets.all(16),
+                               decoration: BoxDecoration(
+                                 color: ThemeProvider.warning.withOpacity(0.1),
+                                 borderRadius: BorderRadius.circular(16),
+                                 border: Border.all(color: ThemeProvider.warning.withOpacity(0.3)),
+                               ),
+                               child: Row(
+                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                 children: [
+                                   Column(
+                                     crossAxisAlignment: CrossAxisAlignment.start,
+                                     children: [
+                                       Text(
+                                         'TOTAL CREDIT',
+                                         style: TextStyle(
+                                           color: theme.textHint,
+                                           fontSize: 10,
+                                           fontWeight: FontWeight.w900,
+                                           letterSpacing: 1,
+                                         ),
+                                       ),
+                                       const SizedBox(height: 4),
+                                       Text(
+                                         '${BusinessConfig.instance.currency}. ${_creditBalance.toStringAsFixed(2)}',
+                                         style: const TextStyle(
+                                           color: ThemeProvider.warning,
+                                           fontSize: 24,
+                                           fontWeight: FontWeight.w900,
+                                           letterSpacing: -1,
+                                         ),
+                                       ),
+                                     ],
+                                   ),
+                                   const Icon(Icons.account_balance_wallet_rounded, color: ThemeProvider.warning, size: 32),
+                                 ],
+                               ),
+                             ),
+
+                            const SizedBox(height: 24),
+
+                            _buildSectionHeader('Payback Date'),
+                            const SizedBox(height: 8),
+                            _buildDateField(),
+
+                            const SizedBox(height: 20),
+
+                            _buildSectionHeader('Paid By (Staff)'),
+                            const SizedBox(height: 8),
+                            _buildStaffDropdown(),
+
+                            const SizedBox(height: 20),
+
+                            _buildSectionHeader('Amount Paid'),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              controller: _paidAmountCtrl,
+                              label: 'Amount Paid',
+                              icon: Icons.payments_rounded,
+                              hint: 'Enter amount',
+                              keyboardType: TextInputType.number,
+                              onChanged: (v) => setState(() {}),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            _buildSectionHeader('New Balance'),
+                            const SizedBox(height: 8),
+                             Container(
+                               padding: const EdgeInsets.all(16),
+                               decoration: BoxDecoration(
+                                 color: _remainingBalance > 0 
+                                   ? ThemeProvider.warning.withOpacity(0.1)
+                                   : ThemeProvider.success.withOpacity(0.1),
+                                 borderRadius: BorderRadius.circular(16),
+                                 border: Border.all(
+                                   color: _remainingBalance > 0
+                                     ? ThemeProvider.warning.withOpacity(0.3)
+                                     : ThemeProvider.success.withOpacity(0.3),
+                                 ),
+                               ),
+                               child: Row(
+                                 children: [
+                                   Icon(
+                                     _remainingBalance > 0 ? Icons.pending_rounded : Icons.check_circle_rounded,
+                                     color: _remainingBalance > 0 ? ThemeProvider.warning : ThemeProvider.success,
+                                     size: 20,
+                                   ),
+                                   const SizedBox(width: 12),
+                                   Text(
+                                     '${BusinessConfig.instance.currency}. ${_remainingBalance.toStringAsFixed(2)}',
+                                     style: TextStyle(
+                                       color: _remainingBalance > 0 ? ThemeProvider.warning : ThemeProvider.success,
+                                       fontSize: 20,
+                                       fontWeight: FontWeight.w900,
+                                       letterSpacing: -0.5,
+                                     ),
+                                   ),
+                                 ],
+                               ),
+                             ),
+
+                            const SizedBox(height: 20),
+
+                            _buildSectionHeader('Note (Optional)'),
+                            const SizedBox(height: 8),
+                            _buildTextField(
+                              controller: _noteCtrl,
+                              label: 'Note',
+                              icon: Icons.note_rounded,
+                              hint: 'Add a note',
+                              maxLines: 3,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  // Footer Actions
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text(
+                              'CANCEL',
+                              style: TextStyle(
+                                color: theme.textSecondary,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _recordPayback,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.highlight,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: const Text(
+                              'RECORD PAYBACK',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStaffDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedStaff,
+      items: _staffMembers.map((staff) {
+        return DropdownMenuItem<String>(
+          value: staff['name'],
+          child: Text(staff['name'], style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
+        );
+      }).toList(),
+      onChanged: (v) => setState(() => _selectedStaff = v),
+      decoration: InputDecoration(
+        hintText: 'Select Staff',
+        hintStyle: TextStyle(color: theme.textHint),
+        prefixIcon: Icon(Icons.person_rounded, color: theme.highlight, size: 20),
+        filled: true,
+        fillColor: theme.whiteAlpha(0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.isDark ? theme.whiteAlpha(0.1) : Colors.black.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6), width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      dropdownColor: theme.surface,
+    );
+  }
+
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: theme.textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    required String hint,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    Function(String)? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: theme.textHint),
+        prefixIcon: Icon(icon, color: theme.highlight, size: 20),
+        filled: true,
+        fillColor: theme.whiteAlpha(0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.3)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.isDark ? theme.whiteAlpha(0.1) : Colors.black.withOpacity(0.3)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6), width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      ),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildDateField() {
+    return InkWell(
+      onTap: _selectDate,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.whiteAlpha(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: theme.whiteAlpha(0.1)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 20),
+            const SizedBox(width: 12),
+            Text(
+              DateFormat('MMM dd, yyyy').format(_selectedDate),
+              style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const Spacer(),
+            Icon(Icons.arrow_drop_down_rounded, color: theme.iconColor),
+          ],
+        ),
+      ),
+    );
+  }
+}
