@@ -153,50 +153,53 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
     return Dialog(
       backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-              _isConfirming ? 'Confirm PIN' : 'Set 4-Digit PIN',
-              style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _isConfirming ? 'Enter the same PIN again' : 'This will be used for quick login',
-              style: TextStyle(color: theme.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 32),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) => _buildDot(index < currentLength)),
-            ),
-            if (_error != null) ...[
-               const SizedBox(height: 16),
-               Text(_error!, style: const TextStyle(color: ThemeProvider.error, fontSize: 13, fontWeight: FontWeight.bold)),
-            ] else const SizedBox(height: 32),
-            
-            // Keypad
-            for (var i = 0; i < 3; i++) ...[
-              Row(
-                children: [
-                  for (var j = 1; j <= 3; j++) 
-                    _buildKeypadBtn('${i * 3 + j}', onTap: () => _onDigit('${i * 3 + j}')),
-                ],
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                _isConfirming ? 'Confirm PIN' : 'Set 4-Digit PIN',
+                style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
-            ],
-            Row(
-              children: [
-                _buildKeypadBtn('Cancel', onTap: () => Navigator.pop(context, null)),
-                _buildKeypadBtn('0', onTap: () => _onDigit('0')),
-                _buildKeypadBtn('', icon: Icons.backspace_rounded, onTap: _onBackspace),
+              Text(
+                _isConfirming ? 'Enter the same PIN again' : 'This will be used for quick login',
+                style: TextStyle(color: theme.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(4, (index) => _buildDot(index < currentLength)),
+              ),
+              if (_error != null) ...[
+                 const SizedBox(height: 16),
+                 Text(_error!, style: const TextStyle(color: ThemeProvider.error, fontSize: 13, fontWeight: FontWeight.bold)),
+              ] else const SizedBox(height: 32),
+              
+              // Keypad
+              for (var i = 0; i < 3; i++) ...[
+                Row(
+                  children: [
+                    for (var j = 1; j <= 3; j++) 
+                      _buildKeypadBtn('${i * 3 + j}', onTap: () => _onDigit('${i * 3 + j}')),
+                  ],
+                ),
+                const SizedBox(height: 8),
               ],
-            ),
-          ],
-        ),
+              Row(
+                children: [
+                  _buildKeypadBtn('Cancel', onTap: () => Navigator.pop(context, null)),
+                  _buildKeypadBtn('0', onTap: () => _onDigit('0')),
+                  _buildKeypadBtn('', icon: Icons.backspace_rounded, onTap: _onBackspace),
+                ],
+              ),
+            ],
+          ),
+          ),
         ),
       ),
     );
@@ -270,72 +273,75 @@ class _EnterPinDialogState extends State<_EnterPinDialog> {
     return Dialog(
       backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Stack(
-              alignment: Alignment.center,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: IconButton(
-                    icon: Icon(Icons.close_rounded, color: theme.textHint),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ),
-                Column(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: theme.highlight.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.person_rounded, color: theme.highlight),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                ),
-              ],
-            ),
-            Text(
-              'Welcome Back',
-              style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-            Text(
-              widget.accountName,
-              style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-            ),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) => _buildDot(index < _pin.length)),
-            ),
-            const SizedBox(height: 32),
-            
-            // Keypad
-            for (var i = 0; i < 3; i++) ...[
-              Row(
+                Stack(
+                alignment: Alignment.center,
                 children: [
-                  for (var j = 1; j <= 3; j++) 
-                    _buildKeypadBtn('${i * 3 + j}', onTap: () => _onDigit('${i * 3 + j}')),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: IconButton(
+                      icon: Icon(Icons.close_rounded, color: theme.textHint),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: theme.highlight.withOpacity(0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.person_rounded, color: theme.highlight),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-            ],
-            Row(
-              children: [
-                const Spacer(),
-                _buildKeypadBtn('0', onTap: () => _onDigit('0')),
-                _buildKeypadBtn('', icon: Icons.backspace_rounded, onTap: _onBackspace),
+              Text(
+                'Welcome Back',
+                style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              Text(
+                widget.accountName,
+                style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(4, (index) => _buildDot(index < _pin.length)),
+              ),
+              const SizedBox(height: 32),
+              
+              // Keypad
+              for (var i = 0; i < 3; i++) ...[
+                Row(
+                  children: [
+                    for (var j = 1; j <= 3; j++) 
+                      _buildKeypadBtn('${i * 3 + j}', onTap: () => _onDigit('${i * 3 + j}')),
+                  ],
+                ),
+                const SizedBox(height: 8),
               ],
-            ),
-          ],
-        ),
+              Row(
+                children: [
+                  const Spacer(),
+                  _buildKeypadBtn('0', onTap: () => _onDigit('0')),
+                  _buildKeypadBtn('', icon: Icons.backspace_rounded, onTap: _onBackspace),
+                ],
+              ),
+            ],
+          ),
+          ),
         ),
       ),
     );

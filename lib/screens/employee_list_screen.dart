@@ -148,13 +148,35 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
               // Summary Stats (Optional but looks good)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                child: Row(
-                  children: [
-                    _buildQuickStat('Total', _employees.length.toString(), Icons.people_rounded),
-                    const SizedBox(width: 12),
-                    _buildQuickStat('Active', _employees.where((e) => e.isActive).length.toString(), Icons.check_circle_rounded),
-                  ],
-                ),
+                child: LayoutBuilder(builder: (context, constraints) {
+                  final screenWidth = MediaQuery.of(context).size.width;
+                  final isTablet = screenWidth > 600;
+                  
+                  if (isTablet) {
+                    return GridView(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 240,
+                        mainAxisExtent: 140,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                      ),
+                      children: [
+                        _buildQuickStat('Total Staff', _employees.length.toString(), Icons.people_rounded),
+                        _buildQuickStat('Active Staff', _employees.where((e) => e.isActive).length.toString(), Icons.check_circle_rounded),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      Expanded(child: _buildQuickStat('Total', _employees.length.toString(), Icons.people_rounded)),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildQuickStat('Active', _employees.where((e) => e.isActive).length.toString(), Icons.check_circle_rounded)),
+                    ],
+                  );
+                }),
               ),
               
               Expanded(
@@ -363,25 +385,24 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   }
 
   Widget _buildQuickStat(String label, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: theme.glassDecoration.copyWith(
-          color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: theme.highlight, size: 18),
-            const SizedBox(width: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(value, style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w900)),
-                Text(label, style: TextStyle(color: theme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800)),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: theme.glassDecoration.copyWith(
+        color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: theme.highlight, size: 18),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(value, style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w900)),
+              Text(label, style: TextStyle(color: theme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800)),
+            ],
+          ),
+        ],
       ),
     );
   }

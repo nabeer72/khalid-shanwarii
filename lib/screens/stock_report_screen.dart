@@ -75,6 +75,8 @@ class _StockReportScreenState extends State<StockReportScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -96,13 +98,15 @@ class _StockReportScreenState extends State<StockReportScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Summary Grid
-                      GridView.count(
-                        crossAxisCount: 2,
+                      GridView(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.4,
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: isTablet ? 240 : 300,
+                          mainAxisExtent: isTablet ? 140 : 160,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
                         children: [
                           _buildSummaryCard('Cost Value', _totalCostValue, Icons.account_balance_wallet_rounded, theme.highlight),
                           _buildSummaryCard('Sales Value', _totalSalesValue, Icons.insights_rounded, theme.secondary),
@@ -110,11 +114,11 @@ class _StockReportScreenState extends State<StockReportScreen> {
                           _buildSummaryCard('Low Stock', _lowStockCount.toDouble(), Icons.notification_important_rounded, ThemeProvider.error, isCurrency: false),
                         ],
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
                       Text('Inventory Details', 
-                          style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                      const SizedBox(height: 16),
+                          style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                      const SizedBox(height: 12),
 
                       // Product List
                       ListView.builder(
@@ -135,34 +139,36 @@ class _StockReportScreenState extends State<StockReportScreen> {
                           }
 
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: theme.glassDecoration,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: theme.glassDecoration.copyWith(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
                             child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                               title: Row(
                                 children: [
                                   Expanded(
                                     child: Text(p.name, 
-                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800)),
+                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                   ),
                                   if (isLow)
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                       decoration: BoxDecoration(
                                         color: ThemeProvider.error.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
+                                        borderRadius: BorderRadius.circular(4),
                                         border: Border.all(color: ThemeProvider.error.withOpacity(0.2)),
                                       ),
                                       child: const Text('LOW STOCK', 
-                                          style: TextStyle(color: ThemeProvider.error, fontSize: 8, fontWeight: FontWeight.w900)),
+                                          style: TextStyle(color: ThemeProvider.error, fontSize: 7, fontWeight: FontWeight.w900)),
                                     ),
                                 ],
                               ),
                               subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.only(top: 2),
                                 child: Text(
                                   'Stock: $stock | Batches: ${p.stocks.length} | Price: ${p.priceRange}',
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
                                 ),
                               ),
                               trailing: Column(
@@ -171,11 +177,11 @@ class _StockReportScreenState extends State<StockReportScreen> {
                                 children: [
                                   Text(
                                     '${BusinessConfig.instance.currency}. ${totalCostVal.toStringAsFixed(2)}',
-                                    style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 15),
+                                    style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
                                   ),
                                   Text(
                                     'TOTAL COST VALUE',
-                                    style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w800),
+                                    style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
                                   ),
                                 ],
                               ),
@@ -194,23 +200,48 @@ class _StockReportScreenState extends State<StockReportScreen> {
   Widget _buildSummaryCard(String title, double value, IconData icon, Color color, {bool isCurrency = true}) {
     final currency = BusinessConfig.instance.currency;
     return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: theme.glassDecoration,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(theme.isDark ? 0.15 : 0.12),
+            color.withOpacity(theme.isDark ? 0.05 : 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(theme.isDark ? 0.12 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: theme.isDark
+                ? Colors.black26
+                : Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Icon(icon, color: color, size: 20),
-              Container(
-                width: 4,
-                height: 4,
-                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const Spacer(),
+          const SizedBox(height: 14),
           Flexible(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -225,7 +256,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
           ),
           const SizedBox(height: 2),
           Text(title.toUpperCase(), 
-              style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
         ],
       ),
     );

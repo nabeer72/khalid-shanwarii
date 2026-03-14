@@ -116,35 +116,92 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 children: [
                   _buildSectionHeader('Account Information'),
                   _buildCard([
-                    _buildTextField(
-                      controller: _controller.name,
-                      label: 'Full Name',
-                      icon: Icons.person_outline,
-                      validator: _controller.validateName,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _controller.email,
-                      label: 'Email Address',
-                      icon: Icons.email_outlined,
-                      keyboardType: TextInputType.emailAddress,
-                      validator: _controller.validateEmail,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _controller.phone,
-                      label: 'Phone Number',
-                      icon: Icons.phone_outlined,
-                      keyboardType: TextInputType.phone,
-                    ),
-                    const SizedBox(height: 16),
-                    _buildTextField(
-                      controller: _controller.password,
-                      label: 'Password',
-                      icon: Icons.lock_outline,
-                      keyboardType: TextInputType.visiblePassword,
-                      validator: _controller.validatePassword,
-                    ),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final isWide = ThemeProvider.isWideScreen(context);
+                      return Column(
+                        children: [
+                          if (isWide) ...[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.name,
+                                    label: 'Full Name',
+                                    icon: Icons.person_outline,
+                                    validator: _controller.validateName,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.email,
+                                    label: 'Email Address',
+                                    icon: Icons.email_outlined,
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: _controller.validateEmail,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.phone,
+                                    label: 'Phone Number',
+                                    icon: Icons.phone_outlined,
+                                    keyboardType: TextInputType.phone,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.password,
+                                    label: 'Password',
+                                    icon: Icons.lock_outline,
+                                    keyboardType: TextInputType.visiblePassword,
+                                    validator: _controller.validatePassword,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            _buildTextField(
+                              controller: _controller.name,
+                              label: 'Full Name',
+                              icon: Icons.person_outline,
+                              validator: _controller.validateName,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _controller.email,
+                              label: 'Email Address',
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: _controller.validateEmail,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _controller.phone,
+                              label: 'Phone Number',
+                              icon: Icons.phone_outlined,
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _controller.password,
+                              label: 'Password',
+                              icon: Icons.lock_outline,
+                              keyboardType: TextInputType.visiblePassword,
+                              validator: _controller.validatePassword,
+                            ),
+                          ],
+                        ],
+                      );
+                    }),
                   ]),
 
                   const SizedBox(height: 24),

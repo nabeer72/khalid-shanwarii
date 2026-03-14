@@ -65,6 +65,9 @@ class ThemeProvider extends ChangeNotifier {
   Color get secondary => _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
   Color get iconColor => _isDark ? Colors.white : Colors.black;
 
+  // Responsive UI Helpers
+  static bool isWideScreen(BuildContext context) => MediaQuery.of(context).size.width > 600;
+
   // Glassmorphism effect
   BoxDecoration get glassDecoration => BoxDecoration(
     color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.05 : 0.15),

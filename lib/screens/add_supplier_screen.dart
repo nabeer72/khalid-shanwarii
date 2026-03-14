@@ -138,6 +138,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
+    final isWideScreen = ThemeProvider.isWideScreen(context);
     final isLargeTablet = screenWidth > 900;
 
     final horizontalPadding = isLargeTablet ? 48.0 : (isTablet ? 32.0 : 24.0);
@@ -206,38 +207,91 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                             ),
                             SizedBox(height: fieldSpacing),
                           ],
-                          _buildTextField(
-                            controller: _controller.nameCtrl,
-                            label: 'Supplier Name',
-                            icon: Icons.business_rounded,
-                            required: true,
-                            isTablet: isTablet,
-                          ),
-                          SizedBox(height: fieldSpacing),
-                          _buildTextField(
-                            controller: _controller.contactCtrl,
-                            label: 'Contact Person',
-                            icon: Icons.person_rounded,
-                            isTablet: isTablet,
-                          ),
-                          SizedBox(height: sectionSpacing),
-                          _buildSectionHeader('Contact Details', isTablet),
-                          SizedBox(height: isTablet ? 16 : 12),
-                          _buildTextField(
-                            controller: _controller.phoneCtrl,
-                            label: 'Phone Number',
-                            icon: Icons.phone_rounded,
-                            type: TextInputType.phone,
-                            isTablet: isTablet,
-                          ),
-                          SizedBox(height: fieldSpacing),
-                          _buildTextField(
-                            controller: _controller.emailCtrl,
-                            label: 'Email Address',
-                            icon: Icons.email_rounded,
-                            type: TextInputType.emailAddress,
-                            isTablet: isTablet,
-                          ),
+                          if (isWideScreen) ...[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.nameCtrl,
+                                    label: 'Supplier Name',
+                                    icon: Icons.business_rounded,
+                                    required: true,
+                                    isTablet: isTablet,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.contactCtrl,
+                                    label: 'Contact Person',
+                                    icon: Icons.person_rounded,
+                                    isTablet: isTablet,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: sectionSpacing),
+                            _buildSectionHeader('Contact Details', isTablet),
+                            SizedBox(height: isTablet ? 16 : 12),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.phoneCtrl,
+                                    label: 'Phone Number',
+                                    icon: Icons.phone_rounded,
+                                    type: TextInputType.phone,
+                                    isTablet: isTablet,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.emailCtrl,
+                                    label: 'Email Address',
+                                    icon: Icons.email_rounded,
+                                    type: TextInputType.emailAddress,
+                                    isTablet: isTablet,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            _buildTextField(
+                              controller: _controller.nameCtrl,
+                              label: 'Supplier Name',
+                              icon: Icons.business_rounded,
+                              required: true,
+                              isTablet: isTablet,
+                            ),
+                            SizedBox(height: fieldSpacing),
+                            _buildTextField(
+                              controller: _controller.contactCtrl,
+                              label: 'Contact Person',
+                              icon: Icons.person_rounded,
+                              isTablet: isTablet,
+                            ),
+                            SizedBox(height: sectionSpacing),
+                            _buildSectionHeader('Contact Details', isTablet),
+                            SizedBox(height: isTablet ? 16 : 12),
+                            _buildTextField(
+                              controller: _controller.phoneCtrl,
+                              label: 'Phone Number',
+                              icon: Icons.phone_rounded,
+                              type: TextInputType.phone,
+                              isTablet: isTablet,
+                            ),
+                            SizedBox(height: fieldSpacing),
+                            _buildTextField(
+                              controller: _controller.emailCtrl,
+                              label: 'Email Address',
+                              icon: Icons.email_rounded,
+                              type: TextInputType.emailAddress,
+                              isTablet: isTablet,
+                            ),
+                          ],
                           SizedBox(height: fieldSpacing),
                           _buildTextField(
                             controller: _controller.addressCtrl,

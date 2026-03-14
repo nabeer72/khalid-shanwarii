@@ -96,75 +96,165 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                           const SizedBox(height: 16),
                         ],
-                        DropdownButtonFormField<String>(
-                          value: _controller.selectedHeadId,
-                          dropdownColor: theme.surface,
-                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-                          decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded),
-                          items: _controller.expenseHeads
-                              .map((h) => DropdownMenuItem(value: h.id, child: Text(h.name)))
-                              .toList(),
-                          onChanged: _controller.setCategory,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                          controller: _controller.amountCtrl,
-                          label: 'Amount',
-                          icon: Icons.attach_money_rounded,
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildTextField(
-                          controller: _controller.descCtrl,
-                          label: 'Description',
-                          icon: Icons.notes_rounded,
-                          maxLines: 3,
-                        ),
-                        const SizedBox(height: 16),
-                        InkWell(
-                          onTap: () async {
-                            final picked = await showDatePicker(
-                              context: context,
-                              initialDate: _controller.selectedDate,
-                              firstDate: DateTime(2020),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
-                            );
-                            if (picked != null) _controller.setDate(picked);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: theme.whiteAlpha(0.05),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: theme.whiteAlpha(0.1)),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 20),
-                                const SizedBox(width: 12),
-                                Column(
+                        LayoutBuilder(builder: (context, constraints) {
+                          final isWide = ThemeProvider.isWideScreen(context);
+                          return Column(
+                            children: [
+                              if (isWide) ...[
+                                Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      'EXPENSE DATE',
-                                      style: TextStyle(
-                                        color: theme.textHint,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.5,
+                                    Expanded(
+                                      child: DropdownButtonFormField<String>(
+                                        value: _controller.selectedHeadId,
+                                        dropdownColor: theme.surface,
+                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                                        decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded),
+                                        items: _controller.expenseHeads
+                                            .map((h) => DropdownMenuItem(value: h.id, child: Text(h.name)))
+                                            .toList(),
+                                        onChanged: _controller.setCategory,
                                       ),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      DateFormat('MMMM dd, yyyy').format(_controller.selectedDate),
-                                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: _buildTextField(
+                                        controller: _controller.amountCtrl,
+                                        label: 'Amount',
+                                        icon: Icons.attach_money_rounded,
+                                        keyboardType: TextInputType.number,
+                                      ),
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 16),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: InkWell(
+                                        onTap: () async {
+                                          final picked = await showDatePicker(
+                                            context: context,
+                                            initialDate: _controller.selectedDate,
+                                            firstDate: DateTime(2020),
+                                            lastDate: DateTime.now().add(const Duration(days: 365)),
+                                          );
+                                          if (picked != null) _controller.setDate(picked);
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: theme.whiteAlpha(0.05),
+                                            borderRadius: BorderRadius.circular(16),
+                                            border: Border.all(color: theme.whiteAlpha(0.1)),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 20),
+                                              const SizedBox(width: 12),
+                                              Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'EXPENSE DATE',
+                                                    style: TextStyle(
+                                                      color: theme.textHint,
+                                                      fontSize: 10,
+                                                      fontWeight: FontWeight.w900,
+                                                      letterSpacing: 0.5,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    DateFormat('MMMM dd, yyyy').format(_controller.selectedDate),
+                                                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    const Spacer(),
+                                  ],
+                                ),
+                              ] else ...[
+                                DropdownButtonFormField<String>(
+                                  value: _controller.selectedHeadId,
+                                  dropdownColor: theme.surface,
+                                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                                  decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded),
+                                  items: _controller.expenseHeads
+                                      .map((h) => DropdownMenuItem(value: h.id, child: Text(h.name)))
+                                      .toList(),
+                                  onChanged: _controller.setCategory,
+                                ),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  controller: _controller.amountCtrl,
+                                  label: 'Amount',
+                                  icon: Icons.attach_money_rounded,
+                                  keyboardType: TextInputType.number,
+                                ),
+                                const SizedBox(height: 16),
+                                InkWell(
+                                  onTap: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate: _controller.selectedDate,
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                                    );
+                                    if (picked != null) _controller.setDate(picked);
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: theme.whiteAlpha(0.05),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: theme.whiteAlpha(0.1)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 20),
+                                        const SizedBox(width: 12),
+                                        Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'EXPENSE DATE',
+                                              style: TextStyle(
+                                                color: theme.textHint,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w900,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              DateFormat('MMMM dd, yyyy').format(_controller.selectedDate),
+                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ],
-                            ),
-                          ),
-                        ),
+                              const SizedBox(height: 16),
+                              _buildTextField(
+                                controller: _controller.descCtrl,
+                                label: 'Description',
+                                icon: Icons.notes_rounded,
+                                maxLines: 3,
+                              ),
+                            ],
+                          );
+                        }),
                       ]),
                       const SizedBox(height: 32),
                       ElevatedButton(

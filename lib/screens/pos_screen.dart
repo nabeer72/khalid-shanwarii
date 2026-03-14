@@ -989,9 +989,11 @@ class _POSScreenState extends State<POSScreen> {
 
   Widget _buildProductPanel() {
     final screenWidth = MediaQuery.of(context).size.width;
-    final gridColumns = screenWidth > 1200
-        ? 5
-        : (screenWidth > 900 ? 4 : (screenWidth > 600 ? 3 : 2));
+    final gridColumns = screenWidth > 1400
+        ? 7
+        : (screenWidth > 1100
+            ? 6
+            : (screenWidth > 800 ? 5 : (screenWidth > 500 ? 3 : 2)));
 
     return Column(
       children: [
@@ -1275,7 +1277,7 @@ class _POSScreenState extends State<POSScreen> {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: _isReturn
-                  ? ThemeProvider.gradientWarning
+                  ? ThemeProvider.gradientDanger
                   : ThemeProvider.gradientSuccess,
             ),
           ),
@@ -1323,7 +1325,7 @@ class _POSScreenState extends State<POSScreen> {
                     : Icons.assignment_return_rounded,
                 label: _isReturn ? 'Sale' : 'Return',
                 color:
-                    _isReturn ? ThemeProvider.success : ThemeProvider.warning,
+                    _isReturn ? ThemeProvider.success : ThemeProvider.error,
                 onTap: () => setState(() => _isReturn = !_isReturn),
               ),
             ],
@@ -1479,13 +1481,13 @@ class _POSScreenState extends State<POSScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                           colors: _isReturn
-                              ? ThemeProvider.gradientWarning
+                              ? ThemeProvider.gradientDanger
                               : ThemeProvider.gradientSuccess),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
                           color: (_isReturn
-                                  ? ThemeProvider.warning
+                                  ? ThemeProvider.error
                                   : ThemeProvider.success)
                               .withOpacity(0.3),
                           blurRadius: 10,
@@ -1541,7 +1543,7 @@ class _POSScreenState extends State<POSScreen> {
               onPressed: _cart.isEmpty ? null : _goToPayment,
               style: ElevatedButton.styleFrom(
                 backgroundColor:
-                    _isReturn ? ThemeProvider.warning : ThemeProvider.success,
+                    _isReturn ? ThemeProvider.error : ThemeProvider.success,
                 foregroundColor: Colors.white,
                 padding:
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
@@ -1692,8 +1694,9 @@ class _POSScreenState extends State<POSScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('TOTAL AMOUNT',
+              Text('TOTAL AMOUNT',
                   style: TextStyle(
+                      color: theme.textPrimary,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5)),
@@ -1719,8 +1722,9 @@ class _POSScreenState extends State<POSScreen> {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: const Text('DISCOUNT',
+                  child: Text('DISCOUNT',
                       style: TextStyle(
+                          color: theme.textPrimary,
                           fontSize: 12,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1)),
@@ -1733,7 +1737,7 @@ class _POSScreenState extends State<POSScreen> {
                   onPressed: _cart.isEmpty ? null : _goToPayment,
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
-                        _isReturn ? ThemeProvider.warning : theme.highlight,
+                        _isReturn ? ThemeProvider.error : theme.highlight,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 18),
@@ -1805,7 +1809,7 @@ class _POSScreenState extends State<POSScreen> {
                   },
             style: ElevatedButton.styleFrom(
               backgroundColor:
-                  _isReturn ? ThemeProvider.warning : ThemeProvider.success,
+                  _isReturn ? ThemeProvider.error : ThemeProvider.success,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 18),
               elevation: 0,
@@ -1891,21 +1895,21 @@ class _ProductGridTile extends StatelessWidget {
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(16),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: theme.surface,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: product.isFavorite
                   ? ThemeProvider.warning.withOpacity(0.5)
                   : theme.whiteAlpha(theme.isDark ? 0.05 : 0.2),
-              width: product.isFavorite ? 1.5 : 1.0,
+              width: product.isFavorite ? 1.2 : 1.0,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(theme.isDark ? 0.3 : 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(theme.isDark ? 0.2 : 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
@@ -1918,35 +1922,35 @@ class _ProductGridTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: theme.highlight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Center(
                       child: Text(
                         product.image ?? '📦',
-                        style: const TextStyle(fontSize: 24),
+                        style: const TextStyle(fontSize: 18),
                       ),
                     ),
                   ),
                   if (product.isFavorite)
                     Icon(Icons.star_rounded,
-                        color: ThemeProvider.warning, size: 18)
+                        color: ThemeProvider.warning, size: 14)
                   else
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 6, vertical: 2),
+                          horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
                         color: theme.highlight.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
+                        borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         '${product.totalStock}',
                         style: TextStyle(
                             color: theme.highlight,
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -1960,12 +1964,12 @@ class _ProductGridTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
-                  height: 1.2,
+                  height: 1.1,
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -1975,7 +1979,7 @@ class _ProductGridTile extends StatelessWidget {
                       product.priceRange,
                       style: TextStyle(
                           color: theme.highlight,
-                          fontSize: 14,
+                          fontSize: 12,
                           fontWeight: FontWeight.w900),
                     ),
                     if (product.stocks.length > 1) ...[

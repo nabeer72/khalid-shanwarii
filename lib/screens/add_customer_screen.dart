@@ -148,26 +148,65 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                         _buildSectionHeader('Basic Identity'),
                         const SizedBox(height: 12),
                         _buildCard([
-                          _buildTextField(
-                            controller: _nameCtrl,
-                            label: 'FULL NAME',
-                            icon: Icons.person_rounded,
-                            validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            controller: _phoneCtrl,
-                            label: 'MOBILE NUMBER',
-                            icon: Icons.phone_android_rounded,
-                            keyboardType: TextInputType.phone,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            controller: _emailCtrl,
-                            label: 'EMAIL ADDRESS',
-                            icon: Icons.alternate_email_rounded,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
+                          LayoutBuilder(builder: (context, constraints) {
+                            final isWide = ThemeProvider.isWideScreen(context);
+                            return Column(
+                              children: [
+                                if (isWide) ...[
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _nameCtrl,
+                                          label: 'FULL NAME',
+                                          icon: Icons.person_rounded,
+                                          validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _phoneCtrl,
+                                          label: 'MOBILE NUMBER',
+                                          icon: Icons.phone_android_rounded,
+                                          keyboardType: TextInputType.phone,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTextField(
+                                    controller: _emailCtrl,
+                                    label: 'EMAIL ADDRESS',
+                                    icon: Icons.alternate_email_rounded,
+                                    keyboardType: TextInputType.emailAddress,
+                                  ),
+                                ] else ...[
+                                  _buildTextField(
+                                    controller: _nameCtrl,
+                                    label: 'FULL NAME',
+                                    icon: Icons.person_rounded,
+                                    validator: (v) => v == null || v.isEmpty ? 'Name is required' : null,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTextField(
+                                    controller: _phoneCtrl,
+                                    label: 'MOBILE NUMBER',
+                                    icon: Icons.phone_android_rounded,
+                                    keyboardType: TextInputType.phone,
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTextField(
+                                    controller: _emailCtrl,
+                                    label: 'EMAIL ADDRESS',
+                                    icon: Icons.alternate_email_rounded,
+                                    keyboardType: TextInputType.emailAddress,
+                                  ),
+                                ],
+                              ],
+                            );
+                          }),
                         ]),
                         if (BusinessConfig.instance.staffId == null && _branches.isNotEmpty) ...[
                           const SizedBox(height: 32),
@@ -190,20 +229,54 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                         _buildSectionHeader('Account Preferences'),
                         const SizedBox(height: 12),
                         _buildCard([
-                          _buildTextField(
-                            controller: _discountCtrl,
-                            label: 'DEFAULT DISCOUNT (%)',
-                            icon: Icons.percent_rounded,
-                            keyboardType: TextInputType.number,
-                            hint: '0.0',
-                          ),
-                          const SizedBox(height: 20),
-                          _buildTextField(
-                            controller: _notesCtrl,
-                            label: 'ADDRESS / NOTES',
-                            icon: Icons.location_on_rounded,
-                            maxLines: 3,
-                          ),
+                          LayoutBuilder(builder: (context, constraints) {
+                            final isWide = ThemeProvider.isWideScreen(context);
+                            return Column(
+                              children: [
+                                if (isWide) ...[
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                        child: _buildTextField(
+                                          controller: _discountCtrl,
+                                          label: 'DEFAULT DISCOUNT (%)',
+                                          icon: Icons.percent_rounded,
+                                          keyboardType: TextInputType.number,
+                                          hint: '0.0',
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      const Spacer(), // Notes is multiline, keeps it standalone or beside?
+                                      // Actually let's keep notes full width or side by side if wide enough
+                                    ],
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTextField(
+                                    controller: _notesCtrl,
+                                    label: 'ADDRESS / NOTES',
+                                    icon: Icons.location_on_rounded,
+                                    maxLines: 3,
+                                  ),
+                                ] else ...[
+                                  _buildTextField(
+                                    controller: _discountCtrl,
+                                    label: 'DEFAULT DISCOUNT (%)',
+                                    icon: Icons.percent_rounded,
+                                    keyboardType: TextInputType.number,
+                                    hint: '0.0',
+                                  ),
+                                  const SizedBox(height: 20),
+                                  _buildTextField(
+                                    controller: _notesCtrl,
+                                    label: 'ADDRESS / NOTES',
+                                    icon: Icons.location_on_rounded,
+                                    maxLines: 3,
+                                  ),
+                                ],
+                              ],
+                            );
+                          }),
                         ]),
                         const SizedBox(height: 100),
                       ],
