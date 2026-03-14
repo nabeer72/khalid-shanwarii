@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
 
 // Gift Card Store
 class GiftCardStore {
@@ -9,14 +8,14 @@ class GiftCardStore {
   GiftCardStore._();
   
   final List<GiftCard> cards = [
-    GiftCard(id: 'gc1', code: 'GIFT-1000-ABCD', balance: 25.00, initialAmount: 25.00, createdAt: DateTime.now().subtract(const Duration(days: 5))),
-    GiftCard(id: 'gc2', code: 'GIFT-2000-EFGH', balance: 50.00, initialAmount: 50.00, createdAt: DateTime.now().subtract(const Duration(days: 2))),
-    GiftCard(id: 'gc3', code: 'GIFT-3000-IJKL', balance: 12.50, initialAmount: 100.00, createdAt: DateTime.now().subtract(const Duration(days: 30))),
+    GiftCard(id: 1, code: 'GIFT-1000-ABCD', balance: 25.00, initialAmount: 25.00, createdAt: DateTime.now().subtract(const Duration(days: 5))),
+    GiftCard(id: 2, code: 'GIFT-2000-EFGH', balance: 50.00, initialAmount: 50.00, createdAt: DateTime.now().subtract(const Duration(days: 2))),
+    GiftCard(id: 3, code: 'GIFT-3000-IJKL', balance: 12.50, initialAmount: 100.00, createdAt: DateTime.now().subtract(const Duration(days: 30))),
   ];
 }
 
 class GiftCard {
-  final String id;
+  final int id;
   final String code;
   double balance;
   final double initialAmount;
@@ -112,9 +111,9 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                           elevation: 0,
                         ),
                         onPressed: () {
-                          final code = 'GIFT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}-${const Uuid().v4().substring(0, 4).toUpperCase()}';
+                          final code = 'GIFT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}-${DateTime.now().microsecond.toString().padLeft(4, '0')}';
                           GiftCardStore.instance.cards.add(GiftCard(
-                            id: const Uuid().v4(),
+                            id: GiftCardStore.instance.cards.length + 1,
                             code: code,
                             balance: selectedAmount,
                             initialAmount: selectedAmount,
@@ -265,10 +264,10 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                       onPressed: () {
                         final card = GiftCardStore.instance.cards.firstWhere(
                           (c) => c.code == codeCtrl.text,
-                          orElse: () => GiftCard(id: '', code: '', balance: 0, initialAmount: 0, createdAt: DateTime.now()),
+                          orElse: () => GiftCard(id: 0, code: '', balance: 0, initialAmount: 0, createdAt: DateTime.now()),
                         );
                         Navigator.pop(ctx);
-                        if (card.id.isNotEmpty) {
+                        if (card.id != 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('Balance: ${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}'), 

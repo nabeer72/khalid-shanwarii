@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -10,10 +10,10 @@ mixin CreditCrud on CommonCrud {
   // ========== Credit System ==========
 
   // Credit Sales
-  Future<List<Map<String, dynamic>>> getCreditSales({String? customerId}) async {
+  Future<List<Map<String, dynamic>>> getCreditSales({dynamic customerId}) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -32,12 +32,12 @@ mixin CreditCrud on CommonCrud {
     );
   }
 
-  Future<void> insertCreditSale(Map<String, dynamic> creditSale) async {
+  Future<int> insertCreditSale(Map<String, dynamic> creditSale) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
-    await db.insert('credit_sales', {
+    return await db.insert('credit_sales', {
       ...creditSale,
       'business_id': bid,
       'admin_id': aid,
@@ -45,16 +45,16 @@ mixin CreditCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> updateCreditSale(String id, Map<String, dynamic> data) async {
+  Future<void> updateCreditSale(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     await db.update('credit_sales', data, where: 'id = ?', whereArgs: [id]);
   }
 
   // Credit Payments
-  Future<List<Map<String, dynamic>>> getCreditPayments({String? customerId, String? creditSaleId}) async {
+  Future<List<Map<String, dynamic>>> getCreditPayments({dynamic customerId, dynamic creditSaleId}) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -79,14 +79,15 @@ mixin CreditCrud on CommonCrud {
     );
   }
 
-  Future<void> insertCreditPayment(Map<String, dynamic> payment) async {
+  Future<int> insertCreditPayment(Map<String, dynamic> payment) async {
+    int insertedId = 0;
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.transaction((txn) async {
       // 1. Insert payment record
-      await txn.insert('credit_payments', {
+      insertedId = await txn.insert('credit_payments', {
         ...payment,
         'business_id': bid,
         'admin_id': aid,
@@ -136,10 +137,11 @@ mixin CreditCrud on CommonCrud {
         [totalPaidAmount, customerId],
       );
     });
+    return insertedId;
   }
 
   // Get customer's total credit balance
-  Future<double> getCustomerCreditBalance(String customerId) async {
+  Future<double> getCustomerCreditBalance(dynamic customerId) async {
     final db = await database;
     final result = await db.query(
       'customers',
@@ -156,8 +158,8 @@ mixin CreditCrud on CommonCrud {
   // Get all customers with outstanding credit
   Future<List<Map<String, dynamic>>> getCustomersWithCredit() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -171,7 +173,7 @@ mixin CreditCrud on CommonCrud {
   }
 
   // Update customer credit balance (used when creating credit sale)
-  Future<void> updateCustomerCreditBalance(String customerId, double amount) async {
+  Future<void> updateCustomerCreditBalance(dynamic customerId, double amount) async {
     final db = await database;
     await db.rawUpdate(
       'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?',
@@ -192,8 +194,8 @@ mixin CreditCrud on CommonCrud {
   }
 
   Future<void> _executeReconciliation(DatabaseExecutor txn) async {
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
 
     // 1. Reset credit balances to 0 for current tenant
     if (bid != null && aid != null) {

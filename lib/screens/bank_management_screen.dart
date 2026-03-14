@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:mobile_app/models/bank_account.dart';
 import 'package:intl/intl.dart';
 
@@ -95,7 +94,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                 if (bankCtrl.text.isEmpty || amountCtrl.text.isEmpty) return;
                 
                 final newEntry = BankAccount(
-                  id: transaction?.id ?? const Uuid().v4(),
+                  id: transaction?.id,
                   bankName: bankCtrl.text,
                   accountType: typeCtrl.text,
                   accountTitle: titleCtrl.text,
@@ -236,7 +235,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                                   ),
                                 );
                                 if (confirm == true) {
-                                  await DatabaseHelper.instance.deleteBankTransaction(t.id);
+                                  await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0);
                                   _loadTransactions();
                                 }
                               },

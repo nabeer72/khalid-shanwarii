@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:uuid/uuid.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'tables.dart';
 
 class DbMigrations {
@@ -201,25 +201,23 @@ class DbMigrations {
         final productId = p['id'] as String;
         final stockQty = (p['stock_quantity'] as num? ?? 0).toDouble();
         
-        // Even if stock is 0, if it has prices, we create an initial stock batch
-        if (stockQty > 0 || (p['price'] as num? ?? 0) > 0) {
-          final stockId = const Uuid().v4();
-          final now = DateTime.now().toIso8601String();
-          
-          await db.insert('stocks', {
-            'id': stockId,
-            'business_id': p['business_id'],
-            'product_id': productId,
-            'barcode': p['barcode'],
-            'quantity': stockQty,
-            'cost_price': (p['purchase_price'] as num? ?? 0).toDouble(),
-            'sale_price': (p['price'] as num? ?? 0).toDouble(),
-            'wholesale_price': (p['wholesale_price'] as num? ?? 0).toDouble(),
-            'status': 1,
-            'created_at': now,
-            'updated_at': now,
-          });
-        }
+          // Even if stock is 0, if it has prices, we create an initial stock batch
+          if (stockQty > 0 || (p['price'] as num? ?? 0) > 0) {
+            final now = DateTime.now().toIso8601String();
+            
+            await db.insert('stocks', {
+              'business_id': p['business_id'],
+              'product_id': productId,
+              'barcode': p['barcode'],
+              'quantity': stockQty,
+              'cost_price': (p['purchase_price'] as num? ?? 0).toDouble(),
+              'sale_price': (p['price'] as num? ?? 0).toDouble(),
+              'wholesale_price': (p['wholesale_price'] as num? ?? 0).toDouble(),
+              'status': 1,
+              'created_at': now,
+              'updated_at': now,
+            });
+          }
       }
     }
     if (oldVersion < 25) {
@@ -733,17 +731,97 @@ class DbMigrations {
       }
     }
 
-    if (oldVersion < 38) {
-      if (kDebugMode) print('Upgrading DB to v38: Normalizing branches table columns...');
+    if (oldVersion < 39) {
+      if (kDebugMode) print('Upgrading DB to v39: Adding pricing and stock columns to products...');
       try {
-        await db.execute('ALTER TABLE branches ADD COLUMN name TEXT');
-        await db.execute('ALTER TABLE branches ADD COLUMN address TEXT');
-        await db.execute('ALTER TABLE branches ADD COLUMN cell_number TEXT');
-        await db.execute('ALTER TABLE branches ADD COLUMN email TEXT');
-        await db.execute('ALTER TABLE branches ADD COLUMN is_main_branch TEXT');
-        await db.execute('ALTER TABLE branches ADD COLUMN logo TEXT');
+        await db.execute('ALTER TABLE products ADD COLUMN price REAL DEFAULT 0');
+        await db.execute('ALTER TABLE products ADD COLUMN purchase_price REAL DEFAULT 0');
+        await db.execute('ALTER TABLE products ADD COLUMN wholesale_price REAL DEFAULT 0');
+        await db.execute('ALTER TABLE products ADD COLUMN stock_quantity REAL DEFAULT 0');
       } catch (e) {
-        if (kDebugMode) print('v38 branches schema error: $e');
+        if (kDebugMode) print('v39 products schema error: $e');
+      }
+    }
+    if (oldVersion < 41) {
+      if (kDebugMode) print('Upgrading DB to v41: Adding missing columns for backfill...');
+      try {
+        await db.execute('ALTER TABLE roles ADD COLUMN admin_id INTEGER');
+        await db.execute('ALTER TABLE branches ADD COLUMN admin_id INTEGER');
+        await db.execute('ALTER TABLE branches ADD COLUMN branch_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v41 schema error: $e');
+      }
+    }
+    
+    if (oldVersion < 42) {
+      if (kDebugMode) print('Upgrading DB to v42: Recreating roles and permissions tables for INTEGER normalization...');
+      try {
+        await db.transaction((txn) async {
+          // 1. Rename old tables
+          await txn.execute('ALTER TABLE roles RENAME TO old_roles');
+          await txn.execute('ALTER TABLE permissions RENAME TO old_permissions');
+          await txn.execute('ALTER TABLE role_permissions RENAME TO old_role_permissions');
+
+          // 2. Create new tables
+          await txn.execute('''
+            CREATE TABLE roles (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              business_id INTEGER,
+              admin_id INTEGER,
+              branch_id INTEGER,
+              name TEXT NOT NULL,
+              description TEXT,
+              status INTEGER DEFAULT 1,
+              is_synced INTEGER DEFAULT 0,
+              created_at TEXT,
+              updated_at TEXT
+            )
+          ''');
+
+          await txn.execute('''
+            CREATE TABLE permissions (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL,
+              label TEXT NOT NULL,
+              created_at TEXT,
+              updated_at TEXT
+            )
+          ''');
+
+          await txn.execute('''
+            CREATE TABLE role_permissions (
+              role_id INTEGER,
+              permission_id INTEGER,
+              PRIMARY KEY (role_id, permission_id)
+            )
+          ''');
+
+          // 3. Copy data
+          await txn.execute('''
+            INSERT INTO roles (id, business_id, admin_id, branch_id, name, description, status, is_synced, created_at, updated_at)
+            SELECT CAST(id AS INTEGER), CAST(business_id AS INTEGER), CAST(admin_id AS INTEGER), CAST(branch_id AS INTEGER), name, description, status, is_synced, created_at, updated_at
+            FROM old_roles WHERE CAST(id AS INTEGER) > 0
+          ''');
+          
+          await txn.execute('''
+            INSERT INTO permissions (id, name, label, updated_at)
+            SELECT CAST(id AS INTEGER), name, label, updated_at
+            FROM old_permissions WHERE CAST(id AS INTEGER) > 0
+          ''');
+
+          await txn.execute('''
+            INSERT INTO role_permissions (role_id, permission_id)
+            SELECT CAST(role_id AS INTEGER), CAST(permission_id AS INTEGER)
+            FROM old_role_permissions WHERE CAST(role_id AS INTEGER) > 0 AND CAST(permission_id AS INTEGER) > 0
+          ''');
+
+          // 4. Drop old tables
+          await txn.execute('DROP TABLE old_roles');
+          await txn.execute('DROP TABLE old_permissions');
+          await txn.execute('DROP TABLE old_role_permissions');
+        });
+      } catch (e) {
+        if (kDebugMode) print('v42 roles migration error: $e');
       }
     }
   }

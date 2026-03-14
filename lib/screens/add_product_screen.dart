@@ -5,7 +5,6 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
 import 'package:mobile_app/models/branch.dart';
 
 class AddProductScreen extends StatefulWidget {
@@ -28,7 +27,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     _controller = AddProductController(initialProduct: widget.product);
     _controller.addListener(_updateUI);
     _controller.loadCategories();
-    _controller.loadBranches();
   }
 
   void _updateUI() {
@@ -195,16 +193,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       final isWide = ThemeProvider.isWideScreen(context);
                       return Column(
                         children: [
-                          if (isWide)
+                          if (isWide) ...[
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(child: _buildCategorySelector()),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildBarcodeScanner()),
                               ],
-                            )
-                          else ...[
+                            ),
+                            const SizedBox(height: 16),
+                            _buildBarcodeScanner(),
+                          ] else ...[
                             _buildCategorySelector(),
                             const SizedBox(height: 16),
                             _buildBarcodeScanner(),
@@ -408,11 +406,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
     int maxLines = 1,
+    bool enabled = true,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
+      enabled: enabled,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
       validator: validator,
       decoration: theme.glassInputDecoration(label, icon),
@@ -423,14 +423,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Row(
       children: [
         Expanded(
-          child: DropdownButtonFormField<String>(
-            value: _controller.selectedCategory,
-            dropdownColor: theme.surface,
-            style: TextStyle(color: theme.textPrimary),
-            decoration: theme.glassInputDecoration('Category', Icons.category_outlined),
-            items: _controller.categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.name))).toList(),
-            onChanged: _controller.setCategory,
-          ),
+          child: _controller.categories.isEmpty 
+            ? _buildTextField(controller: TextEditingController(text: 'Loading...'), label: 'Category', icon: Icons.category_outlined, enabled: false)
+            : DropdownButtonFormField<dynamic>(
+                value: _controller.categories.any((c) => c.id == _controller.selectedCategory) 
+                    ? _controller.selectedCategory 
+                    : null,
+                dropdownColor: theme.surface,
+                style: TextStyle(color: theme.textPrimary),
+                decoration: theme.glassInputDecoration('Category', Icons.category_outlined),
+                items: _controller.categories
+                    .fold<List<ProductCategory>>([], (list, c) => list.any((e) => e.id == c.id) ? list : [...list, c])
+                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                    .toList(),
+                onChanged: _controller.setCategory,
+              ),
         ),
         const SizedBox(width: 8),
         IconButton(
@@ -447,6 +454,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ],
     );
   }
+
 
   Widget _buildBarcodeScanner() {
     return Row(

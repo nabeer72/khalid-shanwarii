@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -10,8 +10,8 @@ mixin ShiftsCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getActiveShift() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -38,7 +38,7 @@ mixin ShiftsCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> endShift(String id, Map<String, dynamic> closingData) async {
+  Future<void> endShift(dynamic id, Map<String, dynamic> closingData) async {
     final db = await database;
     await db.update(
       'shifts',
@@ -55,8 +55,8 @@ mixin ShiftsCrud on CommonCrud {
 
   Future<Map<String, double>> getShiftTotals(String startTime, String endTime) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
 
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();

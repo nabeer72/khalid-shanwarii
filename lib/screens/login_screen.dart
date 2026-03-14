@@ -217,10 +217,10 @@ class _LoginScreenState extends State<LoginScreen>
           print('✅ [LOGIN] Local authentication successful!');
 
           // Store user session
-          await _storage.write(key: 'user_id', value: localUser['id']);
+          await _storage.write(key: 'user_id', value: localUser['id'].toString());
           await _storage.write(key: 'user_email', value: localUser['email']);
           await _storage.write(
-              key: 'business_id', value: localUser['business_id']);
+              key: 'business_id', value: localUser['business_id'].toString());
 
           // Load business info
           if (localUser['business_id'] != null) {
@@ -234,12 +234,12 @@ class _LoginScreenState extends State<LoginScreen>
             }
           }
 
-          BusinessConfig.instance.adminId = localUser['id']?.toString().toLowerCase();
+          BusinessConfig.instance.adminId = localUser['id'];
           BusinessConfig.instance.staffId = null; // Admin login
           await _storage.delete(key: 'staff_id');
 
           if (localUser['branch_id'] != null) {
-            final bid = localUser['branch_id'].toString().toLowerCase();
+            final String bid = localUser['branch_id'].toString();
             await _storage.write(key: 'branch_id', value: bid);
           }
 
@@ -279,11 +279,11 @@ class _LoginScreenState extends State<LoginScreen>
           await _storage.write(key: 'business_id', value: staff['business_id']);
 
           // Initialize BusinessConfig for Staff
-          BusinessConfig.instance.adminId = staff['admin_id']?.toString().toLowerCase(); // For data isolation
-          BusinessConfig.instance.staffId = staff['id']?.toString().toLowerCase(); // For identity
+          BusinessConfig.instance.adminId = staff['admin_id']; // For data isolation
+          BusinessConfig.instance.staffId = staff['id']; // For identity
 
           if (staff['branch_id'] != null) {
-            final bid = staff['branch_id'].toString().toLowerCase();
+            final String bid = staff['branch_id'].toString();
             await _storage.write(key: 'branch_id', value: bid);
           }
 
@@ -334,7 +334,7 @@ class _LoginScreenState extends State<LoginScreen>
           // CRITICAL: Update BusinessConfig IMMEDIATELY so UI has access to IDs
           if (pullData['business'] != null) {
             final b = pullData['business'];
-            BusinessConfig.instance.businessId = b['id']?.toString().toLowerCase();
+            BusinessConfig.instance.businessId = b['id'] is int ? (b['id'] as int) : int.tryParse(b['id']?.toString() ?? '');
             BusinessConfig.instance.businessName = b['name'];
             BusinessConfig.instance.businessType = b['business_type'];
             await _dbHelper.insertBusiness(b);
@@ -343,31 +343,31 @@ class _LoginScreenState extends State<LoginScreen>
           if (pullData['user'] != null) {
             final u = pullData['user'];
             await _dbHelper.insertUser(u);
-            final uid = u['id']?.toString().toLowerCase();
-            final bid = u['business_id']?.toString().toLowerCase();
-            final brid = u['branch_id']?.toString().toLowerCase();
-            final aid = u['admin_id']?.toString().toLowerCase();
+            final uid = u['id'] is int ? (u['id'] as int) : int.tryParse(u['id']?.toString() ?? '');
+            final bid = u['business_id'] is int ? (u['business_id'] as int) : int.tryParse(u['business_id']?.toString() ?? '');
+            final brid = u['branch_id'] is int ? (u['branch_id'] as int) : int.tryParse(u['branch_id']?.toString() ?? '');
+            final aid = u['admin_id'] is int ? (u['admin_id'] as int) : int.tryParse(u['admin_id']?.toString() ?? '');
 
             if (uid != null) {
               if (aid != null && aid != uid) {
                 BusinessConfig.instance.adminId = aid;
                 BusinessConfig.instance.staffId = uid;
                 BusinessConfig.instance.branchId = brid;
-                await storage.write(key: 'user_id', value: aid);
-                await storage.write(key: 'staff_id', value: uid);
+                await storage.write(key: 'user_id', value: aid.toString());
+                await storage.write(key: 'staff_id', value: uid.toString());
               } else {
                 BusinessConfig.instance.adminId = uid;
                 BusinessConfig.instance.staffId = null;
                 BusinessConfig.instance.branchId = brid;
-                await storage.write(key: 'user_id', value: uid);
+                await storage.write(key: 'user_id', value: uid.toString());
                 await storage.delete(key: 'staff_id');
               }
-              if (brid != null) await storage.write(key: 'branch_id', value: brid);
+              if (brid != null) await storage.write(key: 'branch_id', value: brid.toString());
             }
 
             if (bid != null) {
               BusinessConfig.instance.businessId = bid;
-              await storage.write(key: 'business_id', value: bid);
+              await storage.write(key: 'business_id', value: bid.toString());
             }
             await storage.write(key: 'user_email', value: u['email']);
           }

@@ -1,14 +1,14 @@
 class Role {
-  final String id;
-  final String businessId;
-  final String? branchId;
+  final int? id;
+  final int businessId;
+  final int? branchId;
   final String name;
   final String? description;
   final bool status;
-  final List<String> permissionIds;
+  final List<int> permissionIds;
 
   Role({
-    required this.id,
+    this.id,
     required this.businessId,
     this.branchId,
     required this.name,
@@ -17,11 +17,11 @@ class Role {
     this.permissionIds = const [],
   });
 
-  factory Role.fromMap(Map<String, dynamic> map, {List<String> permissions = const []}) {
+  factory Role.fromMap(Map<String, dynamic> map, {List<int> permissions = const []}) {
     return Role(
-      id: map['id']?.toString() ?? '',
-      businessId: map['business_id']?.toString() ?? '',
-      branchId: map['branch_id']?.toString(),
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? '') ?? 0,
+      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
       name: map['name']?.toString() ?? 'Unknown',
       description: map['description']?.toString(),
       status: (map['status'] ?? 1) == 1,

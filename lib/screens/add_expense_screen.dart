@@ -83,19 +83,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     children: [
                       _buildSectionHeader('Expense Details'),
                       _buildCard([
-                        if (BusinessConfig.instance.staffId == null && _controller.branches.isNotEmpty) ...[
-                          DropdownButtonFormField<String>(
-                            value: _controller.selectedBranchId,
-                            dropdownColor: theme.surface,
-                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-                            decoration: theme.glassInputDecoration('Store Branch', Icons.store_rounded),
-                            items: _controller.branches
-                                .map((b) => DropdownMenuItem<String>(value: b.id.toLowerCase(), child: Text(b.branchTitle)))
-                                .toList(),
-                            onChanged: _controller.setBranch,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
                         LayoutBuilder(builder: (context, constraints) {
                           final isWide = ThemeProvider.isWideScreen(context);
                           return Column(
@@ -105,13 +92,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Expanded(
-                                      child: DropdownButtonFormField<String>(
+                                      child: DropdownButtonFormField<int>(
                                         value: _controller.selectedHeadId,
                                         dropdownColor: theme.surface,
                                         style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
                                         decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded),
                                         items: _controller.expenseHeads
-                                            .map((h) => DropdownMenuItem(value: h.id, child: Text(h.name)))
+                                            .map((h) => DropdownMenuItem<int>(value: h.id, child: Text(h.name)))
                                             .toList(),
                                         onChanged: _controller.setCategory,
                                       ),
@@ -182,13 +169,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                   ],
                                 ),
                               ] else ...[
-                                DropdownButtonFormField<String>(
+                                DropdownButtonFormField<int>(
                                   value: _controller.selectedHeadId,
                                   dropdownColor: theme.surface,
                                   style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
                                   decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded),
                                   items: _controller.expenseHeads
-                                      .map((h) => DropdownMenuItem(value: h.id, child: Text(h.name)))
+                                      .map((h) => DropdownMenuItem<int>(value: h.id, child: Text(h.name)))
                                       .toList(),
                                   onChanged: _controller.setCategory,
                                 ),
@@ -326,3 +313,4 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 }
+

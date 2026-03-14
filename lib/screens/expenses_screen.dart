@@ -131,7 +131,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
 
     if (confirmed == true) {
-      await _controller.deleteExpense(expense.id);
+      if (expense.id != null) await _controller.deleteExpense(expense.id!);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Expense deleted'), backgroundColor: ThemeProvider.error),

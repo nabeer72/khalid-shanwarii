@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/branch.dart';
 
@@ -18,7 +18,7 @@ class AddSupplierController with ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   List<Branch> branches = [];
-  String? selectedBranchId;
+  int? selectedBranchId;
 
   AddSupplierController({this.initialSupplier}) {
     nameCtrl = TextEditingController(text: initialSupplier?.name ?? '');
@@ -27,28 +27,10 @@ class AddSupplierController with ChangeNotifier {
     emailCtrl = TextEditingController(text: initialSupplier?.email ?? '');
     addressCtrl = TextEditingController(text: initialSupplier?.address ?? '');
     balanceCtrl = TextEditingController(text: initialSupplier?.creditBalance.toString() ?? '0');
-    selectedBranchId = initialSupplier?.branchId?.toLowerCase() ?? BusinessConfig.instance.branchId?.toLowerCase();
-    loadBranches();
+    selectedBranchId = initialSupplier?.branchId ?? BusinessConfig.instance.branchId;
   }
 
-  Future<void> loadBranches() async {
-    try {
-      final res = await DatabaseHelper.instance.getBranches();
-      branches = res.map((b) => Branch.fromMap(b)).toList();
-      if (branches.isNotEmpty && selectedBranchId == null) {
-        selectedBranchId = branches.first.id.toLowerCase();
-      }
-    } catch (e) {
-      debugPrint('Error loading branches: $e');
-    } finally {
-      notifyListeners();
-    }
-  }
 
-  void setBranch(String? id) {
-    selectedBranchId = id;
-    notifyListeners();
-  }
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -72,7 +54,7 @@ class AddSupplierController with ChangeNotifier {
     notifyListeners();
 
     final supplierData = {
-      'id': initialSupplier?.id ?? const Uuid().v4(),
+      'id': initialSupplier?.id,
       'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
       'name': nameCtrl.text.trim(),
       'contact_person': contactCtrl.text.trim(),
@@ -118,7 +100,7 @@ class AddSupplierController with ChangeNotifier {
     notifyListeners();
 
     try {
-      await DatabaseHelper.instance.deleteSupplier(initialSupplier!.id);
+      await DatabaseHelper.instance.deleteSupplier(initialSupplier!.id!);
 
       if (context.mounted) {
         Navigator.pop(context, true);

@@ -1,15 +1,15 @@
 import 'package:flutter/foundation.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 
 class DbTables {
   static Future<void> createDB(Database db, int version) async {
     // Businesses
     await db.execute('''
       CREATE TABLE businesses (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         business_type TEXT,
-        owner_user_id TEXT,
+        owner_user_id INTEGER,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
@@ -20,9 +20,9 @@ class DbTables {
     // Users
     await db.execute('''
       CREATE TABLE users (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
         name TEXT NOT NULL,
         email TEXT UNIQUE,
         password TEXT,
@@ -38,10 +38,10 @@ class DbTables {
     // Categories
     await db.execute('''
       CREATE TABLE categories (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
         name TEXT NOT NULL,
         icon TEXT,
         status INTEGER DEFAULT 1,
@@ -54,19 +54,23 @@ class DbTables {
     // Products
     await db.execute('''
       CREATE TABLE products (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        admin_id TEXT,
-        user_id TEXT,
-        branch_id TEXT,
-        category_id TEXT,
-        sub_category_id TEXT,
-        brand_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        admin_id INTEGER,
+        user_id INTEGER,
+        branch_id INTEGER,
+        category_id INTEGER,
+        sub_category_id INTEGER,
+        brand_id INTEGER,
         name TEXT NOT NULL,
         stock_type TEXT,
         image TEXT,
         description TEXT,
         barcode TEXT,
+        price REAL DEFAULT 0,
+        purchase_price REAL DEFAULT 0,
+        wholesale_price REAL DEFAULT 0,
+        stock_quantity REAL DEFAULT 0,
         stock_limit INTEGER DEFAULT 5,
         discount_limit REAL,
         is_price_per_weight INTEGER DEFAULT 0,
@@ -82,10 +86,10 @@ class DbTables {
     // Stocks
     await db.execute('''
       CREATE TABLE stocks (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        product_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        product_id INTEGER,
         barcode TEXT,
         manufacture_date TEXT,
         expire_date TEXT,
@@ -114,10 +118,10 @@ class DbTables {
     // Customers
     await db.execute('''
       CREATE TABLE customers (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
         name TEXT NOT NULL,
         phone TEXT,
         email TEXT,
@@ -137,17 +141,17 @@ class DbTables {
     // Employees
     await db.execute('''
       CREATE TABLE employees (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        admin_id TEXT,
-        branch_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        admin_id INTEGER,
+        branch_id INTEGER,
         name TEXT NOT NULL,
         email TEXT UNIQUE,
         phone TEXT,
         role TEXT DEFAULT 'cashier',
         pin TEXT,
         permissions TEXT,
-        role_id TEXT,
+        role_id INTEGER,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
@@ -158,12 +162,12 @@ class DbTables {
     // Sales
     await db.execute('''
       CREATE TABLE sales (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        customer_id TEXT,
-        user_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        customer_id INTEGER,
+        user_id INTEGER,
         subtotal REAL DEFAULT 0,
         tax REAL DEFAULT 0,
         discount REAL DEFAULT 0,
@@ -182,14 +186,14 @@ class DbTables {
     // Sale Items
     await db.execute('''
       CREATE TABLE sale_items (
-        id TEXT PRIMARY KEY,
-        sale_id TEXT NOT NULL,
-        product_id TEXT,
-        stock_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sale_id INTEGER NOT NULL,
+        product_id INTEGER,
+        stock_id INTEGER,
         quantity REAL DEFAULT 1,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
-        branch_id TEXT,
+        branch_id INTEGER,
         is_synced INTEGER DEFAULT 0,
         FOREIGN KEY (sale_id) REFERENCES sales(id),
         FOREIGN KEY (product_id) REFERENCES products(id),
@@ -200,10 +204,10 @@ class DbTables {
     // Gift Cards
     await db.execute('''
       CREATE TABLE gift_cards (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
         code TEXT UNIQUE,
         initial_balance REAL DEFAULT 0,
         current_balance REAL DEFAULT 0,
@@ -217,12 +221,12 @@ class DbTables {
     // Held Orders
     await db.execute('''
       CREATE TABLE held_orders (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
         name TEXT,
-        customer_id TEXT,
+        customer_id INTEGER,
         items TEXT,
         total REAL DEFAULT 0,
         created_at TEXT
@@ -240,10 +244,10 @@ class DbTables {
     // Expense Heads
     await db.execute('''
       CREATE TABLE expense_heads (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
         name TEXT NOT NULL,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
@@ -255,11 +259,11 @@ class DbTables {
     // Expenses
     await db.execute('''
       CREATE TABLE expenses (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        expense_head_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        expense_head_id INTEGER,
         amount REAL DEFAULT 0,
         description TEXT,
         date TEXT,
@@ -274,10 +278,10 @@ class DbTables {
     // Suppliers
     await db.execute('''
       CREATE TABLE suppliers (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
         name TEXT NOT NULL,
         contact_person TEXT,
         phone TEXT,
@@ -294,11 +298,11 @@ class DbTables {
     // Purchases
     await db.execute('''
       CREATE TABLE purchases (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        supplier_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        supplier_id INTEGER,
         invoice_number TEXT,
         purchase_date TEXT,
         notes TEXT,
@@ -316,9 +320,9 @@ class DbTables {
     // Purchase Items
     await db.execute('''
       CREATE TABLE purchase_items (
-        id TEXT PRIMARY KEY,
-        purchase_id TEXT,
-        product_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        purchase_id INTEGER,
+        product_id INTEGER,
         barcode TEXT,
         existing_stock REAL DEFAULT 0,
         quantity REAL DEFAULT 0,
@@ -326,7 +330,7 @@ class DbTables {
         wholesale_price REAL DEFAULT 0,
         selling_price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
-        branch_id TEXT,
+        branch_id INTEGER,
         is_synced INTEGER DEFAULT 0,
         FOREIGN KEY (purchase_id) REFERENCES purchases(id),
         FOREIGN KEY (product_id) REFERENCES products(id)
@@ -336,12 +340,12 @@ class DbTables {
     // Credit Sales
     await db.execute('''
       CREATE TABLE credit_sales (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        customer_id TEXT NOT NULL,
-        sale_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        customer_id INTEGER NOT NULL,
+        sale_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         remaining_balance REAL NOT NULL,
         status INTEGER DEFAULT 1,
@@ -356,12 +360,12 @@ class DbTables {
     // Credit Payments
     await db.execute('''
       CREATE TABLE credit_payments (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        credit_sale_id TEXT,
-        customer_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        credit_sale_id INTEGER,
+        customer_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         received_by TEXT,
         payment_date TEXT,
@@ -376,12 +380,12 @@ class DbTables {
     // Supplier Credit Purchases
     await db.execute('''
       CREATE TABLE supplier_credit_purchases (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        supplier_id TEXT NOT NULL,
-        purchase_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        supplier_id INTEGER NOT NULL,
+        purchase_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         remaining_balance REAL NOT NULL,
         status INTEGER DEFAULT 1,
@@ -396,12 +400,12 @@ class DbTables {
     // Supplier Paybacks
     await db.execute('''
       CREATE TABLE supplier_paybacks (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
-        admin_id TEXT,
-        supplier_credit_purchase_id TEXT,
-        supplier_id TEXT NOT NULL,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        supplier_credit_purchase_id INTEGER,
+        supplier_id INTEGER NOT NULL,
         amount REAL NOT NULL,
         paid_by TEXT,
         payment_date TEXT,
@@ -416,12 +420,12 @@ class DbTables {
     // Shifts
     await db.execute('''
       CREATE TABLE shifts (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        admin_id TEXT,
-        branch_id TEXT,
-        user_id TEXT,
-        staff_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        admin_id INTEGER,
+        branch_id INTEGER,
+        user_id INTEGER,
+        staff_id INTEGER,
         start_time TEXT,
         end_time TEXT,
         opening_cash REAL DEFAULT 0,
@@ -442,9 +446,11 @@ class DbTables {
     // Branches
     await db.execute('''
       CREATE TABLE branches (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        user_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        admin_id INTEGER,
+        branch_id INTEGER,
+        user_id INTEGER,
         name TEXT,
         address TEXT,
         cell_number TEXT,
@@ -465,10 +471,10 @@ class DbTables {
     // Bank Accounts/Transactions
     await db.execute('''
       CREATE TABLE bank_accounts (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        admin_id TEXT,
-        branch_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        admin_id INTEGER,
+        branch_id INTEGER,
         bank_name TEXT NOT NULL,
         account_type TEXT,
         account_title TEXT,
@@ -487,9 +493,10 @@ class DbTables {
     // Roles Table
     await db.execute('''
       CREATE TABLE roles (
-        id TEXT PRIMARY KEY,
-        business_id TEXT,
-        branch_id TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        admin_id INTEGER,
+        branch_id INTEGER,
         name TEXT NOT NULL,
         description TEXT,
         status INTEGER DEFAULT 1,
@@ -502,7 +509,7 @@ class DbTables {
     // Permissions Table (Offline reference)
     await db.execute('''
       CREATE TABLE permissions (
-        id TEXT PRIMARY KEY,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         label TEXT NOT NULL,
         created_at TEXT,
@@ -513,8 +520,8 @@ class DbTables {
     // Role Permissions Pivot
     await db.execute('''
       CREATE TABLE role_permissions (
-        role_id TEXT,
-        permission_id TEXT,
+        role_id INTEGER,
+        permission_id INTEGER,
         PRIMARY KEY (role_id, permission_id)
       )
     ''');
@@ -525,25 +532,25 @@ class DbTables {
 
   static Future<void> seedPermissions(Database db) async {
     final perms = [
-      {'id': 'pos_access', 'name': 'pos_access', 'label': 'POS Access'},
-      {'id': 'new_sale', 'name': 'new_sale', 'label': 'Create New Sale'},
-      {'id': 'reports_view', 'name': 'reports_view', 'label': 'View Reports'},
-      {'id': 'product_manage', 'name': 'product_manage', 'label': 'Manage Products'},
-      {'id': 'customer_manage', 'name': 'customer_manage', 'label': 'Manage Customers'},
-      {'id': 'staff_manage', 'name': 'staff_manage', 'label': 'Manage Staff'},
-      {'id': 'settings_manage', 'name': 'settings_manage', 'label': 'Manage Settings'},
-      {'id': 'expenses_manage', 'name': 'expenses_manage', 'label': 'Manage Expenses'},
-      {'id': 'suppliers_manage', 'name': 'suppliers_manage', 'label': 'Manage Suppliers'},
-      {'id': 'purchases_manage', 'name': 'purchases_manage', 'label': 'Manage Purchases'},
-      {'id': 'sales_history', 'name': 'sales_history', 'label': 'View Sales History'},
-      {'id': 'recovery', 'name': 'recovery', 'label': 'Credit Recovery'},
-      {'id': 'stock_view', 'name': 'stock_view', 'label': 'View Stock Reports'},
-      {'id': 'gift_cards', 'name': 'gift_cards', 'label': 'Manage Gift Cards'},
-      {'id': 'loyalty', 'name': 'loyalty', 'label': 'Manage Loyalty'},
-      {'id': 'support_view', 'name': 'support_view', 'label': 'Contact Support'},
-      {'id': 'payback_manage', 'name': 'payback_manage', 'label': 'Manage Supplier Payback'},
-      {'id': 'branches_manage', 'name': 'branches_manage', 'label': 'Manage Branches'},
-      {'id': 'bank_manage', 'name': 'bank_manage', 'label': 'Manage Bank'},
+      {'name': 'pos_access', 'label': 'POS Access'},
+      {'name': 'new_sale', 'label': 'Create New Sale'},
+      {'name': 'reports_view', 'label': 'View Reports'},
+      {'name': 'product_manage', 'label': 'Manage Products'},
+      {'name': 'customer_manage', 'label': 'Manage Customers'},
+      {'name': 'staff_manage', 'label': 'Manage Staff'},
+      {'name': 'settings_manage', 'label': 'Manage Settings'},
+      {'name': 'expenses_manage', 'label': 'Manage Expenses'},
+      {'name': 'suppliers_manage', 'label': 'Manage Suppliers'},
+      {'name': 'purchases_manage', 'label': 'Manage Purchases'},
+      {'name': 'sales_history', 'label': 'View Sales History'},
+      {'name': 'recovery', 'label': 'Credit Recovery'},
+      {'name': 'stock_view', 'label': 'View Stock Reports'},
+      {'name': 'gift_cards', 'label': 'Manage Gift Cards'},
+      {'name': 'loyalty', 'label': 'Manage Loyalty'},
+      {'name': 'support_view', 'label': 'Contact Support'},
+      {'name': 'payback_manage', 'label': 'Manage Supplier Payback'},
+      {'name': 'branches_manage', 'label': 'Manage Branches'},
+      {'name': 'bank_manage', 'label': 'Manage Bank'},
     ];
 
     await db.transaction((txn) async {

@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
 
 class ExpensesController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
-  final Uuid _uuid = const Uuid();
 
   List<ExpenseHead> expenseHeads = [];
   List<Expense> expenses = [];
@@ -55,7 +53,7 @@ class ExpensesController with ChangeNotifier {
     if (name.trim().isEmpty) return;
 
     final head = {
-      'id': _uuid.v4(),
+      'id': null,
       'name': name.trim(),
       'status': 1,
       'created_at': DateTime.now().toIso8601String(),
@@ -66,19 +64,19 @@ class ExpensesController with ChangeNotifier {
     await loadData();
   }
 
-  Future<void> deleteExpenseHead(String id) async {
+  Future<void> deleteExpenseHead(int id) async {
     await _db.deleteExpenseHead(id);
     await loadData();
   }
 
   Future<void> addExpense({
-    required String headId,
+    required int headId,
     required double amount,
     String? description,
     required DateTime date,
   }) async {
     final expense = {
-      'id': _uuid.v4(),
+      'id': null,
       'expense_head_id': headId,
       'amount': amount,
       'description': description?.trim().isNotEmpty == true ? description!.trim() : null,
@@ -92,7 +90,7 @@ class ExpensesController with ChangeNotifier {
     await loadData();
   }
 
-  Future<void> deleteExpense(String id) async {
+  Future<void> deleteExpense(int id) async {
     await _db.deleteExpense(id);
     await loadData();
   }

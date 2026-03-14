@@ -1,7 +1,7 @@
 class Stock {
-  final String id;
-  final String? businessId;
-  final String productId;
+  final dynamic id;
+  final dynamic businessId;
+  final dynamic productId;
   final String? barcode;
   final String? manufactureDate;
   final String? expireDate;
@@ -25,7 +25,7 @@ class Stock {
   final String? deletedAt;
 
   Stock({
-    required this.id,
+    this.id,
     this.businessId,
     required this.productId,
     this.barcode,
@@ -53,9 +53,9 @@ class Stock {
 
   factory Stock.fromMap(Map<String, dynamic> map) {
     return Stock(
-      id: map['id'] ?? '',
+      id: map['id'],
       businessId: map['business_id'],
-      productId: map['product_id'] ?? '',
+      productId: map['product_id'],
       barcode: map['barcode'],
       manufactureDate: map['manufacture_date'],
       expireDate: map['expire_date'],

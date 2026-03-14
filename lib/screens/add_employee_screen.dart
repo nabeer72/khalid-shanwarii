@@ -207,35 +207,35 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                   const SizedBox(height: 24),
                   _buildSectionHeader('Role & Access'),
                   _buildCard([
-                    DropdownButtonFormField<String?>(
-                      value: _controller.roles.any((r) => r['id']?.toString().toLowerCase() == _controller.selectedRoleId?.toLowerCase())
+                    DropdownButtonFormField<int?>(
+                      value: _controller.roles.any((r) => r['id'] == _controller.selectedRoleId)
                           ? _controller.selectedRoleId
                           : null,
                       dropdownColor: theme.surface,
                       style: TextStyle(color: theme.textPrimary),
                       decoration: theme.glassInputDecoration('Access Role', Icons.badge_outlined),
-                      items: _controller.roles.map((r) => DropdownMenuItem<String?>(
-                        value: r['id']?.toString().toLowerCase(),
+                      items: _controller.roles.map((r) => DropdownMenuItem<int?>(
+                        value: r['id'] is int ? r['id'] : int.tryParse(r['id']?.toString() ?? ''),
                         child: Text(r['name']?.toString() ?? 'Unknown'),
                       )).toList(),
                       onChanged: _controller.setRole,
                     ),
                     if (_controller.branches.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      DropdownButtonFormField<String?>(
-                        value: (_controller.selectedBranchId == null || _controller.branches.any((b) => b.id.toLowerCase() == _controller.selectedBranchId?.toLowerCase()))
+                      DropdownButtonFormField<int?>(
+                        value: (_controller.selectedBranchId == null || _controller.branches.any((b) => b.id == _controller.selectedBranchId))
                             ? _controller.selectedBranchId
                             : null,
                         dropdownColor: theme.surface,
                         style: TextStyle(color: theme.textPrimary),
                         decoration: theme.glassInputDecoration('Assign to Branch', Icons.storefront_outlined),
                         items: [
-                          const DropdownMenuItem<String?>(
+                          const DropdownMenuItem<int?>(
                             value: null,
                             child: Text('All Branches (Global)'),
                           ),
-                          ..._controller.branches.map((b) => DropdownMenuItem<String?>(
-                                value: b.id.toLowerCase(),
+                          ..._controller.branches.map((b) => DropdownMenuItem<int?>(
+                                value: b.id,
                                 child: Text(b.branchTitle),
                               )),
                         ],

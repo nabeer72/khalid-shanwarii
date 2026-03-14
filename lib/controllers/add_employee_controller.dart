@@ -1,7 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
-import 'package:uuid/uuid.dart';
-
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 
@@ -22,10 +21,10 @@ class AddEmployeeController with ChangeNotifier {
   late TextEditingController search;
 
   // State
-  String? selectedRoleId;
+  int? selectedRoleId;
   List<Map<String, dynamic>> roles = [];
   int status = 1; // 1 = active, 0 = inactive
-  String? selectedBranchId;
+  int? selectedBranchId;
   List<Branch> branches = [];
 
   bool _isLoading = false;
@@ -41,8 +40,8 @@ class AddEmployeeController with ChangeNotifier {
     final emp = initialEmployee;
     if (emp != null) {
       status = emp.isActive ? 1 : 0;
-      selectedBranchId = emp.branchId?.toLowerCase();
-      selectedRoleId = emp.roleId?.toLowerCase();
+      selectedBranchId = emp.branchId;
+      selectedRoleId = emp.roleId;
     }
 
     _loadInitialData();
@@ -55,25 +54,25 @@ class AddEmployeeController with ChangeNotifier {
 
   Future<void> _loadRoles() async {
     try {
-      roles = await DatabaseHelper.instance.getRoles();
+      // Load ALL roles for this business (no branch filter) so dropdowns show everything
+      final db = await DatabaseHelper.instance.database;
+      final rawBid = BusinessConfig.instance.businessId;
+      final rawAid = BusinessConfig.instance.adminId;
+      final bid = rawBid is int ? rawBid : int.tryParse(rawBid?.toString() ?? '');
+      final aid = rawAid is int ? rawAid : int.tryParse(rawAid?.toString() ?? '');
+      roles = await db.rawQuery(
+        'SELECT * FROM roles WHERE status = 1 AND business_id = ? AND admin_id = ?',
+        [bid, aid],
+      );
       
-      // Normalize role IDs
-      final List<Map<String, dynamic>> normalizedRoles = roles.map((r) {
-        return {
-          ...r,
-          'id': r['id']?.toString().toLowerCase(),
-        };
-      }).toList();
-      roles = normalizedRoles;
-
       if (selectedRoleId != null) {
         // Ensure the selected role still exists in the loaded list
-        if (!roles.any((r) => r['id']?.toString().toLowerCase() == selectedRoleId)) {
+        if (!roles.any((r) => r['id'] == selectedRoleId)) {
           selectedRoleId = null;
         }
       } else if (initialEmployee?.roleId != null) {
-          final targetId = initialEmployee!.roleId!.toLowerCase();
-          if (roles.any((r) => r['id']?.toString().toLowerCase() == targetId)) {
+          final targetId = initialEmployee!.roleId!;
+          if (roles.any((r) => r['id'] == targetId)) {
             selectedRoleId = targetId;
           }
       }
@@ -85,16 +84,14 @@ class AddEmployeeController with ChangeNotifier {
 
   Future<void> _loadBranches() async {
     try {
-      final data = await DatabaseHelper.instance.getBranches();
+      // Load ALL branches (no active filter) so dropdowns show everything
+      final data = await DatabaseHelper.instance.getAllBranches();
       branches = data.map((b) => Branch.fromMap(b)).toList();
       
       // If employee has a branch ID that exists, keep it. Otherwise null.
       if (selectedBranchId != null) {
-        final targetId = selectedBranchId!.toLowerCase();
-        if (!branches.any((b) => b.id.toLowerCase() == targetId)) {
+        if (!branches.any((b) => b.id == selectedBranchId)) {
           selectedBranchId = null;
-        } else {
-          selectedBranchId = targetId; // ensure normalized
         }
       }
       notifyListeners();
@@ -143,12 +140,12 @@ class AddEmployeeController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setRole(String? newRoleId) {
+  void setRole(int? newRoleId) {
     selectedRoleId = newRoleId;
     notifyListeners();
   }
 
-  void setBranch(String? branchId) {
+  void setBranch(int? branchId) {
     selectedBranchId = branchId;
     notifyListeners();
   }
@@ -169,14 +166,14 @@ class AddEmployeeController with ChangeNotifier {
       // Get role name for the 'role' column (backward compatibility/simplicity)
       String roleName = 'cashier';
       if (selectedRoleId != null) {
-        final roleObj = roles.firstWhere((r) => r['id']?.toString().toLowerCase() == selectedRoleId?.toLowerCase(), orElse: () => {});
+        final roleObj = roles.firstWhere((r) => r['id'] == selectedRoleId, orElse: () => {});
         if (roleObj.isNotEmpty) {
           roleName = roleObj['name']?.toString().toLowerCase() ?? 'cashier';
         }
       }
 
       final empMap = {
-        'id': initialEmployee?.id ?? const Uuid().v4(),
+        'id': initialEmployee?.id,
         'name': name.text.trim(),
         'role': roleName, 
         'pin': password.text.trim().isEmpty ? null : password.text.trim(),
@@ -185,19 +182,17 @@ class AddEmployeeController with ChangeNotifier {
         'status': status,
         'role_id': selectedRoleId,
         'branch_id': selectedBranchId,
-        'permissions': initialEmployee?.permissions ?? [], // Keep existing or empty if new
+        'permissions': jsonEncode(initialEmployee?.permissions ?? []), // Keep existing or empty if new
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      // Note: your original code only inserts — no real update
-      // If you want update support later → add condition here
       // Enforce email uniqueness locally
       final db = await DatabaseHelper.instance.database;
       final cleanEmail = email.text.trim().toLowerCase();
       final List<Map<String, dynamic>> existing = await db.query(
         'employees',
         where: 'LOWER(email) = ? AND id != ?',
-        whereArgs: [cleanEmail, initialEmployee?.id ?? ''],
+        whereArgs: [cleanEmail, initialEmployee?.id ?? -1],
       );
 
       if (existing.isNotEmpty) {

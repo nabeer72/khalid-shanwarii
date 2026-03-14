@@ -12,12 +12,12 @@ class BusinessConfig {
   String businessName = 'My Business';
   String businessAddress = '';
   String businessPhone = '';
-  String? businessId;
-  String? branchId;
-  String? adminId;
-  String? staffId;
-  List<String> activeBranchIds = [];
-  List<String> inactiveBranchIds = [];
+  dynamic businessId;
+  dynamic branchId;
+  dynamic adminId;
+  dynamic staffId;
+  List<dynamic> activeBranchIds = [];
+  List<dynamic> inactiveBranchIds = [];
   String receiptFooter = 'Thank you!';
   double taxRate = 8.0;
   bool requireCustomer = false;
@@ -77,16 +77,16 @@ class MockDataStore {
   final List<Map<String, dynamic>> sales = [];
   final List<Customer> customers = [];
   final List<PaymentMethod> paymentMethods = [
-    PaymentMethod(id: 'pm1', name: 'Cash', icon: 'payments'),
-    PaymentMethod(id: 'pm2', name: 'Card', icon: 'credit_card'),
-    PaymentMethod(id: 'pm3', name: 'Mobile', icon: 'phone_android'),
-    PaymentMethod(id: 'pm4', name: 'Credit', icon: 'account_balance_wallet'),
+    PaymentMethod(id: 1, name: 'Cash', icon: 'payments'),
+    PaymentMethod(id: 2, name: 'Card', icon: 'credit_card'),
+    PaymentMethod(id: 3, name: 'Mobile', icon: 'phone_android'),
+    PaymentMethod(id: 4, name: 'Credit', icon: 'account_balance_wallet'),
   ];
   final List<Employee> employees = [];
   final List<QuickKey> quickKeys = [];
-  List<String> recentProductIds = [];
+  List<int> recentProductIds = [];
 
-  void addToRecent(String id) {
+  void addToRecent(int id) {
     if (!recentProductIds.contains(id)) {
       recentProductIds.insert(0, id);
       if (recentProductIds.length > 20) recentProductIds.removeLast();
@@ -107,7 +107,7 @@ class MockDataStore {
 
 // Payment Method Model
 class PaymentMethod {
-  final String id;
+  final int id;
   final String name;
   final String icon;
 
@@ -116,7 +116,7 @@ class PaymentMethod {
 
 // Employee Model
 class Employee {
-  final String id;
+  final int? id;
   final String name;
   final String role;
   final String? pin;
@@ -124,11 +124,11 @@ class Employee {
   final String? phone;
   final bool isActive;
   final List<String> permissions;
-  final String? branchId;
-  final String? roleId;
+  final int? branchId;
+  final int? roleId;
 
   Employee({
-    required this.id,
+    this.id,
     required this.name,
     required this.role,
     this.pin,
@@ -217,17 +217,17 @@ class AppPermissions {
 
 // Supplier Model
 class Supplier {
-  final String id;
+  final int? id;
   final String name;
   final String? contactPerson;
   final String? phone;
   final String? email;
   final String? address;
   final double creditBalance;
-  final String? branchId;
+  final int? branchId;
 
   Supplier({
-    required this.id,
+    this.id,
     required this.name,
     this.contactPerson,
     this.phone,
@@ -239,14 +239,14 @@ class Supplier {
 
   factory Supplier.fromMap(Map<String, dynamic> map) {
     return Supplier(
-      id: map['id']?.toString() ?? '',
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       name: map['name']?.toString() ?? '',
       contactPerson: map['contact_person']?.toString(),
       phone: map['phone']?.toString(),
       email: map['email']?.toString(),
       address: map['address']?.toString(),
       creditBalance: (map['credit_balance'] as num?)?.toDouble() ?? 0,
-      branchId: map['branch_id']?.toString(),
+      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
     );
   }
 
@@ -266,18 +266,18 @@ class Supplier {
 
 // Purchase Model
 class Purchase {
-  final String id;
-  final String supplierId;
+  final int? id;
+  final int supplierId;
   final String? supplierName;
   final String? invoiceNumber;
   final DateTime purchaseDate;
   final String? notes;
   final String? paymentType;
   final double totalAmount;
-  final String? branchId;
+  final int? branchId;
 
   Purchase({
-    required this.id,
+    this.id,
     required this.supplierId,
     this.supplierName,
     this.invoiceNumber,
@@ -290,24 +290,24 @@ class Purchase {
 
   factory Purchase.fromMap(Map<String, dynamic> map) {
     return Purchase(
-      id: map['id']?.toString() ?? '',
-      supplierId: map['supplier_id']?.toString() ?? '',
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      supplierId: map['supplier_id'] is int ? map['supplier_id'] : int.tryParse(map['supplier_id']?.toString() ?? '') ?? 0,
       supplierName: map['supplier_name']?.toString(),
       invoiceNumber: map['invoice_number']?.toString(),
       purchaseDate: DateTime.tryParse(map['purchase_date']?.toString() ?? '') ?? DateTime.now(),
       notes: map['notes']?.toString(),
       paymentType: map['payment_type']?.toString(),
       totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0,
-      branchId: map['branch_id']?.toString(),
+      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
     );
   }
 }
 
 // Purchase Item Model
 class PurchaseItem {
-  final String id;
-  final String purchaseId;
-  final String productId;
+  final int? id;
+  final int purchaseId;
+  final int productId;
   final String? productName;
   final double quantity;
   final double purchasePrice;
@@ -315,7 +315,7 @@ class PurchaseItem {
   final double subtotal;
 
   PurchaseItem({
-    required this.id,
+    this.id,
     required this.purchaseId,
     required this.productId,
     this.productName,
@@ -327,9 +327,9 @@ class PurchaseItem {
 
   factory PurchaseItem.fromMap(Map<String, dynamic> map) {
     return PurchaseItem(
-      id: map['id']?.toString() ?? '',
-      purchaseId: map['purchase_id']?.toString() ?? '',
-      productId: map['product_id']?.toString() ?? '',
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      purchaseId: map['purchase_id'] is int ? map['purchase_id'] : int.tryParse(map['purchase_id']?.toString() ?? '') ?? 0,
+      productId: map['product_id'] is int ? map['product_id'] : int.tryParse(map['product_id']?.toString() ?? '') ?? 0,
       productName: map['product_name']?.toString(),
       quantity: (map['quantity'] as num?)?.toDouble() ?? 0,
       purchasePrice: (map['purchase_price'] as num?)?.toDouble() ?? 0,
@@ -341,25 +341,25 @@ class PurchaseItem {
 
 // Quick Key Model
 class QuickKey {
-  final String id;
-  final String productId;
+  final int? id;
+  final int productId;
   final int quantity;
   final String label;
   final String color;
 
-  QuickKey({required this.id, required this.productId, this.quantity = 1, required this.label, this.color = 'blue'});
+  QuickKey({this.id, required this.productId, this.quantity = 1, required this.label, this.color = 'blue'});
 }
 
 // Expense Head Model
 class ExpenseHead {
-  final String id;
+  final int? id;
   final String name;
 
-  ExpenseHead({required this.id, required this.name});
+  ExpenseHead({this.id, required this.name});
 
   factory ExpenseHead.fromMap(Map<String, dynamic> map) {
     return ExpenseHead(
-      id: map['id']?.toString() ?? '',
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       name: map['name']?.toString() ?? '',
     );
   }
@@ -371,16 +371,16 @@ class ExpenseHead {
 
 // Expense Model
 class Expense {
-  final String id;
-  final String expenseHeadId;
+  final int? id;
+  final int expenseHeadId;
   final String? expenseHeadName;
   final double amount;
   final String? description;
   final DateTime date;
-  final String? branchId;
+  final int? branchId;
 
   Expense({
-    required this.id,
+    this.id,
     required this.expenseHeadId,
     this.expenseHeadName,
     required this.amount,
@@ -391,13 +391,13 @@ class Expense {
 
   factory Expense.fromMap(Map<String, dynamic> map, {String? headName}) {
     return Expense(
-      id: map['id']?.toString() ?? '',
-      expenseHeadId: map['expense_head_id']?.toString() ?? '',
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      expenseHeadId: map['expense_head_id'] is int ? map['expense_head_id'] : int.tryParse(map['expense_head_id']?.toString() ?? '') ?? 0,
       expenseHeadName: headName,
       amount: (map['amount'] as num?)?.toDouble() ?? 0,
       description: map['description']?.toString(),
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
-      branchId: map['branch_id']?.toString(),
+      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
     );
   }
 

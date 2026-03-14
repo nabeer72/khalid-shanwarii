@@ -77,7 +77,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       onPressed: () async {
-                        await DatabaseHelper.instance.deletePurchase(purchase.id);
+                        await DatabaseHelper.instance.deletePurchase(purchase.id ?? 0);
                         await _loadPurchases();
                         if (ctx.mounted) Navigator.pop(ctx);
                         if (mounted) {

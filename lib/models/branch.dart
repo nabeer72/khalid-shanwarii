@@ -1,7 +1,7 @@
 class Branch {
-  final String id;
-  final String? businessId;
-  final String? userId;
+  final dynamic id;
+  final dynamic businessId;
+  final dynamic userId;
   final String branchTitle;
   final String? branchCode;
   final String? branchAddress;
@@ -12,7 +12,7 @@ class Branch {
   final DateTime? updatedAt;
 
   Branch({
-    required this.id,
+    this.id,
     this.businessId,
     this.userId,
     required this.branchTitle,
@@ -30,14 +30,14 @@ class Branch {
       id: map['id'],
       businessId: map['business_id'],
       userId: map['user_id'],
-      branchTitle: map['branch_title'],
-      branchCode: map['branch_code'],
-      branchAddress: map['branch_address'],
-      contactNumber: map['contact_number'],
+      branchTitle: (map['branch_title'] ?? map['name'])?.toString() ?? '',
+      branchCode: map['branch_code']?.toString(),
+      branchAddress: map['branch_address']?.toString(),
+      contactNumber: map['contact_number'] is int ? map['contact_number'] : int.tryParse(map['contact_number']?.toString() ?? ''),
       status: map['status'] ?? 1,
       isSynced: map['is_synced'] ?? 0,
-      createdAt: map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
+      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at'].toString()) : null,
+      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at'].toString()) : null,
     );
   }
 

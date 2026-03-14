@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -9,8 +9,8 @@ mixin PurchasesCrud on CommonCrud {
   // Purchases
   Future<List<Map<String, dynamic>>> getPurchases() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'p.branch_id');
     final branchArgs = getBranchArgs();
@@ -28,10 +28,9 @@ mixin PurchasesCrud on CommonCrud {
 
   Future<void> insertPurchase(Map<String, dynamic> purchase, List<Map<String, dynamic>> items) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final brid = purchase['branch_id'] ?? getCurrentBranchId();
-    const uuid = Uuid();
 
     await db.transaction((txn) async {
       await txn.insert('purchases', {
@@ -83,9 +82,8 @@ mixin PurchasesCrud on CommonCrud {
 
         if (pricesChanged || existingStocks.isEmpty) {
           // Prices changed → create a NEW stock batch
-          final stockId = uuid.v4();
           await txn.insert('stocks', {
-            'id': stockId,
+            'id': null,
             'business_id': bid,
             'branch_id': brid,
             'product_id': productId,
@@ -122,7 +120,7 @@ mixin PurchasesCrud on CommonCrud {
     });
   }
 
-  Future<List<Map<String, dynamic>>> getPurchaseItems(String purchaseId) async {
+  Future<List<Map<String, dynamic>>> getPurchaseItems(dynamic purchaseId) async {
     final db = await database;
     return await db.rawQuery('''
       SELECT pi.*, p.name as product_name 
@@ -132,7 +130,7 @@ mixin PurchasesCrud on CommonCrud {
     ''', [purchaseId]);
   }
 
-  Future<void> deletePurchase(String id) async {
+  Future<void> deletePurchase(dynamic id) async {
     final db = await database;
     await db.update('purchases', {
       'status': 0,

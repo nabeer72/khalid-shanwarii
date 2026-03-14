@@ -1,5 +1,5 @@
 class BankAccount {
-  final String id;
+  final int? id;
   final String bankName;
   final String? accountType;
   final String? accountTitle;
@@ -12,7 +12,7 @@ class BankAccount {
   final int isSynced;
 
   BankAccount({
-    required this.id,
+    this.id,
     required this.bankName,
     this.accountType,
     this.accountTitle,
@@ -27,15 +27,15 @@ class BankAccount {
 
   factory BankAccount.fromMap(Map<String, dynamic> map) {
     return BankAccount(
-      id: map['id'],
-      bankName: map['bank_name'],
-      accountType: map['account_type'],
-      accountTitle: map['account_title'],
-      accountNumber: map['account_number'],
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      bankName: map['bank_name']?.toString() ?? '',
+      accountType: map['account_type']?.toString(),
+      accountTitle: map['account_title']?.toString(),
+      accountNumber: map['account_number']?.toString(),
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-      transactionType: map['transaction_type'],
-      remarks: map['remarks'],
-      date: map['date'] != null ? DateTime.parse(map['date']) : null,
+      transactionType: map['transaction_type']?.toString(),
+      remarks: map['remarks']?.toString(),
+      date: map['date'] != null ? DateTime.tryParse(map['date'].toString()) : null,
       status: map['status'] ?? 1,
       isSynced: map['is_synced'] ?? 0,
     );

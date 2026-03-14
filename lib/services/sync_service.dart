@@ -3,10 +3,9 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/services/api_service.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
 
 class SyncService {
   final ApiService _api = ApiService();
@@ -33,14 +32,16 @@ class SyncService {
     }
 
     try {
-      await syncPull();
+      final pullResponse = await syncPull();
       result.pullSuccess = true;
-    } catch (e) {
-      result.pullError = e.toString();
-    }
-    try {
+      
       await syncPush();
       result.pushSuccess = true;
+
+      // EXTREMELY CRITICAL: Only update the last sync timestamp AFTER push is complete.
+      if (pullResponse != null && pullResponse['timestamp'] != null) {
+        await _storage.write(key: 'last_synced_at', value: pullResponse['timestamp']);
+      }
     } catch (e) {
       if (e is DioException) {
         if (kDebugMode) print('Sync Push Error Body: ${e.response?.data}');
@@ -81,18 +82,19 @@ class SyncService {
         final respBusiness = response.data['business'];
         
         // Use current session IDs as fallbacks. If it's a staff member, we want to associate data with the admin's context.
+        dynamic pId(dynamic v) => v is int ? v : (int.tryParse(v?.toString() ?? '') ?? v);
+
         final aid = (respUser != null && respUser['admin_id'] != null && respUser['admin_id'].toString().isNotEmpty) 
             ? respUser['admin_id'] 
             : (respUser != null ? respUser['id'] : null);
             
         final brid = respUser != null ? respUser['branch_id'] : null;
-        final fallbackBusinessId = (BusinessConfig.instance.businessId ?? respBusiness?['id']?.toString())?.toLowerCase();
+        final fallbackBusinessId = BusinessConfig.instance.businessId ?? pId(respBusiness?['id']);
         
         var currentAdminId = BusinessConfig.instance.adminId;
-        if (currentAdminId != null && currentAdminId.isEmpty) currentAdminId = null;
         
-        final fallbackAdminId = (currentAdminId ?? aid?.toString())?.toLowerCase();
-        final fallbackBranchId = (BusinessConfig.instance.branchId ?? brid?.toString())?.toLowerCase();
+        final fallbackAdminId = currentAdminId ?? pId(aid);
+        final fallbackBranchId = BusinessConfig.instance.branchId ?? pId(brid);
 
         int _parseStatus(dynamic v) {
           if (v == null || v == true || v == 1 || v.toString().toLowerCase() == 'active' || v.toString() == '1') return 1;
@@ -106,14 +108,15 @@ class SyncService {
 
         // Helper: returns the server's branch_id if non-null, else
         // the fallback, else looks up the existing local row to preserve its branch_id.
-        Future<String?> _safeBranchId(Transaction t, String table, String? rowId, String? serverBranchId) async {
-          final resolved = (serverBranchId ?? fallbackBranchId)?.toString().toLowerCase();
-          if (resolved != null && resolved.isNotEmpty) return resolved;
+        Future<dynamic> _safeBranchId(Transaction t, String table, dynamic rowId, dynamic serverBranchId) async {
+          final resolved = serverBranchId is int ? serverBranchId : int.tryParse(serverBranchId?.toString() ?? '');
+          final finalBranchId = resolved ?? fallbackBranchId;
+          if (finalBranchId != null) return finalBranchId;
           // Preserve existing local branch_id
           if (rowId != null) {
             final rows = await t.query(table, columns: ['branch_id'], where: 'id = ?', whereArgs: [rowId], limit: 1);
             if (rows.isNotEmpty && rows.first['branch_id'] != null) {
-              return rows.first['branch_id'].toString();
+              return rows.first['branch_id'];
             }
           }
           return null;
@@ -123,14 +126,14 @@ class SyncService {
           // Categories
           if (data['categories'] != null) {
             for (var c in data['categories']) {
-              final catId = c['id']?.toString().toLowerCase();
+              final catId = c['id'] is int ? c['id'] : int.tryParse(c['id']?.toString() ?? '');
               await txn.insert(
                 'categories',
                 {
                   'id': catId,
-                  'business_id': (c['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': await _safeBranchId(txn, 'categories', catId, c['branch_id']?.toString()),
-                  'admin_id': (c['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
+                  'business_id': c['business_id'] is int ? c['business_id'] : int.tryParse(c['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': await _safeBranchId(txn, 'categories', catId, c['branch_id']),
+                  'admin_id': c['admin_id'] is int ? c['admin_id'] : int.tryParse(c['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': c['name'] ?? 'Unknown',
                   'icon': c['icon'],
                   'status': _parseStatus(c['status']),
@@ -147,20 +150,24 @@ class SyncService {
           if (data['products'] != null) {
             for (var i = 0; i < data['products'].length; i++) {
               var p = data['products'][i];
-              final productId = p['id']?.toString().toLowerCase();
+              final productId = p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? '');
               
               // 1. Insert Product Metadata
-              final safeProdBranch = await _safeBranchId(txn, 'products', productId, p['branch_id']?.toString());
+              final safeProdBranch = await _safeBranchId(txn, 'products', productId, p['branch_id']);
               final productRow = {
                 'id': productId,
-                'business_id': (p['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
+                'business_id': p['business_id'] is int ? p['business_id'] : int.tryParse(p['business_id']?.toString() ?? '') ?? fallbackBusinessId,
                 'branch_id': safeProdBranch,
-                'admin_id': (p['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                'category_id': p['category_id']?.toString().toLowerCase(),
+                'admin_id': p['admin_id'] is int ? p['admin_id'] : int.tryParse(p['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                'category_id': p['category_id'] is int ? p['category_id'] : int.tryParse(p['category_id']?.toString() ?? ''),
                 'name': p['name'] ?? 'Unknown',
                 'image': p['image'],
                 'description': p['description'],
                 'barcode': p['barcode'] ?? p['sku'],
+                'price': _parseNum(p['price'] ?? p['sale_price']),
+                'purchase_price': _parseNum(p['purchase_price'] ?? p['cost_price']),
+                'wholesale_price': _parseNum(p['wholesale_price'] ?? p['whole_sale_price']),
+                'stock_quantity': _parseNum(p['stock_quantity'] ?? p['quantity']),
                 'is_price_per_weight': (p['is_price_per_weight'] == true || p['is_price_per_weight'] == 1) ? 1 : 0,
                 'is_favorite': (p['is_favorite'] == true || p['is_favorite'] == 1) ? 1 : 0,
                 'status': _parseStatus(p['status']),
@@ -174,15 +181,15 @@ class SyncService {
               if (p['stocks'] != null && (p['stocks'] as List).isNotEmpty) {
                 for (var s in p['stocks']) {
                   await txn.insert('stocks', {
-                    'id': s['id']?.toString().toLowerCase(),
+                    'id': s['id'] is int ? s['id'] : int.tryParse(s['id']?.toString() ?? ''),
                     'business_id': productRow['business_id'],
-                    'branch_id': (s['branch_id'] ?? productRow['branch_id'])?.toString().toLowerCase(),
+                    'branch_id': s['branch_id'] is int ? s['branch_id'] : int.tryParse(s['branch_id']?.toString() ?? '') ?? productRow['branch_id'],
                     'product_id': productId,
                     'barcode': s['barcode'] ?? productRow['barcode'],
                     'quantity': _parseNum(s['quantity']),
                     'cost_price': _parseNum(s['cost_price'] ?? s['purchase_price']),
                     'sale_price': _parseNum(s['sale_price'] ?? s['price']),
-                    'wholesale_price': _parseNum(s['wholesale_price'] ?? s['whole_sale_price']), // Renamed
+                    'wholesale_price': _parseNum(s['wholesale_price'] ?? s['whole_sale_price']),
                     'status': _parseStatus(s['status'] ?? 1),
                     'is_synced': 1,
                     'updated_at': s['updated_at'] ?? productRow['updated_at'],
@@ -195,12 +202,9 @@ class SyncService {
                 
                 // Only create a batch if there is price or quantity
                 if (price > 0 || qty > 0) {
-                  // We need a stable ID for this "default" stock to avoid duplicates on every sync
-                  // Let's use a hash of the product ID or just check if any stock exists
                   final existingStocks = await txn.query('stocks', where: 'product_id = ?', whereArgs: [productId]);
                   if (existingStocks.isEmpty) {
                     await txn.insert('stocks', {
-                      'id': const Uuid().v4(),
                       'business_id': productRow['business_id'],
                       'branch_id': productRow['branch_id'],
                       'product_id': productId,
@@ -208,7 +212,7 @@ class SyncService {
                       'quantity': qty,
                       'cost_price': _parseNum(p['purchase_price'] ?? p['cost_price']),
                       'sale_price': price,
-                      'wholesale_price': _parseNum(p['wholesale_price'] ?? p['whole_sale_price']), // Renamed
+                      'wholesale_price': _parseNum(p['wholesale_price'] ?? p['whole_sale_price']),
                       'status': 1,
                       'is_synced': 1,
                       'updated_at': productRow['updated_at'],
@@ -231,14 +235,14 @@ class SyncService {
           // Customers
           if (data['customers'] != null) {
             for (var c in data['customers']) {
-              final custId = c['id']?.toString().toLowerCase();
+              final custId = c['id'] is int ? c['id'] : int.tryParse(c['id']?.toString() ?? '');
               await txn.insert(
                 'customers',
                 {
                   'id': custId,
-                  'business_id': (c['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': await _safeBranchId(txn, 'customers', custId, c['branch_id']?.toString()),
-                  'admin_id': (c['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
+                  'business_id': c['business_id'] is int ? c['business_id'] : int.tryParse(c['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': await _safeBranchId(txn, 'customers', custId, c['branch_id']),
+                  'admin_id': c['admin_id'] is int ? c['admin_id'] : int.tryParse(c['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': c['name'] ?? 'Unknown',
                   'phone': c['phone'],
                   'email': c['email'],
@@ -262,15 +266,15 @@ class SyncService {
               await txn.insert(
                 'employees',
                 {
-                  'id': e['id']?.toString().toLowerCase(),
-                  'business_id': (e['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (e['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (e['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
+                  'id': e['id'] is int ? e['id'] : int.tryParse(e['id']?.toString() ?? ''),
+                  'business_id': e['business_id'] is int ? e['business_id'] : int.tryParse(e['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': e['branch_id'] is int ? e['branch_id'] : int.tryParse(e['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': e['admin_id'] is int ? e['admin_id'] : int.tryParse(e['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': e['name'] ?? 'Unknown',
                   'email': e['email'],
                   'phone': e['phone'],
                   'role': e['role'] ?? 'cashier',
-                  'role_id': e['role_id'],
+                  'role_id': e['role_id'] is int ? e['role_id'] : int.tryParse(e['role_id']?.toString() ?? ''),
                   'pin': e['pin'],
                   'permissions': (e['permissions'] is List || e['permissions'] is Map) ? jsonEncode(e['permissions']) : e['permissions'],
                   'status': _parseStatus(e['status']),
@@ -286,12 +290,13 @@ class SyncService {
           // Roles
           if (data['roles'] != null) {
             for (var r in data['roles']) {
+              final rid = r['id'] is int ? r['id'] : int.tryParse(r['id']?.toString() ?? '');
               await txn.insert(
                 'roles',
                 {
-                  'id': r['id']?.toString().toLowerCase(),
-                  'business_id': (r['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (r['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
+                  'id': rid,
+                  'business_id': r['business_id'] is int ? r['business_id'] : int.tryParse(r['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': r['branch_id'] is int ? r['branch_id'] : int.tryParse(r['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                   'name': r['name'] ?? 'Unknown',
                   'description': r['description'],
                   'status': _parseStatus(r['status']),
@@ -304,13 +309,14 @@ class SyncService {
               // Role Permissions Pivot
               if (r['permissions'] != null) {
                 // Clear old permissions for this role first
-                await txn.delete('role_permissions', where: 'role_id = ?', whereArgs: [r['id']?.toString().toLowerCase()]);
+                await txn.delete('role_permissions', where: 'role_id = ?', whereArgs: [rid]);
                 for (var p in r['permissions']) {
+                  final pid = p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? '');
                   await txn.insert(
                     'role_permissions',
                     {
-                      'role_id': r['id']?.toString().toLowerCase(),
-                      'permission_id': p['id']?.toString().toLowerCase(),
+                      'role_id': rid,
+                      'permission_id': pid,
                     },
                     conflictAlgorithm: ConflictAlgorithm.replace,
                   );
@@ -326,7 +332,7 @@ class SyncService {
               await txn.insert(
                 'permissions',
                 {
-                  'id': p['id']?.toString().toLowerCase(),
+                  'id': p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? ''),
                   'name': p['name'] ?? 'Unknown',
                   'label': p['label'] ?? p['name'] ?? 'Unknown',
                   'updated_at': p['updated_at'],
@@ -340,16 +346,16 @@ class SyncService {
           // Sales
           if (data['sales'] != null) {
             for (var s in data['sales']) {
-              final saleId = s['id']?.toString().toLowerCase();
+              final saleId = s['id'] is int ? s['id'] : int.tryParse(s['id']?.toString() ?? '');
               await txn.insert(
                 'sales',
                 {
                   'id': saleId,
-                  'business_id': (s['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': await _safeBranchId(txn, 'sales', saleId, s['branch_id']?.toString()),
-                  'admin_id': (s['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'customer_id': s['customer_id']?.toString().toLowerCase(),
-                  'user_id': s['user_id']?.toString().toLowerCase(),
+                  'business_id': s['business_id'] is int ? s['business_id'] : int.tryParse(s['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': await _safeBranchId(txn, 'sales', saleId, s['branch_id']),
+                  'admin_id': s['admin_id'] is int ? s['admin_id'] : int.tryParse(s['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'customer_id': s['customer_id'] is int ? s['customer_id'] : int.tryParse(s['customer_id']?.toString() ?? ''),
+                  'user_id': s['user_id'] is int ? s['user_id'] : int.tryParse(s['user_id']?.toString() ?? ''),
                   'subtotal': _parseNum(s['subtotal']),
                   'tax': _parseNum(s['tax']),
                   'discount': _parseNum(s['discount']),
@@ -371,10 +377,10 @@ class SyncService {
                   await txn.insert(
                     'sale_items',
                     {
-                      'id': item['id']?.toString().toLowerCase(),
-                      'sale_id': s['id']?.toString().toLowerCase(),
-                      'product_id': item['product_id']?.toString().toLowerCase(),
-                      'branch_id': (s['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
+                      'id': item['id'] is int ? item['id'] : int.tryParse(item['id']?.toString() ?? ''),
+                      'sale_id': saleId,
+                      'product_id': item['product_id'] is int ? item['product_id'] : int.tryParse(item['product_id']?.toString() ?? ''),
+                      'branch_id': s['branch_id'] is int ? s['branch_id'] : int.tryParse(s['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                       'quantity': _parseNum(item['quantity']),
                       'price': _parseNum(item['price']),
                       'subtotal': _parseNum(item['subtotal']),
@@ -394,12 +400,12 @@ class SyncService {
               await txn.insert(
                 'credit_sales',
                 {
-                  'id': cs['id']?.toString().toLowerCase(),
-                  'business_id': (cs['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (cs['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (cs['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'customer_id': cs['customer_id']?.toString().toLowerCase(),
-                  'sale_id': cs['sale_id']?.toString().toLowerCase(),
+                  'id': cs['id'] is int ? cs['id'] : int.tryParse(cs['id']?.toString() ?? ''),
+                  'business_id': cs['business_id'] is int ? cs['business_id'] : int.tryParse(cs['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': cs['branch_id'] is int ? cs['branch_id'] : int.tryParse(cs['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': cs['admin_id'] is int ? cs['admin_id'] : int.tryParse(cs['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'customer_id': cs['customer_id'] is int ? cs['customer_id'] : int.tryParse(cs['customer_id']?.toString() ?? ''),
+                  'sale_id': cs['sale_id'] is int ? cs['sale_id'] : int.tryParse(cs['sale_id']?.toString() ?? ''),
                   'amount': _parseNum(cs['amount']),
                   'remaining_balance': _parseNum(cs['remaining_balance']),
                   'status': _parseStatus(cs['status']),
@@ -419,12 +425,12 @@ class SyncService {
               await txn.insert(
                 'credit_payments',
                 {
-                  'id': cp['id']?.toString().toLowerCase(),
-                  'business_id': (cp['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (cp['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (cp['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'credit_sale_id': cp['credit_sale_id']?.toString().toLowerCase(),
-                  'customer_id': cp['customer_id']?.toString().toLowerCase(),
+                  'id': cp['id'] is int ? cp['id'] : int.tryParse(cp['id']?.toString() ?? ''),
+                  'business_id': cp['business_id'] is int ? cp['business_id'] : int.tryParse(cp['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': cp['branch_id'] is int ? cp['branch_id'] : int.tryParse(cp['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': cp['admin_id'] is int ? cp['admin_id'] : int.tryParse(cp['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'credit_sale_id': cp['credit_sale_id'] is int ? cp['credit_sale_id'] : int.tryParse(cp['credit_sale_id']?.toString() ?? ''),
+                  'customer_id': cp['customer_id'] is int ? cp['customer_id'] : int.tryParse(cp['customer_id']?.toString() ?? ''),
                   'amount': _parseNum(cp['amount']),
                   'received_by': cp['received_by']?.toString(), // Don't lowercase name
                   'payment_date': cp['payment_date'],
@@ -448,10 +454,10 @@ class SyncService {
               await txn.insert(
                 'suppliers',
                 {
-                  'id': s['id']?.toString().toLowerCase(),
-                  'business_id': (s['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (s['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (s['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
+                  'id': s['id'] is int ? s['id'] : int.tryParse(s['id']?.toString() ?? ''),
+                  'business_id': s['business_id'] is int ? s['business_id'] : int.tryParse(s['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': s['branch_id'] is int ? s['branch_id'] : int.tryParse(s['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': s['admin_id'] is int ? s['admin_id'] : int.tryParse(s['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': s['name'] ?? 'Unknown',
                   'contact_person': s['contact_person'],
                   'phone': s['cell_number'], // Backend calls it cell_number
@@ -470,14 +476,15 @@ class SyncService {
           // Purchases
           if (data['purchases'] != null) {
             for (var p in data['purchases']) {
+              final pid = p['id'] is int ? p['id'] : int.tryParse(p['id']?.toString() ?? '');
               await txn.insert(
                 'purchases',
                 {
-                  'id': p['id']?.toString().toLowerCase(),
-                  'business_id': (p['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (p['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (p['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'supplier_id': p['vendor_id']?.toString().toLowerCase(),
+                  'id': pid,
+                  'business_id': p['business_id'] is int ? p['business_id'] : int.tryParse(p['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': p['branch_id'] is int ? p['branch_id'] : int.tryParse(p['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': p['admin_id'] is int ? p['admin_id'] : int.tryParse(p['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'supplier_id': p['vendor_id'] is int ? p['vendor_id'] : int.tryParse(p['vendor_id']?.toString() ?? ''),
                   'invoice_number': p['invoice_number'],
                   'purchase_date': p['date'],
                   'notes': p['notes'],
@@ -497,10 +504,10 @@ class SyncService {
                   await txn.insert(
                     'purchase_items',
                     {
-                      'id': item['id']?.toString().toLowerCase(),
-                      'purchase_id': p['id']?.toString().toLowerCase(),
-                      'product_id': item['product_id']?.toString().toLowerCase(),
-                      'branch_id': (p['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
+                      'id': item['id'] is int ? item['id'] : int.tryParse(item['id']?.toString() ?? ''),
+                      'purchase_id': pid,
+                      'product_id': item['product_id'] is int ? item['product_id'] : int.tryParse(item['product_id']?.toString() ?? ''),
+                      'branch_id': p['branch_id'] is int ? p['branch_id'] : int.tryParse(p['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                       'quantity': _parseNum(item['quantity']),
                       'purchase_price': _parseNum(item['cost_price']),
                       'wholesale_price': _parseNum(item['whole_sale_price']),
@@ -521,10 +528,10 @@ class SyncService {
               await txn.insert(
                 'expense_heads',
                 {
-                  'id': eh['id']?.toString().toLowerCase(),
-                  'business_id': (eh['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (eh['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (eh['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
+                  'id': eh['id'] is int ? eh['id'] : int.tryParse(eh['id']?.toString() ?? ''),
+                  'business_id': eh['business_id'] is int ? eh['business_id'] : int.tryParse(eh['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': eh['branch_id'] is int ? eh['branch_id'] : int.tryParse(eh['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': eh['admin_id'] is int ? eh['admin_id'] : int.tryParse(eh['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': eh['name'] ?? 'Unknown',
                   'status': (eh['status'] == null || eh['status'] == true || eh['status'] == 1) ? 1 : 0,
                   'created_at': eh['created_at'],
@@ -542,11 +549,11 @@ class SyncService {
               await txn.insert(
                 'expenses',
                 {
-                  'id': e['id']?.toString().toLowerCase(),
-                  'business_id': (e['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (e['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (e['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'expense_head_id': e['expense_head_id']?.toString().toLowerCase(),
+                  'id': e['id'] is int ? e['id'] : int.tryParse(e['id']?.toString() ?? ''),
+                  'business_id': e['business_id'] is int ? e['business_id'] : int.tryParse(e['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': e['branch_id'] is int ? e['branch_id'] : int.tryParse(e['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': e['admin_id'] is int ? e['admin_id'] : int.tryParse(e['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'expense_head_id': e['expense_head_id'] is int ? e['expense_head_id'] : int.tryParse(e['expense_head_id']?.toString() ?? ''),
                   'amount': _parseNum(e['amount']),
                   'description': e['title'], // Backend calls it title
                   'date': e['date'],
@@ -566,11 +573,11 @@ class SyncService {
               await txn.insert(
                 'shifts',
                 {
-                  'id': s['id']?.toString().toLowerCase(),
-                  'business_id': (s['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'branch_id': (s['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
-                  'admin_id': (s['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'user_id': s['user_id']?.toString().toLowerCase(),
+                  'id': s['id'] is int ? s['id'] : int.tryParse(s['id']?.toString() ?? ''),
+                  'business_id': s['business_id'] is int ? s['business_id'] : int.tryParse(s['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': s['branch_id'] is int ? s['branch_id'] : int.tryParse(s['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': s['admin_id'] is int ? s['admin_id'] : int.tryParse(s['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'user_id': s['user_id'] is int ? s['user_id'] : int.tryParse(s['user_id']?.toString() ?? ''),
                   'staff_id': s['staff_id'],
                   'start_time': s['start_time'],
                   'end_time': s['end_time'],
@@ -596,7 +603,7 @@ class SyncService {
           // Branches
           if (data['branches'] != null) {
             for (var b in data['branches']) {
-              final branchId = b['id']?.toString().toLowerCase();
+              final branchId = b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? '');
               if (kDebugMode) print('🔄 [SYNC] Pulling Branch: $branchId - ${b['branch_title'] ?? b['name']} (Code: ${b['branch_code']})');
               
               // Preserve local status: if server sends null/0/false, keep local status
@@ -616,8 +623,8 @@ class SyncService {
                 'branches',
                 {
                   'id': branchId,
-                  'business_id': (b['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'user_id': b['user_id']?.toString().toLowerCase(),
+                  'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'user_id': b['user_id'] is int ? b['user_id'] : int.tryParse(b['user_id']?.toString() ?? ''),
                   'branch_title': b['branch_title'] ?? b['name'] ?? 'Unknown',
                   'branch_code': b['branch_code'],
                   'branch_address': b['branch_address'] ?? b['address'],
@@ -639,10 +646,10 @@ class SyncService {
               await txn.insert(
                 'bank_accounts',
                 {
-                  'id': b['id']?.toString().toLowerCase(),
-                  'business_id': (b['business_id'] ?? fallbackBusinessId)?.toString().toLowerCase(),
-                  'admin_id': (b['admin_id'] ?? fallbackAdminId)?.toString().toLowerCase(),
-                  'branch_id': (b['branch_id'] ?? fallbackBranchId)?.toString().toLowerCase(),
+                  'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
+                  'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'admin_id': b['admin_id'] is int ? b['admin_id'] : int.tryParse(b['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'branch_id': b['branch_id'] is int ? b['branch_id'] : int.tryParse(b['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                   'bank_name': b['bank_name'] ?? 'Unknown',
                   'account_type': b['account_type'],
                   'account_title': b['account_title'],
@@ -665,9 +672,8 @@ class SyncService {
         });
 
 
-        if (serverTime != null) {
-          await _storage.write(key: 'last_synced_at', value: serverTime);
-        }
+        // REMOVED: await _storage.write(key: 'last_synced_at', value: serverTime);
+        // We now return the full response to be processed (timerstamp saved after push).
         return response.data;
       }
       return null;
@@ -700,6 +706,9 @@ class SyncService {
       List<Map<String, dynamic>> unsyncedShifts = [];
       List<Map<String, dynamic>> unsyncedBranches = [];
       List<Map<String, dynamic>> unsyncedRoles = [];
+      List<Map<String, dynamic>> unsyncedBankAccounts = [];
+      List<Map<String, dynamic>> unsyncedSupplierPaybacks = [];
+      List<Map<String, dynamic>> unsyncedGiftCards = [];
 
       // Unsynced Sales
       unsyncedSales = await db.query('sales', where: 'is_synced = 0');
@@ -746,6 +755,11 @@ class SyncService {
           var productMap = Map<String, dynamic>.from(p);
           productMap.remove('is_synced');
           
+          if (p['id'] == null) {
+            if (kDebugMode) print('⚠️ [SYNC] Skipping product with null ID: ${p['name']}');
+            continue;
+          }
+
           // Get ALL stocks for this unsynced product (we push them all)
           final stocks = await db.query('stocks', where: 'product_id = ?', whereArgs: [p['id']]);
           productMap['stocks'] = stocks.map((s) {
@@ -943,6 +957,36 @@ class SyncService {
         changes['roles'] = rolesList;
       }
 
+      // Unsynced Bank Accounts
+      unsyncedBankAccounts = await db.query('bank_accounts', where: 'is_synced = 0');
+      if (unsyncedBankAccounts.isNotEmpty) {
+        changes['bank_accounts'] = unsyncedBankAccounts.map((b) {
+          var m = Map<String, dynamic>.from(b);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
+      // Unsynced Supplier Paybacks
+      unsyncedSupplierPaybacks = await db.query('supplier_paybacks', where: 'is_synced = 0');
+      if (unsyncedSupplierPaybacks.isNotEmpty) {
+        changes['supplier_paybacks'] = unsyncedSupplierPaybacks.map((s) {
+          var m = Map<String, dynamic>.from(s);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
+      // Unsynced Gift Cards
+      unsyncedGiftCards = await db.query('gift_cards', where: 'is_synced = 0');
+      if (unsyncedGiftCards.isNotEmpty) {
+        changes['gift_cards'] = unsyncedGiftCards.map((g) {
+          var m = Map<String, dynamic>.from(g);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
       if (changes.isEmpty) {
         if (kDebugMode) print('No changes to push');
         return;
@@ -954,64 +998,78 @@ class SyncService {
         await db.transaction((txn) async {
           // Mark sales as synced
           for (var s in unsyncedSales) {
+            if (s['id'] == null) continue;
             await txn.update('sales', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
           }
           // Mark categories as synced
           if (unsyncedCategories.isNotEmpty) {
             for (var c in unsyncedCategories) {
+              if (c['id'] == null) continue;
               await txn.update('categories', {'is_synced': 1}, where: 'id = ?', whereArgs: [c['id']]);
             }
           }
           // Mark customers as synced
           for (var c in unsyncedCustomers) {
+            if (c['id'] == null) continue;
             await txn.update('customers', {'is_synced': 1}, where: 'id = ?', whereArgs: [c['id']]);
           }
           // Mark products as synced
           for (var p in unsyncedProducts) {
+            if (p['id'] == null) continue;
             await txn.update('products', {'is_synced': 1}, where: 'id = ?', whereArgs: [p['id']]);
             await txn.update('stocks', {'is_synced': 1}, where: 'product_id = ?', whereArgs: [p['id']]);
           }
           // Mark loose stocks as synced
           if (unsyncedStocksForSyncedProducts.isNotEmpty) {
             for (var s in unsyncedStocksForSyncedProducts) {
+              if (s['id'] == null) continue;
               await txn.update('stocks', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
             }
           }
           // Mark users as synced
           for (var u in unsyncedUsers) {
+            if (u['id'] == null) continue;
             await txn.update('users', {'is_synced': 1}, where: 'id = ?', whereArgs: [u['id']]);
           }
           // Mark businesses as synced
           for (var b in unsyncedBusinesses) {
+            if (b['id'] == null) continue;
             await txn.update('businesses', {'is_synced': 1}, where: 'id = ?', whereArgs: [b['id']]);
           }
           // Mark employees as synced
           for (var e in unsyncedEmployees) {
+            if (e['id'] == null) continue;
             await txn.update('employees', {'is_synced': 1}, where: 'id = ?', whereArgs: [e['id']]);
           }
           // Mark credit sales as synced
           for (var cs in unsyncedCreditSales) {
+            if (cs['id'] == null) continue;
             await txn.update('credit_sales', {'is_synced': 1}, where: 'id = ?', whereArgs: [cs['id']]);
           }
           // Mark credit payments as synced
           for (var cp in unsyncedCreditPayments) {
+            if (cp['id'] == null) continue;
             await txn.update('credit_payments', {'is_synced': 1}, where: 'id = ?', whereArgs: [cp['id']]);
           }
           // Mark suppliers as synced
           for (var s in unsyncedSuppliers) {
+            if (s['id'] == null) continue;
             await txn.update('suppliers', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
           }
           // Mark expense heads as synced
           for (var eh in unsyncedExpenseHeads) {
+            if (eh['id'] == null) continue;
             await txn.update('expense_heads', {'is_synced': 1}, where: 'id = ?', whereArgs: [eh['id']]);
           }
           // Mark expenses as synced
           for (var e in unsyncedExpenses) {
+            if (e['id'] == null) continue;
             await txn.update('expenses', {'is_synced': 1}, where: 'id = ?', whereArgs: [e['id']]);
           }
           // Mark purchases as synced
           if (unsyncedPurchases.isNotEmpty) {
             for (var p in unsyncedPurchases) {
+              if (p['id'] == null) continue;
               await txn.update('purchases', {'is_synced': 1}, where: 'id = ?', whereArgs: [p['id']]);
               await txn.update('purchase_items', {'is_synced': 1}, where: 'purchase_id = ?', whereArgs: [p['id']]);
             }
@@ -1027,6 +1085,21 @@ class SyncService {
           // Mark roles as synced
           for (var r in unsyncedRoles) {
             await txn.update('roles', {'is_synced': 1}, where: 'id = ?', whereArgs: [r['id']]);
+          }
+          // Mark bank accounts as synced
+          for (var b in unsyncedBankAccounts) {
+            if (b['id'] == null) continue;
+            await txn.update('bank_accounts', {'is_synced': 1}, where: 'id = ?', whereArgs: [b['id']]);
+          }
+          // Mark paybacks as synced
+          for (var s in unsyncedSupplierPaybacks) {
+            if (s['id'] == null) continue;
+            await txn.update('supplier_paybacks', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
+          }
+          // Mark gift cards as synced
+          for (var g in unsyncedGiftCards) {
+            if (g['id'] == null) continue;
+            await txn.update('gift_cards', {'is_synced': 1}, where: 'id = ?', whereArgs: [g['id']]);
           }
         });
         if (kDebugMode) print('Push complete: ${response.data['synced']}');

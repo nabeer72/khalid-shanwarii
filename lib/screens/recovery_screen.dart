@@ -3,7 +3,7 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:uuid/uuid.dart';
+import 'package:intl/intl.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/screens/recovery_form_screen.dart';
 

@@ -7,7 +7,7 @@ import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/add_product_screen.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/screens/pos_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -64,8 +64,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   Future<void> _toggleFavorite(Product product) async {
-    await DatabaseHelper.instance.toggleProductFavorite(product.id, product.isFavorite);
-    _loadData(); // Refresh list and counts
+    if (product.id != null) {
+      await DatabaseHelper.instance.toggleProductFavorite(product.id!, product.isFavorite);
+      _loadData(); // Refresh list and counts
+    }
   }
 
   void _addToPOS(Product product) {
@@ -184,8 +186,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
         // Collect all Prices
         final Set<double> uniquePrices = {};
         for (var p in group) {
-          for (var s in p.stocks) {
-            uniquePrices.add(s.salePrice);
+          if (p.stocks.isNotEmpty) {
+            for (var s in p.stocks) {
+              uniquePrices.add(s.salePrice);
+            }
+          } else if (p.price != 0) {
+            uniquePrices.add(p.price);
           }
         }
         

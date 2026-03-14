@@ -2,21 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
-import 'package:mobile_app/models/branch.dart';
 
 class AddPurchaseController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
-  final Uuid _uuid = const Uuid();
 
   // ── Loaded data ────────────────────────────────────────────────────────────
   List<Supplier> suppliers = [];
   List<Map<String, dynamic>> products = [];
-  List<Branch> branches = [];
-  String? selectedBranchId;
 
   // ── Form state ─────────────────────────────────────────────────────────────
-  String? selectedSupplierId;
+  int? selectedSupplierId;
   Supplier? selectedSupplier;
   DateTime purchaseDate = DateTime.now();
   final invoiceCtrl = TextEditingController();
@@ -43,14 +38,9 @@ class AddPurchaseController with ChangeNotifier {
   Map<String, dynamic>? _lastAddedItem; // for potential undo or logging
 
   AddPurchaseController() {
-    selectedBranchId = BusinessConfig.instance.branchId?.toLowerCase();
     _loadData();
   }
 
-  void setBranch(String? id) {
-    selectedBranchId = id;
-    notifyListeners();
-  }
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -96,12 +86,6 @@ class AddPurchaseController with ChangeNotifier {
 
       suppliers = supData.map((e) => Supplier.fromMap(e)).toList();
       products = prodData;
-
-      final branchData = await _db.getBranches();
-      branches = branchData.map((e) => Branch.fromMap(e)).toList();
-      if (branches.isNotEmpty && selectedBranchId == null) {
-        selectedBranchId = branches.first.id.toLowerCase();
-      }
     } catch (e) {
       _errorMessage = 'Failed to load data: $e';
     } finally {
@@ -110,8 +94,8 @@ class AddPurchaseController with ChangeNotifier {
     }
   }
 
-  void setSupplier(String? id) {
-    if (id == null || id.isEmpty) {
+  void setSupplier(int? id) {
+    if (id == null) {
       selectedSupplierId = null;
       selectedSupplier = null;
     } else {
@@ -190,7 +174,7 @@ class AddPurchaseController with ChangeNotifier {
   }
 
   void addItem({
-    required String productId,
+    required int productId,
     required String productName,
     required String? barcode,
     required double existingStock,
@@ -204,8 +188,8 @@ class AddPurchaseController with ChangeNotifier {
     final subtotal = quantity * purchasePrice;
 
     items.add({
-      'id': _uuid.v4(),
-      'product_id': productId,
+      'id': null,
+    'product_id': productId,
       'product_name': productName,
       'barcode': barcode,
       'existing_stock': existingStock,
@@ -256,11 +240,10 @@ class AddPurchaseController with ChangeNotifier {
         break;
     }
 
-    final purchaseId = _uuid.v4();
 
     final purchase = {
-      'id': purchaseId,
-      'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
+      'id': null,
+      'branch_id': BusinessConfig.instance.branchId,
       'supplier_id': selectedSupplierId,
       'invoice_number': invoiceCtrl.text.trim(),
       'purchase_date': purchaseDate.toIso8601String(),
@@ -279,11 +262,10 @@ class AddPurchaseController with ChangeNotifier {
       // Handle Supplier Credit/Payback logic
       final credit = creditAmount;
       if (credit > 0 && selectedSupplierId != null) {
-        final creditPurchaseId = _uuid.v4();
         await _db.insertSupplierCreditPurchase({
-          'id': creditPurchaseId,
+          'id': null,
           'supplier_id': selectedSupplierId,
-          'purchase_id': purchaseId,
+          'purchase_id': null, // Map this correctly in DB helper if needed, or rely on internal link
           'amount': totalAmount,
           'remaining_balance': credit,
           'status': 1,

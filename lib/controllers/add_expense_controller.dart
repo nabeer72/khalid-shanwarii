@@ -2,12 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:mobile_app/models/branch.dart';
 
 class AddExpenseController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
-  final Uuid _uuid = const Uuid();
 
   final Expense? initialExpense;
   
@@ -15,12 +13,12 @@ class AddExpenseController with ChangeNotifier {
   final amountCtrl = TextEditingController();
   final descCtrl = TextEditingController();
   
-  String? selectedHeadId;
+  int? selectedHeadId;
   DateTime selectedDate = DateTime.now();
   
   List<ExpenseHead> expenseHeads = [];
   List<Branch> branches = [];
-  String? selectedBranchId;
+  int? selectedBranchId;
   bool isLoading = false;
 
   AddExpenseController({this.initialExpense}) {
@@ -29,16 +27,15 @@ class AddExpenseController with ChangeNotifier {
       descCtrl.text = initialExpense!.description ?? '';
       selectedHeadId = initialExpense!.expenseHeadId;
       selectedDate = initialExpense!.date;
-      selectedBranchId = initialExpense!.branchId?.toLowerCase();
+      selectedBranchId = initialExpense!.branchId;
     } else {
-      selectedBranchId = BusinessConfig.instance.branchId?.toLowerCase();
+      selectedBranchId = BusinessConfig.instance.branchId;
     }
     loadData();
   }
 
   Future<void> loadData() async {
     await loadHeads();
-    await loadBranches();
   }
 
   bool get isEdit => initialExpense != null;
@@ -62,29 +59,12 @@ class AddExpenseController with ChangeNotifier {
     }
   }
 
-  Future<void> loadBranches() async {
-    try {
-      final data = await _db.getBranches();
-      branches = data.map((b) => Branch.fromMap(b)).toList();
-      if (branches.isNotEmpty && selectedBranchId == null) {
-        selectedBranchId = branches.first.id.toLowerCase();
-      }
-    } catch (e) {
-      debugPrint('Error loading branches: $e');
-    } finally {
-      notifyListeners();
-    }
-  }
 
-  void setCategory(String? id) {
+  void setCategory(int? id) {
     selectedHeadId = id;
     notifyListeners();
   }
 
-  void setBranch(String? id) {
-    selectedBranchId = id;
-    notifyListeners();
-  }
 
   void setDate(DateTime date) {
     selectedDate = date;
@@ -107,7 +87,7 @@ class AddExpenseController with ChangeNotifier {
 
     try {
       final data = {
-        'id': isEdit ? initialExpense!.id : _uuid.v4(),
+        'id': initialExpense?.id,
         'expense_head_id': selectedHeadId,
         'amount': amount,
         'description': descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
@@ -117,7 +97,7 @@ class AddExpenseController with ChangeNotifier {
       };
 
       if (isEdit) {
-        await _db.updateExpense(initialExpense!.id, data);
+        await _db.updateExpense(initialExpense!.id!, data);
       } else {
         await _db.insertExpense(data);
       }

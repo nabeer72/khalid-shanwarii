@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -9,8 +9,8 @@ mixin SuppliersCrud on CommonCrud {
   // Suppliers
   Future<List<Map<String, dynamic>>> getSuppliers() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -25,8 +25,8 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<void> insertSupplier(Map<String, dynamic> supplier) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('suppliers', {
       ...supplier,
@@ -36,7 +36,7 @@ mixin SuppliersCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> deleteSupplier(String id) async {
+  Future<void> deleteSupplier(dynamic id) async {
     final db = await database;
     await db.update('suppliers', {'status': 0}, where: 'id = ?', whereArgs: [id]);
   }
@@ -45,8 +45,8 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getSuppliersWithCredit() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -59,10 +59,10 @@ mixin SuppliersCrud on CommonCrud {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getSupplierCreditPurchases({String? supplierId, String? purchaseId}) async {
+  Future<List<Map<String, dynamic>>> getSupplierCreditPurchases({dynamic supplierId, dynamic purchaseId}) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -89,8 +89,8 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<void> insertSupplierCreditPurchase(Map<String, dynamic> creditPurchase) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('supplier_credit_purchases', {
       ...creditPurchase,
@@ -100,10 +100,10 @@ mixin SuppliersCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<List<Map<String, dynamic>>> getSupplierPaybacks({String? supplierId, String? creditPurchaseId}) async {
+  Future<List<Map<String, dynamic>>> getSupplierPaybacks({dynamic supplierId, dynamic creditPurchaseId}) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -130,8 +130,8 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<void> insertSupplierPayback(Map<String, dynamic> payback) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.transaction((txn) async {
       await txn.insert('supplier_paybacks', {
@@ -156,7 +156,7 @@ mixin SuppliersCrud on CommonCrud {
     });
   }
 
-  Future<void> updateSupplierCreditBalance(String supplierId, double amount) async {
+  Future<void> updateSupplierCreditBalance(dynamic supplierId, double amount) async {
     final db = await database;
     await db.rawUpdate(
       'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?',
@@ -164,7 +164,7 @@ mixin SuppliersCrud on CommonCrud {
     );
   }
 
-  Future<double> getSupplierCreditBalance(String supplierId) async {
+  Future<double> getSupplierCreditBalance(dynamic supplierId) async {
     final db = await database;
     final res = await db.query('suppliers', columns: ['credit_balance'], where: 'id = ?', whereArgs: [supplierId]);
     if (res.isNotEmpty) {

@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -9,8 +9,8 @@ mixin ExpensesCrud on CommonCrud {
   // Expense Heads
   Future<List<Map<String, dynamic>>> getExpenseHeads() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -25,8 +25,8 @@ mixin ExpensesCrud on CommonCrud {
 
   Future<void> insertExpenseHead(Map<String, dynamic> head) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('expense_heads', {
       ...head,
@@ -36,7 +36,7 @@ mixin ExpensesCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> deleteExpenseHead(String id) async {
+  Future<void> deleteExpenseHead(dynamic id) async {
     final db = await database;
     await db.update('expense_heads', {'status': 0}, where: 'id = ?', whereArgs: [id]);
   }
@@ -44,8 +44,8 @@ mixin ExpensesCrud on CommonCrud {
   // Expenses
   Future<List<Map<String, dynamic>>> getExpenses() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -60,8 +60,8 @@ mixin ExpensesCrud on CommonCrud {
 
   Future<void> insertExpense(Map<String, dynamic> expense) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('expenses', {
       ...expense,
@@ -71,17 +71,17 @@ mixin ExpensesCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> updateExpense(String id, Map<String, dynamic> data) async {
+  Future<void> updateExpense(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     await db.update('expenses', data, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<void> updateExpenseHead(String id, Map<String, dynamic> data) async {
+  Future<void> updateExpenseHead(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     await db.update('expense_heads', data, where: 'id = ?', whereArgs: [id]);
   }
 
-  Future<void> deleteExpense(String id) async {
+  Future<void> deleteExpense(dynamic id) async {
     final db = await database;
     await db.update('expenses', {'status': 0}, where: 'id = ?', whereArgs: [id]);
   }

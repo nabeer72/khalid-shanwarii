@@ -194,19 +194,6 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                         children: [
                           _buildSectionHeader('Business Information', isTablet),
                           SizedBox(height: isTablet ? 16 : 12),
-                          if (BusinessConfig.instance.staffId == null && _controller.branches.isNotEmpty) ...[
-                            DropdownButtonFormField<String>(
-                              value: _controller.selectedBranchId,
-                              dropdownColor: theme.surface,
-                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: isTablet ? 16 : 14),
-                              decoration: theme.glassInputDecoration('Store Branch', Icons.store_rounded),
-                              items: _controller.branches
-                                  .map((b) => DropdownMenuItem<String>(value: b.id.toLowerCase(), child: Text(b.branchTitle)))
-                                  .toList(),
-                              onChanged: _controller.setBranch,
-                            ),
-                            SizedBox(height: fieldSpacing),
-                          ],
                           if (isWideScreen) ...[
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,

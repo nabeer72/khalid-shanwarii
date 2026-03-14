@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -9,8 +9,8 @@ mixin CategoriesCrud on CommonCrud {
   // Categories
   Future<List<Map<String, dynamic>>> getCategories() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -23,12 +23,12 @@ mixin CategoriesCrud on CommonCrud {
     );
   }
 
-  Future<void> insertCategory(Map<String, dynamic> category) async {
+  Future<int> insertCategory(Map<String, dynamic> category) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = BusinessConfig.instance.adminId;
     
-    await db.insert('categories', {
+    return await db.insert('categories', {
       ...category,
       'business_id': bid,
       'admin_id': aid,

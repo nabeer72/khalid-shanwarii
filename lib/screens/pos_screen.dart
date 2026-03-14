@@ -107,7 +107,7 @@ class _POSScreenState extends State<POSScreen> {
       products = _products;
     } else {
       products =
-          _products.where((p) => p.categoryId == _selectedCategory).toList();
+          _products.where((p) => p.categoryId?.toString() == _selectedCategory).toList();
     }
     
     // De-duplicate if needed (though DB should return unique products already)
@@ -177,7 +177,7 @@ class _POSScreenState extends State<POSScreen> {
         _cart.add({
           'cart_item_id': cartItemId, // Unique ID for product+batch
           'id': product.id,
-          'stock_id': stock.id,
+          'stock_id': stock.id ?? 0,
           'name': product.name,
           'price': stock.salePrice,
           'quantity': qty,
@@ -299,21 +299,21 @@ class _POSScreenState extends State<POSScreen> {
       final item = _cart[index];
       final product = _products.firstWhere(
         (p) => p.id == (item['id'] ?? item['productId']),
-        orElse: () => Product(id: '', businessId: '', name: ''),
+        orElse: () => Product(id: 0, businessId: 0, name: ''),
       );
       final stock = product.stocks.firstWhere(
         (s) => s.id == item['stock_id'],
         orElse: () => Stock(
-          id: '',
-          businessId: '',
-          productId: '',
+          id: 0,
+          businessId: 0,
+          productId: 0,
           quantity: 0,
           salePrice: 0,
           costPrice: 0,
         ),
       );
 
-      if (product.id.isNotEmpty && stock.id.isNotEmpty) {
+      if (product.id != 0 && (stock.id ?? 0) != 0) {
         final double nextQty = (item['quantity'] as num).toDouble() +
             (item['isWeight'] == true ? delta * 0.25 : delta);
 
@@ -1183,9 +1183,9 @@ class _POSScreenState extends State<POSScreen> {
   Widget _buildCategoryTabs() {
     final categories = [
       ProductCategory(
-          id: 'favorites', name: 'Favorites', icon: '⭐', businessId: ''),
-      ProductCategory(id: 'recent', name: 'Recent', icon: '🕐', businessId: ''),
-      ProductCategory(id: 'all', name: 'All Items', icon: '📝', businessId: ''),
+          id: -1, name: 'Favorites', icon: '⭐', businessId: 0),
+      ProductCategory(id: -2, name: 'Recent', icon: '🕐', businessId: 0),
+      ProductCategory(id: 0, name: 'All Items', icon: '📝', businessId: 0),
       ..._categories,
     ];
     return SizedBox(
@@ -1196,14 +1196,20 @@ class _POSScreenState extends State<POSScreen> {
         itemCount: categories.length,
         itemBuilder: (ctx, i) {
           final cat = categories[i];
-          final isSelected = _selectedCategory == cat.id;
+          final isSelected = _selectedCategory == cat.id.toString();
+          if (cat.id == 0 && _selectedCategory == 'all') {
+            // Special case for backward compatibility of initial state
+          }
           return Padding(
             padding: const EdgeInsets.only(right: 8, bottom: 8),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
                 onTap: () => setState(() {
-                  _selectedCategory = cat.id;
+                  if (cat.id == -1) _selectedCategory = 'favorites';
+                  else if (cat.id == -2) _selectedCategory = 'recent';
+                  else if (cat.id == 0) _selectedCategory = 'all';
+                  else _selectedCategory = cat.id.toString();
                   _searchCtrl.clear();
                   _searchQuery = '';
                 }),

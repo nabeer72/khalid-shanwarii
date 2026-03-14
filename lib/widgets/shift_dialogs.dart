@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart'; // For BusinessConfig
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart'; // For BusinessConfig
 import 'package:mobile_app/services/report_service.dart';
 
 class ClockInDialog extends StatefulWidget {
@@ -184,8 +184,7 @@ class _ClockInDialogState extends State<ClockInDialog> {
   Future<void> _handleClockIn(BuildContext context) async {
     final now = DateTime.now();
     final shiftData = {
-      'id': const Uuid().v4(),
-      'user_id': BusinessConfig.instance.adminId ?? 'admin',
+      'user_id': BusinessConfig.instance.adminId ?? 1,
       'staff_id': BusinessConfig.instance.staffId,
       'start_time': now.toIso8601String(),
       'opening_cash': _totalOpeningCash,

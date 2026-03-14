@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/product.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/branch.dart';
 
@@ -21,23 +21,23 @@ class AddProductController with ChangeNotifier {
   late TextEditingController image;
 
   // State
-  String? selectedCategory;
+  dynamic selectedCategory;
   List<ProductCategory> categories = [];
   bool isFavorite = false;
   int status = 1;
   bool _isLoading = true;
   List<Branch> branches = [];
-  String? selectedBranchId;
+  dynamic selectedBranchId;
 
   String? _errorMessage;
 
   AddProductController({this.initialProduct}) {
     name = TextEditingController(text: initialProduct?.name ?? '');
     barcode = TextEditingController(text: initialProduct?.barcode ?? '');
-    price = TextEditingController(text: initialProduct?.price.toString() ?? '');
-    purchasePrice = TextEditingController(text: initialProduct?.purchasePrice.toString() ?? '');
-    wholesalePrice = TextEditingController(text: initialProduct?.wholesalePrice.toString() ?? '');
-    stock = TextEditingController(text: initialProduct?.stockQuantity.toString() ?? '');
+    price = TextEditingController(text: initialProduct?.latestPrice.toString() ?? '');
+    purchasePrice = TextEditingController(text: initialProduct?.latestPurchasePrice.toString() ?? '');
+    wholesalePrice = TextEditingController(text: initialProduct?.latestWholesalePrice.toString() ?? '');
+    stock = TextEditingController(text: initialProduct?.latestStockQuantity.toString() ?? '');
     stockLimit = TextEditingController(text: (initialProduct?.stockLimit ?? 5).toString());
     discountLimit = TextEditingController(text: initialProduct?.discountLimit?.toString() ?? '');
     description = TextEditingController(text: initialProduct?.description ?? '');
@@ -62,10 +62,28 @@ class AddProductController with ChangeNotifier {
 
     try {
       final raw = await DatabaseHelper.instance.getCategories();
-      categories = raw.map((map) => ProductCategory.fromMap(map)).toList();
+      final allCats = raw.map((map) => ProductCategory.fromMap(map)).toList();
+      
+      // Deduplicate by ID to prevent Dropdown crash
+      final seenIds = <dynamic>{};
+      categories = [];
+      for (var c in allCats) {
+        if (c.id != null && !seenIds.contains(c.id)) {
+          categories.add(c);
+          seenIds.add(c.id);
+        }
+      }
 
-      // Auto-select logic (same as original)
-      if (selectedCategory == null && categories.isNotEmpty) {
+      // Normalize selectedCategory to match type in the list
+      if (selectedCategory != null) {
+        final matches = categories.where((c) => c.id.toString() == selectedCategory.toString());
+        if (matches.isNotEmpty) {
+          selectedCategory = matches.first.id;
+        } else {
+          // If no match found, fallback to first category if available, otherwise null
+          selectedCategory = categories.isNotEmpty ? categories.first.id : null;
+        }
+      } else if (categories.isNotEmpty) {
         selectedCategory = categories.first.id;
       }
     } catch (e) {
@@ -76,36 +94,22 @@ class AddProductController with ChangeNotifier {
     }
   }
 
-  Future<void> loadBranches() async {
-    try {
-      final raw = await DatabaseHelper.instance.getBranches();
-      branches = raw.map((map) => Branch.fromMap(map)).toList();
-      
-      // Ensure we have a selection if none exists
-      if (selectedBranchId == null && branches.isNotEmpty) {
-        selectedBranchId = branches.first.id;
-      }
-    } catch (e) {
-      print('Error loading branches in controller: $e');
-    }
-  }
 
   Future<bool> addCategory(String name) async {
     try {
+      final newId = await DatabaseHelper.instance.insertCategory({
+        'business_id': BusinessConfig.instance.businessId!,
+        'name': name,
+        'status': 1,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+
       final newCat = ProductCategory(
-        id: const Uuid().v4(),
+        id: newId,
         businessId: BusinessConfig.instance.businessId!,
         name: name,
         status: 1,
       );
-
-      await DatabaseHelper.instance.insertCategory({
-        'id': newCat.id,
-        'business_id': newCat.businessId,
-        'name': newCat.name,
-        'status': newCat.status,
-        'updated_at': DateTime.now().toIso8601String(),
-      });
 
       categories.add(newCat);
       selectedCategory = newCat.id;
@@ -118,7 +122,7 @@ class AddProductController with ChangeNotifier {
     }
   }
 
-  void setCategory(String? value) {
+  void setCategory(dynamic value) {
     selectedCategory = value;
     notifyListeners();
   }
@@ -133,7 +137,7 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setBranch(String? value) {
+  void setBranch(dynamic value) {
     selectedBranchId = value;
     notifyListeners();
   }
@@ -157,7 +161,7 @@ class AddProductController with ChangeNotifier {
     final discountLimitVal = double.tryParse(discountLimit.text);
     final barcodeVal = barcode.text.trim().isEmpty ? null : barcode.text.trim();
 
-    final productId = isEditMode ? initialProduct!.id : const Uuid().v4();
+    final productId = isEditMode ? initialProduct!.id : null;
 
     // Prepare map for DatabaseHelper.insertProduct
     // This map includes both metadata and the initial stock batch data

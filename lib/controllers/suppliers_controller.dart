@@ -54,7 +54,7 @@ class SuppliersController extends ChangeNotifier {
   }
 
   // If you plan to add delete functionality later:
-  Future<void> deleteSupplier(String id) async {
+  Future<void> deleteSupplier(int id) async {
     try {
       await DatabaseHelper.instance.deleteSupplier(id);
       await refreshSuppliers();

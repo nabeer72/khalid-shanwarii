@@ -1,6 +1,6 @@
 class Customer {
-  final String id;
-  final String businessId;
+  final int? id;
+  final int businessId;
   final String name;
   final String? phone;
   final String? email;
@@ -11,10 +11,10 @@ class Customer {
   final double? creditBalance;
   final int status;
   final int isSynced;
-  final String? branchId;
+  final int? branchId;
 
   Customer({
-    required this.id,
+    this.id,
     required this.businessId,
     required this.name,
     this.phone,
@@ -31,8 +31,8 @@ class Customer {
 
   factory Customer.fromMap(Map<String, dynamic> map) {
     return Customer(
-      id: map['id']?.toString() ?? '',
-      businessId: map['business_id']?.toString() ?? '',
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? '') ?? 0,
       name: map['name']?.toString() ?? '',
       phone: map['phone']?.toString(),
       email: map['email']?.toString(),
@@ -43,7 +43,7 @@ class Customer {
       creditBalance: (map['credit_balance'] as num?)?.toDouble() ?? 0.0,
       status: (map['status'] as num?)?.toInt() ?? 1,
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 0,
-      branchId: map['branch_id']?.toString(),
+      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
     );
   }
 

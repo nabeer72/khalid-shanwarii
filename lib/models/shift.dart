@@ -1,11 +1,11 @@
 import 'dart:convert';
 
 class Shift {
-  final String id;
-  final String businessId;
-  final String adminId;
-  final String userId;
-  final String? staffId;
+  final int? id;
+  final int businessId;
+  final int adminId;
+  final int userId;
+  final int? staffId;
   final String startTime;
   final String? endTime;
   final double openingCash;
@@ -21,7 +21,7 @@ class Shift {
   final String updatedAt;
 
   Shift({
-    required this.id,
+    this.id,
     required this.businessId,
     required this.adminId,
     required this.userId,
@@ -66,24 +66,24 @@ class Shift {
 
   factory Shift.fromMap(Map<String, dynamic> map) {
     return Shift(
-      id: map['id'],
-      businessId: map['business_id'],
-      adminId: map['admin_id'],
-      userId: map['user_id'],
-      staffId: map['staff_id'],
-      startTime: map['start_time'],
-      endTime: map['end_time'],
-      openingCash: (map['opening_cash'] as num).toDouble(),
-      openingDenominations: map['opening_denominations'],
+      id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? '') ?? 0,
+      adminId: map['admin_id'] is int ? map['admin_id'] : int.tryParse(map['admin_id']?.toString() ?? '') ?? 0,
+      userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? '') ?? 0,
+      staffId: map['staff_id'] is int ? map['staff_id'] : int.tryParse(map['staff_id']?.toString() ?? ''),
+      startTime: map['start_time']?.toString() ?? '',
+      endTime: map['end_time']?.toString(),
+      openingCash: (map['opening_cash'] as num? ?? 0).toDouble(),
+      openingDenominations: map['opening_denominations']?.toString() ?? '{}',
       closingCash: (map['closing_cash'] as num? ?? 0).toDouble(),
-      closingDenominations: map['closing_denominations'],
+      closingDenominations: map['closing_denominations']?.toString(),
       totalSales: (map['total_sales'] as num? ?? 0).toDouble(),
       totalCashReceived: (map['total_cash_received'] as num? ?? 0).toDouble(),
       totalOnlineReceived: (map['total_online_received'] as num? ?? 0).toDouble(),
       totalCreditReceived: (map['total_credit_received'] as num? ?? 0).toDouble(),
       status: map['status'] ?? 0,
-      createdAt: map['created_at'],
-      updatedAt: map['updated_at'],
+      createdAt: map['created_at']?.toString() ?? '',
+      updatedAt: map['updated_at']?.toString() ?? '',
     );
   }
 

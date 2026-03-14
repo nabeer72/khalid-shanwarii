@@ -1,13 +1,14 @@
 import 'stock.dart';
 
 class Product {
-  final String id;
-  final String businessId;
-  final String? userId;
-  final String? branchId;
-  final String? categoryId;
-  final String? subCategoryId;
-  final String? brandId;
+  final dynamic id;
+  final dynamic businessId;
+  final dynamic userId;
+  final dynamic branchId;
+  final dynamic category_id; 
+  final dynamic categoryId;
+  final dynamic subCategoryId;
+  final dynamic brandId;
   final String name;
   final String? stockType;
   final String? image;
@@ -20,6 +21,12 @@ class Product {
   final String? updatedAt;
   final String? deletedAt;
   
+  // Denormalized fields for immediate UI visibility
+  final double price;
+  final double purchasePrice;
+  final double wholesalePrice;
+  final double stockQuantity;
+
   // Weights (if applicable)
   final bool isPricePerWeight;
   final String? weightUnit;
@@ -28,11 +35,12 @@ class Product {
   final List<Stock> stocks;
 
   Product({
-    required this.id,
+    this.id,
     required this.businessId,
     this.userId,
     this.branchId,
     this.categoryId,
+    this.category_id,
     this.subCategoryId,
     this.brandId,
     required this.name,
@@ -48,16 +56,21 @@ class Product {
     this.deletedAt,
     this.isPricePerWeight = false,
     this.weightUnit,
+    this.price = 0,
+    this.purchasePrice = 0,
+    this.wholesalePrice = 0,
+    this.stockQuantity = 0,
     this.stocks = const [],
   });
 
   factory Product.fromMap(Map<String, dynamic> map, {List<Stock> stocks = const []}) {
     return Product(
-      id: map['id'] ?? '',
-      businessId: map['business_id'] ?? '',
+      id: map['id'],
+      businessId: map['business_id'],
       userId: map['user_id'],
       branchId: map['branch_id'],
       categoryId: map['category_id'],
+      category_id: map['category_id'],
       subCategoryId: map['sub_category_id'],
       brandId: map['brand_id'],
       name: map['name'] ?? '',
@@ -73,6 +86,10 @@ class Product {
       discountLimit: (map['discount_limit'] as num?)?.toDouble(),
       updatedAt: map['updated_at'],
       deletedAt: map['deleted_at'],
+      price: (map['price'] ?? 0).toDouble(),
+      purchasePrice: (map['purchase_price'] ?? 0).toDouble(),
+      wholesalePrice: (map['wholesale_price'] ?? 0).toDouble(),
+      stockQuantity: (map['stock_quantity'] ?? 0).toDouble(),
       stocks: stocks,
     );
   }
@@ -99,14 +116,18 @@ class Product {
       'discount_limit': discountLimit,
       'updated_at': updatedAt,
       'deleted_at': deletedAt,
+      'price': price,
+      'purchase_price': purchasePrice,
+      'wholesale_price': wholesalePrice,
+      'stock_quantity': stockQuantity,
     };
   }
 
   // Computed properties for UI convenience
-  double get totalStock => stocks.fold(0.0, (sum, s) => sum + s.quantity);
+  double get totalStock => stocks.isNotEmpty ? stocks.fold(0.0, (sum, s) => sum + s.quantity) : stockQuantity;
   
-  double get minPrice => stocks.isEmpty ? 0 : stocks.map((s) => s.salePrice).reduce((a, b) => a < b ? a : b);
-  double get maxPrice => stocks.isEmpty ? 0 : stocks.map((s) => s.salePrice).reduce((a, b) => a > b ? a : b);
+  double get minPrice => stocks.isEmpty ? price : stocks.map((s) => s.salePrice).reduce((a, b) => a < b ? a : b);
+  double get maxPrice => stocks.isEmpty ? price : stocks.map((s) => s.salePrice).reduce((a, b) => a > b ? a : b);
   
   String get priceRange {
     if (stocks.isEmpty) return 'N/A';
@@ -114,26 +135,26 @@ class Product {
     return '${minPrice.toStringAsFixed(2)} - ${maxPrice.toStringAsFixed(2)}';
   }
 
-  // Getters for legacy/controller compatibility
-  double get price => latestStock?.salePrice ?? 0.0;
-  double get purchasePrice => latestStock?.costPrice ?? 0.0;
-  double get wholesalePrice => latestStock?.wholesalePrice ?? 0.0;
-  double get stockQuantity => totalStock;
+  // Getters for legacy/controller compatibility (prefer denormalized fields)
+  double get latestPrice => price != 0 ? price : (latestStock?.salePrice ?? 0.0);
+  double get latestPurchasePrice => purchasePrice != 0 ? purchasePrice : (latestStock?.costPrice ?? 0.0);
+  double get latestWholesalePrice => wholesalePrice != 0 ? wholesalePrice : (latestStock?.wholesalePrice ?? 0.0);
+  double get latestStockQuantity => stockQuantity != 0 ? stockQuantity : totalStock;
 
   // Get the "primary" or "latest" stock (e.g. for default selection)
   Stock? get latestStock => stocks.isNotEmpty ? stocks.last : null;
 }
 
 class ProductCategory {
-  final String id;
-  final String businessId;
+  final dynamic id;
+  final dynamic businessId;
   final String name;
   final String? icon;
   final int status;
   final int isSynced;
 
   ProductCategory({
-    required this.id,
+    this.id,
     required this.businessId,
     required this.name,
     this.icon,
@@ -143,8 +164,8 @@ class ProductCategory {
 
   factory ProductCategory.fromMap(Map<String, dynamic> map) {
     return ProductCategory(
-      id: map['id'] ?? '',
-      businessId: map['business_id'] ?? '',
+      id: map['id'],
+      businessId: map['business_id'],
       name: map['name'] ?? '',
       icon: map['icon'],
       status: map['status'] ?? 1,

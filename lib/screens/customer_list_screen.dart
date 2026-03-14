@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/screens/add_customer_screen.dart';
 
@@ -26,7 +26,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 
   Future<void> _loadCustomers() async {
-    final data = await DatabaseHelper.instance.getCustomers();
+    final data = await DatabaseHelper.instance.getAllCustomers();
     if (mounted) {
       setState(() {
         _customers = data.map((c) => Customer.fromMap(c)).toList();

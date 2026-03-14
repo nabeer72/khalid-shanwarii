@@ -3,7 +3,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:uuid/uuid.dart';
 import 'package:mobile_app/models/branch.dart';
 
 class BranchManagementScreen extends StatefulWidget {
@@ -17,7 +16,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
   final theme = ThemeProvider.instance;
   List<Branch> _branches = [];
   bool _isLoading = true;
-  List<String> _inactiveBranchIds = [];
+  List<dynamic> _inactiveBranchIds = [];
 
   @override
   void initState() {
@@ -39,20 +38,20 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
 
   Future<void> _toggleActiveBranch(Branch branch) async {
     const storage = FlutterSecureStorage();
-    final newInactiveList = List<String>.from(_inactiveBranchIds);
+    final newInactiveList = List<dynamic>.from(_inactiveBranchIds);
     
-    if (newInactiveList.contains(branch.id)) {
-      newInactiveList.remove(branch.id);
+    if (newInactiveList.contains(branch.id ?? 0)) {
+      newInactiveList.remove(branch.id ?? 0);
     } else {
-      newInactiveList.add(branch.id);
+      newInactiveList.add(branch.id ?? 0);
     }
 
     await storage.write(key: 'inactive_branches', value: newInactiveList.join(','));
     BusinessConfig.instance.inactiveBranchIds = newInactiveList;
 
     BusinessConfig.instance.activeBranchIds = _branches
-        .where((b) => !newInactiveList.contains(b.id))
-        .map((b) => b.id)
+        .where((b) => !newInactiveList.contains(b.id ?? 0))
+        .map((b) => b.id ?? 0)
         .toList();
 
     setState(() => _inactiveBranchIds = newInactiveList);
@@ -69,7 +68,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
 
   Future<void> _deactivateAllBranches() async {
     const storage = FlutterSecureStorage();
-    final allIds = _branches.map((b) => b.id).toList();
+    final allIds = _branches.map((b) => b.id ?? 0).toList();
     await storage.write(key: 'inactive_branches', value: allIds.join(','));
     BusinessConfig.instance.inactiveBranchIds = allIds;
     BusinessConfig.instance.activeBranchIds = [];
@@ -118,7 +117,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
               if (titleCtrl.text.isEmpty) return;
               
               final newBranch = Branch(
-                id: branch?.id ?? const Uuid().v4(),
+                id: branch?.id,
                 businessId: BusinessConfig.instance.businessId,
                 userId: BusinessConfig.instance.adminId,
                 branchTitle: titleCtrl.text,
@@ -130,7 +129,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
               if (branch == null) {
                 await DatabaseHelper.instance.insertBranch(newBranch.toMap());
               } else {
-                await DatabaseHelper.instance.updateBranch(newBranch.id, newBranch.toMap());
+                await DatabaseHelper.instance.updateBranch(newBranch.id ?? 0, newBranch.toMap());
               }
 
               if (ctx.mounted) Navigator.pop(ctx);
@@ -202,7 +201,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Active ($activeCount): ${_branches.where((b) => !_inactiveBranchIds.contains(b.id)).map((b) => b.branchTitle).join(", ")}',
+                              'Active ($activeCount): ${_branches.where((b) => !_inactiveBranchIds.contains(b.id ?? 0)).map((b) => b.branchTitle).join(", ")}',
                               style: const TextStyle(color: ThemeProvider.success, fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -236,7 +235,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
                             itemCount: _branches.length,
                             itemBuilder: (ctx, i) {
                               final b = _branches[i];
-                              final isActive = !_inactiveBranchIds.contains(b.id);
+                              final isActive = !_inactiveBranchIds.contains(b.id ?? 0);
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: theme.glassDecoration.copyWith(
@@ -310,7 +309,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
                                           );
                                           if (confirm == true) {
                                             if (isActive) await _toggleActiveBranch(b);
-                                            await DatabaseHelper.instance.deleteBranch(b.id);
+                                            await DatabaseHelper.instance.deleteBranch(b.id ?? 0);
                                             _loadBranches();
                                           }
                                         },

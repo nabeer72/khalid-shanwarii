@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -9,8 +9,8 @@ mixin CustomersCrud on CommonCrud {
   // Customers
   Future<List<Map<String, dynamic>>> getCustomers() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -24,10 +24,21 @@ mixin CustomersCrud on CommonCrud {
     return results;
   }
 
+  Future<List<Map<String, dynamic>>> getAllCustomers() async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+
+    return await db.rawQuery(
+      'SELECT * FROM customers WHERE status = 1 AND business_id = ? AND admin_id = ? ORDER BY name ASC',
+      [bid, aid],
+    );
+  }
+
   Future<void> insertCustomer(Map<String, dynamic> customer) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('customers', {
       ...customer,
@@ -38,7 +49,7 @@ mixin CustomersCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> updateCustomer(String id, Map<String, dynamic> data) async {
+  Future<void> updateCustomer(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     await db.update('customers', {...data, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
   }

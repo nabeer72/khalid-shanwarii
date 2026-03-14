@@ -187,7 +187,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
   }
 
   void _showAddItemDialog() {
-    String? selectedProductId;
+    int? selectedProductId;
     final qtyCtrl = TextEditingController();
     final costCtrl = TextEditingController();
     final wholesaleCtrl = TextEditingController();
@@ -255,13 +255,13 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: DropdownButtonFormField<String>(
+                            child: DropdownButtonFormField<int>(
                               value: selectedProductId,
                               dropdownColor: Colors.white,
                               style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
                               decoration: _dialogInputDecoration('Select Product', Icons.inventory_rounded),
                               items: _controller.products.map((p) => DropdownMenuItem(
-                                value: p['id'] as String,
+                                value: p['id'] as int,
                                 child: Text(p['name'] as String, overflow: TextOverflow.ellipsis),
                               )).toList(),
                               onChanged: (v) {
@@ -302,7 +302,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                               );
                               if (p.isNotEmpty) {
                                 setDialogState(() {
-                                  selectedProductId = p['id'] as String;
+                                  selectedProductId = p['id'] as int;
                                   
                                   // Look for the latest stock batch to get current prices
                                   final stocks = p['stocks'] as List<dynamic>? ?? [];
@@ -414,8 +414,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 if (selectedProductId == null || qty <= 0) return;
 
                                 final p = _controller.products.firstWhere((x) => x['id'] == selectedProductId);
-                                _controller.addItem(
-                                  productId: selectedProductId!,
+                                  _controller.addItem(
+                                    productId: selectedProductId!,
                                   productName: p['name'] as String,
                                   barcode: p['barcode'] as String?,
                                   existingStock: stock.toDouble(),
@@ -505,23 +505,10 @@ class _PurchaseInfoCard extends StatelessWidget {
       decoration: theme.glassDecoration,
       child: Column(
         children: [
-          if (BusinessConfig.instance.staffId == null && controller.branches.isNotEmpty) ...[
-            DropdownButtonFormField<String>(
-              value: controller.selectedBranchId,
-              dropdownColor: theme.surface,
-              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-              decoration: theme.glassInputDecoration('Store Branch', Icons.store_rounded),
-              items: controller.branches
-                  .map((b) => DropdownMenuItem<String>(value: b.id.toLowerCase(), child: Text(b.branchTitle)))
-                  .toList(),
-              onChanged: controller.setBranch,
-            ),
-            const SizedBox(height: 16),
-          ],
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
+                child: DropdownButtonFormField<int>(
                   value: controller.selectedSupplierId,
                   dropdownColor: theme.surface,
                   style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),

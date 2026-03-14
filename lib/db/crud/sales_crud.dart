@@ -1,6 +1,6 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -9,8 +9,8 @@ mixin SalesCrud on CommonCrud {
   // Sales
   Future<List<Map<String, dynamic>>> getSales({int? limit}) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -23,29 +23,31 @@ mixin SalesCrud on CommonCrud {
     );
   }
 
-  Future<void> insertSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items) async {
+  Future<int> insertSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final brid = sale['branch_id'] ?? getCurrentBranchId();
     
-    await db.transaction((txn) async {
-      await txn.insert('sales', {
+    return await db.transaction((txn) async {
+      final generatedSaleId = await txn.insert('sales', {
         ...sale,
         'business_id': bid,
         'admin_id': aid,
         'branch_id': brid,
         'is_synced': 0
       });
+      
+      final sid = sale['id'] ?? generatedSaleId;
+
       for (var item in items) {
-        final productId = item['product_id'];
         final stockId = item['stock_id'];
         final quantity = (item['quantity'] as num? ?? 0).toDouble();
         final isReturn = sale['is_return'] == 1;
 
         await txn.insert('sale_items', {
           ...item,
-          'sale_id': sale['id'],
+          'sale_id': sid,
           'branch_id': brid,
           'is_synced': 0
         });
@@ -83,22 +85,17 @@ mixin SalesCrud on CommonCrud {
       final customerId = sale['customer_id'];
       if (customerId != null) {
         final total = (sale['total'] as num).toDouble();
-        if (sale['is_return'] == 1) {
-          await txn.rawUpdate(
-            'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ?',
-            [total, customerId] // total is negative for returns in my logic but let's be sure
-          );
-        } else {
-          await txn.rawUpdate(
-            'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ?',
-            [total, customerId]
-          );
-        }
+        
+        await txn.rawUpdate(
+          'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ?',
+          [total, customerId]
+        );
       }
+      return sid;
     });
   }
 
-  Future<List<Map<String, dynamic>>> getSaleItems(String saleId) async {
+  Future<List<Map<String, dynamic>>> getSaleItems(dynamic saleId) async {
     final db = await database;
     return await db.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
   }
@@ -106,8 +103,8 @@ mixin SalesCrud on CommonCrud {
   // Held Orders
   Future<List<Map<String, dynamic>>> getHeldOrders() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -122,8 +119,8 @@ mixin SalesCrud on CommonCrud {
 
   Future<void> insertHeldOrder(Map<String, dynamic> order) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('held_orders', {
       ...order,
@@ -133,7 +130,7 @@ mixin SalesCrud on CommonCrud {
     });
   }
 
-  Future<void> deleteHeldOrder(String id) async {
+  Future<void> deleteHeldOrder(dynamic id) async {
     final db = await database;
     await db.delete('held_orders', where: 'id = ?', whereArgs: [id]);
   }
@@ -141,8 +138,8 @@ mixin SalesCrud on CommonCrud {
   // Gift Cards
   Future<List<Map<String, dynamic>>> getGiftCards() async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
@@ -157,8 +154,8 @@ mixin SalesCrud on CommonCrud {
 
   Future<void> insertGiftCard(Map<String, dynamic> card) async {
     final db = await database;
-    final bid = BusinessConfig.instance.businessId;
-    final aid = BusinessConfig.instance.adminId;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.insert('gift_cards', {
       ...card,
@@ -168,5 +165,4 @@ mixin SalesCrud on CommonCrud {
       'is_synced': 0
     });
   }
-
 }

@@ -3,7 +3,6 @@ import 'package:mobile_app/controllers/roles_controller.dart';
 import 'package:mobile_app/models/role.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:uuid/uuid.dart';
 
 class RolesScreen extends StatefulWidget {
   const RolesScreen({super.key});
@@ -19,16 +18,52 @@ class _RolesScreenState extends State<RolesScreen> {
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _controller.addListener(_onControllerChange);
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onControllerChange);
+    super.dispose();
+  }
+
+  void _onControllerChange() {
+    if (!mounted) return;
+    if (_controller.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_controller.errorMessage!),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      _controller.errorMessage = null; // Clear after showing
+    }
+    setState(() {});
   }
 
   void _showRoleDialog([Role? role]) {
     final nameController = TextEditingController(text: role?.name ?? '');
     final descController = TextEditingController(text: role?.description ?? '');
-    String? selectedBranchId = role?.branchId;
-    List<String> selectedPerms = List.from(role?.permissionIds ?? []);
+    int? selectedBranchId = role?.branchId ?? BusinessConfig.instance.branchId;
+    
+    // Ensure the selectedBranchId actually exists in the loaded branches list.
+    // If not, fall back to the first available branch, or null if empty.
+    bool branchExists = _controller.branches.any((b) {
+      final bId = b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? '');
+      return bId == selectedBranchId;
+    });
+
+    if (!branchExists) {
+      if (_controller.branches.isNotEmpty) {
+        selectedBranchId = _controller.branches.first['id'] is int 
+            ? _controller.branches.first['id'] as int 
+            : int.tryParse(_controller.branches.first['id']?.toString() ?? '');
+      } else {
+        selectedBranchId = null;
+      }
+    }
+
+    List<int> selectedPerms = List.from(role?.permissionIds ?? []);
 
     showDialog(
       context: context,
@@ -72,15 +107,14 @@ class _RolesScreenState extends State<RolesScreen> {
                       decoration: theme.glassInputDecoration('Description', Icons.description_outlined),
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String?>(
+                    DropdownButtonFormField<int?>(
                       value: selectedBranchId,
                       dropdownColor: theme.surface,
                       style: TextStyle(color: theme.textPrimary),
                       decoration: theme.glassInputDecoration('Assign to Branch', Icons.storefront_outlined),
                       items: [
-                        const DropdownMenuItem(value: null, child: Text('Global (All Branches)')),
                         ..._controller.branches.map((b) => DropdownMenuItem(
-                          value: b['id']?.toString(),
+                          value: b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
                           child: Text(b['branch_title'] ?? 'Branch'),
                         )),
                       ],
@@ -114,7 +148,7 @@ class _RolesScreenState extends State<RolesScreen> {
                               if (selectedPerms.length == _controller.allPermissions.length) {
                                 selectedPerms.clear();
                               } else {
-                                selectedPerms = _controller.allPermissions.map((p) => p['id'].toString()).toList();
+                                selectedPerms = _controller.allPermissions.map((p) => p['id'] as int).toList();
                               }
                             });
                           },
@@ -130,7 +164,7 @@ class _RolesScreenState extends State<RolesScreen> {
                       ),
                       child: ListView(
                         children: grouped.entries.map((entry) {
-                          final groupPermIds = entry.value.map((p) => p['id'].toString()).toList();
+                          final groupPermIds = entry.value.map((p) => p['id'] as int).toList();
                           final bool isAllSelectedInGroup = groupPermIds.every((id) => selectedPerms.contains(id));
                           final bool isPartiallySelectedInGroup = groupPermIds.any((id) => selectedPerms.contains(id)) && !isAllSelectedInGroup;
 
@@ -161,7 +195,7 @@ class _RolesScreenState extends State<RolesScreen> {
                               ],
                             ),
                             children: entry.value.map((p) {
-                              final pid = p['id'].toString();
+                              final pid = p['id'] as int;
                               final isSelected = selectedPerms.contains(pid);
                               return CheckboxListTile(
                                 title: Text(p['label'] ?? p['name'] ?? pid, style: TextStyle(color: theme.textPrimary, fontSize: 12)),
@@ -191,13 +225,26 @@ class _RolesScreenState extends State<RolesScreen> {
               TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: () async {
-                  if (nameController.text.isEmpty) return;
+                  if (nameController.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please enter a role name')),
+                    );
+                    return;
+                  }
+                  
+                  if (selectedBranchId == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please select a branch for this role')),
+                    );
+                    return;
+                  }
+
                   final newRole = Role(
-                    id: role?.id ?? const Uuid().v4(),
-                    businessId: BusinessConfig.instance.businessId ?? '',
+                    id: role?.id,
+                    businessId: BusinessConfig.instance.businessId ?? 0,
                     branchId: selectedBranchId,
                     name: nameController.text.trim(),
-                    description: descController.text,
+                    description: descController.text.trim(),
                     permissionIds: selectedPerms,
                   );
                   final success = await _controller.saveRole(newRole);
@@ -246,26 +293,39 @@ class _RolesScreenState extends State<RolesScreen> {
         child: SafeArea(
           child: _controller.isLoading
               ? const Center(child: CircularProgressIndicator())
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _controller.roles.length,
-                  itemBuilder: (ctx, i) {
-                    final role = _controller.roles[i];
-                    return Card(
-                      color: theme.surface.withOpacity(0.5),
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      child: ListTile(
-                        title: Text(role.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text('${role.permissionIds.length} permissions', style: TextStyle(color: theme.textSecondary)),
-                        trailing: IconButton(
-                          icon: Icon(Icons.edit, color: theme.highlight),
-                          onPressed: () => _showRoleDialog(role),
-                        ),
+              : _controller.roles.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.badge_outlined, size: 64, color: theme.textSecondary.withOpacity(0.5)),
+                          const SizedBox(height: 16),
+                          Text('No roles found', style: TextStyle(color: theme.textSecondary, fontSize: 18)),
+                          const SizedBox(height: 8),
+                          Text('Add a role to get started', style: TextStyle(color: theme.textSecondary.withOpacity(0.7), fontSize: 14)),
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: _controller.roles.length,
+                      itemBuilder: (ctx, i) {
+                        final role = _controller.roles[i];
+                        return Card(
+                          color: theme.surface.withOpacity(0.5),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          child: ListTile(
+                            title: Text(role.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                            subtitle: Text('${role.permissionIds.length} permissions', style: TextStyle(color: theme.textSecondary)),
+                            trailing: IconButton(
+                              icon: Icon(Icons.edit, color: theme.highlight),
+                              onPressed: () => _showRoleDialog(role),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
         ),
       ),
     );

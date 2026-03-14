@@ -24,7 +24,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
   final _discountCtrl = TextEditingController();
   bool _isLoading = false;
   List<Branch> _branches = [];
-  String? _selectedBranchId;
+  int? _selectedBranchId;
   final theme = ThemeProvider.instance;
 
   @override
@@ -36,30 +36,12 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
       _emailCtrl.text = widget.customer!.email ?? '';
       _notesCtrl.text = widget.customer!.notes ?? '';
       _discountCtrl.text = widget.customer!.discount.toString();
-      _selectedBranchId = widget.customer!.branchId?.toLowerCase();
+      _selectedBranchId = widget.customer!.branchId;
     } else {
-      _selectedBranchId = BusinessConfig.instance.branchId?.toLowerCase();
+      _selectedBranchId = BusinessConfig.instance.branchId;
     }
-    _loadBranches();
   }
 
-  Future<void> _loadBranches() async {
-    try {
-      final db = DatabaseHelper.instance;
-      final data = await db.getBranches();
-      if (mounted) {
-        setState(() {
-          _branches = data.map((b) => Branch.fromMap(b)).toList();
-          // Ensure we have a selection if none exists
-          if (_selectedBranchId == null && _branches.isNotEmpty) {
-            _selectedBranchId = _branches.first.id.toLowerCase();
-          }
-        });
-      }
-    } catch (e) {
-      print('Error loading branches: $e');
-    }
-  }
 
   Future<void> _saveCustomer() async {
     if (!_formKey.currentState!.validate()) return;
@@ -208,23 +190,6 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                             );
                           }),
                         ]),
-                        if (BusinessConfig.instance.staffId == null && _branches.isNotEmpty) ...[
-                          const SizedBox(height: 32),
-                          _buildSectionHeader('Branch Assignment'),
-                          const SizedBox(height: 12),
-                          _buildCard([
-                             DropdownButtonFormField<String>(
-                              value: _selectedBranchId,
-                              dropdownColor: theme.surface,
-                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-                              decoration: theme.glassInputDecoration('ASSIGN TO BRANCH', Icons.store_rounded),
-                              items: _branches
-                                  .map((b) => DropdownMenuItem<String>(value: b.id.toLowerCase(), child: Text(b.branchTitle)))
-                                  .toList(),
-                              onChanged: (val) => setState(() => _selectedBranchId = val),
-                            ),
-                          ]),
-                        ],
                         const SizedBox(height: 32),
                         _buildSectionHeader('Account Preferences'),
                         const SizedBox(height: 12),

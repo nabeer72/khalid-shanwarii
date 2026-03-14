@@ -21,7 +21,7 @@ class LoyaltyStore {
   ];
 
   // Customer points (linked by customer ID)
-  final Map<String, int> customerPoints = {
+  final Map<dynamic, int> customerPoints = {
     'c1': 1250, // John Smith
     'c2': 350,  // Sarah Johnson
     'c3': 2800, // Mike Wilson
@@ -29,13 +29,13 @@ class LoyaltyStore {
     'c5': 5500, // David Lee
   };
 
-  int getPoints(String customerId) => customerPoints[customerId] ?? 0;
+  int getPoints(dynamic customerId) => customerPoints[customerId] ?? 0;
   
-  void addPoints(String customerId, int points) {
+  void addPoints(dynamic customerId, int points) {
     customerPoints[customerId] = (customerPoints[customerId] ?? 0) + points;
   }
 
-  bool redeemReward(String customerId, LoyaltyReward reward) {
+  bool redeemReward(dynamic customerId, LoyaltyReward reward) {
     final current = customerPoints[customerId] ?? 0;
     if (current >= reward.pointsCost) {
       customerPoints[customerId] = current - reward.pointsCost;

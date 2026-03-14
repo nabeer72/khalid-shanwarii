@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/customer.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/models/customer.dart';
 
 class CustomerFormHelper {
   static Future<Map<String, dynamic>?> prepareAndSaveCustomer({
     required Customer? existingCustomer,
     required String name,
     required String phone,
-    required String email,
+    String? email,
     required String notes,
     required String discountText,
-    String? branchId,
+    int? branchId,
     required BuildContext context,
   }) async {
     // Very basic validation (you can expand later)
@@ -28,11 +28,11 @@ class CustomerFormHelper {
     final isEdit = existingCustomer != null;
 
     final customer = Customer(
-      id: isEdit ? existingCustomer.id : const Uuid().v4(),
+      id: isEdit ? existingCustomer.id : null,
       businessId: BusinessConfig.instance.businessId!,
       name: name.trim(),
       phone: phone.trim().isNotEmpty ? phone.trim() : null,
-      email: email.trim().isNotEmpty ? email.trim() : null,
+      email: email != null && email.trim().isNotEmpty ? email.trim() : null,
       notes: notes.trim().isNotEmpty ? notes.trim() : null,
       discount: discount,
       totalSpent: isEdit ? existingCustomer.totalSpent : 0,
@@ -46,7 +46,7 @@ class CustomerFormHelper {
 
     try {
       if (isEdit) {
-        await DatabaseHelper.instance.updateCustomer(customer.id, customerMap);
+        await DatabaseHelper.instance.updateCustomer(customer.id!, customerMap);
       } else {
         await DatabaseHelper.instance.insertCustomer(customerMap);
       }

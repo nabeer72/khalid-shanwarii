@@ -4,7 +4,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/add_employee_screen.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/screens/add_employee_screen.dart';
 import 'dart:convert';
 
 class EmployeeListScreen extends StatefulWidget {
@@ -26,9 +26,22 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
   Future<void> _loadEmployees() async {
     try {
-      final data = await DatabaseHelper.instance.getEmployees();
-      final roles = await DatabaseHelper.instance.getRoles();
-      final roleMap = {for (var r in roles) r['id'].toString(): r};
+      final data = await DatabaseHelper.instance.getAllEmployees();
+      // Load ALL roles for this business (no branch filter) so roleMap is complete
+      final db = await DatabaseHelper.instance.database;
+      final rawBid = BusinessConfig.instance.businessId;
+      final rawAid = BusinessConfig.instance.adminId;
+      final bid = rawBid is int ? rawBid : int.tryParse(rawBid?.toString() ?? '');
+      final aid = rawAid is int ? rawAid : int.tryParse(rawAid?.toString() ?? '');
+      final roles = await db.rawQuery(
+        'SELECT * FROM roles WHERE status = 1 AND business_id = ? AND admin_id = ?',
+        [bid, aid],
+      );
+      final roleMap = <int, Map<String, dynamic>>{};
+      for (var r in roles) {
+        final id = r['id'] is int ? r['id'] as int : int.tryParse(r['id']?.toString() ?? '');
+        if (id != null) roleMap[id] = r;
+      }
       
       final List<Employee> tempEmployees = [];
       final currentAdminId = BusinessConfig.instance.adminId;
@@ -50,10 +63,10 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         }
         
         // 2. Role-based permissions
-        final roleId = e['role_id']?.toString();
-        if (roleId != null && roleMap.containsKey(roleId)) {
-          final rolePermissions = await DatabaseHelper.instance.getRolePermissions(roleId);
-          perms.addAll(rolePermissions);
+        final roleIdInt = e['role_id'] is int ? e['role_id'] as int : int.tryParse(e['role_id']?.toString() ?? '');
+        if (roleIdInt != null) {
+          final rolePermissions = await DatabaseHelper.instance.getRolePermissions(roleIdInt);
+          perms.addAll(rolePermissions.map((p) => p.toString()));
         }
 
         // DEBUG: Log merged permissions
@@ -87,7 +100,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _getRole(String roleId) async {
+  Future<Map<String, dynamic>?> _getRole(int? roleId) async {
+    if (roleId == null) return null;
     return await DatabaseHelper.instance.getRoleById(roleId);
   }
 
@@ -276,7 +290,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                                     if (emp.roleId != null) ...[
                                                       const SizedBox(height: 4),
                                                       FutureBuilder<Map<String, dynamic>?>(
-                                                        future: _getRole(emp.roleId!),
+                                                        future: _getRole(emp.roleId),
                                                         builder: (ctx, snap) {
                                                           if (snap.hasData && snap.data != null) {
                                                             return Text(
@@ -339,7 +353,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                               spacing: 6,
                                               runSpacing: 6,
                                               children: [
-                                                 ...emp.permissions.take(4).map((p) => Container(
+                                                  ...emp.permissions.take(4).map((p) => Container(
                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                                    decoration: BoxDecoration(
                                                      color: theme.surface.withOpacity(0.4),
@@ -347,7 +361,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                                      border: Border.all(color: theme.textHint.withOpacity(0.1)),
                                                    ),
                                                    child: Text(
-                                                     AppPermissions.getLabel(p).toUpperCase(), 
+                                                     AppPermissions.getLabel(p.toString()).toUpperCase(), 
                                                      style: TextStyle(color: theme.textSecondary, fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 0.2),
                                                    ),
                                                  )),

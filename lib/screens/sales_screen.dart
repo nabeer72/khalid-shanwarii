@@ -3,7 +3,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/sale.dart';
-import 'package:uuid/uuid.dart';
 import 'package:mobile_app/services/sync_service.dart';
 
 class SalesScreen extends StatefulWidget {
@@ -49,11 +48,9 @@ class _SalesScreenState extends State<SalesScreen> {
   void _checkout() async {
     if (_cart.isEmpty) return;
 
-    final saleId = const Uuid().v4();
     final sale = Sale(
-      id: saleId,
-      businessId: '',
-      userId: '',
+      businessId: BusinessConfig.instance.businessId.toString(),
+      userId: BusinessConfig.instance.adminId.toString(),
       grandTotal: _total,
       status: 1,
       isSynced: 0,
@@ -61,11 +58,10 @@ class _SalesScreenState extends State<SalesScreen> {
 
     final db = await _db.database;
     await db.transaction((txn) async {
-      await txn.insert('sales', sale.toMap());
+      final id = await txn.insert('sales', sale.toMap());
       for (var item in _cart) {
         await txn.insert('sale_details', {
-          'id': const Uuid().v4(),
-          'sale_id': saleId,
+          'sale_id': id,
           'product_id': item['id'],
           'quantity': item['quantity'],
           'unit_price': 0,

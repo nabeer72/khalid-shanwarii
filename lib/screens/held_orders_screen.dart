@@ -3,7 +3,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
-import 'package:uuid/uuid.dart';
+import 'package:mobile_app/screens/pos_screen.dart';
 
 // Held orders storage
 class HeldOrdersStore {
@@ -14,7 +14,7 @@ class HeldOrdersStore {
 }
 
 class HeldOrder {
-  final String id;
+  final int id;
   final String name;
   final List<Map<String, dynamic>> items;
   final double total;
@@ -264,7 +264,7 @@ class _HeldOrderTile extends StatelessWidget {
 // Helper function to hold an order from POS
 void holdOrder(String name, List<Map<String, dynamic>> items, double total, Customer? customer) {
   HeldOrdersStore.instance.orders.add(HeldOrder(
-    id: const Uuid().v4(),
+    id: DateTime.now().millisecondsSinceEpoch,
     name: name,
     items: List.from(items),
     total: total,
