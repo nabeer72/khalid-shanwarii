@@ -296,6 +296,7 @@ class SyncService {
                 {
                   'id': rid,
                   'business_id': r['business_id'] is int ? r['business_id'] : int.tryParse(r['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'admin_id': r['admin_id'] is int ? r['admin_id'] : int.tryParse(r['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'branch_id': r['branch_id'] is int ? r['branch_id'] : int.tryParse(r['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                   'name': r['name'] ?? 'Unknown',
                   'description': r['description'],
@@ -624,6 +625,7 @@ class SyncService {
                 {
                   'id': branchId,
                   'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'admin_id': b['admin_id'] is int ? b['admin_id'] : int.tryParse(b['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'user_id': b['user_id'] is int ? b['user_id'] : int.tryParse(b['user_id']?.toString() ?? ''),
                   'branch_title': b['branch_title'] ?? b['name'] ?? 'Unknown',
                   'branch_code': b['branch_code'],
@@ -814,28 +816,38 @@ class SyncService {
       // Unsynced Employees
       unsyncedEmployees = await db.query('employees', where: 'is_synced = 0');
       if (unsyncedEmployees.isNotEmpty) {
-      changes['employees'] = unsyncedEmployees.map((e) {
-          var m = Map.from(e);
+        List<Map<String, dynamic>> employeesList = [];
+        for (var e in unsyncedEmployees) {
+          var m = Map<String, dynamic>.from(e);
           m.remove('is_synced');
-          // Permissions are already JSON string in DB, usually server expects them as List or String
-          // If server expects List, we should decode here. Let's assume server handles it or decode if it's a string.
-          if (m['permissions'] is String) {
+          
+          List<dynamic> perms = [];
+          if (m['permissions'] != null && m['permissions'].toString().isNotEmpty) {
             try {
-              m['permissions'] = jsonDecode(m['permissions']);
+              final decoded = m['permissions'] is String ? jsonDecode(m['permissions']) : m['permissions'];
+              if (decoded is List) perms.addAll(decoded);
             } catch (_) {}
           }
 
-          // FALLBACK: If permissions are empty but role_id exists, calculate effective permissions from role
-          if ((m['permissions'] == null || (m['permissions'] is List && (m['permissions'] as List).isEmpty)) && m['role_id'] != null) {
-            try {
-              // Note: we can't do async inside map easily, but we can do it here if we use a for loop or await Future.wait
-              // For now, let's keep it simple and rely on the backend fallback I added, or convert this to await for loop.
-            } catch (err) { }
+          // Merge role permissions (FETCH NAMES INSTEAD OF IDS)
+          final roleId = m['role_id'] is int ? m['role_id'] as int : int.tryParse(m['role_id']?.toString() ?? '');
+          if (roleId != null) {
+            final rolePerms = await db.rawQuery('''
+              SELECT p.name FROM permissions p
+              JOIN role_permissions rp ON p.id = rp.permission_id
+              WHERE rp.role_id = ?
+            ''', [roleId]);
+            for (var rp in rolePerms) {
+              final name = rp['name'];
+              if (name != null && !perms.contains(name)) perms.add(name);
+            }
           }
-
-          if (kDebugMode) print('📤 [SYNC] Pushing Employee: ${m['id']} - ${m['name']} (Permissions: ${m['permissions']})');
-          return m;
-        }).toList();
+          
+          m['permissions'] = perms;
+          if (kDebugMode) print('📤 [SYNC] Pushing Employee: ${m['id']} - ${m['name']} (Merged Perms: ${perms})');
+          employeesList.add(m);
+        }
+        changes['employees'] = employeesList;
       }
 
       // Unsynced Credit Sales
@@ -944,14 +956,14 @@ class SyncService {
           var m = Map<String, dynamic>.from(r);
           m.remove('is_synced');
           
-          // Get permissions for this role
+          // Get permissions for this role (FETCH NAMES INSTEAD OF IDS)
           final perms = await db.rawQuery('''
-            SELECT p.id FROM permissions p
+            SELECT p.name FROM permissions p
             JOIN role_permissions rp ON p.id = rp.permission_id
             WHERE rp.role_id = ?
           ''', [r['id']]);
           
-          m['permissions'] = perms.map((p) => p['id']).toList();
+          m['permissions'] = perms.map((p) => p['name']).toList();
           rolesList.add(m);
         }
         changes['roles'] = rolesList;
@@ -1225,8 +1237,31 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Purchase: $oldId -> $newId');
         await txn.update('purchases', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('purchase_items', {'purchase_id': newId}, where: 'purchase_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 9b. Purchase Items (remap their own IDs if different on server)
+    if (allMappings['purchase_items'] != null && allMappings['purchase_items'] is Map) {
+      final map = allMappings['purchase_items'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        await txn.update('purchase_items', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 9c. Sale Items (remap their own IDs if different on server)
+    if (allMappings['sale_items'] != null && allMappings['sale_items'] is Map) {
+      final map = allMappings['sale_items'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        await txn.update('sale_items', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
       }
     }
 

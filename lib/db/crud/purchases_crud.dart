@@ -26,19 +26,22 @@ mixin PurchasesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<void> insertPurchase(Map<String, dynamic> purchase, List<Map<String, dynamic>> items) async {
+  Future<int> insertPurchase(Map<String, dynamic> purchase, List<Map<String, dynamic>> items) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     final brid = purchase['branch_id'] ?? getCurrentBranchId();
 
-    await db.transaction((txn) async {
-      await txn.insert('purchases', {
+    return await db.transaction((txn) async {
+      final generatedPurchaseId = await txn.insert('purchases', {
         ...purchase,
         'business_id': bid,
         'admin_id': aid,
         'branch_id': brid,
+        'is_synced': 0,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
+
+      final pid = purchase['id'] ?? generatedPurchaseId;
 
       // Insert Items and Update Inventory
       for (var item in items) {
@@ -48,8 +51,9 @@ mixin PurchasesCrud on CommonCrud {
 
         await txn.insert('purchase_items', {
           ...itemData,
-          'purchase_id': purchase['id'],
+          'purchase_id': pid,
           'branch_id': brid,
+          'is_synced': 0,
         });
 
         // 2. Update Product Inventory & Prices (SMART STOCK UPDATE)
@@ -117,6 +121,7 @@ mixin PurchasesCrud on CommonCrud {
           whereArgs: [productId]
         );
       }
+      return pid;
     });
   }
 

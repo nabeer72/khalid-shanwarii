@@ -188,25 +188,43 @@ class AppPermissions {
 
   static String getLabel(String permission) {
     switch (permission) {
+      case '1':
       case posAccess: return 'POS Access';
+      case '2':
       case newSale: return 'New Sale';
+      case '3':
       case reportsView: return 'View Reports';
-      case productManage: return 'Manage Products (Old)';
-      case products: return 'Products Catalog';
+      case '4':
+      case productManage: return 'Manage Products';
+      case '5':
       case customerManage: return 'Manage Customers';
+      case '6':
       case staffManage: return 'Manage Staff';
+      case '7':
       case settingsManage: return 'Manage Settings';
+      case '8':
       case expensesManage: return 'Manage Expenses';
+      case '9':
       case suppliersManage: return 'Manage Suppliers';
+      case '10':
       case purchasesManage: return 'Manage Purchases';
+      case '11':
       case salesHistory: return 'View Sales History';
-      case giftCards: return 'Manage Gift Cards';
-      case loyalty: return 'Manage Loyalty';
-      case recovery: return 'Manage Recovery';
+      case '12':
+      case recovery: return 'Credit Recovery';
+      case '13':
       case stockView: return 'View Stock Reports';
+      case '14':
+      case giftCards: return 'Manage Gift Cards';
+      case '15':
+      case loyalty: return 'Manage Loyalty';
+      case '16':
       case supportView: return 'Contact Support';
+      case '17':
       case paybackManage: return 'Manage Supplier Payback';
+      case '18':
       case branchesManage: return 'Manage Branches';
+      case '19':
       case bankManage: return 'Manage Bank';
       default: return permission;
     }

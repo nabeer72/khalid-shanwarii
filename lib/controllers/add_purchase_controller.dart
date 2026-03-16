@@ -257,7 +257,7 @@ class AddPurchaseController with ChangeNotifier {
     };
 
     try {
-      await _db.insertPurchase(purchase, items);
+      final purchaseId = await _db.insertPurchase(purchase, items);
 
       // Handle Supplier Credit/Payback logic
       final credit = creditAmount;
@@ -265,7 +265,7 @@ class AddPurchaseController with ChangeNotifier {
         await _db.insertSupplierCreditPurchase({
           'id': null,
           'supplier_id': selectedSupplierId,
-          'purchase_id': null, // Map this correctly in DB helper if needed, or rely on internal link
+          'purchase_id': purchaseId, 
           'amount': totalAmount,
           'remaining_balance': credit,
           'status': 1,

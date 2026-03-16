@@ -177,6 +177,12 @@ mixin EmployeesCrud on CommonCrud {
       {'name': 'sales_history', 'label': 'View Sales History'},
       {'name': 'recovery', 'label': 'Credit Recovery'},
       {'name': 'stock_view', 'label': 'View Stock Reports'},
+      {'name': 'gift_cards', 'label': 'Manage Gift Cards'},
+      {'name': 'loyalty', 'label': 'Manage Loyalty'},
+      {'name': 'support_view', 'label': 'Contact Support'},
+      {'name': 'payback_manage', 'label': 'Manage Supplier Payback'},
+      {'name': 'branches_manage', 'label': 'Manage Branches'},
+      {'name': 'bank_manage', 'label': 'Manage Bank'},
     ];
 
     await db.transaction((txn) async {
