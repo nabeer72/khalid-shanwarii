@@ -156,11 +156,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (mounted) {
         setState(() {
-          _productCount = products.length;
+          final uniqueProductNames = products.map((p) => p['name'] as String).toSet();
+          _productCount = uniqueProductNames.length;
           _customerCount = customers.length;
           _saleCount = sales.length;
-          _favoritesCount =
-              products.where((p) => (p['is_favorite'] ?? 0) == 1).length;
+          _favoritesCount = products
+              .where((p) => (p['is_favorite'] ?? 0) == 1)
+              .map((p) => p['name'] as String)
+              .toSet()
+              .length;
           _todaySalesAmount = todayTotal;
           _todayRecoveryAmount = recoveryTotal;
         });

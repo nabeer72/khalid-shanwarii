@@ -996,119 +996,303 @@ class SyncService {
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         await db.transaction((txn) async {
+          // 1. Apply ID Mappings (CRITICAL: Do this before marking as synced)
+          if (response.data['mappings'] != null && response.data['mappings'] is Map) {
+            await _applyMappings(txn, response.data['mappings']);
+          }
+
+          // 2. Mark everything else as synced (that wasn't remapped)
           // Mark sales as synced
           for (var s in unsyncedSales) {
             if (s['id'] == null) continue;
-            await txn.update('sales', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
+            // If it was remapped, it's already updated and marked synced in _applyMappings
+            await txn.update('sales', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
           }
           // Mark categories as synced
           if (unsyncedCategories.isNotEmpty) {
             for (var c in unsyncedCategories) {
               if (c['id'] == null) continue;
-              await txn.update('categories', {'is_synced': 1}, where: 'id = ?', whereArgs: [c['id']]);
+              await txn.update('categories', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [c['id']]);
             }
           }
           // Mark customers as synced
           for (var c in unsyncedCustomers) {
             if (c['id'] == null) continue;
-            await txn.update('customers', {'is_synced': 1}, where: 'id = ?', whereArgs: [c['id']]);
+            await txn.update('customers', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [c['id']]);
           }
           // Mark products as synced
           for (var p in unsyncedProducts) {
             if (p['id'] == null) continue;
-            await txn.update('products', {'is_synced': 1}, where: 'id = ?', whereArgs: [p['id']]);
+            await txn.update('products', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [p['id']]);
             await txn.update('stocks', {'is_synced': 1}, where: 'product_id = ?', whereArgs: [p['id']]);
           }
           // Mark loose stocks as synced
           if (unsyncedStocksForSyncedProducts.isNotEmpty) {
             for (var s in unsyncedStocksForSyncedProducts) {
               if (s['id'] == null) continue;
-              await txn.update('stocks', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
+              await txn.update('stocks', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
             }
           }
           // Mark users as synced
           for (var u in unsyncedUsers) {
             if (u['id'] == null) continue;
-            await txn.update('users', {'is_synced': 1}, where: 'id = ?', whereArgs: [u['id']]);
+            await txn.update('users', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [u['id']]);
           }
           // Mark businesses as synced
           for (var b in unsyncedBusinesses) {
             if (b['id'] == null) continue;
-            await txn.update('businesses', {'is_synced': 1}, where: 'id = ?', whereArgs: [b['id']]);
+            await txn.update('businesses', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [b['id']]);
           }
           // Mark employees as synced
           for (var e in unsyncedEmployees) {
             if (e['id'] == null) continue;
-            await txn.update('employees', {'is_synced': 1}, where: 'id = ?', whereArgs: [e['id']]);
+            await txn.update('employees', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [e['id']]);
           }
           // Mark credit sales as synced
           for (var cs in unsyncedCreditSales) {
             if (cs['id'] == null) continue;
-            await txn.update('credit_sales', {'is_synced': 1}, where: 'id = ?', whereArgs: [cs['id']]);
+            await txn.update('credit_sales', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [cs['id']]);
           }
           // Mark credit payments as synced
           for (var cp in unsyncedCreditPayments) {
             if (cp['id'] == null) continue;
-            await txn.update('credit_payments', {'is_synced': 1}, where: 'id = ?', whereArgs: [cp['id']]);
+            await txn.update('credit_payments', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [cp['id']]);
           }
           // Mark suppliers as synced
           for (var s in unsyncedSuppliers) {
             if (s['id'] == null) continue;
-            await txn.update('suppliers', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
+            await txn.update('suppliers', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
           }
           // Mark expense heads as synced
           for (var eh in unsyncedExpenseHeads) {
             if (eh['id'] == null) continue;
-            await txn.update('expense_heads', {'is_synced': 1}, where: 'id = ?', whereArgs: [eh['id']]);
+            await txn.update('expense_heads', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [eh['id']]);
           }
           // Mark expenses as synced
           for (var e in unsyncedExpenses) {
             if (e['id'] == null) continue;
-            await txn.update('expenses', {'is_synced': 1}, where: 'id = ?', whereArgs: [e['id']]);
+            await txn.update('expenses', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [e['id']]);
           }
           // Mark purchases as synced
           if (unsyncedPurchases.isNotEmpty) {
             for (var p in unsyncedPurchases) {
               if (p['id'] == null) continue;
-              await txn.update('purchases', {'is_synced': 1}, where: 'id = ?', whereArgs: [p['id']]);
+              await txn.update('purchases', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [p['id']]);
               await txn.update('purchase_items', {'is_synced': 1}, where: 'purchase_id = ?', whereArgs: [p['id']]);
             }
           }
           // Mark shifts as synced
           for (var s in unsyncedShifts) {
-            await txn.update('shifts', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
+             await txn.update('shifts', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
           }
           // Mark branches as synced
           for (var b in unsyncedBranches) {
-            await txn.update('branches', {'is_synced': 1}, where: 'id = ?', whereArgs: [b['id']]);
+             await txn.update('branches', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [b['id']]);
           }
           // Mark roles as synced
           for (var r in unsyncedRoles) {
-            await txn.update('roles', {'is_synced': 1}, where: 'id = ?', whereArgs: [r['id']]);
+             await txn.update('roles', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [r['id']]);
           }
           // Mark bank accounts as synced
           for (var b in unsyncedBankAccounts) {
             if (b['id'] == null) continue;
-            await txn.update('bank_accounts', {'is_synced': 1}, where: 'id = ?', whereArgs: [b['id']]);
+            await txn.update('bank_accounts', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [b['id']]);
           }
           // Mark paybacks as synced
           for (var s in unsyncedSupplierPaybacks) {
             if (s['id'] == null) continue;
-            await txn.update('supplier_paybacks', {'is_synced': 1}, where: 'id = ?', whereArgs: [s['id']]);
+            await txn.update('supplier_paybacks', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
           }
           // Mark gift cards as synced
           for (var g in unsyncedGiftCards) {
             if (g['id'] == null) continue;
-            await txn.update('gift_cards', {'is_synced': 1}, where: 'id = ?', whereArgs: [g['id']]);
+            await txn.update('gift_cards', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [g['id']]);
           }
         });
-        if (kDebugMode) print('Push complete: ${response.data['synced']}');
+        if (kDebugMode) {
+          final mappingKeys = (response.data['mappings'] is Map) ? (response.data['mappings'] as Map).keys.toList() : [];
+          print('Push complete: ${response.data['synced']} (Mappings: $mappingKeys)');
+        }
       }
     } catch (e) {
       if (kDebugMode) print('Sync Push Error: $e');
       rethrow;
     }
   }
+
+  /// Internal helper to update local IDs when server assigns a new ID due to collision
+  Future<void> _applyMappings(Transaction txn, Map<String, dynamic> allMappings) async {
+    // Note: server sends mappings like {"categories": {"1": 105}, "products": {"2": 106}}
+    
+    // 1. Categories
+    if (allMappings['categories'] != null && allMappings['categories'] is Map) {
+      final map = allMappings['categories'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Category: $oldId -> $newId');
+        await txn.update('categories', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('products', {'category_id': newId}, where: 'category_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 2. Products
+    if (allMappings['products'] != null && allMappings['products'] is Map) {
+      final map = allMappings['products'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Product: $oldId -> $newId');
+        await txn.update('products', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('stocks', {'product_id': newId}, where: 'product_id = ?', whereArgs: [oldId]);
+        await txn.update('sale_items', {'product_id': newId}, where: 'product_id = ?', whereArgs: [oldId]);
+        await txn.update('purchase_items', {'product_id': newId}, where: 'product_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 3. Customers
+    if (allMappings['customers'] != null && allMappings['customers'] is Map) {
+      final map = allMappings['customers'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Customer: $oldId -> $newId');
+        await txn.update('customers', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('sales', {'customer_id': newId}, where: 'customer_id = ?', whereArgs: [oldId]);
+        await txn.update('credit_sales', {'customer_id': newId}, where: 'customer_id = ?', whereArgs: [oldId]);
+        await txn.update('credit_payments', {'customer_id': newId}, where: 'customer_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 4. Sales
+    if (allMappings['sales'] != null && allMappings['sales'] is Map) {
+      final map = allMappings['sales'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Sale: $oldId -> $newId');
+        await txn.update('sales', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('sale_items', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
+        await txn.update('credit_sales', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 5. Stocks
+    if (allMappings['stocks'] != null && allMappings['stocks'] is Map) {
+      final map = allMappings['stocks'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('stocks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 6. Suppliers (Vendors)
+    if (allMappings['suppliers'] != null && allMappings['suppliers'] is Map) {
+      final map = allMappings['suppliers'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('suppliers', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('purchases', {'supplier_id': newId}, where: 'supplier_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 7. Roles
+    if (allMappings['roles'] != null && allMappings['roles'] is Map) {
+      final map = allMappings['roles'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('roles', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('employees', {'role_id': newId}, where: 'role_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 8. Employees
+    if (allMappings['employees'] != null && allMappings['employees'] is Map) {
+      final map = allMappings['employees'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('employees', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 9. Purchases
+    if (allMappings['purchases'] != null && allMappings['purchases'] is Map) {
+      final map = allMappings['purchases'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('purchases', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('purchase_items', {'purchase_id': newId}, where: 'purchase_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 10. Credit Sales
+    if (allMappings['credit_sales'] != null && allMappings['credit_sales'] is Map) {
+      final map = allMappings['credit_sales'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('credit_sales', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('credit_payments', {'credit_sale_id': newId}, where: 'credit_sale_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 11. Credit Payments
+    if (allMappings['credit_payments'] != null && allMappings['credit_payments'] is Map) {
+      final map = allMappings['credit_payments'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('credit_payments', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 12. Expenses
+    if (allMappings['expenses'] != null && allMappings['expenses'] is Map) {
+      final map = allMappings['expenses'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('expenses', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 13. Shifts
+    if (allMappings['shifts'] != null && allMappings['shifts'] is Map) {
+      final map = allMappings['shifts'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('shifts', {'id': newId}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 14. Expense Heads
+    if (allMappings['expense_heads'] != null && allMappings['expense_heads'] is Map) {
+      final map = allMappings['expense_heads'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('expense_heads', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('expenses', {'expense_head_id': newId}, where: 'expense_head_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 15. Branches
+    if (allMappings['branches'] != null && allMappings['branches'] is Map) {
+      final map = allMappings['branches'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        await txn.update('branches', {'id': newId}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+  }
+
 
   /// Get last sync time
   Future<String?> getLastSyncTime() async {
