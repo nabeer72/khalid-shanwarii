@@ -7,7 +7,6 @@ import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/add_product_screen.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
-import 'package:mobile_app/screens/pos_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -104,7 +103,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Container(
                   decoration: theme.glassDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                     color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
                   ),
                   child: TextField(
@@ -204,14 +203,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
-              // Show popup if there are either multiple product records or multiple price batches
-              if (group.length == 1 && !hasMultiplePrices) {
-                _openProductScreen(product: group.first);
-              } else {
-                _showGroupPopup(name, group);
-              }
-            },
-              borderRadius: BorderRadius.circular(20),
+                if (group.length == 1 && !hasMultiplePrices) {
+                  _openProductScreen(product: group.first);
+                } else {
+                  _showGroupPopup(name, group);
+                }
+              },
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
               child: Container(
                 decoration: theme.glassDecoration.copyWith(
                   border: !isActive 
@@ -228,79 +226,37 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(5),
-                                    decoration: BoxDecoration(
-                                      color: theme.highlight.withOpacity(0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Icon(Icons.inventory_2_rounded, size: 14, color: theme.highlight),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      name,
-                                      style: TextStyle(
-                                        color: theme.textPrimary,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w800,
-                                        decoration: !isActive ? TextDecoration.lineThrough : null,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Icon(Icons.layers_outlined, size: 12, color: theme.iconColor),
-                                  const SizedBox(width: 4),
-                                  Text('Stock: ${totalStock.toStringAsFixed(0)}', 
-                                    style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: (isActive ? ThemeProvider.success : ThemeProvider.error).withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: (isActive ? ThemeProvider.success : ThemeProvider.error).withOpacity(0.3),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      isActive ? 'ACTIVE' : 'INACTIVE', 
-                                      style: TextStyle(
-                                        color: isActive ? ThemeProvider.success : ThemeProvider.error, 
-                                        fontSize: 9,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ),
-                                  if (group.length > 1) ...[
-                                    const SizedBox(width: 8),
-                                    Text('${group.length} variants', 
-                                      style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.bold)),
-                                  ],
-                                ],
-                              ),
-                              if (!hasMultiplePrices && displayPrice.isNotEmpty) ...[
-                                const SizedBox(height: 6),
-                                Text(
-                                  displayPrice, 
-                                  style: TextStyle(
-                                    color: theme.highlight, 
-                                    fontSize: 16, 
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: -0.5,
-                                  ),
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  color: theme.textPrimary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                  decoration: !isActive ? TextDecoration.lineThrough : null,
                                 ),
-                              ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Stock: ${totalStock.toStringAsFixed(0)} | ${group.length} variants | ${isActive ? 'active' : 'inactive'}',
+                                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                              ),
                             ],
                           ),
+                        ),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (displayPrice.isNotEmpty)
+                              Text(
+                                '${BusinessConfig.instance.currency}. $displayPrice',
+                                style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                              ),
+                            Text(
+                              'UNIT PRICE',
+                              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                            ),
+                          ],
                         ),
                         const SizedBox(width: 8),
                         if (hasMultiplePrices)
@@ -334,6 +290,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void _showGroupPopup(String name, List<Product> group) {
+    final theme = ThemeProvider.instance;
     final currency = BusinessConfig.instance.currency;
     showModalBottomSheet(
       context: context,
@@ -343,7 +300,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         return Container(
           decoration: BoxDecoration(
             color: theme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
           ),
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           child: Column(

@@ -244,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: BoxDecoration(
                             color: theme.highlight
                                 .withOpacity(theme.isDark ? 0.1 : 0.06),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                             border: Border.all(
                               color: theme.highlight
                                   .withOpacity(theme.isDark ? 0.25 : 0.18),
@@ -285,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 BusinessConfig
                                                     .instance.businessType]
                                             ?.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(6)),
+                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                                     child: Text(
                                       BusinessConfig.instance.businessType
                                           .toUpperCase(),
@@ -293,7 +293,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                           color: ThemeProvider.businessColors[
                                               BusinessConfig
                                                   .instance.businessType],
-                                          fontSize: 9,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.bold),
                                     ),
                                   ),
@@ -380,7 +380,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             color: theme.isDark
                                 ? theme.highlight.withOpacity(0.08)
                                 : theme.highlight.withOpacity(0.05),
-                            borderRadius: BorderRadius.circular(24),
+                            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                             border: Border.all(
                               color: theme.highlight
                                   .withOpacity(theme.isDark ? 0.25 : 0.18),
@@ -453,44 +453,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
 
-                    // Held Orders Alert
-                    if (heldCount > 0) ...[
-                      const SizedBox(height: 12),
-                      GestureDetector(
-                        onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (_) => const HeldOrdersScreen()))
-                            .then((_) => setState(() {})),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          decoration: theme.glassDecoration.copyWith(
-                            color: theme.isDark
-                                ? ThemeProvider.warning.withOpacity(0.1)
-                                : ThemeProvider.warning.withOpacity(0.1),
-                            border: Border.all(
-                                color: ThemeProvider.warning.withOpacity(0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.pause_circle,
-                                  color: ThemeProvider.warning),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                  child: Text(
-                                      '$heldCount pending order${heldCount > 1 ? 's' : ''}',
-                                      style: TextStyle(
-                                          color: theme.textPrimary,
-                                          fontWeight: FontWeight.w700))),
-                              Icon(Icons.arrow_forward_ios,
-                                  color: theme.iconColor, size: 14),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+                  // Held Orders Alert removed from here
 
                     const SizedBox(height: 24),
 
@@ -553,7 +516,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         'QUICK ACTIONS',
                         style: TextStyle(
                           color: theme.textSecondary,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.5,
                         ),
@@ -805,7 +768,7 @@ class _QuickStat extends StatelessWidget {
           Text(label,
               style: TextStyle(
                   color: theme.textSecondary,
-                  fontSize: 9,
+                  fontSize: 12,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.5)),
         ]),
@@ -836,7 +799,7 @@ class _StatCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -848,7 +811,7 @@ class _StatCard extends StatelessWidget {
                 color.withOpacity(theme.isDark ? 0.05 : 0.02),
               ],
             ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             border: Border.all(
               color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
               width: 1.5,
@@ -875,7 +838,7 @@ class _StatCard extends StatelessWidget {
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                 ),
                 child: Icon(icon, color: color, size: 22),
               ),
@@ -890,7 +853,7 @@ class _StatCard extends StatelessWidget {
               Text(label.toUpperCase(),
                   style: TextStyle(
                       color: theme.textSecondary,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.0)),
             ],
@@ -920,7 +883,7 @@ class _ModuleCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -931,7 +894,7 @@ class _ModuleCard extends StatelessWidget {
                 color.withOpacity(theme.isDark ? 0.05 : 0.02),
               ],
             ),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             border: Border.all(
               color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
               width: 1.5,
@@ -968,7 +931,7 @@ class _ModuleCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.2,
                 ),

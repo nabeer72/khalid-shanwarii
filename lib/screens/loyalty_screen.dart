@@ -170,101 +170,75 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
         final points = loyaltyStore.getPoints(customer.id);
         final tier = _getTier(points);
 
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Container(
-            decoration: theme.glassDecoration,
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => _showCustomerLoyalty(customer, points),
-                borderRadius: BorderRadius.circular(24),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Stack(
-                        children: [
-                          Container(
-                            width: 56,
-                            height: 56,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [tier.color, tier.color.withOpacity(0.6)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(18),
-                              boxShadow: [BoxShadow(color: tier.color.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))],
-                            ),
-                            child: Center(
-                              child: Text(customer.name[0], 
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24)),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: -2,
-                            right: -2,
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: tier.color,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: theme.isDark ? Colors.black : Colors.white, width: 2),
-                              ),
-                              child: Icon(tier.icon, color: Colors.white, size: 12),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(customer.name, 
-                              style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: tier.color.withOpacity(0.15),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(color: tier.color.withOpacity(0.3)),
-                                  ),
-                                  child: Text(tier.name.toUpperCase(), 
-                                    style: TextStyle(color: tier.color, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                                ),
-                                const SizedBox(width: 10),
-                                Text('${BusinessConfig.instance.currency}. ${customer.totalSpent.toStringAsFixed(0)} spent', 
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.stars_rounded, color: theme.highlight, size: 18),
-                              const SizedBox(width: 6),
-                              Text('$points', 
-                                style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                            ],
-                          ),
-                          Text('POINTS', 
-                            style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                        ],
-                      ),
-                    ],
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          decoration: theme.glassDecoration,
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+            onTap: () => _showCustomerLoyalty(customer, points),
+            leading: Stack(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [tier.color, tier.color.withOpacity(0.6)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                  ),
+                  child: Center(
+                    child: Text(customer.name[0], 
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
                   ),
                 ),
+                Positioned(
+                  bottom: -1,
+                  right: -1,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: tier.color,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.isDark ? Colors.black : Colors.white, width: 1.5),
+                    ),
+                    child: Icon(tier.icon, color: Colors.white, size: 8),
+                  ),
+                ),
+              ],
+            ),
+            title: Row(
+              children: [
+                Expanded(
+                  child: Text(customer.name, 
+                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                ),
+                Text(tier.name.toUpperCase(), 
+                    style: TextStyle(color: tier.color, fontSize: 10, fontWeight: FontWeight.w800)),
+              ],
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                '${BusinessConfig.instance.currency}. ${customer.totalSpent.toStringAsFixed(0)} spent',
+                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
               ),
+            ),
+            trailing: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$points',
+                  style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                ),
+                Text(
+                  'POINTS',
+                  style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                ),
+              ],
             ),
           ),
         );
@@ -306,55 +280,39 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
             itemCount: rewards.length,
             itemBuilder: (context, index) {
               final reward = rewards[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  decoration: theme.glassDecoration.copyWith(
-                    gradient: LinearGradient(
-                      colors: [theme.highlight, theme.highlight.withOpacity(0.7)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: theme.glassDecoration,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: theme.highlight.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                     ),
+                    child: Icon(Icons.card_giftcard_rounded, color: theme.highlight, size: 22),
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
+                  title: Text(reward.name, 
+                    style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
+                  subtitle: Text(reward.description, 
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.highlight, 
+                      borderRadius: BorderRadius.circular(6),
+                    ),
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 52,
-                          height: 52,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 28),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(reward.name, 
-                                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                              const SizedBox(height: 2),
-                              Text(reward.description, 
-                                style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w500)),
-                            ],
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.stars_rounded, color: theme.highlight, size: 16),
-                              const SizedBox(width: 6),
-                              Text('${reward.pointsCost}', 
-                                style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 15)),
-                            ],
-                          ),
-                        ),
+                        const Icon(Icons.stars_rounded, color: Colors.white, size: 12),
+                        const SizedBox(width: 4),
+                        Text('${reward.pointsCost}', 
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13)),
                       ],
                     ),
                   ),
@@ -385,7 +343,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
       builder: (ctx) => Container(
         padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
         decoration: theme.glassDecoration.copyWith(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -403,7 +361,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
                   height: 64,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(colors: [tier.color, tier.color.withOpacity(0.7)]),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                   ),
                   child: Center(
                     child: Text(customer.name[0], 
@@ -422,7 +380,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(color: tier.color.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
                         child: Text(tier.name.toUpperCase(), 
-                          style: TextStyle(color: tier.color, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          style: TextStyle(color: tier.color, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
                       ),
                     ],
                   ),
@@ -433,7 +391,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
                     Text('$points', 
                       style: TextStyle(color: theme.highlight, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
                     Text('AVAILABLE POINTS', 
-                      style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                      style: TextStyle(color: theme.textHint, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
                   ],
                 ),
               ],
@@ -443,7 +401,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text('REDEEMABLE REWARDS', 
-                  style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
               ),
               const SizedBox(height: 16),
               ...rewardsForPoints.map((r) => Padding(
@@ -452,7 +410,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.whiteAlpha(0.05),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                     border: Border.all(color: theme.whiteAlpha(0.1)),
                   ),
                   child: Row(
@@ -478,7 +436,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
                                 content: Text('${r.name} successfully redeemed!'), 
                                 backgroundColor: ThemeProvider.success,
                                 behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                               )
                             );
                           }
@@ -487,7 +445,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
                           backgroundColor: theme.highlight,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                         child: const Text('REDEEM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),

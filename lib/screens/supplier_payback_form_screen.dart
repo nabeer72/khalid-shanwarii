@@ -238,7 +238,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
                                padding: const EdgeInsets.all(16),
                                decoration: BoxDecoration(
                                  color: ThemeProvider.warning.withOpacity(0.1),
-                                 borderRadius: BorderRadius.circular(16),
+                                 borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                  border: Border.all(color: ThemeProvider.warning.withOpacity(0.3)),
                                ),
                                child: Row(
@@ -251,7 +251,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
                                          'TOTAL CREDIT',
                                          style: TextStyle(
                                            color: theme.textHint,
-                                           fontSize: 10,
+                                           fontSize: 12,
                                            fontWeight: FontWeight.w900,
                                            letterSpacing: 1,
                                          ),
@@ -308,7 +308,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
                                  color: _remainingBalance > 0 
                                    ? ThemeProvider.warning.withOpacity(0.1)
                                    : ThemeProvider.success.withOpacity(0.1),
-                                 borderRadius: BorderRadius.circular(16),
+                                 borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                  border: Border.all(
                                    color: _remainingBalance > 0
                                      ? ThemeProvider.warning.withOpacity(0.3)
@@ -384,7 +384,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                             ),
                             child: const Text(
                               'RECORD PAYBACK',
@@ -422,15 +422,15 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
         filled: true,
         fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.3)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: theme.isDark ? theme.whiteAlpha(0.1) : Colors.black.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6), width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -446,7 +446,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
         title.toUpperCase(),
         style: TextStyle(
           color: theme.textSecondary,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.5,
         ),
@@ -475,15 +475,15 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
         filled: true,
         fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.3)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: theme.isDark ? theme.whiteAlpha(0.1) : Colors.black.withOpacity(0.3)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6), width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -495,12 +495,12 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
   Widget _buildDateField() {
     return InkWell(
       onTap: _selectDate,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.whiteAlpha(0.05),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           border: Border.all(color: theme.whiteAlpha(0.1)),
         ),
         child: Row(

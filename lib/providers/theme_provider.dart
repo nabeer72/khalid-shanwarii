@@ -4,6 +4,22 @@ class ThemeProvider extends ChangeNotifier {
   static final ThemeProvider instance = ThemeProvider._();
   ThemeProvider._();
 
+  // Typography scale (mobile POS guideline)
+  static const double fontBody   = 16;  // Main body / paragraph
+  static const double fontList   = 15;  // List items, menus
+  static const double fontTable  = 14;  // Dense data, table cells
+  static const double fontButton = 15;  // Buttons & primary labels
+  static const double fontCaption = 13; // Secondary / helper text
+  static const double fontTitle  = 20;  // Section / window titles
+  static const double fontLabel  = 14;  // Form field labels
+  static const double fontSmall  = 12;  // Tooltips, badges
+
+  // Border Radius standards
+  static const double radiusList = 8;
+  static const double radiusCard = 10;
+  static const double radiusInput = 8;
+  static const double radiusGlass = 10;
+
   bool _isDark = true;
   bool get isDark => _isDark;
 
@@ -71,7 +87,7 @@ class ThemeProvider extends ChangeNotifier {
   // Glassmorphism effect
   BoxDecoration get glassDecoration => BoxDecoration(
     color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.05 : 0.15),
-    borderRadius: BorderRadius.circular(24),
+    borderRadius: BorderRadius.circular(radiusGlass),
     border: Border.all(color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.1 : 0.2), width: 1.5),
     boxShadow: [
       BoxShadow(
@@ -109,15 +125,15 @@ class ThemeProvider extends ChangeNotifier {
       filled: true,
       fillColor: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.08 : 0.1),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radiusInput),
         borderSide: BorderSide(color: _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radiusInput),
         borderSide: BorderSide(color: _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(radiusInput),
         borderSide: BorderSide(color: _isDark ? highlight : Colors.black.withOpacity(0.3), width: 1.5),
       ),
     );

@@ -155,7 +155,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('NET REVENUE', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
                           Icon(Icons.auto_graph_rounded, color: Colors.white.withOpacity(0.9), size: 20),
                         ],
                       ),
@@ -170,7 +170,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text('$_transactionCount transactions completed', 
-                          style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w800)),
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
                       ),
                     ],
                   ),
@@ -224,19 +224,23 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildSummaryCards() {
-    return GridView.count(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+    return GridView(
       padding: EdgeInsets.zero,
-      crossAxisCount: 2,
-      crossAxisSpacing: 12,
-      mainAxisSpacing: 12,
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      childAspectRatio: 1.3,
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: isTablet ? 240 : 300,
+        mainAxisExtent: isTablet ? 140 : 160,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+      ),
       children: [
-        _SummaryCard(title: 'Gross Sales', value: '${BusinessConfig.instance.currency}. ${_totalSales.toStringAsFixed(0)}', icon: Icons.trending_up_rounded, color: ThemeProvider.success),
-        _SummaryCard(title: 'Returns', value: '${BusinessConfig.instance.currency}. ${(_totalReturns).toStringAsFixed(0)}', icon: Icons.keyboard_return_rounded, color: ThemeProvider.error),
-        _SummaryCard(title: 'Avg. Cart', value: '${BusinessConfig.instance.currency}. ${_avgTransaction.toStringAsFixed(2)}', icon: Icons.shopping_basket_rounded, color: theme.accent),
-        _SummaryCard(title: 'Tax Collected', value: '${BusinessConfig.instance.currency}. ${_totalTax.toStringAsFixed(0)}', icon: Icons.account_balance_rounded, color: theme.secondary),
+        _SummaryCard(title: 'Gross Sales', value: _totalSales, icon: Icons.trending_up_rounded, color: ThemeProvider.success),
+        _SummaryCard(title: 'Returns', value: _totalReturns, icon: Icons.keyboard_return_rounded, color: ThemeProvider.error),
+        _SummaryCard(title: 'Avg. Cart', value: _avgTransaction, icon: Icons.shopping_basket_rounded, color: theme.accent, isCurrency: true),
+        _SummaryCard(title: 'Tax Collected', value: _totalTax, icon: Icons.account_balance_rounded, color: theme.secondary),
       ],
     );
   }
@@ -304,7 +308,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   children: [
                     Expanded(
                       child: Text(method.toUpperCase(), 
-                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 0.5),
+                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -393,7 +397,7 @@ class _PeriodChip extends StatelessWidget {
           label.toUpperCase(), 
           style: TextStyle(
             color: selected ? Colors.white : theme.textSecondary, 
-            fontSize: 11, 
+            fontSize: 12, 
             fontWeight: FontWeight.w900,
             letterSpacing: 0.5,
           ),
@@ -405,36 +409,93 @@ class _PeriodChip extends StatelessWidget {
 
 class _SummaryCard extends StatelessWidget {
   final String title;
-  final String value;
+  final double value;
   final IconData icon;
   final Color color;
+  final bool isCurrency;
 
-  const _SummaryCard({required this.title, required this.value, required this.icon, required this.color});
+  const _SummaryCard({
+    required this.title, 
+    required this.value, 
+    required this.icon, 
+    required this.color,
+    this.isCurrency = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
+    final currency = BusinessConfig.instance.currency;
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: theme.glassDecoration,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(theme.isDark ? 0.15 : 0.12),
+            color.withOpacity(theme.isDark ? 0.05 : 0.02),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+        border: Border.all(
+          color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(theme.isDark ? 0.12 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+          BoxShadow(
+            color: theme.isDark
+                ? Colors.black26
+                : Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: Icon(icon, color: color, size: 16),
-              ),
-              Container(width: 4, height: 4, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 22),
           ),
-          const Spacer(),
-          Text(value, style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+          const SizedBox(height: 14),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                isCurrency 
+                    ? '$currency. ${value.toStringAsFixed(0)}' 
+                    : value.toInt().toString(),
+                style: TextStyle(
+                  color: theme.textPrimary, 
+                  fontSize: 22, 
+                  fontWeight: FontWeight.w900, 
+                  letterSpacing: -0.5
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 2),
-          Text(title.toUpperCase(), style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 0.5)),
+          Text(
+            title.toUpperCase(), 
+            style: TextStyle(
+              color: theme.textSecondary, 
+              fontSize: 12, 
+              fontWeight: FontWeight.w800, 
+              letterSpacing: 1.0
+            ),
+          ),
         ],
       ),
     );

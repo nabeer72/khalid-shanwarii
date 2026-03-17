@@ -70,7 +70,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     labelText: 'Transaction Type',
                     labelStyle: TextStyle(color: theme.textSecondary),
                     prefixIcon: Icon(Icons.swap_horiz_rounded, color: theme.iconColor),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput)),
                   ),
                   items: ['Deposit', 'Withdrawal', 'Transfer']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
@@ -127,7 +127,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
         labelText: label,
         labelStyle: TextStyle(color: theme.textSecondary),
         prefixIcon: Icon(icon, color: theme.iconColor),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput)),
       ),
     );
   }
@@ -171,74 +171,78 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                         final t = _transactions[i];
                         final isWithdrawal = t.transactionType == 'Withdrawal';
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
+                          margin: const EdgeInsets.only(bottom: 8),
                           decoration: theme.glassDecoration,
                           child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                             onTap: () => _showTransactionDialog(t),
-                            leading: Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: (isWithdrawal ? Colors.redAccent : Colors.greenAccent).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Icon(
-                                isWithdrawal ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-                                color: isWithdrawal ? Colors.redAccent : Colors.greenAccent,
-                              ),
-                            ),
                             title: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(t.bankName, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                                Expanded(
+                                  child: Text(t.bankName, 
+                                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                                ),
                                 Text(
-                                  '${isWithdrawal ? "-" : "+"}${BusinessConfig.instance.currency}. ${t.amount.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                    color: isWithdrawal ? Colors.redAccent : Colors.greenAccent,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  DateFormat('MMM dd, yyyy').format(t.date ?? DateTime.now()),
+                                  style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800),
                                 ),
                               ],
                             ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                '${t.accountTitle} | ${t.accountNumber ?? ""}',
+                                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text('${t.accountTitle} • ${t.accountNumber ?? ""}',
-                                    style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-                                const SizedBox(height: 4),
-                                Row(
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Icon(Icons.calendar_today_rounded, size: 10, color: theme.iconColor),
-                                    const SizedBox(width: 4),
                                     Text(
-                                      t.date != null ? DateFormat('MMM dd, yyyy').format(t.date!) : "No date",
-                                      style: TextStyle(color: theme.textSecondary, fontSize: 10),
+                                      '${isWithdrawal ? "-" : "+"}${BusinessConfig.instance.currency}. ${t.amount.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                        color: isWithdrawal ? ThemeProvider.error : ThemeProvider.success,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 13,
+                                      ),
                                     ),
-                                    const Spacer(),
-                                    if (t.remarks != null && t.remarks!.isNotEmpty)
-                                      Icon(Icons.info_outline_rounded, size: 12, color: theme.highlight),
+                                    Text(
+                                      (t.transactionType ?? "").toUpperCase(),
+                                      style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                    ),
                                   ],
                                 ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 18),
+                                  onPressed: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        backgroundColor: theme.surface,
+                                        title: Text('Delete Entry?', style: TextStyle(color: theme.textPrimary)),
+                                        content: Text('Are you sure you want to delete this bank entry?', style: TextStyle(color: theme.textSecondary)),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('CANCEL', style: TextStyle(color: theme.textSecondary))),
+                                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: ThemeProvider.error))),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0);
+                                      _loadTransactions();
+                                    }
+                                  },
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
                               ],
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                              onPressed: () async {
-                                final confirm = await showDialog<bool>(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Delete Entry?'),
-                                    content: const Text('Are you sure you want to delete this bank entry?'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
-                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: Colors.redAccent))),
-                                    ],
-                                  ),
-                                );
-                                if (confirm == true) {
-                                  await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0);
-                                  _loadTransactions();
-                                }
-                              },
                             ),
                           ),
                         );

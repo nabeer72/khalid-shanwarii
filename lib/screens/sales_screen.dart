@@ -92,7 +92,7 @@ class _SalesScreenState extends State<SalesScreen> {
         height: 400,
         decoration: const BoxDecoration(
           color: Color(0xFF16213E),
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
         ),
         child: Column(
           children: [
@@ -105,7 +105,7 @@ class _SalesScreenState extends State<SalesScreen> {
             ),
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                 child: MobileScanner(
                   onDetect: (capture) {
                     final barcodes = capture.barcodes;
@@ -234,7 +234,7 @@ class _SalesScreenState extends State<SalesScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: const Color(0xFF16213E),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                         ),
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
@@ -243,7 +243,7 @@ class _SalesScreenState extends State<SalesScreen> {
                             height: 50,
                             decoration: BoxDecoration(
                               color: const Color(0xFF3282B8),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                             ),
                             child: Center(
                               child: Text(
@@ -277,7 +277,7 @@ class _SalesScreenState extends State<SalesScreen> {
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
               color: Color(0xFF16213E),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -306,7 +306,7 @@ class _SalesScreenState extends State<SalesScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                     ),
                   ),
                   child: const Text(

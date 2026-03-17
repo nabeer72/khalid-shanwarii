@@ -66,7 +66,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text('SELECT PRESET AMOUNT', 
-                  style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
@@ -77,7 +77,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         color: selectedAmount == amt ? const Color(0xFFE91E63) : theme.whiteAlpha(0.05),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                         border: Border.all(color: selectedAmount == amt ? const Color(0xFFE91E63) : theme.whiteAlpha(0.1), width: 1.5),
                         boxShadow: selectedAmount == amt ? [BoxShadow(color: const Color(0xFFE91E63).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
                       ),
@@ -106,7 +106,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFE91E63),
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
                         ),
@@ -160,7 +160,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [Color(0xFFE91E63), Color(0xFFFF5722)]),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                   boxShadow: [BoxShadow(color: const Color(0xFFE91E63).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
                 ),
                 child: Column(
@@ -169,7 +169,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                     const SizedBox(height: 16),
                     Text(code, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 2, fontFamily: 'Monospace')),
                     const SizedBox(height: 12),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)), child: Text('BALANCE', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1))),
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)), child: Text('BALANCE', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1))),
                     const SizedBox(height: 4),
                     Text('${BusinessConfig.instance.currency}. ${amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
                   ],
@@ -227,7 +227,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
               const SizedBox(height: 24),
               Container(
                 decoration: theme.glassDecoration.copyWith(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                   color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
                 ),
                 child: TextField(
@@ -273,7 +273,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                               content: Text('Balance: ${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}'), 
                               backgroundColor: ThemeProvider.success,
                               behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                             ),
                           );
                         } else {
@@ -282,7 +282,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                               content: const Text('Invalid Gift Card Code'), 
                               backgroundColor: ThemeProvider.error,
                               behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                             ),
                           );
                         }
@@ -352,7 +352,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                           backgroundColor: const Color(0xFFE91E63),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                         ),
                       ),
                     ],
@@ -390,88 +390,57 @@ class _GiftCardTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
-    final usedPercent = 1 - (card.balance / card.initialAmount);
     final isDepleted = card.balance <= 0;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: Container(
-        decoration: theme.glassDecoration.copyWith(
-          gradient: LinearGradient(
-            colors: isDepleted 
-              ? [Colors.grey.shade400, Colors.grey.shade600] 
-              : [const Color(0xFFE91E63), const Color(0xFFFF5722)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: theme.glassDecoration,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        onTap: onTap,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(card.code, 
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13, fontFamily: 'Monospace', letterSpacing: 1)),
+            ),
+            Text('ID: ${card.id}', 
+                style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Row(
+            children: [
+              Text(
+                'ISSUED: ${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
+                style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+              const Spacer(),
+              Text(
+                'VAL: ${BusinessConfig.instance.currency}. ${card.initialAmount.toStringAsFixed(0)}',
+                style: TextStyle(color: theme.textHint, fontSize: 11, fontWeight: FontWeight.w500),
+              ),
+            ],
           ),
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 24),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}', 
-                            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1)),
-                          Text('CURRENT BALANCE', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  Text(card.code, 
-                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 2, fontFamily: 'Monospace')),
-                  const SizedBox(height: 12),
-                  Stack(
-                    children: [
-                      Container(
-                        height: 6,
-                        width: double.infinity,
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(3)),
-                      ),
-                      FractionallySizedBox(
-                        widthFactor: 1 - usedPercent,
-                        child: Container(
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(3),
-                            boxShadow: [BoxShadow(color: Colors.white.withOpacity(0.3), blurRadius: 4)],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('ISSUED ${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}', 
-                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w700)),
-                      Text('VALUE: ${BusinessConfig.instance.currency}. ${card.initialAmount.toStringAsFixed(0)}', 
-                        style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 9, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                ],
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}',
+              style: TextStyle(
+                color: isDepleted ? ThemeProvider.error : const Color(0xFFE91E63), 
+                fontWeight: FontWeight.w900, 
+                fontSize: 14,
               ),
             ),
-          ),
+            Text(
+              isDepleted ? 'DEPLETED' : 'BALANCE',
+              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+            ),
+          ],
         ),
       ),
     );

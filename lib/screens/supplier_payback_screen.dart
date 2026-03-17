@@ -87,7 +87,7 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Container(
                   decoration: theme.glassDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                     color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
                   ),
                   child: TextField(
@@ -178,106 +178,61 @@ class _SupplierCreditCard extends StatelessWidget {
     final theme = ThemeProvider.instance;
     final creditBalance = supplier.creditBalance;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: theme.glassDecoration,
-            child: Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [theme.highlight.withOpacity(0.3), theme.highlight.withOpacity(0.1)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      supplier.name[0].toUpperCase(),
-                      style: TextStyle(
-                        color: theme.highlight,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Supplier Info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        supplier.name,
-                        style: TextStyle(
-                          color: theme.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      if (supplier.phone != null)
-                        Row(
-                          children: [
-                            Icon(Icons.phone_rounded, size: 12, color: theme.textSecondary),
-                            const SizedBox(width: 4),
-                            Text(
-                              supplier.phone!,
-                              style: TextStyle(
-                                color: theme.textSecondary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                    ],
-                  ),
-                ),
-
-                // Credit Balance
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      'CREDIT',
-                      style: TextStyle(
-                        color: theme.textHint,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '${BusinessConfig.instance.currency}. ${creditBalance.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        color: ThemeProvider.warning,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 8),
-                Icon(Icons.chevron_right_rounded, color: theme.iconColor),
-              ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: theme.glassDecoration,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        onTap: onTap,
+        leading: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [theme.highlight.withOpacity(0.3), theme.highlight.withOpacity(0.1)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+          ),
+          child: Center(
+            child: Text(
+              supplier.name[0].toUpperCase(),
+              style: TextStyle(color: theme.highlight, fontSize: 18, fontWeight: FontWeight.w900),
             ),
           ),
+        ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(supplier.name, 
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+            ),
+            if (supplier.phone != null)
+              Text(supplier.phone!, 
+                  style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            'Remaining balance to be paid back',
+            style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${BusinessConfig.instance.currency}. ${creditBalance.toStringAsFixed(2)}',
+              style: const TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 13),
+            ),
+            Text(
+              'CREDIT',
+              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+            ),
+          ],
         ),
       ),
     );

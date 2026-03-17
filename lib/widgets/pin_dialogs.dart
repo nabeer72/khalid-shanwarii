@@ -10,7 +10,7 @@ class PinDialogs {
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
         title: Row(
           children: [
             Icon(Icons.security_rounded, color: theme.highlight, size: 28),
@@ -135,7 +135,7 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
         child: Container(
           height: 64,
           alignment: Alignment.center,
@@ -152,7 +152,7 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
     final currentLength = _isConfirming ? _confirmPin.length : _pin.length;
     return Dialog(
       backgroundColor: theme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
         child: Padding(
@@ -256,7 +256,7 @@ class _EnterPinDialogState extends State<_EnterPinDialog> {
     return Expanded(
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
         child: Container(
           height: 64,
           alignment: Alignment.center,

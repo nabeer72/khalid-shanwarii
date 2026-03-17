@@ -141,7 +141,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
                           return Container(
                             margin: const EdgeInsets.only(bottom: 8),
                             decoration: theme.glassDecoration.copyWith(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                             ),
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -210,7 +210,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
             color.withOpacity(theme.isDark ? 0.05 : 0.02),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         border: Border.all(
           color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
           width: 1.5,
@@ -256,7 +256,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
           ),
           const SizedBox(height: 2),
           Text(title.toUpperCase(), 
-              style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
+              style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
         ],
       ),
     );

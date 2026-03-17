@@ -112,7 +112,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                         elevation: 0,
                         padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                         ),
                       ),
                       onPressed: () => Navigator.pop(c, true),
@@ -339,7 +339,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                           elevation: 0,
                           padding: EdgeInsets.symmetric(vertical: isTablet ? 18 : 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                            borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                           ),
                         ),
                         child: Text(
@@ -391,7 +391,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     final labelFontSize = isTablet ? 11.0 : 10.0;
     final textFontSize = isTablet ? 16.0 : 14.0;
     final iconSize = isTablet ? 22.0 : 20.0;
-    final borderRadius = isTablet ? 18.0 : 16.0;
+    final borderRadius = ThemeProvider.radiusInput;
     final verticalPadding = isTablet ? 18.0 : 16.0;
     final horizontalPadding = isTablet ? 18.0 : 16.0;
 

@@ -95,7 +95,7 @@ class _ClockInDialogState extends State<ClockInDialog> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                               ),
                               child: Row(
                                 children: [
@@ -163,7 +163,7 @@ class _ClockInDialogState extends State<ClockInDialog> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: theme.highlight,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                     ),
                     onPressed: () => _handleClockIn(context),
                     child: const Text('START SHIFT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
@@ -290,7 +290,7 @@ class _ClockOutDenominationsDialogState extends State<ClockOutDenominationsDialo
                             child: Container(
                               decoration: BoxDecoration(
                                 color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                               ),
                               child: Row(
                                 children: [
@@ -358,7 +358,7 @@ class _ClockOutDenominationsDialogState extends State<ClockOutDenominationsDialo
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.highlight,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                   ),
                   onPressed: () => Navigator.pop(context, {
                     'total': _totalClosingCash,
@@ -463,7 +463,7 @@ class _ClockOutDialogState extends State<ClockOutDialog> {
                             Text('Shift Summary', 
                               style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
                             Text('Reconciliation & Breakdown', 
-                              style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+                              style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                           ],
                         ),
                       ),
@@ -485,7 +485,7 @@ class _ClockOutDialogState extends State<ClockOutDialog> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: (discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -638,7 +638,7 @@ extension ThemeProviderExt on ThemeProvider {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E).withOpacity(0.8) : Colors.white.withOpacity(0.9),
-        borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         border: Border.all(
           color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
           width: 1.5,

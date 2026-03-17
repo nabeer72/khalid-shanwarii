@@ -133,7 +133,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                           padding: const EdgeInsets.all(16),
                                           decoration: BoxDecoration(
                                             color: theme.whiteAlpha(0.05),
-                                            borderRadius: BorderRadius.circular(16),
+                                            borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                             border: Border.all(color: theme.whiteAlpha(0.1)),
                                           ),
                                           child: Row(
@@ -147,7 +147,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                                     'EXPENSE DATE',
                                                     style: TextStyle(
                                                       color: theme.textHint,
-                                                      fontSize: 10,
+                                                      fontSize: 12,
                                                       fontWeight: FontWeight.w900,
                                                       letterSpacing: 0.5,
                                                     ),
@@ -201,7 +201,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                     padding: const EdgeInsets.all(16),
                                     decoration: BoxDecoration(
                                       color: theme.whiteAlpha(0.05),
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                       border: Border.all(color: theme.whiteAlpha(0.1)),
                                     ),
                                     child: Row(
@@ -215,7 +215,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                                               'EXPENSE DATE',
                                               style: TextStyle(
                                                 color: theme.textHint,
-                                                fontSize: 10,
+                                                fontSize: 12,
                                                 fontWeight: FontWeight.w900,
                                                 letterSpacing: 0.5,
                                               ),
@@ -249,7 +249,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.highlight,
                           minimumSize: const Size(double.infinity, 56),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                           elevation: 4,
                         ),
                         child: Text(

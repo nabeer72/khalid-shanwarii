@@ -106,7 +106,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: theme.highlight,
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
             elevation: 0,
           ),
           onPressed: _isLoading ? null : _saveCustomer,
@@ -264,7 +264,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         title.toUpperCase(),
         style: TextStyle(
           color: theme.textSecondary,
-          fontSize: 11,
+          fontSize: 13,
           fontWeight: FontWeight.w900,
           letterSpacing: 1.5,
         ),
@@ -296,7 +296,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        Text(label, style: TextStyle(color: theme.textHint, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -310,9 +310,9 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
             prefixIcon: Icon(icon, color: theme.highlight, size: 20),
             filled: true,
             fillColor: theme.whiteAlpha(0.05),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.3))),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.isDark ? theme.whiteAlpha(0.1) : Colors.black.withOpacity(0.3))),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: theme.isDark ? theme.highlight.withOpacity(0.5) : Colors.black.withOpacity(0.6))),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput), borderSide: BorderSide(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.3))),
+            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput), borderSide: BorderSide(color: theme.isDark ? theme.whiteAlpha(0.1) : Colors.black.withOpacity(0.3))),
+            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput), borderSide: BorderSide(color: theme.isDark ? theme.highlight.withOpacity(0.5) : Colors.black.withOpacity(0.6))),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           ),
         ),

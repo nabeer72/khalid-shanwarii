@@ -138,12 +138,12 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: theme.highlight,
                               foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                               elevation: 0,
                             ),
                             onPressed: _showAddItemDialog,
                             icon: const Icon(Icons.add_rounded, size: 20),
-                            label: const Text('ADD ITEM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
+                            label: const Text('ADD ITEM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
                           ),
                         ],
                       ),
@@ -206,15 +206,15 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         filled: true,
         fillColor: Colors.black.withOpacity(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
         ),
       );
@@ -233,7 +233,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                 ),
                 width: double.maxFinite,
                 child: SingleChildScrollView(
@@ -335,7 +335,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           Container(
                             decoration: BoxDecoration(
                               color: theme.highlight.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                             ),
                             child: IconButton(
                               icon: Icon(Icons.add_circle_outline_rounded, color: theme.highlight, size: 22),
@@ -407,7 +407,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: theme.highlight, 
                                 foregroundColor: Colors.white, 
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                               ),
                               onPressed: () {
                                 final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0;
@@ -428,7 +428,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                               },
                               child: Text(
                                 'ADD ITEM', 
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 10),
+                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
                               ),
                             ),
                           ),
@@ -467,7 +467,7 @@ class _TotalCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('TOTAL PURCHASE', style: TextStyle(color: theme.highlight, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              Text('TOTAL PURCHASE', style: TextStyle(color: theme.highlight, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
               const SizedBox(height: 4),
               Text(total, style: TextStyle(color: theme.textPrimary, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1)),
             ],
@@ -521,7 +521,7 @@ class _PurchaseInfoCard extends StatelessWidget {
               Container(
                 decoration: BoxDecoration(
                   color: theme.highlight.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                 ),
                 child: IconButton(
                   icon: Icon(Icons.add_rounded, color: theme.highlight, size: 22),
@@ -539,7 +539,7 @@ class _PurchaseInfoCard extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: ThemeProvider.error.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                   border: Border.all(color: ThemeProvider.error.withOpacity(0.2)),
                 ),
                 child: Row(
@@ -551,7 +551,7 @@ class _PurchaseInfoCard extends StatelessWidget {
                       'Prev. Credit: ${controller.formattedPreviousCredit}',
                       style: TextStyle(
                         color: ThemeProvider.error, 
-                        fontSize: 12, 
+                        fontSize: 13, 
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.2,
                       ),
@@ -631,7 +631,7 @@ class _PurchaseInfoCard extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: theme.whiteAlpha(0.05),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
               border: Border.all(color: theme.whiteAlpha(0.1)),
             ),
             child: Column(
@@ -680,7 +680,7 @@ class _EmptyItemsState extends StatelessWidget {
           const SizedBox(height: 16),
           Text('No items added yet', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),
-          Text('Tap "Add Item" to start.', style: TextStyle(color: theme.textHint, fontSize: 12)),
+          Text('Tap "Add Item" to start.', style: TextStyle(color: theme.textHint, fontSize: 13)),
         ],
       ),
     );
@@ -713,7 +713,7 @@ class _SummaryRow extends StatelessWidget {
           label,
           style: TextStyle(
             color: theme.textSecondary,
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
             fontStyle: isItalic ? FontStyle.italic : null,
           ),
@@ -722,7 +722,7 @@ class _SummaryRow extends StatelessWidget {
           value,
           style: TextStyle(
             color: valueColor ?? theme.textPrimary,
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: isBold ? FontWeight.w900 : FontWeight.w600,
             fontStyle: isItalic ? FontStyle.italic : null,
           ),
@@ -752,7 +752,7 @@ class _ItemTile extends StatelessWidget {
           padding: const EdgeInsets.only(top: 4),
           child: Text(
             'Qty: ${item['quantity']} x $currency. ${item['purchase_price']}',
-            style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600, fontSize: 12),
+            style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
         trailing: Row(
@@ -784,7 +784,7 @@ class _SaveButton extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: theme.glassDecoration.copyWith(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
         // Ensure visibility in light mode by adding a subtle border or background adjustment
         color: theme.isDark ? null : Colors.white.withOpacity(0.9),
         border: theme.isDark ? null : Border(top: BorderSide(color: Colors.black.withOpacity(0.05), width: 1)),
@@ -808,7 +808,7 @@ class _SaveButton extends StatelessWidget {
               onPressed: onPressed,
               child: Text(
                 'SAVE PURCHASE',
-                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.5),
               ),
             ),
           ),
@@ -817,7 +817,7 @@ class _SaveButton extends StatelessWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 'Add supplier and items to save',
-                style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600),
               ),
             ),
         ],
@@ -881,8 +881,8 @@ class _ProductStats extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(color: labelColor, fontSize: 12, fontWeight: FontWeight.w600)),
-        Text(value, style: TextStyle(color: textColor, fontSize: 12, fontWeight: FontWeight.w800)),
+        Text(label, style: TextStyle(color: labelColor, fontSize: 13, fontWeight: FontWeight.w600)),
+        Text(value, style: TextStyle(color: textColor, fontSize: 13, fontWeight: FontWeight.w800)),
       ],
     );
   }

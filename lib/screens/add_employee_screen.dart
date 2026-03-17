@@ -82,7 +82,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.highlight,
               padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
               elevation: 4,
             ),
             child: Text(
@@ -247,7 +247,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: theme.background.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                         border: Border.all(color: theme.textHint.withOpacity(0.1)),
                       ),
                       child: Row(

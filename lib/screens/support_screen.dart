@@ -120,7 +120,7 @@ class SupportScreen extends StatelessWidget {
                     title.toUpperCase(),
                     style: TextStyle(
                       color: theme.textHint,
-                      fontSize: 10,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.0,
                     ),

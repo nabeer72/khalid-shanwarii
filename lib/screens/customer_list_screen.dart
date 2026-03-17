@@ -81,7 +81,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Container(
                   decoration: theme.glassDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                     color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
                   ),
                   child: TextField(
@@ -134,100 +134,48 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                     _navigateToAddCustomer(c);
                                   }
                                 },
-                                borderRadius: BorderRadius.circular(20),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                 child: Container(
                                   decoration: theme.glassDecoration,
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Row(
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    title: Row(
                                       children: [
-                                        Container(
-                                          width: 56,
-                                          height: 56,
-                                          decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
-                                              colors: ThemeProvider.gradientOcean,
-                                              begin: Alignment.topLeft,
-                                              end: Alignment.bottomRight,
-                                            ),
-                                            borderRadius: BorderRadius.circular(16),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: const Color(0xFF0284C7).withOpacity(0.2),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 4),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              c.name[0].toUpperCase(), 
-                                              style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
                                         Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                c.name,
-                                                style: TextStyle(
-                                                  color: theme.textPrimary,
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.w800,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  if (c.phone != null) ...[
-                                                    Icon(Icons.phone_iphone_rounded, size: 12, color: theme.iconColor),
-                                                    const SizedBox(width: 4),
-                                                    Text(c.phone!, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-                                                  ],
-                                                ],
-                                              ),
-                                              if (c.discount > 0) ...[
-                                                const SizedBox(height: 4),
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: theme.highlight.withOpacity(0.15),
-                                                    borderRadius: BorderRadius.circular(6),
-                                                  ),
-                                                  child: Text(
-                                                    '${c.discount}% DISCOUNT', 
-                                                    style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                                                  ),
-                                                ),
-                                              ],
-                                            ],
-                                          ),
+                                          child: Text(c.name, 
+                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                         ),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.end,
-                                          children: [
-                                            Text(
-                                              '${BusinessConfig.instance.currency}. ${c.totalSpent.toStringAsFixed(0)}', 
-                                              style: TextStyle(
-                                                color: theme.textPrimary, 
-                                                fontSize: 18, 
-                                                fontWeight: FontWeight.w900,
-                                                letterSpacing: -0.5,
-                                              ),
+                                        if (c.discount > 0)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: theme.highlight.withOpacity(0.1),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: theme.highlight.withOpacity(0.2)),
                                             ),
-                                            Text(
-                                              '${c.visitCount} VISITS', 
-                                              style: TextStyle(
-                                                color: theme.textSecondary, 
-                                                fontSize: 10, 
-                                                fontWeight: FontWeight.w800,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                          ],
+                                            child: Text('${c.discount}% OFF', 
+                                                style: TextStyle(color: theme.highlight, fontSize: 7, fontWeight: FontWeight.w900)),
+                                          ),
+                                      ],
+                                    ),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                        'Phone: ${c.phone ?? 'N/A'} | Visits: ${c.visitCount}',
+                                        style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                      ),
+                                    ),
+                                    trailing: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '${BusinessConfig.instance.currency}. ${c.totalSpent.toStringAsFixed(2)}',
+                                          style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                                        ),
+                                        Text(
+                                          'TOTAL PURCHASE',
+                                          style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
                                         ),
                                       ],
                                     ),
@@ -265,7 +213,7 @@ class _CustomerTile extends StatelessWidget {
     final theme = ThemeProvider.instance;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(color: theme.surface, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: theme.surface, borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.all(16),
@@ -286,7 +234,7 @@ class _CustomerTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text('${BusinessConfig.instance.currency}. ${customer.totalSpent.toStringAsFixed(2)}', style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold)),
-            Text('${customer.visitCount} visits', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+            Text('${customer.visitCount} visits', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
           ],
         ),
       ),

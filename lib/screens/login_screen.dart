@@ -471,7 +471,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       color: theme.isDark
                                           ? Colors.white.withOpacity(0.05)
                                           : Colors.black.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(28),
+                                      borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                       border: Border.all(
                                           color: theme.iconColor.withOpacity(0.1)),
                                     ),
@@ -504,7 +504,7 @@ class _LoginScreenState extends State<LoginScreen>
                                           horizontal: 14, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: ThemeProvider.warning.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(12),
+                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                         border: Border.all(
                                             color: ThemeProvider.warning
                                                 .withOpacity(0.3)),
@@ -513,7 +513,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         'WEB DEMO MODE',
                                         style: TextStyle(
                                           color: ThemeProvider.warning,
-                                          fontSize: 11,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.bold,
                                           letterSpacing: 1.0,
                                         ),
@@ -530,7 +530,7 @@ class _LoginScreenState extends State<LoginScreen>
                             'QUICK LOGIN',
                             style: TextStyle(
                               color: theme.textSecondary,
-                              fontSize: 12,
+                              fontSize: 13,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 2.0,
                             ),
@@ -546,13 +546,13 @@ class _LoginScreenState extends State<LoginScreen>
                                     children: [
                                       InkWell(
                                         onTap: () => _handleQuickLogin(acc),
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                         child: Container(
                                           width: 120,
                                           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
                                           decoration: BoxDecoration(
                                             color: theme.surface.withOpacity(0.5),
-                                            borderRadius: BorderRadius.circular(16),
+                                            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                             border: Border.all(color: theme.highlight.withOpacity(0.3), width: 1.5),
                                             boxShadow: [
                                               BoxShadow(
@@ -588,7 +588,7 @@ class _LoginScreenState extends State<LoginScreen>
                                                 style: TextStyle(
                                                   color: theme.highlight,
                                                   fontWeight: FontWeight.w600,
-                                                  fontSize: 11,
+                                                  fontSize: 12,
                                                 ),
                                               ),
                                             ],
@@ -625,7 +625,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 'SIGN IN',
                                 style: TextStyle(
                                   color: theme.textSecondary,
-                                  fontSize: 12,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 2.0,
                                 ),
@@ -712,7 +712,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         theme.highlight.withOpacity(0.4),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(18)),
+                                            BorderRadius.circular(ThemeProvider.radiusList)),
                                   ),
                                   child: Row(
                                     mainAxisAlignment:
@@ -751,7 +751,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               style: TextButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                                 backgroundColor: theme.surface.withOpacity(0.5),
                               ),
                             ),
@@ -818,7 +818,7 @@ class _LoginScreenState extends State<LoginScreen>
                                     theme.isDark ? 'LIGHT MODE' : 'DARK MODE',
                                     style: TextStyle(
                                       color: theme.textSecondary,
-                                      fontSize: 11,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 1.0,
                                     ),

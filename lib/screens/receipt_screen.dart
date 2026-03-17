@@ -54,7 +54,7 @@ class ReceiptScreen extends StatelessWidget {
                 constraints: const BoxConstraints(maxWidth: 400),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -72,7 +72,7 @@ class ReceiptScreen extends StatelessWidget {
                       const Icon(Icons.store_rounded, size: 64, color: Color(0xFF0A2647)),
                       const SizedBox(height: 16),
                       Text(BusinessConfig.instance.businessName.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: -0.5), textAlign: TextAlign.center),
-                      Text(BusinessConfig.instance.businessType?.toUpperCase() ?? 'RETAIL STORE', style: const TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
+                      Text(BusinessConfig.instance.businessType?.toUpperCase() ?? 'RETAIL STORE', style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
                       const SizedBox(height: 12),
                       if (BusinessConfig.instance.businessAddress.isNotEmpty)
                         Text(BusinessConfig.instance.businessAddress, style: const TextStyle(fontSize: 12, color: Colors.black54), textAlign: TextAlign.center),
@@ -87,17 +87,17 @@ class ReceiptScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('RECEIPT #', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                          Text(receiptNumber, style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          const Text('RECEIPT #', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          Text(receiptNumber, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                         ],
                       ),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('DATE:', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          const Text('DATE:', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                           Text(
                             timestamp != null ? '${timestamp.day}/${timestamp.month}/${timestamp.year}' : '',
-                            style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.w700),
+                            style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
@@ -106,7 +106,7 @@ class ReceiptScreen extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text('CUSTOMER:', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                            const Text('CUSTOMER:', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                             Text(customer, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700)),
                           ],
                         ),
@@ -115,7 +115,7 @@ class ReceiptScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('PAYMENT:', style: TextStyle(fontSize: 11, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          const Text('PAYMENT:', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
                           Text(paymentMethod.toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700)),
                         ],
                       ),
@@ -123,8 +123,8 @@ class ReceiptScreen extends StatelessWidget {
                         const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: ThemeProvider.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: ThemeProvider.warning.withOpacity(0.5))),
-                          child: const Text('RETURN', style: TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1)),
+                          decoration: BoxDecoration(color: ThemeProvider.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(ThemeProvider.radiusList), border: Border.all(color: ThemeProvider.warning.withOpacity(0.5))),
+                          child: const Text('RETURN', style: TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
                         ),
                       ],
     
@@ -191,7 +191,7 @@ class ReceiptScreen extends StatelessWidget {
                       const SizedBox(height: 16),
                       Text(
                         timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}' : '',
-                        style: const TextStyle(fontSize: 11, color: Colors.black45, fontWeight: FontWeight.w600),
+                        style: const TextStyle(fontSize: 12, color: Colors.black45, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),

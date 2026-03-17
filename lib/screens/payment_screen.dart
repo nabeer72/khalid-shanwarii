@@ -230,7 +230,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: theme.glassDecoration.copyWith(
-        borderRadius: isMobile ? BorderRadius.circular(24) : const BorderRadius.vertical(top: Radius.circular(32)),
+        borderRadius: isMobile ? BorderRadius.circular(ThemeProvider.radiusCard) : BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -342,7 +342,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: ThemeProvider.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                     border: Border.all(color: ThemeProvider.success.withOpacity(0.3), width: 1.5),
                   ),
                   child: Row(
@@ -353,7 +353,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         children: [
                           Text('CHANGE DUE',
                               style: TextStyle(
-                                  color: ThemeProvider.success, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                                  color: ThemeProvider.success, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
                           const SizedBox(height: 4),
                           Text(
                             '${BusinessConfig.instance.currency}. ${_change.toStringAsFixed(2)}',
@@ -436,7 +436,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
                     color: theme.whiteAlpha(0.05),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                   ),
                   child: Row(
                     children: [
@@ -444,7 +444,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       const SizedBox(width: 6),
                       Text(
                         _selectedCustomer?.name ?? 'Walk-in Guest',
-                        style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900),
+                        style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w900),
                       ),
                     ],
                   ),
@@ -489,7 +489,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               Text('GRAND TOTAL',
                   style: TextStyle(
                       color: theme.textHint,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1)),
               Flexible(
@@ -523,7 +523,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     widget.isReturn ? ThemeProvider.warning : ThemeProvider.success,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                 elevation: 8,
                 shadowColor: (widget.isReturn ? ThemeProvider.warning : ThemeProvider.success).withOpacity(0.5),
               ),
@@ -679,10 +679,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(4)),
                 child: Text('${item['quantity']}x',
                     style: TextStyle(
-                        color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900)),
+                        color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900)),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -768,7 +768,7 @@ class _PaymentMethodButton extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: selected ? Colors.white : theme.textPrimary,
-                    fontSize: 9,
+                    fontSize: 12,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.5)),
           ],
@@ -795,7 +795,7 @@ class _QuickCashButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: theme.whiteAlpha(0.05),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
           border: Border.all(color: theme.whiteAlpha(0.1)),
         ),
         child: Text(

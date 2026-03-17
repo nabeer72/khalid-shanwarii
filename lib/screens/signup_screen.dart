@@ -378,7 +378,7 @@ class _SignupScreenState extends State<SignupScreen>
                               color: theme.isDark
                                   ? Colors.white.withOpacity(0.05)
                                   : Colors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(24),
+                              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                               border: Border.all(
                                   color: theme.iconColor.withOpacity(0.1)),
                             ),
@@ -432,7 +432,7 @@ class _SignupScreenState extends State<SignupScreen>
                                     color: selected
                                         ? ThemeProvider.businessColors[bt['id']]
                                         : theme.card,
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                     border: Border.all(
                                         color: selected
                                             ? ThemeProvider
@@ -460,7 +460,7 @@ class _SignupScreenState extends State<SignupScreen>
                                               color: selected
                                                   ? Colors.white
                                                   : theme.textPrimary,
-                                              fontSize: 10,
+                                              fontSize: 12,
                                               fontWeight: FontWeight.w600),
                                           textAlign: TextAlign.center),
                                     ],
@@ -489,13 +489,13 @@ class _SignupScreenState extends State<SignupScreen>
                             filled: true,
                             fillColor: theme.card,
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? Colors.transparent
                                         : Colors.black.withOpacity(0.3))),
                             focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? theme.highlight
@@ -523,13 +523,13 @@ class _SignupScreenState extends State<SignupScreen>
                             filled: true,
                             fillColor: theme.card,
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? Colors.transparent
                                         : Colors.black.withOpacity(0.3))),
                             focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? theme.highlight
@@ -567,13 +567,13 @@ class _SignupScreenState extends State<SignupScreen>
                             filled: true,
                             fillColor: theme.card,
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? Colors.transparent
                                         : Colors.black.withOpacity(0.3))),
                             focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? theme.highlight
@@ -612,13 +612,13 @@ class _SignupScreenState extends State<SignupScreen>
                             filled: true,
                             fillColor: theme.card,
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? Colors.transparent
                                         : Colors.black.withOpacity(0.3))),
                             focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                 borderSide: BorderSide(
                                     color: theme.isDark
                                         ? theme.highlight
@@ -645,7 +645,7 @@ class _SignupScreenState extends State<SignupScreen>
                                     foregroundColor: Colors.white,
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(14)),
+                                            BorderRadius.circular(ThemeProvider.radiusList)),
                                     elevation: 4,
                                   ),
                                   child: Row(

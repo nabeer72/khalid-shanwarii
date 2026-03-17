@@ -218,165 +218,55 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         itemBuilder: (context, index) {
                           final emp = _employees[index];
                           final roleColor = _getRoleColor(emp.role);
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: () => _openAddEmployeeScreen(emp),
-                                borderRadius: BorderRadius.circular(20),
-                                child: Container(
-                                  decoration: theme.glassDecoration,
-                                  child: Opacity(
-                                    opacity: emp.isActive ? 1.0 : 0.6,
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(16),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Container(
-                                                width: 52,
-                                                height: 52,
-                                                decoration: BoxDecoration(
-                                                  gradient: LinearGradient(
-                                                    colors: [roleColor, roleColor.withOpacity(0.7)],
-                                                    begin: Alignment.topLeft,
-                                                    end: Alignment.bottomRight,
-                                                  ),
-                                                  borderRadius: BorderRadius.circular(16),
-                                                  boxShadow: [
-                                                    BoxShadow(
-                                                      color: roleColor.withOpacity(0.3),
-                                                      blurRadius: 8,
-                                                      offset: const Offset(0, 4),
-                                                    ),
-                                                  ],
-                                                ),
-                                                child: Center(
-                                                  child: Text(
-                                                    emp.name[0].toUpperCase(), 
-                                                    style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900),
-                                                  ),
-                                                ),
-                                              ),
-                                              const SizedBox(width: 16),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      emp.name,
-                                                      style: TextStyle(
-                                                        color: theme.textPrimary,
-                                                        fontSize: 17,
-                                                        fontWeight: FontWeight.w800,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(height: 4),
-                                                    Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                                      decoration: BoxDecoration(
-                                                        color: roleColor.withOpacity(0.15),
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        border: Border.all(color: roleColor.withOpacity(0.3)),
-                                                      ),
-                                                      child: Text(
-                                                        emp.role.toUpperCase(), 
-                                                        style: TextStyle(color: roleColor, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                                                      ),
-                                                    ),
-                                                    if (emp.roleId != null) ...[
-                                                      const SizedBox(height: 4),
-                                                      FutureBuilder<Map<String, dynamic>?>(
-                                                        future: _getRole(emp.roleId),
-                                                        builder: (ctx, snap) {
-                                                          if (snap.hasData && snap.data != null) {
-                                                            return Text(
-                                                              snap.data!['name']?.toString().toUpperCase() ?? '',
-                                                              style: TextStyle(color: theme.textSecondary, fontSize: 9, fontWeight: FontWeight.bold),
-                                                            );
-                                                          }
-                                                          return const SizedBox.shrink();
-                                                        },
-                                                      ),
-                                                    ],
-                                                  ],
-                                                ),
-                                              ),
-                                              Switch(
-                                                value: emp.isActive,
-                                                activeColor: ThemeProvider.success,
-                                                activeTrackColor: ThemeProvider.success.withOpacity(0.3),
-                                                inactiveThumbColor: theme.textHint,
-                                                inactiveTrackColor: theme.textHint.withOpacity(0.2),
-                                                onChanged: (v) async {
-                                                  final empMap = {
-                                                    'id': emp.id,
-                                                    'name': emp.name,
-                                                    'role': emp.role,
-                                                    'pin': emp.pin,
-                                                    'permissions': emp.permissions,
-                                                    'status': v ? 1 : 0,
-                                                    'updated_at': DateTime.now().toIso8601String(),
-                                                  };
-                                                  await DatabaseHelper.instance.insertEmployee(empMap);
-                                                  _loadEmployees();
-                                                },
-                                              ),
-                                            ],
-                                          ),
-                                          if (emp.email != null || emp.phone != null) ...[
-                                            const SizedBox(height: 16),
-                                            Divider(color: theme.textHint.withOpacity(0.1), height: 1),
-                                            const SizedBox(height: 12),
-                                            Row(
-                                              children: [
-                                                if (emp.email != null) ...[
-                                                  Icon(Icons.alternate_email_rounded, size: 14, color: theme.iconColor),
-                                                  const SizedBox(width: 6),
-                                                  Expanded(child: Text(emp.email!, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500))),
-                                                ],
-                                                if (emp.phone != null) ...[
-                                                  const SizedBox(width: 12),
-                                                  Icon(Icons.phone_iphone_rounded, size: 14, color: theme.iconColor),
-                                                  const SizedBox(width: 6),
-                                                  Text(emp.phone!, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-                                                ],
-                                              ],
-                                            ),
-                                          ],
-                                          if (emp.permissions.isNotEmpty) ...[
-                                            const SizedBox(height: 12),
-                                            Wrap(
-                                              spacing: 6,
-                                              runSpacing: 6,
-                                              children: [
-                                                  ...emp.permissions.take(4).map((p) => Container(
-                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                   decoration: BoxDecoration(
-                                                     color: theme.surface.withOpacity(0.4),
-                                                     borderRadius: BorderRadius.circular(6),
-                                                     border: Border.all(color: theme.textHint.withOpacity(0.1)),
-                                                   ),
-                                                   child: Text(
-                                                     AppPermissions.getLabel(p.toString()).toUpperCase(), 
-                                                     style: TextStyle(color: theme.textSecondary, fontSize: 8, fontWeight: FontWeight.w800, letterSpacing: 0.2),
-                                                   ),
-                                                 )),
-                                                 if (emp.permissions.length > 4)
-                                                   Container(
-                                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                                     child: Text('+${emp.permissions.length - 4}', style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.bold)),
-                                                   ),
-                                               ],
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: theme.glassDecoration,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              onTap: () => _openAddEmployeeScreen(emp),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(emp.name, 
+                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                   ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: _getRoleColor(emp.role).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(color: _getRoleColor(emp.role).withOpacity(0.2)),
+                                    ),
+                                    child: Text(emp.role.toUpperCase(), 
+                                        style: TextStyle(color: _getRoleColor(emp.role), fontSize: 7, fontWeight: FontWeight.w900)),
+                                  ),
+                                ],
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '${emp.phone ?? 'No Phone'} | Branch ID: ${emp.branchId ?? 'N/A'}',
+                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              ),
+                              trailing: Transform.scale(
+                                scale: 0.7,
+                                child: Switch(
+                                  value: emp.isActive,
+                                  activeColor: ThemeProvider.success,
+                                  onChanged: (v) async {
+                                    final empMap = {
+                                      'id': emp.id,
+                                      'name': emp.name,
+                                      'role': emp.role,
+                                      'pin': emp.pin,
+                                      'permissions': emp.permissions,
+                                      'status': v ? 1 : 0,
+                                      'updated_at': DateTime.now().toIso8601String(),
+                                    };
+                                    await DatabaseHelper.instance.insertEmployee(empMap);
+                                    _loadEmployees();
+                                  },
                                 ),
                               ),
                             ),
@@ -413,7 +303,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(value, style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w900)),
-              Text(label, style: TextStyle(color: theme.textSecondary, fontSize: 9, fontWeight: FontWeight.w800)),
+              Text(label, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w800)),
             ],
           ),
         ],

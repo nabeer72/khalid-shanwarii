@@ -97,7 +97,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('TOTAL REVENUE', 
-                              style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                              style: TextStyle(color: theme.textHint, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
                             const SizedBox(height: 4),
                             Text('${BusinessConfig.instance.currency}. ${_totalAmount.toStringAsFixed(2)}', 
                               style: TextStyle(color: theme.highlight, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1)),
@@ -106,13 +106,13 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(12)),
+                        decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                         child: Row(
                           children: [
                             Icon(Icons.analytics_rounded, color: theme.highlight, size: 20),
                             const SizedBox(width: 8),
                             Text('${_filteredSales.length} SALES', 
-                              style: TextStyle(color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.w900)),
+                              style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w900)),
                           ],
                         ),
                       ),
@@ -193,11 +193,11 @@ class _FilterChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
           color: selected ? theme.highlight : theme.whiteAlpha(0.05),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
           border: Border.all(color: selected ? theme.highlight : theme.whiteAlpha(0.1)),
           boxShadow: selected ? [BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        child: Text(label, style: TextStyle(color: selected ? Colors.white : theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
       ),
     );
   }
@@ -217,80 +217,42 @@ class _SaleTile extends StatelessWidget {
     final total = (sale['total'] as num? ?? 0).toDouble();
     final paymentMethod = sale['payment_method'] ?? 'Cash';
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        decoration: theme.glassDecoration,
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(24),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Icon(
-                      isReturn ? Icons.assignment_return_rounded : Icons.receipt_long_rounded, 
-                      color: isReturn ? ThemeProvider.warning : ThemeProvider.success,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Text(isReturn ? 'REFUND' : 'SALE', 
-                              style: TextStyle(color: theme.textPrimary, fontSize: 15, fontWeight: FontWeight.w900)),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text('#${sale['id'] ?? '??'}', 
-                                style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w900),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')} • ${timestamp.day}/${timestamp.month}/${timestamp.year}' : 'Unknown',
-                          style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
-                        ),
-                        Text(paymentMethod.toUpperCase(), 
-                          style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                      ],
-                    ),
-                  ),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        '${isReturn ? "-" : ""}${BusinessConfig.instance.currency}. ${total.abs().toStringAsFixed(2)}',
-                        style: TextStyle(
-                          color: isReturn ? ThemeProvider.warning : theme.textPrimary,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -0.5,
-                        ),
-                      ),
-                      Icon(Icons.chevron_right_rounded, color: theme.iconColor, size: 20),
-                    ],
-                  ),
-                ],
-              ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: theme.glassDecoration,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        onTap: onTap,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(isReturn ? 'REFUND' : 'SALE', 
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
             ),
+            Text('#${sale['id'] ?? '??'}', 
+                style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Text(
+            timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')} | ${timestamp.day}/${timestamp.month}/${timestamp.year}' : 'Unknown',
+            style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
           ),
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${isReturn ? "-" : ""}${BusinessConfig.instance.currency}. ${total.abs().toStringAsFixed(2)}',
+              style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+            ),
+            Text(
+              paymentMethod.toUpperCase(),
+              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+            ),
+          ],
         ),
       ),
     );

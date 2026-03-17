@@ -45,7 +45,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -65,7 +65,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   prefixIcon: Icon(Icons.label_rounded, color: theme.highlight),
                   filled: true,
                   fillColor: Colors.black.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList), borderSide: BorderSide.none),
                 ),
               ),
               const SizedBox(height: 24),
@@ -82,7 +82,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: ThemeProvider.success,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                     ),
                     onPressed: () async {
                       await _controller.addExpenseHead(nameCtrl.text);
@@ -191,7 +191,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(16)),
+                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                         child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 32),
                       ),
                       const SizedBox(width: 20),
@@ -201,7 +201,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           children: [
                             Text(
                               'TOTAL CASH FLOW OUT',
-                              style: TextStyle(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.8), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1),
+                              style: TextStyle(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -213,10 +213,10 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+                        decoration: BoxDecoration(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.1), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                         child: Text(
                           '${_controller.expenseCount} entries',
-                          style: TextStyle(color: theme.isDark ? Colors.white : Colors.black, fontSize: 11, fontWeight: FontWeight.w800),
+                          style: TextStyle(color: theme.isDark ? Colors.white : Colors.black, fontSize: 12, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],
@@ -253,11 +253,11 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         itemCount: _controller.expenses.length,
                         itemBuilder: (context, index) {
                           final expense = _controller.expenses[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: Container(
-                              decoration: theme.glassDecoration,
-                            child: InkWell(
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: theme.glassDecoration,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                               onTap: () async {
                                 final result = await Navigator.push(
                                   context,
@@ -267,69 +267,51 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                   await _controller.loadData();
                                 }
                               },
-                              borderRadius: BorderRadius.circular(16),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: ThemeProvider.error.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(Icons.money_off_rounded, color: ThemeProvider.error),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            expense.expenseHeadName ?? 'Uncategorized',
-                                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 15),
-                                          ),
-                                          if (expense.description != null && expense.description!.isNotEmpty) ...[
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              expense.description!,
-                                              style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                                            ),
-                                          ],
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(Icons.event_note_rounded, size: 10, color: theme.iconColor),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${expense.date.day}/${expense.date.month}/${expense.date.year}',
-                                                style: TextStyle(color: theme.textHint, fontSize: 11, fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          '${BusinessConfig.instance.currency}. ${expense.amount.toStringAsFixed(2)}',
-                                          style: const TextStyle(color: ThemeProvider.error, fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: -0.5),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        IconButton(
-                                          icon: Icon(Icons.delete_outline_rounded, color: ThemeProvider.error.withOpacity(0.5), size: 20),
-                                          onPressed: () => _confirmDeleteExpense(expense),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(expense.expenseHeadName ?? 'Uncategorized', 
+                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                                  ),
+                                  Text('${expense.date.day}/${expense.date.month}/${expense.date.year}',
+                                      style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+                                ],
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  expense.description?.isNotEmpty == true ? expense.description! : 'No description',
+                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${BusinessConfig.instance.currency}. ${expense.amount.toStringAsFixed(2)}',
+                                        style: const TextStyle(color: ThemeProvider.error, fontWeight: FontWeight.w900, fontSize: 13),
+                                      ),
+                                      Text(
+                                        'EXPENSE',
+                                        style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: Icon(Icons.delete_outline_rounded, color: ThemeProvider.error.withOpacity(0.5), size: 18),
+                                    onPressed: () => _confirmDeleteExpense(expense),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },

@@ -69,7 +69,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
               height: 250,
               decoration: BoxDecoration(
                 border: Border.all(color: ThemeProvider.success, width: 3),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
               ),
             ),
           ),

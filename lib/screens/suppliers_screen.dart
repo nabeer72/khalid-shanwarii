@@ -91,119 +91,43 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       itemBuilder: (context, index) {
                         final supplier = _controller.suppliers[index];
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
+                          margin: const EdgeInsets.only(bottom: 8),
                           decoration: theme.glassDecoration,
-                          child: Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(16),
-                              onTap: () => _handleAddEdit(supplier),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: theme.highlight.withOpacity(0.15),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: theme.highlight.withOpacity(0.3),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          supplier.name[0].toUpperCase(),
-                                          style: TextStyle(
-                                            color: theme.highlight,
-                                            fontWeight: FontWeight.w900,
-                                            fontSize: 18,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            supplier.name,
-                                            style: TextStyle(
-                                              color: theme.textPrimary,
-                                              fontWeight: FontWeight.w700,
-                                              fontSize: 15,
-                                            ),
-                                          ),
-                                          if (supplier.contactPerson?.isNotEmpty ?? false) ...[
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.person_outline_rounded, size: 14, color: theme.textHint),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  supplier.contactPerson!,
-                                                  style: TextStyle(
-                                                    color: theme.textSecondary,
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                          if (supplier.phone?.isNotEmpty ?? false) ...[
-                                            const SizedBox(height: 2),
-                                            Row(
-                                              children: [
-                                                Icon(Icons.phone_outlined, size: 14, color: theme.textHint),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  supplier.phone!,
-                                                  style: TextStyle(
-                                                    color: theme.textHint,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        if (supplier.creditBalance > 0)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: ThemeProvider.error.withOpacity(0.1),
-                                              borderRadius: BorderRadius.circular(8),
-                                            ),
-                                            child: Text(
-                                              '${BusinessConfig.instance.currency}. ${supplier.creditBalance.toStringAsFixed(0)}',
-                                              style: const TextStyle(
-                                                color: ThemeProvider.error,
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w900,
-                                              ),
-                                            ),
-                                          ),
-                                        const SizedBox(height: 4),
-                                        Icon(
-                                          Icons.arrow_forward_ios_rounded,
-                                          size: 14,
-                                          color: theme.iconColor.withOpacity(0.3),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            onTap: () => _handleAddEdit(supplier),
+                            title: Text(
+                              supplier.name,
+                              style: TextStyle(
+                                color: theme.textPrimary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
                               ),
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                '${supplier.contactPerson ?? 'No Contact'} | ${supplier.phone ?? 'No Phone'}',
+                                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            trailing: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  '${BusinessConfig.instance.currency}. ${supplier.creditBalance.toStringAsFixed(2)}',
+                                  style: TextStyle(
+                                    color: supplier.creditBalance > 0 ? ThemeProvider.error : theme.highlight,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                Text(
+                                  'CREDIT BALANCE',
+                                  style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                ),
+                              ],
                             ),
                           ),
                         );

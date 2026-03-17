@@ -12,6 +12,7 @@ import 'package:mobile_app/screens/held_orders_screen.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/widgets/shift_dialogs.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:mobile_app/controllers/add_product_controller.dart';
 
 class POSScreen extends StatefulWidget {
   final HeldOrder? resumeOrder;
@@ -22,7 +23,7 @@ class POSScreen extends StatefulWidget {
   State<POSScreen> createState() => _POSScreenState();
 }
 
-class _POSScreenState extends State<POSScreen> {
+class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMixin {
   final theme = ThemeProvider.instance;
   List<ProductCategory> _categories = [];
   List<Product> _products = [];
@@ -41,6 +42,11 @@ class _POSScreenState extends State<POSScreen> {
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
+  
+  // Quick Add Product Panel State
+  bool _showQuickAddProduct = false;
+  late AnimationController _quickAddController;
+  late Animation<Offset> _quickAddSlideAnimation;
 
   @override
   void initState() {
@@ -50,6 +56,18 @@ class _POSScreenState extends State<POSScreen> {
     if (widget.resumeOrder != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _resumeOrder());
     }
+    
+    _quickAddController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+    _quickAddSlideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _quickAddController,
+      curve: Curves.easeOut,
+    ));
   }
 
   @override
@@ -57,7 +75,22 @@ class _POSScreenState extends State<POSScreen> {
     POSScreen.isActive = false;
     _searchCtrl.dispose();
     _scannerController?.dispose();
+    _quickAddController.dispose();
     super.dispose();
+  }
+
+  void _toggleQuickAddProduct() {
+      setState(() => _showQuickAddProduct = !_showQuickAddProduct);
+      if (_showQuickAddProduct) {
+        _quickAddController.forward();
+      } else {
+        _quickAddController.reverse();
+      }
+  }
+
+  void _onProductQuickAdded() {
+    _toggleQuickAddProduct();
+    _loadData();
   }
 
   void _resumeOrder() {
@@ -208,7 +241,7 @@ class _POSScreenState extends State<POSScreen> {
                 title: Text('${BusinessConfig.instance.currency}. ${stock.salePrice.toStringAsFixed(2)}', 
                     style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
                 subtitle: Text('Stock: ${stock.quantity} | Barcode: ${stock.barcode ?? 'N/A'}',
-                    style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                    style: TextStyle(color: theme.textSecondary, fontSize: 13)),
                 trailing: Icon(Icons.add_shopping_cart, color: theme.highlight),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -396,45 +429,192 @@ class _POSScreenState extends State<POSScreen> {
     }
   }
 
-  void _holdOrder() {
+  void _parkCurrentCart() {
     if (_cart.isEmpty) return;
-    final nameCtrl = TextEditingController(
-        text: _selectedCustomer?.name ??
-            'Order #${HeldOrdersStore.instance.orders.length + 1}');
-    showDialog(
+    
+    // Auto-generate name based on customer or order number
+    final defaultName = _selectedCustomer?.name ??
+        'Order #${HeldOrdersStore.instance.orders.length + 1}';
+        
+    holdOrder(defaultName, _cart, _total, _selectedCustomer);
+    _clearCart();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Order held successfully!')));
+  }
+
+  void _showHeldOrdersModal() {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Row(children: [
-          const Icon(Icons.pause_circle, color: ThemeProvider.warning),
-          const SizedBox(width: 8),
-          Text('Hold Order', style: TextStyle(color: theme.textPrimary))
-        ]),
-        content: TextField(
-            controller: nameCtrl,
-            autofocus: true,
-            style: TextStyle(color: theme.textPrimary),
-            decoration: InputDecoration(
-                labelText: 'Order Name',
-                labelStyle: TextStyle(color: theme.textSecondary),
-                border: const OutlineInputBorder())),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Cancel', style: TextStyle(color: theme.textSecondary))),
-          ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: ThemeProvider.warning),
-              onPressed: () {
-                holdOrder(nameCtrl.text, _cart, _total, _selectedCustomer);
-                Navigator.pop(ctx);
-                _clearCart();
-                ScaffoldMessenger.of(context)
-                    .showSnackBar(const SnackBar(content: Text('Order held!')));
-              },
-              child: const Text('Hold')),
-        ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          final orders = HeldOrdersStore.instance.orders;
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: theme.surface,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
+            ),
+            child: Column(
+              children: [
+                // Modal Handle
+                Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.symmetric(vertical: 12),
+                    decoration: BoxDecoration(
+                        color: theme.isDark
+                            ? Colors.white.withOpacity(0.2)
+                            : theme.textHint.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2))),
+                
+                // Title & Close
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('HELD ORDERS',
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900)),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded),
+                        onPressed: () => Navigator.pop(ctx),
+                        color: theme.iconColor,
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Park Current Cart Button (only if cart is not empty)
+                if (_cart.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                    child: InkWell(
+                      onTap: () {
+                        _parkCurrentCart();
+                        Navigator.pop(ctx);
+                      },
+                      borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.warning.withOpacity(0.1),
+                          border: Border.all(color: ThemeProvider.warning.withOpacity(0.3)),
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.pause_circle_filled_rounded, color: ThemeProvider.warning),
+                            const SizedBox(width: 8),
+                            Text('Park Current Cart', 
+                                style: TextStyle(
+                                  color: ThemeProvider.warning, 
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 15,
+                                ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // List of Held Orders
+                Expanded(
+                  child: orders.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inventory_2_outlined, size: 48, color: theme.iconColor.withOpacity(0.5)),
+                              const SizedBox(height: 12),
+                              Text('No parked orders', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: orders.length,
+                          itemBuilder: (context, index) {
+                            final order = orders[index];
+                            final elapsed = DateTime.now().difference(order.createdAt);
+                            final elapsedStr = elapsed.inMinutes < 60 
+                                ? '${elapsed.inMinutes}m ago'
+                                : '${elapsed.inHours}h ${elapsed.inMinutes % 60}m ago';
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: theme.glassDecoration,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                leading: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: ThemeProvider.warning.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                                  ),
+                                  child: const Icon(Icons.pause_rounded, color: ThemeProvider.warning, size: 20),
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(order.name, 
+                                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                                    ),
+                                    Text(elapsedStr, 
+                                        style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+                                  ],
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    '${order.items.length} items • ${BusinessConfig.instance.currency}. ${order.total.toStringAsFixed(2)}',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 18),
+                                      onPressed: () {
+                                        setModalState(() => orders.remove(order));
+                                      },
+                                    ),
+                                    const SizedBox(width: 4),
+                                    IconButton(
+                                      icon: const Icon(Icons.play_arrow_rounded, color: ThemeProvider.success, size: 18),
+                                      style: IconButton.styleFrom(
+                                        backgroundColor: ThemeProvider.success.withOpacity(0.1),
+                                        padding: const EdgeInsets.all(8),
+                                      ),
+                                      onPressed: () {
+                                        orders.remove(order);
+                                        setState(() {
+                                          _cart = List.from(order.items);
+                                          _selectedCustomer = order.customer;
+                                          _calculateTotals();
+                                        });
+                                        Navigator.pop(ctx);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -603,14 +783,14 @@ class _POSScreenState extends State<POSScreen> {
                                   child: Text(c.name[0].toUpperCase(),
                                       style: TextStyle(
                                           color: theme.textPrimary,
-                                          fontSize: 12)),
+                                          fontSize: 13)),
                                 ),
                                 title: Text(c.name,
                                     style: TextStyle(color: theme.textPrimary)),
                                 subtitle: Text(c.phone ?? 'No phone',
                                     style: TextStyle(
                                         color: theme.textSecondary,
-                                        fontSize: 11)),
+                                        fontSize: 13)),
                                 onTap: () => Navigator.pop(ctx, c),
                               );
                             },
@@ -773,7 +953,7 @@ class _POSScreenState extends State<POSScreen> {
                 }),
             const SizedBox(height: 12),
             Text('Quick test barcodes:',
-                style: TextStyle(color: theme.textHint, fontSize: 11)),
+                style: TextStyle(color: theme.textHint, fontSize: 12)),
             const SizedBox(height: 6),
             Wrap(
                 spacing: 6,
@@ -781,7 +961,7 @@ class _POSScreenState extends State<POSScreen> {
                     .take(3)
                     .map((Product p) => ActionChip(
                         label: Text(p.barcode ?? 'N/A',
-                            style: const TextStyle(fontSize: 10)),
+                            style: const TextStyle(fontSize: 12)),
                         onPressed: () {
                           Navigator.pop(ctx);
                           _processBarcode(p.barcode ?? '');
@@ -921,7 +1101,7 @@ class _POSScreenState extends State<POSScreen> {
                     ),
                     subtitle: Text(
                       'Price: $currency. ${stock.salePrice.toStringAsFixed(2)}  ·  Stock: ${stock.quantity}',
-                      style: TextStyle(color: theme.textSecondary, fontSize: 12),
+                      style: TextStyle(color: theme.textSecondary, fontSize: 13),
                     ),
                     trailing: inStock
                         ? Icon(Icons.add_circle_rounded, color: theme.highlight)
@@ -929,7 +1109,7 @@ class _POSScreenState extends State<POSScreen> {
                             'Out of Stock',
                             style: TextStyle(
                               color: ThemeProvider.error,
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -1279,62 +1459,76 @@ class _POSScreenState extends State<POSScreen> {
 
         // Common content
         final header = Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: _isReturn
-                  ? ThemeProvider.gradientDanger
-                  : ThemeProvider.gradientSuccess,
-            ),
+            border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.1))),
           ),
-          child: Row(
-            children: [
-              Icon(
-                  _isReturn
-                      ? Icons.reply_all_rounded
-                      : Icons.shopping_bag_rounded,
-                  color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(_isReturn ? 'PROCESSING RETURN' : 'SHOPPING CART',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                        letterSpacing: 0.5)),
-              ),
-              if (_cart.isNotEmpty)
-                IconButton(
-                  icon: const Icon(Icons.delete_sweep_rounded,
-                      color: Colors.white),
-                  onPressed: _promptClearCart,
-                  tooltip: 'Clear Cart',
+          child: InkWell(
+            onTap: () async {
+              final result = await Navigator.push<Customer>(
+                context,
+                MaterialPageRoute(builder: (_) => const CustomerListScreen(selectMode: true)),
+              );
+              if (result != null && mounted) {
+                setState(() => _selectedCustomer = result);
+              }
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: _selectedCustomer != null ? theme.highlight.withOpacity(0.1) : theme.whiteAlpha(0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _selectedCustomer != null ? theme.highlight.withOpacity(0.3) : theme.whiteAlpha(0.1)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _selectedCustomer != null ? Icons.person_rounded : Icons.person_add_rounded,
+                          color: _selectedCustomer != null ? theme.highlight : theme.iconColor,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _selectedCustomer != null ? _selectedCustomer!.name : 'Add Customer',
+                            style: TextStyle(
+                              color: _selectedCustomer != null ? theme.textPrimary : theme.textSecondary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        if (_selectedCustomer != null)
+                          IconButton(
+                            icon: Icon(Icons.close_rounded, size: 20, color: ThemeProvider.error),
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
+                            onPressed: () => setState(() => _selectedCustomer = null),
+                          )
+                        else
+                          Icon(Icons.chevron_right_rounded, color: theme.iconColor),
+                      ],
+                    ),
+                  ),
                 ),
-            ],
-          ),
-        );
-
-        final actions = Padding(
-          padding: const EdgeInsets.all(8),
-          child: Row(
-            children: [
-              _buildCartAction(
-                icon: Icons.pause_circle_filled_rounded,
-                label: 'Hold',
-                color: ThemeProvider.warning,
-                onTap: _cart.isEmpty ? null : _holdOrder,
-              ),
-              const SizedBox(width: 8),
-              _buildCartAction(
-                icon: _isReturn
-                    ? Icons.shopping_cart_checkout_rounded
-                    : Icons.assignment_return_rounded,
-                label: _isReturn ? 'Sale' : 'Return',
-                color:
-                    _isReturn ? ThemeProvider.success : ThemeProvider.error,
-                onTap: () => setState(() => _isReturn = !_isReturn),
-              ),
-            ],
+                const SizedBox(width: 8),
+                IconButton(
+                  onPressed: _toggleQuickAddProduct,
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: theme.highlight.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.add_business_rounded, color: theme.highlight, size: 20),
+                  ),
+                  tooltip: 'Quick Add Product',
+                ),
+              ],
+            ),
           ),
         );
 
@@ -1380,8 +1574,6 @@ class _POSScreenState extends State<POSScreen> {
             child: Column(
               children: [
                 header,
-                actions,
-                const Divider(height: 1),
                 listContent,
                 totals,
               ],
@@ -1392,8 +1584,6 @@ class _POSScreenState extends State<POSScreen> {
           content = Column(
             children: [
               header,
-              actions,
-              const Divider(height: 1),
               Expanded(child: listContent),
               totals,
             ],
@@ -1415,9 +1605,17 @@ class _POSScreenState extends State<POSScreen> {
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: content,
+            child: Stack(
+              children: [
+                content,
+                SlideTransition(
+                  position: _quickAddSlideAnimation,
+                  child: _QuickAddProductPanel(
+                    onClose: _toggleQuickAddProduct,
+                    onSuccess: _onProductQuickAdded,
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -1437,28 +1635,24 @@ class _POSScreenState extends State<POSScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: onTap == null
-                ? theme.surface.withOpacity(0.5)
-                : color.withOpacity(0.08),
-            borderRadius: BorderRadius.circular(16),
-          ),
           child: Column(
             children: [
               Icon(icon,
-                  color:
-                      onTap == null ? theme.iconColor.withOpacity(0.5) : color,
-                  size: 24),
-              const SizedBox(height: 6),
-              Text(label.toUpperCase(),
-                  style: TextStyle(
-                    color: onTap == null
-                        ? theme.textSecondary.withOpacity(0.5)
-                        : color,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
-                  )),
+                  color: onTap == null ? theme.iconColor.withOpacity(0.5) : color,
+                  size: 20),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(label.toUpperCase(),
+                    style: TextStyle(
+                      color: onTap == null
+                          ? theme.textSecondary.withOpacity(0.5)
+                          : color,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    )),
+              ),
             ],
           ),
         ),
@@ -1515,7 +1709,7 @@ class _POSScreenState extends State<POSScreen> {
                         child: Text('${_cart.length}',
                             style: const TextStyle(
                                 color: Colors.white,
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold)),
                       ),
                     ),
@@ -1532,7 +1726,7 @@ class _POSScreenState extends State<POSScreen> {
                       _cart.isEmpty ? 'CART IS EMPTY' : '${_cart.length} ITEMS',
                       style: TextStyle(
                           color: theme.textSecondary,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.5)),
                   Text(
@@ -1715,30 +1909,41 @@ class _POSScreenState extends State<POSScreen> {
                       letterSpacing: -1)),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _showDiscountDialog,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: theme.textPrimary,
-                    side: BorderSide(color: theme.whiteAlpha(0.2)),
-                    padding: const EdgeInsets.symmetric(vertical: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: Text('DISCOUNT',
-                      style: TextStyle(
-                          color: theme.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 1)),
-                ),
+              _buildCartAction(
+                icon: Icons.delete_sweep_rounded,
+                label: 'Clear',
+                color: ThemeProvider.error,
+                onTap: _cart.isEmpty ? null : _promptClearCart,
+              ),
+              const SizedBox(width: 6),
+              _buildCartAction(
+                icon: Icons.discount_rounded,
+                label: 'Disc',
+                color: theme.highlight,
+                onTap: _showDiscountDialog,
+              ),
+              const SizedBox(width: 6),
+              _buildCartAction(
+                icon: Icons.pause_circle_filled_rounded,
+                label: 'Hold',
+                color: ThemeProvider.warning,
+                onTap: _showHeldOrdersModal,
+              ),
+              const SizedBox(width: 6),
+              _buildCartAction(
+                icon: _isReturn
+                    ? Icons.shopping_cart_checkout_rounded
+                    : Icons.assignment_return_rounded,
+                label: _isReturn ? 'Sale' : 'Return',
+                color: _isReturn ? ThemeProvider.success : ThemeProvider.error,
+                onTap: () => setState(() => _isReturn = !_isReturn),
               ),
               const SizedBox(width: 12),
               Expanded(
-                flex: 2,
+                flex: 4,
                 child: ElevatedButton(
                   onPressed: _cart.isEmpty ? null : _goToPayment,
                   style: ElevatedButton.styleFrom(
@@ -1746,7 +1951,7 @@ class _POSScreenState extends State<POSScreen> {
                         _isReturn ? ThemeProvider.error : theme.highlight,
                     foregroundColor: Colors.white,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16)),
                   ),
@@ -1956,7 +2161,7 @@ class _ProductGridTile extends StatelessWidget {
                         '${product.totalStock}',
                         style: TextStyle(
                             color: theme.highlight,
-                            fontSize: 9,
+                            fontSize: 12,
                             fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -1970,7 +2175,7 @@ class _ProductGridTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                   height: 1.1,
                 ),
@@ -1985,7 +2190,7 @@ class _ProductGridTile extends StatelessWidget {
                       product.priceRange,
                       style: TextStyle(
                           color: theme.highlight,
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.w900),
                     ),
                     if (product.stocks.length > 1) ...[
@@ -1994,7 +2199,7 @@ class _ProductGridTile extends StatelessWidget {
                         '${product.stocks.length} batches',
                         style: TextStyle(
                             color: theme.textSecondary,
-                            fontSize: 10,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -2003,7 +2208,7 @@ class _ProductGridTile extends StatelessWidget {
                       Text(
                         '/ ${BusinessConfig.instance.weightUnit}',
                         style:
-                            TextStyle(color: theme.textSecondary, fontSize: 10),
+                            TextStyle(color: theme.textSecondary, fontSize: 12),
                       ),
                     ],
                   ],
@@ -2079,12 +2284,12 @@ class _CartItemTile extends StatelessWidget {
                           '${BusinessConfig.instance.currency}. ${(item['price'] as double).toStringAsFixed(2)}',
                           style: TextStyle(
                               color: theme.textSecondary,
-                              fontSize: 12,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600)),
                       if (isWeight)
                         Text(' / ${BusinessConfig.instance.weightUnit}',
                             style:
-                                TextStyle(color: theme.textHint, fontSize: 10)),
+                                TextStyle(color: theme.textHint, fontSize: 12)),
                     ],
                   ),
                 ),
@@ -2141,6 +2346,250 @@ class _CartItemTile extends StatelessWidget {
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: color, size: 16),
       ),
+    );
+  }
+}
+
+class _QuickAddProductPanel extends StatefulWidget {
+  final VoidCallback onClose;
+  final VoidCallback onSuccess;
+
+  const _QuickAddProductPanel({
+    super.key,
+    required this.onClose,
+    required this.onSuccess,
+  });
+
+  @override
+  State<_QuickAddProductPanel> createState() => _QuickAddProductPanelState();
+}
+
+class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
+  late AddProductController _controller;
+  final _formKey = GlobalKey<FormState>();
+  final theme = ThemeProvider.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AddProductController();
+    _controller.addListener(_updateUI);
+    _controller.loadCategories();
+  }
+
+  void _updateUI() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_updateUI);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    final result = await _controller.saveProduct();
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message']),
+          backgroundColor: ThemeProvider.success,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      widget.onSuccess();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result['message'] ?? 'Failed to save product'),
+          backgroundColor: ThemeProvider.error,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_controller.isLoading) {
+      return Container(
+        color: theme.surface,
+        child: Center(child: CircularProgressIndicator(color: theme.highlight)),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        color: theme.surface,
+        border: Border(left: BorderSide(color: theme.whiteAlpha(0.1))),
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.1))),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                   Text(
+                    'QUICK ADD PRODUCT',
+                    style: TextStyle(
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                    onPressed: widget.onClose,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildDropdownField(),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: _controller.name,
+                      label: 'Product Name',
+                      icon: Icons.inventory_2_outlined,
+                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: _controller.barcode,
+                      label: 'Barcode',
+                      icon: Icons.qr_code_rounded,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _controller.price,
+                            label: 'Sell Price',
+                            icon: Icons.monetization_on_outlined,
+                            keyboardType: TextInputType.number,
+                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _controller.purchasePrice,
+                            label: 'Cost Price',
+                            icon: Icons.shopping_bag_outlined,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTextField(
+                      controller: _controller.stock,
+                      label: 'Current Stock',
+                      icon: Icons.warehouse_outlined,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // Footer
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
+              ),
+              child: ElevatedButton(
+                onPressed: _handleSave,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.highlight,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(double.infinity, 48),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                ),
+                child: const Text('SAVE PRODUCT', style: TextStyle(fontWeight: FontWeight.w900)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+        prefixIcon: Icon(icon, color: theme.highlight.withOpacity(0.7), size: 18),
+        filled: true,
+        fillColor: theme.whiteAlpha(0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+    );
+  }
+
+  Widget _buildDropdownField() {
+    return DropdownButtonFormField<dynamic>(
+      value: _controller.categories.any((c) => c.id == _controller.selectedCategory)
+          ? _controller.selectedCategory
+          : null,
+      dropdownColor: theme.surface,
+      isExpanded: true,
+      style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+      decoration: InputDecoration(
+        labelText: 'Category',
+        labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+        prefixIcon: Icon(Icons.category_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
+        filled: true,
+        fillColor: theme.whiteAlpha(0.05),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      items: _controller.categories
+          .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+          .toList(),
+      onChanged: _controller.setCategory,
     );
   }
 }

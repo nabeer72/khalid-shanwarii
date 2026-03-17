@@ -152,7 +152,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
         labelText: label,
         labelStyle: TextStyle(color: theme.textSecondary),
         prefixIcon: Icon(icon, color: theme.iconColor),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput)),
       ),
     );
   }
@@ -192,7 +192,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
                         color: ThemeProvider.success.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                         border: Border.all(color: ThemeProvider.success.withValues(alpha: 0.4)),
                       ),
                       child: Row(
@@ -236,88 +236,63 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
                             itemBuilder: (ctx, i) {
                               final b = _branches[i];
                               final isActive = !_inactiveBranchIds.contains(b.id ?? 0);
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                decoration: theme.glassDecoration.copyWith(
-                                  border: isActive
-                                      ? Border.all(color: ThemeProvider.success, width: 2)
-                                      : null,
-                                ),
-                                child: ListTile(
-                                  onTap: () => _toggleActiveBranch(b),
-                                  leading: Container(
-                                    padding: const EdgeInsets.all(12),
-                                    decoration: BoxDecoration(
-                                      color: isActive
-                                          ? ThemeProvider.success.withValues(alpha: 0.15)
-                                          : theme.highlight.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      isActive ? Icons.check_circle_rounded : Icons.storefront_rounded,
-                                      color: isActive ? ThemeProvider.success : theme.highlight,
-                                    ),
-                                  ),
-                                  title: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Text(b.branchTitle,
-                                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                                      ),
-                                      if (isActive)
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: ThemeProvider.success.withValues(alpha: 0.2),
-                                            borderRadius: BorderRadius.circular(20),
-                                          ),
-                                          child: const Text('ACTIVE',
-                                              style: TextStyle(color: ThemeProvider.success, fontSize: 10, fontWeight: FontWeight.bold)),
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  decoration: theme.glassDecoration,
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                    onTap: () => _toggleActiveBranch(b),
+                                    title: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(b.branchTitle, 
+                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                         ),
-                                    ],
-                                  ),
-                                  subtitle: Text(
-                                    '${b.branchCode ?? "No Code"} • ${b.branchAddress ?? "No Address"}',
-                                    style: TextStyle(color: theme.textSecondary, fontSize: 12),
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.edit_outlined, color: theme.iconColor),
-                                        onPressed: () => _showBranchDialog(b),
-                                        tooltip: 'Edit',
+                                        Text('CODE: ${b.branchCode ?? "N/A"}', 
+                                            style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+                                      ],
+                                    ),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 2),
+                                      child: Text(
+                                        b.branchAddress ?? "No Address provided",
+                                        style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                                        tooltip: 'Delete',
-                                        onPressed: () async {
-                                          final confirm = await showDialog<bool>(
-                                            context: context,
-                                            builder: (ctx) => AlertDialog(
-                                              backgroundColor: theme.surface,
-                                              title: Text('Delete Branch?', style: TextStyle(color: theme.textPrimary)),
-                                              content: Text('Are you sure you want to delete ${b.branchTitle}?',
-                                                  style: TextStyle(color: theme.textSecondary)),
-                                              actions: [
-                                                TextButton(onPressed: () => Navigator.pop(ctx, false),
-                                                    child: Text('CANCEL', style: TextStyle(color: theme.textSecondary))),
-                                                TextButton(onPressed: () => Navigator.pop(ctx, true),
-                                                    child: const Text('DELETE', style: TextStyle(color: Colors.redAccent))),
-                                              ],
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              isActive ? 'ACTIVE' : 'INACTIVE',
+                                              style: TextStyle(
+                                                color: isActive ? ThemeProvider.success : ThemeProvider.error,
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 13,
+                                              ),
                                             ),
-                                          );
-                                          if (confirm == true) {
-                                            if (isActive) await _toggleActiveBranch(b);
-                                            await DatabaseHelper.instance.deleteBranch(b.id ?? 0);
-                                            _loadBranches();
-                                          }
-                                        },
-                                      ),
-                                    ],
+                                            Text(
+                                              'STATUS',
+                                              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(width: 8),
+                                        IconButton(
+                                          icon: Icon(Icons.edit_outlined, color: theme.iconColor, size: 18),
+                                          onPressed: () => _showBranchDialog(b),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
                             },
                           ),
               ),

@@ -50,7 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         filled: true,
         fillColor: Colors.black.withOpacity(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
         ),
         enabledBorder: OutlineInputBorder(
@@ -83,7 +83,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
           ),
           width: double.maxFinite,
           child: SingleChildScrollView(
@@ -117,7 +117,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           backgroundColor: ThemeProvider.success,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                         ),
                         onPressed: () async {
                           setState(() {
@@ -163,7 +163,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         filled: true,
         fillColor: Colors.black.withOpacity(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
         ),
         enabledBorder: OutlineInputBorder(
@@ -193,7 +193,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                 ),
                 width: double.maxFinite,
                 height: MediaQuery.of(context).size.height * 0.7,
@@ -236,12 +236,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 Navigator.pop(ctx);
                                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Currency set to ${currency.name}'), backgroundColor: ThemeProvider.success));
                               },
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: isSelected ? theme.highlight.withOpacity(0.1) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                   border: Border.all(color: isSelected ? theme.highlight.withOpacity(0.3) : Colors.transparent),
                                 ),
                                 child: Row(
@@ -262,7 +262,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(currency.name, style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 14)),
-                                          Text(currency.code, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w500)),
+                                          Text(currency.code, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
                                         ],
                                       ),
                                     ),
@@ -291,7 +291,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundColor: theme.highlight,
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                             ),
                             onPressed: () {
                               Navigator.pop(ctx);
@@ -323,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         filled: true,
         fillColor: Colors.black.withOpacity(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
           borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
         ),
         enabledBorder: OutlineInputBorder(
@@ -347,7 +347,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -378,7 +378,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: ThemeProvider.success,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                       ),
                       onPressed: () {
                          if (customCtrl.text.isNotEmpty) {
@@ -435,7 +435,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -467,7 +467,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: ThemeProvider.success,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                       ),
                       onPressed: () async {
                         setState(() => _taxRate = double.tryParse(taxCtrl.text) ?? 8.0);
@@ -707,7 +707,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: ThemeProvider.error,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
@@ -739,7 +739,7 @@ class _SectionHeader extends StatelessWidget {
         title, 
         style: TextStyle(
           color: theme.highlight, 
-          fontSize: 11, 
+          fontSize: 12, 
           fontWeight: FontWeight.w900, 
           letterSpacing: 1.5,
         ),
@@ -766,10 +766,10 @@ class _SettingsTile extends StatelessWidget {
         decoration: theme.glassDecoration,
         child: ListTile(
           onTap: onTap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
           leading: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
             child: Icon(icon, color: theme.highlight, size: 22),
           ),
           title: Text(title, style: TextStyle(color: titleColor ?? theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),

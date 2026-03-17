@@ -74,7 +74,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         backgroundColor: ThemeProvider.error,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                       ),
                       onPressed: () async {
                         await DatabaseHelper.instance.deletePurchase(purchase.id ?? 0);
@@ -141,91 +141,54 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       itemCount: _purchases.length,
                       itemBuilder: (context, index) {
                         final purchase = _purchases[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Container(
-                            decoration: theme.glassDecoration,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 52,
-                                    height: 52,
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [theme.highlight.withOpacity(0.3), theme.highlight.withOpacity(0.1)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(color: theme.highlight.withOpacity(0.2)),
-                                    ),
-                                    child: Icon(Icons.receipt_long_rounded, color: theme.highlight, size: 26),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          purchase.supplierName ?? 'Direct Purchase',
-                                          style: TextStyle(
-                                            color: theme.textPrimary,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Icon(Icons.calendar_today_rounded, size: 11, color: theme.iconColor),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              DateFormat('MMM dd, yyyy').format(purchase.purchaseDate),
-                                              style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        child: Text(
-                                          '${BusinessConfig.instance.currency}. ${purchase.totalAmount.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            color: theme.textPrimary,
-                                            fontSize: 17,
-                                            fontWeight: FontWeight.w900,
-                                            letterSpacing: -0.5,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      InkWell(
-                                        onTap: () => _confirmDelete(purchase),
-                                        child: Container(
-                                          padding: const EdgeInsets.all(6),
-                                          decoration: BoxDecoration(
-                                            color: ThemeProvider.error.withOpacity(0.1),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 16),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: theme.glassDecoration,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AddPurchaseScreen())).then((_) => _loadPurchases()),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(purchase.supplierName ?? 'Direct Purchase', 
+                                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                                ),
+                                Text('ID: ${purchase.id ?? '??'}', 
+                                    style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+                              ],
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                DateFormat('MMM dd, yyyy | HH:mm').format(purchase.purchaseDate),
+                                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
                               ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${BusinessConfig.instance.currency}. ${purchase.totalAmount.toStringAsFixed(2)}',
+                                      style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                                    ),
+                                    Text(
+                                      'PURCHASE',
+                                      style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: Icon(Icons.delete_outline_rounded, color: ThemeProvider.error.withOpacity(0.5), size: 18),
+                                  onPressed: () => _confirmDelete(purchase),
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -235,7 +198,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       ),
       floatingActionButton: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
           boxShadow: [
             BoxShadow(
               color: theme.highlight.withOpacity(0.4),
@@ -249,7 +212,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           backgroundColor: theme.highlight,
           foregroundColor: Colors.white,
           elevation: 0,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
           icon: const Icon(Icons.add_shopping_cart_rounded, size: 20),
           label: const Text('NEW PURCHASE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
         ),

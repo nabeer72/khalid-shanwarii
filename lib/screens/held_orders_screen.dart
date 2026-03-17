@@ -163,98 +163,65 @@ class _HeldOrderTile extends StatelessWidget {
         : '${elapsed.inHours}h ${elapsed.inMinutes % 60}m ago';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassDecoration,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onResume,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        onTap: onResume,
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(order.name, 
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+            ),
+            Text(elapsedStr, 
+                style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+          ],
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                order.items.map((i) => '${i['quantity']}x ${i['name']}').join(', '),
+                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (order.customer != null)
+                Text(
+                  'Customer: ${order.customer!.name}',
+                  style: TextStyle(color: theme.textHint, fontSize: 11, fontWeight: FontWeight.w500),
+                ),
+            ],
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: ThemeProvider.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-                      child: const Icon(Icons.pause_rounded, color: ThemeProvider.warning, size: 28),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(order.name, style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                          Text(elapsedStr, style: TextStyle(color: theme.textHint, fontSize: 12, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                    ),
-                    Text('${BusinessConfig.instance.currency}. ${order.total.toStringAsFixed(2)}', 
-                      style: TextStyle(color: theme.highlight, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -1)),
-                  ],
+                Text(
+                  '${BusinessConfig.instance.currency}. ${order.total.toStringAsFixed(2)}',
+                  style: TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 13),
                 ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ...order.items.take(3).map((item) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(10)),
-                      child: Text('${item['quantity']}x ${item['name']}', style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w700)),
-                    )),
-                    if (order.items.length > 3)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                        child: Text('+${order.items.length - 3} MORE', style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.w900)),
-                      ),
-                  ],
-                ),
-                if (order.customer != null) ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(Icons.person_rounded, size: 14, color: theme.iconColor),
-                      const SizedBox(width: 6),
-                      Text(order.customer!.name, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w600)),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton.icon(
-                        onPressed: onDelete,
-                        icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                        label: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12)),
-                        style: TextButton.styleFrom(foregroundColor: ThemeProvider.error),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton.icon(
-                        onPressed: onResume,
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: const Text('RESUME ORDER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ThemeProvider.success,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          elevation: 0,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  'PARKED',
+                  style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
                 ),
               ],
             ),
-          ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: Icon(Icons.delete_outline_rounded, color: ThemeProvider.error.withOpacity(0.5), size: 18),
+              onPressed: onDelete,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
         ),
       ),
     );

@@ -160,7 +160,7 @@ class _RolesScreenState extends State<RolesScreen> {
                       height: 400,
                       decoration: BoxDecoration(
                         color: theme.background.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                       ),
                       child: ListView(
                         children: grouped.entries.map((entry) {
@@ -306,26 +306,41 @@ class _RolesScreenState extends State<RolesScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _controller.roles.length,
-                      itemBuilder: (ctx, i) {
-                        final role = _controller.roles[i];
-                        return Card(
-                          color: theme.surface.withOpacity(0.5),
-                          margin: const EdgeInsets.only(bottom: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                          child: ListTile(
-                            title: Text(role.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                            subtitle: Text('${role.permissionIds.length} permissions', style: TextStyle(color: theme.textSecondary)),
-                            trailing: IconButton(
-                              icon: Icon(Icons.edit, color: theme.highlight),
-                              onPressed: () => _showRoleDialog(role),
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        itemCount: _controller.roles.length,
+                        itemBuilder: (ctx, i) {
+                          final role = _controller.roles[i];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            decoration: theme.glassDecoration,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                              onTap: () => _showRoleDialog(role),
+                              title: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(role.name, 
+                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                                  ),
+                                  Text('ID: ${role.id}', 
+                                      style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+                                ],
+                              ),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: Text(
+                                  '${role.permissionIds.length} permissions • ${(role.description?.isEmpty ?? true) ? "No description" : role.description}',
+                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              trailing: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 20),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      ),
         ),
       ),
     );
