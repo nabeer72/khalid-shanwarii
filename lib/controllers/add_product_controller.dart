@@ -22,6 +22,8 @@ class AddProductController with ChangeNotifier {
   // State
   dynamic selectedCategory;
   List<ProductCategory> categories = [];
+  dynamic selectedSubCategoryId;
+  List<ProductCategory> subCategories = [];
   bool isFavorite = false;
   int status = 1;
   bool _isLoading = true;
@@ -42,6 +44,7 @@ class AddProductController with ChangeNotifier {
     description = TextEditingController(text: initialProduct?.description ?? '');
 
     selectedCategory = initialProduct?.categoryId;
+    selectedSubCategoryId = initialProduct?.subCategoryId;
     isFavorite = initialProduct?.isFavorite ?? false;
     status = initialProduct?.status ?? 1;
     selectedBranchId = initialProduct?.branchId ?? BusinessConfig.instance.branchId;
@@ -62,27 +65,35 @@ class AddProductController with ChangeNotifier {
       final raw = await DatabaseHelper.instance.getCategories();
       final allCats = raw.map((map) => ProductCategory.fromMap(map)).toList();
       
-      // Deduplicate by ID to prevent Dropdown crash
-      final seenIds = <dynamic>{};
-      categories = [];
-      for (var c in allCats) {
-        if (c.id != null && !seenIds.contains(c.id)) {
-          categories.add(c);
-          seenIds.add(c.id);
-        }
-      }
-
-      // Normalize selectedCategory to match type in the list
+      // Filter for parent categories only (parentId is null)
+      categories = allCats.where((c) => c.parentId == null).toList();
+      
       if (selectedCategory != null) {
         final matches = categories.where((c) => c.id.toString() == selectedCategory.toString());
         if (matches.isNotEmpty) {
           selectedCategory = matches.first.id;
         } else {
-          // If no match found, fallback to first category if available, otherwise null
           selectedCategory = categories.isNotEmpty ? categories.first.id : null;
         }
       } else if (categories.isNotEmpty) {
         selectedCategory = categories.first.id;
+      }
+
+      // Now load subcategories for the resolved selectedCategory
+      if (selectedCategory != null) {
+        subCategories = allCats.where((c) => c.parentId?.toString() == selectedCategory.toString()).toList();
+      } else {
+        subCategories = [];
+      }
+
+      // Normalize selectedSubCategoryId
+      if (selectedSubCategoryId != null) {
+        final matches = subCategories.where((c) => c.id.toString() == selectedSubCategoryId.toString());
+        if (matches.isNotEmpty) {
+          selectedSubCategoryId = matches.first.id;
+        } else {
+          selectedSubCategoryId = null;
+        }
       }
     } catch (e) {
       _errorMessage = 'Failed to load categories: $e';
@@ -93,11 +104,12 @@ class AddProductController with ChangeNotifier {
   }
 
 
-  Future<bool> addCategory(String name) async {
+  Future<bool> addCategory(String name, {dynamic parentId}) async {
     try {
       final newId = await DatabaseHelper.instance.insertCategory({
         'business_id': BusinessConfig.instance.businessId!,
         'name': name,
+        'parent_id': parentId,
         'status': 1,
         'updated_at': DateTime.now().toIso8601String(),
       });
@@ -106,11 +118,19 @@ class AddProductController with ChangeNotifier {
         id: newId,
         businessId: BusinessConfig.instance.businessId!,
         name: name,
+        parentId: parentId,
         status: 1,
       );
 
-      categories.add(newCat);
-      selectedCategory = newCat.id;
+      if (parentId == null) {
+        categories.add(newCat);
+        selectedCategory = newCat.id;
+        subCategories = []; // Reset subcategories when parent changes
+        selectedSubCategoryId = null;
+      } else {
+        subCategories.add(newCat);
+        selectedSubCategoryId = newCat.id;
+      }
       notifyListeners();
       return true;
     } catch (e) {
@@ -120,8 +140,20 @@ class AddProductController with ChangeNotifier {
     }
   }
 
-  void setCategory(dynamic value) {
+  void setCategory(dynamic value) async {
     selectedCategory = value;
+    selectedSubCategoryId = null; // Reset subcategory when parent changes
+    
+    // Refresh subcategories for the new parent
+    final raw = await DatabaseHelper.instance.getCategories();
+    final allCats = raw.map((map) => ProductCategory.fromMap(map)).toList();
+    subCategories = allCats.where((c) => c.parentId?.toString() == value.toString()).toList();
+    
+    notifyListeners();
+  }
+
+  void setSubCategory(dynamic value) {
+    selectedSubCategoryId = value;
     notifyListeners();
   }
 
@@ -168,6 +200,7 @@ class AddProductController with ChangeNotifier {
       'business_id': BusinessConfig.instance.businessId,
       'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
       'category_id': selectedCategory,
+      'sub_category_id': selectedSubCategoryId,
       'name': nameVal,
       'barcode': barcodeVal,
       'price': priceVal,

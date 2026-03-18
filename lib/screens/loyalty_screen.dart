@@ -65,6 +65,7 @@ class _LoyaltyScreenState extends State<LoyaltyScreen> with SingleTickerProvider
   final theme = ThemeProvider.instance;
   late TabController _tabController;
   List<Customer> _customers = [];
+  // ignore: unused_field
   Customer? _selectedCustomer;
 
   @override

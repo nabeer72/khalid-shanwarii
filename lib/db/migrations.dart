@@ -824,5 +824,14 @@ class DbMigrations {
         if (kDebugMode) print('v42 roles migration error: $e');
       }
     }
+
+    if (oldVersion < 43) {
+      if (kDebugMode) print('Upgrading DB to v43: Adding parent_id to categories...');
+      try {
+        await db.execute('ALTER TABLE categories ADD COLUMN parent_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v43 categories parent_id error: $e');
+      }
+    }
   }
 }

@@ -29,6 +29,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   List<Product> _products = [];
   List<Map<String, dynamic>> _cart = [];
   String _selectedCategory = 'favorites';
+  dynamic _selectedSubCategoryId;
   bool _loading = true;
   double _subtotal = 0;
   double _tax = 0;
@@ -140,12 +141,16 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     } else if (_selectedCategory == 'all') {
       products = _products;
     } else {
-      products =
-          _products.where((p) => p.categoryId?.toString() == _selectedCategory).toList();
+      products = _products.where((p) => p.categoryId?.toString() == _selectedCategory).toList();
+      
+      if (_selectedSubCategoryId != null) {
+        products = products.where((p) => p.subCategoryId?.toString() == _selectedSubCategoryId.toString()).toList();
+      } else {
+        // Show only products directly in this parent category (no subcategory assigned)
+        products = products.where((p) => p.subCategoryId == null || p.subCategoryId == 0 || p.subCategoryId == '').toList();
+      }
     }
     
-    // De-duplicate if needed (though DB should return unique products already)
-    // and only show products that have at least one stock entry with quantity > 0
     return products.where((p) => p.stocks.any((s) => s.quantity > 0)).toList();
   }
 
@@ -384,6 +389,51 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     });
   }
 
+  void _setQuantity(int index, double value) {
+    if (value > 0) {
+      final item = _cart[index];
+      final product = _products.firstWhere(
+        (p) => p.id == (item['id'] ?? item['productId']),
+        orElse: () => Product(id: 0, businessId: 0, name: ''),
+      );
+      final stock = product.stocks.firstWhere(
+        (s) => s.id == item['stock_id'],
+        orElse: () => Stock(
+          id: 0,
+          businessId: 0,
+          productId: 0,
+          quantity: 0,
+          salePrice: 0,
+          costPrice: 0,
+        ),
+      );
+
+      if (product.id != 0 && (stock.id ?? 0) != 0) {
+        if (value > stock.quantity) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                'Cannot set to ${value.toStringAsFixed(2)}. Only ${stock.quantity.toStringAsFixed(2)} in stock.'),
+            backgroundColor: ThemeProvider.error,
+          ));
+          return;
+        }
+      }
+    }
+
+    setState(() {
+      _cart[index]['quantity'] = value;
+      if (_cart[index]['quantity'] <= 0) {
+        _cart.removeAt(index);
+        _expandedIndex = null;
+      } else {
+        final currentDiscount = (_cart[index]['discount'] ?? 0.0) as double;
+        _cart[index]['subtotal'] =
+            (_cart[index]['quantity'] * _cart[index]['price']) - currentDiscount;
+      }
+      _calculateTotals();
+    });
+  }
+
   void _calculateTotals() {
     _subtotal =
         _cart.fold(0, (sum, item) => sum + (item['subtotal'] as double));
@@ -399,6 +449,42 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         _selectedCustomer = null;
         _calculateTotals();
       });
+
+  Future<bool?> _showBackConfirmDialog(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: theme.highlight),
+            const SizedBox(width: 12),
+            Text('Go Back?', style: TextStyle(color: theme.textPrimary)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to exit the POS? Any unsaved cart progress might be lost.',
+          style: TextStyle(color: theme.textSecondary, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Stay', style: TextStyle(color: theme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.highlight,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Yes, Go Back', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _promptClearCart() async {
     final confirm = await showDialog<bool>(
@@ -479,7 +565,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('HELD ORDERS',
+                      Text(' ORDERS',
                           style: TextStyle(
                               color: theme.textPrimary,
                               fontSize: 18,
@@ -1139,32 +1225,42 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      body: theme.glassBackground(
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isTablet = constraints.maxWidth > 800;
-              return Row(
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      children: [
-                        Expanded(child: _buildProductPanel()),
-                        if (!isTablet)
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                            child: _buildMobileCartBar(),
-                          ),
-                      ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldPop = await _showBackConfirmDialog(context);
+        if (shouldPop == true && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        body: theme.glassBackground(
+          child: SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isTablet = constraints.maxWidth > 800;
+                return Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          Expanded(child: _buildProductPanel()),
+                          if (!isTablet)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                              child: _buildMobileCartBar(),
+                            ),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (isTablet) SizedBox(width: 380, child: _buildCartPanel())
-                ],
-              );
-            },
+                    if (isTablet) SizedBox(width: 380, child: _buildCartPanel())
+                  ],
+                );
+              },
+            ),
           ),
         ),
       ),
@@ -1191,7 +1287,12 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 child: IconButton(
                   icon: Icon(Icons.arrow_back_ios_new_rounded,
                       color: theme.iconColor, size: 20),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () async {
+                    final shouldPop = await _showBackConfirmDialog(context);
+                    if (shouldPop == true && context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
                 ),
               ),
               const SizedBox(width: 8),
@@ -1304,7 +1405,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         Expanded(
           child: _loading
               ? Center(child: CircularProgressIndicator(color: theme.highlight))
-              : _filteredProducts.isEmpty
+              : _getGridItemCount() == 0
                   ? Center(
                       child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -1338,25 +1439,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         mainAxisSpacing: 12,
                         childAspectRatio: 0.95,
                       ),
-                      itemCount: _filteredProducts.length,
+                      itemCount: _getGridItemCount(),
                       itemBuilder: (ctx, i) {
-                        final p = _filteredProducts[i];
-                        return _ProductGridTile(
-                          product: p,
-                          onTap: () {
-                            if (p.stocks.length > 1) {
-                              _showStockBatchDialog(p);
-                            } else if (p.stocks.length == 1) {
-                              if (p.isPricePerWeight) {
-                                _showWeightDialog(p, p.stocks.first);
-                              } else {
-                                _addToCart(p, p.stocks.first);
-                              }
-                            }
-                          },
-                          onLongPress: () => _toggleFavorite(p),
-                          onWeightTap: null, // handled in onTap
-                        );
+                        return _buildGridItem(i);
                       },
                     ),
         ),
@@ -1370,75 +1455,72 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           id: -1, name: 'Favorites', icon: '⭐', businessId: 0),
       ProductCategory(id: -2, name: 'Recent', icon: '🕐', businessId: 0),
       ProductCategory(id: 0, name: 'All Items', icon: '📝', businessId: 0),
-      ..._categories,
+      ..._categories.where((c) => c.parentId == null),
     ];
-    return SizedBox(
-      height: 50,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: categories.length,
-        itemBuilder: (ctx, i) {
-          final cat = categories[i];
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: categories.map((cat) {
           final isSelected = _selectedCategory == cat.id.toString();
-          if (cat.id == 0 && _selectedCategory == 'all') {
-            // Special case for backward compatibility of initial state
-          }
-          return Padding(
-            padding: const EdgeInsets.only(right: 8, bottom: 8),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => setState(() {
-                  if (cat.id == -1) _selectedCategory = 'favorites';
-                  else if (cat.id == -2) _selectedCategory = 'recent';
-                  else if (cat.id == 0) _selectedCategory = 'all';
-                  else _selectedCategory = cat.id.toString();
-                  _searchCtrl.clear();
-                  _searchQuery = '';
-                }),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: theme.glassDecoration.copyWith(
-                    color: isSelected
-                        ? theme.highlight
-                        : (theme.isDark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.white.withOpacity(0.4)),
-                    border: Border.all(
-                        color: isSelected
-                            ? theme.highlight
-                            : theme.whiteAlpha(0.1)),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                          cat.id == 'favorites' ||
-                                  cat.id == 'recent' ||
-                                  cat.id == 'all'
-                              ? cat.icon!
-                              : _getCategoryEmoji(cat.icon),
-                          style: const TextStyle(fontSize: 14)),
-                      const SizedBox(width: 8),
-                      Text(
-                        cat.name,
-                        style: TextStyle(
-                          color: isSelected ? Colors.white : theme.textPrimary,
-                          fontSize: 12,
-                          fontWeight:
-                              isSelected ? FontWeight.w900 : FontWeight.w600,
-                        ),
+          
+          return Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => setState(() {
+                if (cat.id == -1) {
+                  _selectedCategory = 'favorites';
+                } else if (cat.id == -2) {
+                  _selectedCategory = 'recent';
+                } else if (cat.id == 0) {
+                  _selectedCategory = 'all';
+                } else {
+                  _selectedCategory = cat.id.toString();
+                }
+                _selectedSubCategoryId = null;
+                _searchCtrl.clear();
+                _searchQuery = '';
+              }),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: theme.glassDecoration.copyWith(
+                  color: isSelected
+                      ? theme.highlight
+                      : (theme.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.white.withOpacity(0.4)),
+                  border: Border.all(
+                      color: isSelected
+                          ? theme.highlight
+                          : theme.whiteAlpha(0.1)),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                        cat.id == -1 || cat.id == -2 || cat.id == 0
+                            ? cat.icon!
+                            : _getCategoryEmoji(cat.icon),
+                        style: const TextStyle(fontSize: 14)),
+                    const SizedBox(width: 8),
+                    Text(
+                      cat.name,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : theme.textPrimary,
+                        fontSize: 12,
+                        fontWeight:
+                            isSelected ? FontWeight.w900 : FontWeight.w600,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
           );
-        },
+        }).toList(),
       ),
     );
   }
@@ -1456,6 +1538,131 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     }
   }
 
+  int _getGridItemCount() {
+    int count = _filteredProducts.length;
+    if (_selectedSubCategoryId != null) {
+      count += 1; // Back button
+    } else if (_selectedCategory != 'favorites' && _selectedCategory != 'recent' && _selectedCategory != 'all') {
+      final subCats = _categories.where((c) => c.parentId?.toString() == _selectedCategory).toList();
+      count += subCats.length;
+    }
+    return count;
+  }
+
+  Widget _buildGridItem(int index) {
+    // 1. Check for Back button
+    if (_selectedSubCategoryId != null) {
+      if (index == 0) {
+        return _buildBackTile();
+      }
+      index -= 1;
+    }
+
+    // 2. Check for Subcategories
+    if (_selectedSubCategoryId == null && _selectedCategory != 'favorites' && _selectedCategory != 'recent' && _selectedCategory != 'all') {
+      final subCats = _categories.where((c) => c.parentId?.toString() == _selectedCategory).toList();
+      if (index < subCats.length) {
+        return _buildSubCategoryTile(subCats[index]);
+      }
+      index -= subCats.length;
+    }
+
+    // 3. Product Tile
+    final p = _filteredProducts[index];
+    return _ProductGridTile(
+      product: p,
+      onTap: () {
+        if (p.stocks.length > 1) {
+          _showStockBatchDialog(p);
+        } else if (p.stocks.length == 1) {
+          if (p.isPricePerWeight) {
+            _showWeightDialog(p, p.stocks.first);
+          } else {
+            _addToCart(p, p.stocks.first);
+          }
+        }
+      },
+      onLongPress: () => _toggleFavorite(p),
+      onWeightTap: null, 
+    );
+  }
+
+  Widget _buildBackTile() {
+    return InkWell(
+      onTap: () => setState(() => _selectedSubCategoryId = null),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: theme.glassDecoration.copyWith(
+          color: theme.highlight.withOpacity(0.05),
+          border: Border.all(color: theme.highlight.withOpacity(0.2)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: theme.highlight.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.arrow_back_rounded, color: theme.highlight, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'BACK', 
+              style: TextStyle(
+                color: theme.highlight, 
+                fontWeight: FontWeight.w900,
+                fontSize: 12,
+                letterSpacing: 1.5,
+              )
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubCategoryTile(ProductCategory cat) {
+    return InkWell(
+      onTap: () => setState(() => _selectedSubCategoryId = cat.id),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: theme.glassDecoration.copyWith(
+          color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.white.withOpacity(0.1),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(cat.icon ?? '📁', style: const TextStyle(fontSize: 32)),
+            const SizedBox(height: 12),
+            Text(
+              cat.name.toUpperCase(),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'SUB-CATEGORY',
+              style: TextStyle(
+                color: theme.textSecondary.withOpacity(0.5),
+                fontSize: 8,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildCartPanel() {
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1463,76 +1670,133 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
         // Common content
         final header = Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.1))),
           ),
-          child: InkWell(
-            onTap: () async {
-              final result = await Navigator.push<Customer>(
-                context,
-                MaterialPageRoute(builder: (_) => const CustomerListScreen(selectMode: true)),
-              );
-              if (result != null && mounted) {
-                setState(() => _selectedCustomer = result);
-              }
-            },
-            borderRadius: BorderRadius.circular(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: _selectedCustomer != null ? theme.highlight.withOpacity(0.1) : theme.whiteAlpha(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: _selectedCustomer != null ? theme.highlight.withOpacity(0.3) : theme.whiteAlpha(0.1)),
+          child: Row(
+            children: [
+              // Customer Status / Name
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'CUSTOMER',
+                      style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          _selectedCustomer != null ? Icons.person_rounded : Icons.person_add_rounded,
-                          color: _selectedCustomer != null ? theme.highlight : theme.iconColor,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            _selectedCustomer != null ? _selectedCustomer!.name : 'Add Customer',
-                            style: TextStyle(
-                              color: _selectedCustomer != null ? theme.textPrimary : theme.textSecondary,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        if (_selectedCustomer != null)
-                          IconButton(
-                            icon: Icon(Icons.close_rounded, size: 20, color: ThemeProvider.error),
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
-                            onPressed: () => setState(() => _selectedCustomer = null),
-                          )
-                        else
-                          Icon(Icons.chevron_right_rounded, color: theme.iconColor),
-                      ],
+                    const SizedBox(height: 2),
+                    Text(
+                      _selectedCustomer?.name ?? 'Walk-in Guest',
+                      style: TextStyle(
+                        color: _selectedCustomer != null ? theme.highlight : theme.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                IconButton(
-                  onPressed: _toggleQuickAddProduct,
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: theme.highlight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(Icons.add_business_rounded, color: theme.highlight, size: 20),
+              ),
+
+              // Action Buttons Row
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Select Customer Button
+                  _buildHeaderButton(
+                    icon: _selectedCustomer != null ? Icons.person_rounded : Icons.person_add_rounded,
+                    color: _selectedCustomer != null ? theme.highlight : theme.textSecondary,
+                    onTap: () async {
+                      final result = await Navigator.push<Customer>(
+                        context,
+                        MaterialPageRoute(builder: (_) => const CustomerListScreen(selectMode: true)),
+                      );
+                      if (result != null && mounted) {
+                        setState(() => _selectedCustomer = result);
+                      }
+                    },
+                    tooltip: 'Select Customer',
                   ),
-                  tooltip: 'Quick Add Product',
-                ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+
+                  // Held Orders Button
+                  _buildHeaderButton(
+                    icon: Icons.receipt_long_rounded,
+                    color: ThemeProvider.warning,
+                    onTap: _showHeldOrdersModal,
+                    tooltip: ' Orders',
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Quick Add Product Button
+                  _buildHeaderButton(
+                    icon: Icons.add_business_rounded,
+                    color: theme.highlight,
+                    onTap: _toggleQuickAddProduct,
+                    tooltip: 'Quick Add Product',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+
+        final tableHeader = Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: theme.whiteAlpha(0.03),
+            border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.1))),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text('PRODUCTS',
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5)),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 90,
+                child: Text('QTY',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5)),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 60,
+                child: Text('RATE',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5)),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 75,
+                child: Text('TOTAL',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5)),
+              ),
+            ],
           ),
         );
 
@@ -1569,6 +1833,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   }),
                   onIncrement: () => _updateQuantity(i, 1),
                   onDecrement: () => _updateQuantity(i, -1),
+                  onQuantityChanged: (newQty) => _setQuantity(i, newQty),
                   onRemove: () => _removeFromCart(i),
                   onPriceChanged: (newPrice) => setState(() {
                     _cart[i]['price'] = newPrice;
@@ -1593,6 +1858,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             child: Column(
               children: [
                 header,
+                if (_cart.isNotEmpty) tableHeader,
                 listContent,
                 totals,
               ],
@@ -1603,6 +1869,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           content = Column(
             children: [
               header,
+              if (_cart.isNotEmpty) tableHeader,
               Expanded(child: listContent),
               totals,
             ],
@@ -1642,41 +1909,64 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
+  Widget _buildHeaderButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onTap,
+    String? tooltip,
+  }) {
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+      ),
+    );
+  }
+
   Widget _buildCartAction(
       {required IconData icon,
       required String label,
       required Color color,
-      VoidCallback? onTap}) {
+      VoidCallback? onTap,
+      bool expanded = true}) {
     final theme = ThemeProvider.instance;
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          child: Column(
-            children: [
-              Icon(icon,
-                  color: onTap == null ? theme.iconColor.withOpacity(0.5) : color,
-                  size: 20),
-              const SizedBox(height: 4),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(label.toUpperCase(),
-                    style: TextStyle(
-                      color: onTap == null
-                          ? theme.textSecondary.withOpacity(0.5)
-                          : color,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                    )),
-              ),
-            ],
-          ),
+    final content = InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        child: Column(
+          children: [
+            Icon(icon,
+                color: onTap == null ? theme.iconColor.withOpacity(0.5) : color,
+                size: 20),
+            const SizedBox(height: 4),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label.toUpperCase(),
+                  style: TextStyle(
+                    color: onTap == null
+                        ? theme.textSecondary.withOpacity(0.5)
+                        : color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  )),
+            ),
+          ],
         ),
       ),
     );
+    return expanded ? Expanded(child: content) : content;
   }
 
   Widget _buildMobileCartBar() {
@@ -1853,6 +2143,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                 setSheetState(() {});
                               }
                             },
+                            onQuantityChanged: (newQty) {
+                              _setQuantity(i, newQty);
+                              setSheetState(() {});
+                            },
                             onRemove: () {
                               _removeFromCart(i);
                               if (_cart.isEmpty) {
@@ -1938,63 +2232,97 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   '${BusinessConfig.instance.currency}. ${_total.toStringAsFixed(2)}',
                   style: TextStyle(
                       color: theme.highlight,
-                      fontSize: 32,
+                      fontSize: 15,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -1)),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
+          Column(
             children: [
-              _buildCartAction(
-                icon: Icons.delete_sweep_rounded,
-                label: 'Clear',
-                color: ThemeProvider.error,
-                onTap: _cart.isEmpty ? null : _promptClearCart,
-              ),
-              const SizedBox(width: 6),
-              _buildCartAction(
-                icon: Icons.discount_rounded,
-                label: 'Disc',
-                color: theme.highlight,
-                onTap: _showDiscountDialog,
-              ),
-              const SizedBox(width: 6),
-              _buildCartAction(
-                icon: Icons.pause_circle_filled_rounded,
-                label: 'Hold',
-                color: ThemeProvider.warning,
-                onTap: _showHeldOrdersModal,
-              ),
-              const SizedBox(width: 6),
-              _buildCartAction(
-                icon: _isReturn
-                    ? Icons.shopping_cart_checkout_rounded
-                    : Icons.assignment_return_rounded,
-                label: _isReturn ? 'Sale' : 'Return',
-                color: _isReturn ? ThemeProvider.success : ThemeProvider.error,
-                onTap: () => setState(() => _isReturn = !_isReturn),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 4,
-                child: ElevatedButton(
-                  onPressed: _cart.isEmpty ? null : _goToPayment,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        _isReturn ? ThemeProvider.error : theme.highlight,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [
+                  _buildCartAction(
+                    icon: Icons.discount_rounded,
+                    label: 'Discount',
+                    color: theme.highlight,
+                    onTap: _showDiscountDialog,
+                    expanded: false,
                   ),
-                  child: Text(_isReturn ? 'REFUND' : 'PAYMENT',
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          letterSpacing: 1.5)),
-                ),
+                  const SizedBox(width: 4),
+                  _buildCartAction(
+                    icon: _isReturn
+                        ? Icons.shopping_cart_checkout_rounded
+                        : Icons.assignment_return_rounded,
+                    label: _isReturn ? 'Sale Mode' : 'Return Mode',
+                    color: _isReturn ? ThemeProvider.success : ThemeProvider.error,
+                    onTap: () => setState(() => _isReturn = !_isReturn),
+                    expanded: false,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _cart.isEmpty ? null : _promptClearCart,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ThemeProvider.error,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('CLEAR',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              letterSpacing: 1)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _cart.isEmpty ? null : _parkCurrentCart,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ThemeProvider.warning,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('HOLD',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              letterSpacing: 1)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _cart.isEmpty ? null : _goToPayment,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor:
+                            _isReturn ? ThemeProvider.error : ThemeProvider.success,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: Text(_isReturn ? 'REFUND' : 'PAY',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 14,
+                              letterSpacing: 1)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -2272,10 +2600,13 @@ class _CartItemTile extends StatelessWidget {
     required this.onToggleExpand,
     required this.onIncrement,
     required this.onDecrement,
+    required this.onQuantityChanged,
     required this.onRemove,
     required this.onPriceChanged,
     required this.onDiscountChanged,
   });
+
+  final Function(double) onQuantityChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2297,81 +2628,56 @@ class _CartItemTile extends StatelessWidget {
             child: Row(
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item['name'],
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            color: theme.textPrimary,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14),
-                      ),
-                      const SizedBox(height: 2),
-                      FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
-                          children: [
-                            Text(
-                                '${BusinessConfig.instance.currency}. ${(item['price'] as double).toStringAsFixed(2)}',
-                                style: TextStyle(
-                                    color: theme.textSecondary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600)),
-                            if (isWeight)
-                              Text(' / ${BusinessConfig.instance.weightUnit}',
-                                  style:
-                                      TextStyle(color: theme.textHint, fontSize: 12)),
-                            if (discount > 0)
-                              Padding(
-                                padding: const EdgeInsets.only(left: 8.0),
-                                child: Text(
-                                  '-${BusinessConfig.instance.currency}. ${discount.toStringAsFixed(2)}',
-                                  style: TextStyle(color: ThemeProvider.warning, fontSize: 12, fontWeight: FontWeight.bold),
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Quantity Control Flat
-                Container(
-                  decoration: BoxDecoration(
-                    color: theme.whiteAlpha(theme.isDark ? 0.05 : 0.4),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _qtyBtn(Icons.remove_rounded, onDecrement, theme.textSecondary),
-                      SizedBox(
-                        width: 36,
-                        child: Text(qty,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                                color: theme.textPrimary,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14)),
-                      ),
-                      _qtyBtn(Icons.add_rounded, onIncrement, theme.highlight),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 70,
                   child: Text(
-                    '${BusinessConfig.instance.currency}. ${(item['subtotal'] as double).toStringAsFixed(2)}',
+                    item['name'],
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // QTY (Display Only)
+                SizedBox(
+                  width: 90,
+                  child: Text(
+                    qty,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // RATE (Unit Price)
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    (item['price'] as double).toStringAsFixed(2),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // TOTAL (Subtotal)
+                SizedBox(
+                  width: 75,
+                  child: Text(
+                    (item['subtotal'] as double).toStringAsFixed(2),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         color: theme.textPrimary,
                         fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        fontSize: 13,
                         letterSpacing: -0.5),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -2380,18 +2686,20 @@ class _CartItemTile extends StatelessWidget {
             ),
           ),
         ),
+        
         if (isExpanded)
           Container(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: theme.whiteAlpha(0.02),
               border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.05))),
             ),
             child: Row(
               children: [
+                // PRICE (Icon Only)
                 _ActionButton(
                   icon: Icons.edit_rounded,
-                  label: 'Price',
+                  label: '',
                   onTap: () => _showEditValueDialog(
                     context,
                     title: 'Edit Price',
@@ -2400,20 +2708,50 @@ class _CartItemTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
+
+                // DISCOUNT (Icon + Label)
                 _ActionButton(
                   icon: Icons.discount_rounded,
-                  label: 'Discount',
+                  label: 'Disc',
                   onTap: () => _showEditValueDialog(
                     context,
-                    title: 'Apply Discount',
+                    title: 'Discount',
                     initialValue: discount,
                     onChanged: onDiscountChanged,
                   ),
                 ),
+                
                 const Spacer(),
+
+                // QUANTITY CONTROLS (Between Discount and Remove)
+                _qtyBtn(Icons.remove_rounded, onDecrement, theme.textSecondary),
+                InkWell(
+                  onTap: () => _showEditValueDialog(
+                    context,
+                    title: 'Edit Quantity',
+                    initialValue: (item['quantity'] as double).toDouble(),
+                    onChanged: onQuantityChanged,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Text(
+                      qty,
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+                _qtyBtn(Icons.add_rounded, onIncrement, theme.highlight),
+                
+                const SizedBox(width: 8),
+
+                // REMOVE (Icon Only)
                 _ActionButton(
                   icon: Icons.delete_outline_rounded,
-                  label: 'Remove',
+                  label: '',
                   color: ThemeProvider.error,
                   onTap: onRemove,
                 ),
@@ -2471,6 +2809,22 @@ class _CartItemTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: color, size: 16),
+      ),
+    );
+  }
+
+  Widget _largeQtyBtn(IconData icon, VoidCallback onTap, Color color) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        width: 54,
+        height: 44,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 24),
       ),
     );
   }
@@ -2602,6 +2956,62 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
     );
   }
 
+  Future<void> _showAddSubCategoryDialog() async {
+    if (_controller.selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a main category first')),
+      );
+      return;
+    }
+
+    final catCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: theme.surface,
+        title: Text('Add Sub-Category', style: TextStyle(color: theme.textPrimary)),
+        content: TextField(
+          controller: catCtrl,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Sub-Category Name',
+            labelStyle: TextStyle(color: theme.textSecondary),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.isDark ? theme.textHint : Colors.black.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6)),
+            ),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
+            onPressed: () async {
+              if (catCtrl.text.trim().isNotEmpty) {
+                final success = await _controller.addCategory(
+                  catCtrl.text.trim(),
+                  parentId: _controller.selectedCategory,
+                );
+                if (success && mounted) {
+                  Navigator.pop(c);
+                }
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _handleSave() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -2682,6 +3092,8 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
                 child: Column(
                   children: [
                     _buildDropdownField(),
+                    const SizedBox(height: 12),
+                    _buildSubCategoryDropdownField(),
                     const SizedBox(height: 12),
                     _buildTextField(
                       controller: _controller.name,
@@ -2812,6 +3224,55 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
         const SizedBox(width: 8),
         IconButton(
           onPressed: _showAddCategoryDialog,
+          icon: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubCategoryDropdownField() {
+    final theme = ThemeProvider.instance;
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.subCategories.any((c) => c.id == _controller.selectedSubCategoryId)
+                ? _controller.selectedSubCategoryId
+                : null,
+            dropdownColor: theme.surface,
+            isExpanded: true,
+            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              labelText: 'Sub-Category',
+              labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+              prefixIcon: Icon(Icons.account_tree_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
+              filled: true,
+              fillColor: theme.whiteAlpha(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Sub-Category')),
+              ..._controller.subCategories
+                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                .toList(),
+            ],
+            onChanged: _controller.setSubCategory,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: _showAddSubCategoryDialog,
           icon: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(

@@ -150,6 +150,7 @@ class ProductCategory {
   final dynamic businessId;
   final String name;
   final String? icon;
+  final dynamic parentId;
   final int status;
   final int isSynced;
 
@@ -158,6 +159,7 @@ class ProductCategory {
     required this.businessId,
     required this.name,
     this.icon,
+    this.parentId,
     this.status = 1,
     this.isSynced = 1,
   });
@@ -168,8 +170,21 @@ class ProductCategory {
       businessId: map['business_id'],
       name: map['name'] ?? '',
       icon: map['icon'],
+      parentId: map['parent_id'],
       status: map['status'] ?? 1,
       isSynced: map['is_synced'] ?? 1,
     );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'business_id': businessId,
+      'name': name,
+      'icon': icon,
+      'parent_id': parentId,
+      'status': status,
+      'is_synced': isSynced,
+    };
   }
 }

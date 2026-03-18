@@ -103,6 +103,60 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  Future<void> _showAddSubCategoryDialog() async {
+    if (_controller.selectedCategory == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a main category first')),
+      );
+      return;
+    }
+
+    final catCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: theme.surface,
+        title: Text('Add Sub-Category', style: TextStyle(color: theme.textPrimary)),
+        content: TextField(
+          controller: catCtrl,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Sub-Category Name',
+            labelStyle: TextStyle(color: theme.textSecondary),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: theme.isDark ? theme.textHint : Colors.black.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6)),
+            ),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
+            onPressed: () async {
+              if (catCtrl.text.trim().isNotEmpty) {
+                final success = await _controller.addCategory(
+                  catCtrl.text.trim(), 
+                  parentId: _controller.selectedCategory,
+                );
+                if (success && mounted) {
+                  Navigator.pop(c);
+                }
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_controller.isLoading) {
@@ -198,12 +252,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(child: _buildCategorySelector()),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildSubCategorySelector()),
                               ],
                             ),
                             const SizedBox(height: 16),
                             _buildBarcodeScanner(),
                           ] else ...[
                             _buildCategorySelector(),
+                            const SizedBox(height: 16),
+                            _buildSubCategorySelector(),
                             const SizedBox(height: 16),
                             _buildBarcodeScanner(),
                           ],
@@ -484,6 +542,42 @@ class _AddProductScreenState extends State<AddProductScreen> {
               borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
             ),
             child: Icon(Icons.qr_code_scanner, color: theme.highlight, size: 20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSubCategorySelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.subCategories.any((c) => c.id == _controller.selectedSubCategoryId) 
+                ? _controller.selectedSubCategoryId 
+                : null,
+            dropdownColor: theme.surface,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Sub-Category', Icons.account_tree_outlined),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Sub-Category')),
+              ..._controller.subCategories
+                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                .toList(),
+            ],
+            onChanged: _controller.setSubCategory,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: _showAddSubCategoryDialog,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+            ),
+            child: Icon(Icons.add, color: theme.highlight, size: 20),
           ),
         ),
       ],

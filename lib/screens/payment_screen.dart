@@ -364,15 +364,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     selected: _tipPercent == 0,
                     onTap: () => setState(() => _tipPercent = 0)),
                 _TipButton(
-                    percent: 15,
+                    percent: 5,
                     selected: _tipPercent == 15,
                     onTap: () => setState(() => _tipPercent = 15)),
                 _TipButton(
-                    percent: 18,
+                    percent: 10,
                     selected: _tipPercent == 18,
                     onTap: () => setState(() => _tipPercent = 18)),
                 _TipButton(
-                    percent: 20,
+                    percent: 15,
                     selected: _tipPercent == 20,
                     onTap: () => setState(() => _tipPercent = 20)),
               ],
@@ -385,12 +385,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Widget _buildSummary(bool isWide) {
     return Container(
+    
       padding: const EdgeInsets.all(16),
       decoration: theme.glassDecoration,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        
         mainAxisSize: MainAxisSize.min,
         children: [
+          
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -403,6 +406,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
+                    
                     color: theme.whiteAlpha(0.05),
                     borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                   ),
@@ -467,7 +471,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     '${BusinessConfig.instance.currency}. ${_grandTotal.toStringAsFixed(2)}',
                     style: TextStyle(
                         color: theme.highlight,
-                        fontSize: 28,
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -1),
                   ),
@@ -689,7 +693,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               color: theme.textPrimary,
               fontSize: 20,
               fontWeight: FontWeight.w900),
-          decoration: theme.glassInputDecoration('Amount', Icons.attach_money_rounded).copyWith(
+          decoration: theme.glassInputDecoration('Amount', Icons.payments_rounded).copyWith(
             prefixText: '${BusinessConfig.instance.currency}. ',
             prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 16),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -882,7 +886,7 @@ class _NoteButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(amount.toStringAsFixed(0), style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13)),
-                Text('NOTE', style: TextStyle(color: theme.highlight.withOpacity(0.7), fontSize: 7, fontWeight: FontWeight.bold)),
+                
               ],
             ),
           ),

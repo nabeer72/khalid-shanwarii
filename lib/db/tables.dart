@@ -44,6 +44,7 @@ class DbTables {
         admin_id INTEGER,
         name TEXT NOT NULL,
         icon TEXT,
+        parent_id INTEGER,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
