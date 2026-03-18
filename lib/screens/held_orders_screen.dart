@@ -1,28 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/customer.dart';
+import 'package:mobile_app/models/held_order.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
-import 'package:mobile_app/screens/pos_screen.dart';
-
-// Held orders storage
-class HeldOrdersStore {
-  static final HeldOrdersStore instance = HeldOrdersStore._();
-  HeldOrdersStore._();
-  
-  final List<HeldOrder> orders = [];
-}
-
-class HeldOrder {
-  final int id;
-  final String name;
-  final List<Map<String, dynamic>> items;
-  final double total;
-  final Customer? customer;
-  final DateTime createdAt;
-
-  HeldOrder({required this.id, required this.name, required this.items, required this.total, this.customer, required this.createdAt});
-}
+import 'package:mobile_app/db/mock_data.dart';
 
 class HeldOrdersScreen extends StatefulWidget {
   const HeldOrdersScreen({super.key});
@@ -33,11 +15,40 @@ class HeldOrdersScreen extends StatefulWidget {
 
 class _HeldOrdersScreenState extends State<HeldOrdersScreen> {
   final theme = ThemeProvider.instance;
+  List<HeldOrder> _orders = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrders();
+  }
+
+  Future<void> _loadOrders() async {
+    setState(() => _loading = true);
+    final ordersData = await DatabaseHelper.instance.getHeldOrders();
+    final List<HeldOrder> loadedOrders = [];
+    
+    for (var data in ordersData) {
+      final items = await DatabaseHelper.instance.getHeldOrderItems(data['id']);
+      Customer? customer;
+      if (data['customer_id'] != null) {
+        final cData = await DatabaseHelper.instance.getCustomer(data['customer_id']);
+        if (cData != null) customer = Customer.fromMap(cData);
+      }
+      loadedOrders.add(HeldOrder.fromMap(data, childItems: items, customer: customer));
+    }
+
+    if (mounted) {
+      setState(() {
+        _orders = loadedOrders;
+        _loading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final orders = HeldOrdersStore.instance.orders;
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -57,47 +68,51 @@ class _HeldOrdersScreenState extends State<HeldOrdersScreen> {
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: orders.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: theme.glassCircleDecoration,
-                        child: Icon(Icons.pause_circle_outline_rounded, size: 60, color: theme.iconColor),
+          child: _loading 
+              ? Center(child: CircularProgressIndicator(color: theme.highlight))
+              : _orders.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: theme.glassCircleDecoration,
+                            child: Icon(Icons.pause_circle_outline_rounded, size: 60, color: theme.iconColor),
+                          ),
+                          const SizedBox(height: 24),
+                          Text('No held orders', style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 8),
+                          Text('Parked orders will appear here', style: TextStyle(color: theme.textSecondary, fontSize: 14)),
+                        ],
                       ),
-                      const SizedBox(height: 24),
-                      Text('No held orders', style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 8),
-                      Text('Parked orders will appear here', style: TextStyle(color: theme.textSecondary, fontSize: 14)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                  itemCount: orders.length,
-                  itemBuilder: (context, index) {
-                    final order = orders[index];
-                    return _HeldOrderTile(
-                      order: order,
-                      onResume: () => _resumeOrder(order),
-                      onDelete: () => _deleteOrder(order),
-                    );
-                  },
-                ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      itemCount: _orders.length,
+                      itemBuilder: (context, index) {
+                        final order = _orders[index];
+                        return _HeldOrderTile(
+                          order: order,
+                          onResume: () => _resumeOrder(order),
+                          onDelete: () => _deleteOrder(order),
+                        );
+                      },
+                    ),
         ),
       ),
     );
   }
 
-  void _resumeOrder(HeldOrder order) {
-    HeldOrdersStore.instance.orders.remove(order);
-    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => POSScreen(resumeOrder: order)));
+  Future<void> _resumeOrder(HeldOrder order) async {
+    await DatabaseHelper.instance.deleteHeldOrder(order.id);
+    if (mounted) {
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => POSScreen(resumeOrder: order)));
+    }
   }
 
-  void _deleteOrder(HeldOrder order) {
-    showDialog(
+  Future<void> _deleteOrder(HeldOrder order) async {
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.transparent,
@@ -116,7 +131,7 @@ class _HeldOrdersScreenState extends State<HeldOrdersScreen> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
+                      onPressed: () => Navigator.pop(ctx, false),
                       child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w900)),
                     ),
                   ),
@@ -128,12 +143,7 @@ class _HeldOrdersScreenState extends State<HeldOrdersScreen> {
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      onPressed: () {
-                        HeldOrdersStore.instance.orders.remove(order);
-                        Navigator.pop(ctx);
-                        setState(() {});
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order deleted'), backgroundColor: ThemeProvider.error));
-                      },
+                      onPressed: () => Navigator.pop(ctx, true),
                       child: const Text('DELETE', style: TextStyle(fontWeight: FontWeight.w900)),
                     ),
                   ),
@@ -144,6 +154,14 @@ class _HeldOrdersScreenState extends State<HeldOrdersScreen> {
         ),
       ),
     );
+
+    if (confirm == true) {
+      await DatabaseHelper.instance.deleteHeldOrder(order.id);
+      _loadOrders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Order deleted'), backgroundColor: ThemeProvider.error));
+      }
+    }
   }
 }
 
@@ -184,7 +202,7 @@ class _HeldOrderTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                order.items.map((i) => '${i['quantity']}x ${i['name']}').join(', '),
+                order.items.map((i) => '${i['quantity']}x ${i['name'] ?? 'Item'}').join(', '),
                 style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -229,13 +247,11 @@ class _HeldOrderTile extends StatelessWidget {
 }
 
 // Helper function to hold an order from POS
-void holdOrder(String name, List<Map<String, dynamic>> items, double total, Customer? customer) {
-  HeldOrdersStore.instance.orders.add(HeldOrder(
-    id: DateTime.now().millisecondsSinceEpoch,
-    name: name,
-    items: List.from(items),
-    total: total,
-    customer: customer,
-    createdAt: DateTime.now(),
-  ));
+Future<int> holdOrder(String name, List<Map<String, dynamic>> items, double total, Customer? customer) async {
+  final orderData = {
+    'name': name,
+    'total': total,
+    'customer_id': customer?.id,
+  };
+  return await DatabaseHelper.instance.insertHeldOrder(orderData, items);
 }

@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _favoritesCount = 0;
   double _todaySalesAmount = 0.0;
   double _todayRecoveryAmount = 0.0;
+  int _heldCount = 0;
 
   @override
   void initState() {
@@ -154,12 +155,15 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
+      final heldOrders = await db.getHeldOrders();
+
       if (mounted) {
         setState(() {
           final uniqueProductNames = products.map((p) => p['name'] as String).toSet();
           _productCount = uniqueProductNames.length;
           _customerCount = customers.length;
           _saleCount = sales.length;
+          _heldCount = heldOrders.length;
           _favoritesCount = products
               .where((p) => (p['is_favorite'] ?? 0) == 1)
               .map((p) => p['name'] as String)
@@ -222,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    final heldCount = HeldOrdersStore.instance.orders.length;
+    final heldCount = _heldCount;
 
     return Scaffold(
       extendBodyBehindAppBar: true,

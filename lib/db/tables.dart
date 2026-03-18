@@ -228,9 +228,65 @@ class DbTables {
         admin_id INTEGER,
         name TEXT,
         customer_id INTEGER,
-        items TEXT,
         total REAL DEFAULT 0,
         created_at TEXT
+      )
+    ''');
+
+    // Held Order Items
+    await db.execute('''
+      CREATE TABLE held_order_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        held_order_id INTEGER NOT NULL,
+        product_id INTEGER,
+        stock_id INTEGER,
+        quantity REAL DEFAULT 1,
+        price REAL DEFAULT 0,
+        subtotal REAL DEFAULT 0,
+        discount REAL DEFAULT 0,
+        brand_id INTEGER,
+        category_id INTEGER,
+        FOREIGN KEY (held_order_id) REFERENCES held_orders(id),
+        FOREIGN KEY (product_id) REFERENCES products(id),
+        FOREIGN KEY (stock_id) REFERENCES stocks(id)
+      )
+    ''');
+
+    // Returns
+    await db.execute('''
+      CREATE TABLE returns (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        sale_id INTEGER,
+        customer_id INTEGER,
+        user_id INTEGER,
+        total_amount REAL DEFAULT 0,
+        reason TEXT,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (sale_id) REFERENCES sales(id),
+        FOREIGN KEY (customer_id) REFERENCES customers(id)
+      )
+    ''');
+
+    // Return Items
+    await db.execute('''
+      CREATE TABLE return_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        return_id INTEGER NOT NULL,
+        sale_item_id INTEGER,
+        product_id INTEGER,
+        stock_id INTEGER,
+        quantity REAL DEFAULT 0,
+        price REAL DEFAULT 0,
+        subtotal REAL DEFAULT 0,
+        FOREIGN KEY (return_id) REFERENCES returns(id),
+        FOREIGN KEY (product_id) REFERENCES products(id),
+        FOREIGN KEY (stock_id) REFERENCES stocks(id)
       )
     ''');
 

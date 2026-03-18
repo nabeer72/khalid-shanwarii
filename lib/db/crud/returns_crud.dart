@@ -1,13 +1,9 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
 
-mixin SalesCrud on CommonCrud {
-  // Sales
-  Future<List<Map<String, dynamic>>> getSales({int? limit}) async {
+mixin ReturnsCrud on CommonCrud {
+  Future<List<Map<String, dynamic>>> getReturns({int? limit}) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
@@ -18,41 +14,39 @@ mixin SalesCrud on CommonCrud {
     final args = [bid, aid, ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM sales WHERE business_id = ? AND admin_id = ?$branchFilter ORDER BY created_at DESC${limit != null ? ' LIMIT $limit' : ''}',
+      'SELECT * FROM returns WHERE business_id = ? AND admin_id = ?$branchFilter ORDER BY created_at DESC${limit != null ? ' LIMIT $limit' : ''}',
       args,
     );
   }
 
-  Future<int> insertSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items) async {
+  Future<int> insertReturn(Map<String, dynamic> returnData, List<Map<String, dynamic>> items) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
-    final brid = sale['branch_id'] ?? getCurrentBranchId();
+    final brid = returnData['branch_id'] ?? getCurrentBranchId();
     
     return await db.transaction((txn) async {
-      final generatedSaleId = await txn.insert('sales', {
-        ...sale,
+      final returnId = await txn.insert('returns', {
+        ...returnData,
         'business_id': bid,
         'admin_id': aid,
         'branch_id': brid,
-        'is_synced': 0
+        'status': 1,
+        'is_synced': 0,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
       });
-      
-      final sid = sale['id'] ?? generatedSaleId;
 
       for (var item in items) {
         final stockId = item['stock_id'];
         final quantity = (item['quantity'] as num? ?? 0).toDouble();
-        final isReturn = sale['is_return'] == 1;
 
-        await txn.insert('sale_items', {
+        await txn.insert('return_items', {
           ...item,
-          'sale_id': sid,
-          'branch_id': brid,
-          'is_synced': 0
+          'return_id': returnId,
         });
 
-        // Update Stock (Batch-specific)
+        // Update Stock (Batch-specific): Returns add back to stock
         if (stockId != null) {
           final List<Map<String, dynamic>> stocks = await txn.query(
             'stocks',
@@ -63,9 +57,7 @@ mixin SalesCrud on CommonCrud {
 
           if (stocks.isNotEmpty) {
             final currentStock = (stocks.first['quantity'] as num? ?? 0).toDouble();
-            final newStock = isReturn 
-                ? currentStock + quantity 
-                : currentStock - quantity;
+            final newStock = currentStock + quantity;
 
             await txn.update(
               'stocks',
@@ -80,23 +72,12 @@ mixin SalesCrud on CommonCrud {
           }
         }
       }
-
-      // Update Customer Stats
-      final customerId = sale['customer_id'];
-      if (customerId != null) {
-        final total = (sale['total'] as num).toDouble();
-        
-        await txn.rawUpdate(
-          'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ?',
-          [total, customerId]
-        );
-      }
-      return sid;
+      return returnId;
     });
   }
 
-  Future<List<Map<String, dynamic>>> getSaleItems(dynamic saleId) async {
+  Future<List<Map<String, dynamic>>> getReturnItems(dynamic returnId) async {
     final db = await database;
-    return await db.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+    return await db.query('return_items', where: 'return_id = ?', whereArgs: [returnId]);
   }
 }

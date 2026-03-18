@@ -13,6 +13,8 @@ import 'crud/expenses_crud.dart';
 import 'crud/credit_crud.dart';
 import 'crud/shifts_crud.dart';
 import 'crud/branches_crud.dart';
+import 'crud/holds_crud.dart';
+import 'crud/returns_crud.dart';
 
 class DatabaseHelper
     with
@@ -28,7 +30,9 @@ class DatabaseHelper
         ExpensesCrud,
         CreditCrud,
         ShiftsCrud,
-        BranchesCrud {
+        BranchesCrud,
+        HoldsCrud,
+        ReturnsCrud {
           
   static final DatabaseHelper instance = DatabaseHelper._init();
 

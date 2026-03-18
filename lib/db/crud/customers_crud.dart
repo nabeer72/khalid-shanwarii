@@ -54,4 +54,9 @@ mixin CustomersCrud on CommonCrud {
     await db.update('customers', {...data, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<Map<String, dynamic>?> getCustomer(dynamic id) async {
+    final db = await database;
+    final results = await db.query('customers', where: 'id = ?', whereArgs: [id]);
+    return results.firstOrNull;
+  }
 }
