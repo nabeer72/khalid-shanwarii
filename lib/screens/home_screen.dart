@@ -230,7 +230,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       extendBodyBehindAppBar: true,
-      body: theme.glassBackground(
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        color: theme.background,
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
@@ -246,25 +249,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: theme.highlight
-                                .withOpacity(theme.isDark ? 0.1 : 0.06),
+                            color: theme.surface,
                             borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                             border: Border.all(
-                              color: theme.highlight
-                                  .withOpacity(theme.isDark ? 0.25 : 0.18),
-                              width: 1.2,
+                              color: theme.divider,
+                              width: 1.0,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.highlight
-                                    .withOpacity(theme.isDark ? 0.12 : 0.06),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
                           ),
                           child: Icon(Icons.store_rounded,
-                              color: theme.highlight, size: 24),
+                              color: theme.primary, size: 24),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -381,29 +374,12 @@ class _HomeScreenState extends State<HomeScreen> {
                           width: double.infinity,
                           padding: EdgeInsets.all(isTablet ? 24 : 20),
                           decoration: BoxDecoration(
-                            color: theme.isDark
-                                ? theme.highlight.withOpacity(0.08)
-                                : theme.highlight.withOpacity(0.05),
+                            color: theme.surface,
                             borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                             border: Border.all(
-                              color: theme.highlight
-                                  .withOpacity(theme.isDark ? 0.25 : 0.18),
-                              width: 1.5,
+                              color: theme.divider,
+                              width: 1.0,
                             ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: theme.highlight
-                                    .withOpacity(theme.isDark ? 0.15 : 0.08),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                              BoxShadow(
-                                color: Colors.black
-                                    .withOpacity(theme.isDark ? 0.25 : 0.04),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -411,7 +387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(
                                 padding: const EdgeInsets.only(bottom: 12),
                                 child: Icon(Icons.point_of_sale,
-                                    color: theme.highlight,
+                                    color: theme.primary,
                                     size: isTablet ? 34 : 26),
                               ),
                               Text(
@@ -807,33 +783,12 @@ class _StatCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                color.withOpacity(theme.isDark ? 0.15 : 0.12),
-                color.withOpacity(theme.isDark ? 0.05 : 0.02),
-              ],
-            ),
+            color: theme.surface,
             borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             border: Border.all(
-              color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
-              width: 1.5,
+              color: theme.divider,
+              width: 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(theme.isDark ? 0.12 : 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: theme.isDark
-                    ? Colors.black26
-                    : Colors.black.withOpacity(0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -890,33 +845,12 @@ class _ModuleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                color.withOpacity(theme.isDark ? 0.15 : 0.12),
-                color.withOpacity(theme.isDark ? 0.05 : 0.02),
-              ],
-            ),
+            color: theme.surface,
             borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             border: Border.all(
-              color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
-              width: 1.5,
+              color: theme.divider,
+              width: 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(theme.isDark ? 0.15 : 0.08),
-                blurRadius: 14,
-                offset: const Offset(0, 4),
-              ),
-              BoxShadow(
-                color: theme.isDark
-                    ? Colors.black26
-                    : Colors.black.withOpacity(0.02),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
