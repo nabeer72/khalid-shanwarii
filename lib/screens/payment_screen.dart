@@ -49,6 +49,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     super.initState();
     _amountTendered = widget.total;
     _cashController.text = widget.total.toStringAsFixed(2);
+    _partialController.text = widget.total.toStringAsFixed(2);
     _selectedCustomer = widget.customer;
   }
 
@@ -187,39 +188,47 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 700;
-
-              if (isWide) {
-                return Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        child: _buildSummary(true),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1000),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 700;
+    
+                  if (isWide) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            child: _buildPaymentMethods(isMobile: false),
+                          ),
+                        ),
+                        Expanded(
+                          flex: 1,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            child: _buildSummary(true),
+                          ),
+                        ),
+                      ],
+                    );
+                  } else {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          _buildPaymentMethods(isMobile: true),
+                          const SizedBox(height: 12),
+                          _buildSummary(false),
+                        ],
                       ),
-                    ),
-                    Expanded(
-                      flex: 4,
-                      child: _buildPaymentMethods(isMobile: false),
-                    ),
-                  ],
-                );
-              } else {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      _buildSummary(false),
-                      const SizedBox(height: 16),
-                      _buildPaymentMethods(isMobile: true),
-                    ],
-                  ),
-                );
-              }
-            },
+                    );
+                  }
+                },
+              ),
+            ),
           ),
         ),
       ),
@@ -228,210 +237,169 @@ class _PaymentScreenState extends State<PaymentScreen> {
   
   Widget _buildPaymentMethods({bool isMobile = false}) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: theme.glassDecoration.copyWith(
-        borderRadius: isMobile ? BorderRadius.circular(ThemeProvider.radiusCard) : BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
+        borderRadius: isMobile ? BorderRadius.circular(ThemeProvider.radiusCard) : BorderRadius.circular(ThemeProvider.radiusCard),
       ),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Select Payment Method',
-                style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5)),
-            const SizedBox(height: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('Select Payment Method',
+              style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5)),
+          const SizedBox(height: 12),
 
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: MockDataStore.instance.paymentMethods
-                    .map(
-                      (pm) => Padding(
-                        padding: const EdgeInsets.only(right: 12),
-                        child: _PaymentMethodButton(
-                          name: pm.name,
-                          iconName: pm.icon,
-                          selected: _selectedPayment == pm.name,
-                          onTap: () =>
-                              setState(() => _selectedPayment = pm.name),
-                        ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: MockDataStore.instance.paymentMethods
+                  .map(
+                    (pm) => Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: _PaymentMethodButton(
+                        name: pm.name,
+                        iconName: pm.icon,
+                        selected: _selectedPayment == pm.name,
+                        onTap: () =>
+                            setState(() => _selectedPayment = pm.name),
                       ),
-                    )
-                    .toList(),
-              ),
+                    ),
+                  )
+                  .toList(),
             ),
+          ),
+          const SizedBox(height: 12),
 
-            const SizedBox(height: 32),
-
-            if (_selectedPayment == 'Credit') ...[
-              Text('Partial Payment (Paid Now)',
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _partialController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  TextInputFormatter.withFunction((oldValue, newValue) {
-                    if (newValue.text.isEmpty) return newValue;
-                    final value = double.tryParse(newValue.text);
-                    if (value == null || value > _grandTotal) {
-                      return oldValue;
-                    }
-                    return newValue;
-                  }),
-                ],
+          if (_selectedPayment == 'Credit') ...[
+            Text('Partial Payment (Paid Now)',
                 style: TextStyle(
                     color: theme.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900),
-                decoration: theme.glassInputDecoration('Amount Paid', Icons.payments_rounded).copyWith(
-                  prefixText: '${BusinessConfig.instance.currency}. ',
-                  prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 20),
-                  helperText: 'Remaining will be added to credit balance',
-                  helperStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
-                ),
-                onChanged: (v) => setState(() {}),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _partialController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              inputFormatters: [
+                TextInputFormatter.withFunction((oldValue, newValue) {
+                  if (newValue.text.isEmpty) return newValue;
+                  final value = double.tryParse(newValue.text);
+                  if (value == null || value > _grandTotal) {
+                    return oldValue;
+                  }
+                  return newValue;
+                }),
+              ],
+              style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900),
+              decoration: theme.glassInputDecoration('Amount Paid', Icons.payments_rounded).copyWith(
+                prefixText: '${BusinessConfig.instance.currency}. ',
+                prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 16),
+                helperStyle: TextStyle(color: theme.textSecondary, fontSize: 10),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               ),
-            ],
+              onChanged: (v) => setState(() {}),
+            ),
+          ] else ...[
+            _buildAmountField(),
+            const SizedBox(height: 12),
+            _buildUniversalDialPad(),
+          ],
 
-            if (_selectedPayment == 'Cash') ...[
-              Text('Amount Tendered',
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _cashController,
-                keyboardType: TextInputType.number,
-                style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900),
-                decoration: theme.glassInputDecoration('Amount', Icons.attach_money_rounded).copyWith(
-                  prefixText: '${BusinessConfig.instance.currency}. ',
-                  prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 24),
-                ),
-                onChanged: (v) =>
-                    setState(() => _amountTendered = double.tryParse(v) ?? 0),
+          if (_selectedPayment == 'Cash' && _change > 0) ...[
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: ThemeProvider.success.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                border: Border.all(color: ThemeProvider.success.withOpacity(0.3), width: 1.5),
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _QuickCashButton(
-                      amount: _grandTotal,
-                      label: 'EXACT',
-                      onTap: () => _setCash(_grandTotal)),
-                  _QuickCashButton(amount: 20, onTap: () => _setCash(20)),
-                  _QuickCashButton(amount: 50, onTap: () => _setCash(50)),
-                  _QuickCashButton(amount: 100, onTap: () => _setCash(100)),
-                ],
-              ),
-              if (_change > 0) ...[
-                const SizedBox(height: 32),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: ThemeProvider.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                    border: Border.all(color: ThemeProvider.success.withOpacity(0.3), width: 1.5),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('CHANGE DUE',
-                              style: TextStyle(
-                                  color: ThemeProvider.success, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${BusinessConfig.instance.currency}. ${_change.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                                color: ThemeProvider.success,
-                                fontSize: 32,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -1),
-                          ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: ThemeProvider.success, shape: BoxShape.circle),
-                        child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 28),
+                      Text('CHANGE DUE',
+                           style: TextStyle(
+                               color: ThemeProvider.success, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${BusinessConfig.instance.currency}. ${_change.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            color: ThemeProvider.success,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ],
-
-            if (!widget.isReturn) ...[ 
-              const SizedBox(height: 32),
-              Text('Add Gratuity (Tip)',
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                children: [
-                  _TipButton(
-                      percent: 0,
-                      selected: _tipPercent == 0,
-                      onTap: () => setState(() => _tipPercent = 0)),
-                  _TipButton(
-                      percent: 15,
-                      selected: _tipPercent == 15,
-                      onTap: () => setState(() => _tipPercent = 15)),
-                  _TipButton(
-                      percent: 18,
-                      selected: _tipPercent == 18,
-                      onTap: () => setState(() => _tipPercent = 18)),
-                  _TipButton(
-                      percent: 20,
-                      selected: _tipPercent == 20,
-                      onTap: () => setState(() => _tipPercent = 20)),
+                  const Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 24),
                 ],
               ),
-            ],
-            const SizedBox(height: 40),
+            ),
           ],
-        ),
+
+          if (!widget.isReturn) ...[ 
+            const SizedBox(height: 20),
+            Text('Add Gratuity (Tip)',
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                _TipButton(
+                    percent: 0,
+                    selected: _tipPercent == 0,
+                    onTap: () => setState(() => _tipPercent = 0)),
+                _TipButton(
+                    percent: 15,
+                    selected: _tipPercent == 15,
+                    onTap: () => setState(() => _tipPercent = 15)),
+                _TipButton(
+                    percent: 18,
+                    selected: _tipPercent == 18,
+                    onTap: () => setState(() => _tipPercent = 18)),
+                _TipButton(
+                    percent: 20,
+                    selected: _tipPercent == 20,
+                    onTap: () => setState(() => _tipPercent = 20)),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
 
   Widget _buildSummary(bool isWide) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: theme.glassDecoration,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Order Summary',
-                    style: TextStyle(
-                        color: theme.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Order Summary',
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
@@ -451,12 +419,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
 
             _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
 
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 8),
               child: Divider(height: 1),
             ),
 
@@ -499,7 +467,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     '${BusinessConfig.instance.currency}. ${_grandTotal.toStringAsFixed(2)}',
                     style: TextStyle(
                         color: theme.highlight,
-                        fontSize: 32,
+                        fontSize: 28,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -1),
                   ),
@@ -508,11 +476,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ],
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           SizedBox(
             width: double.infinity,
-            height: 60,
+            height: 48,
             child: ElevatedButton(
               onPressed: (_selectedPayment == 'Cash' &&
                       _amountTendered < _grandTotal)
@@ -524,20 +492,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                elevation: 8,
-                shadowColor: (widget.isReturn ? ThemeProvider.warning : ThemeProvider.success).withOpacity(0.5),
+                elevation: 4,
+                shadowColor: (widget.isReturn ? ThemeProvider.warning : ThemeProvider.success).withOpacity(0.3),
               ),
               child: Text(
                 widget.isReturn ? 'PROCESS REFUND' : 'COMPLETE TRANSACTION',
                 style:
-                    const TextStyle(fontSize: 15, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
               ),
             ),
           ),
         ],
       ),
-    ),
-  );
+    );
   }
 
   Future<Customer?> _showCustomerSelectionDialog() async {
@@ -674,7 +641,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       itemBuilder: (context, index) {
         final item = widget.cart[index];
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          padding: const EdgeInsets.symmetric(vertical: 4),
           child: Row(
             children: [
               Container(
@@ -702,11 +669,226 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  TextEditingController get _activeController => _selectedPayment == 'Credit' ? _partialController : _cashController;
+
+  Widget _buildAmountField() {
+    String label = _selectedPayment == 'Cash' ? 'Amount Tendered' : (_selectedPayment == 'Credit' ? 'Partial Payment' : 'Confirmation');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w800)),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _activeController,
+          readOnly: true,
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: 20,
+              fontWeight: FontWeight.w900),
+          decoration: theme.glassInputDecoration('Amount', Icons.attach_money_rounded).copyWith(
+            prefixText: '${BusinessConfig.instance.currency}. ',
+            prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 16),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            suffixIcon: IconButton(
+              icon: Icon(Icons.refresh_rounded, color: theme.highlight, size: 18),
+              onPressed: () => _setCash(_grandTotal),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUniversalDialPad() {
+    return Column(
+      children: [
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 450),
+            child: Column(
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Left Notes
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        children: [10, 20, 50].map((amt) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _NoteButton(amount: amt.toDouble(), onTap: () => _setCash(amt.toDouble())),
+                        )).toList(),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Dial Pad
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        children: [
+                          _buildDialRow(['1', '2', '3']),
+                          const SizedBox(height: 6),
+                          _buildDialRow(['4', '5', '6']),
+                          const SizedBox(height: 6),
+                          _buildDialRow(['7', '8', '9']),
+                          const SizedBox(height: 6),
+                          _buildDialRow(['.', '0', '⌫'], isIcons: [false, false, true]),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Right Notes
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        children: [100, 500, 1000].map((amt) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _NoteButton(amount: amt.toDouble(), onTap: () => _setCash(amt.toDouble())),
+                        )).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: _QuickCashButton(
+                      amount: _grandTotal,
+                      label: 'EXACT TOTAL',
+                      onTap: () => _setCash(_grandTotal)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   void _setCash(double amount) {
     setState(() {
       _amountTendered = amount;
-      _cashController.text = amount.toStringAsFixed(2);
+      _activeController.text = amount.toStringAsFixed(2);
     });
+  }
+
+  Widget _buildDialRow(List<String> keys, {List<bool>? isIcons}) {
+    return Row(
+      children: keys.asMap().entries.map((entry) {
+        int idx = entry.key;
+        String key = entry.value;
+        bool isIcon = isIcons != null && isIcons[idx];
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: idx < keys.length - 1 ? 6 : 0),
+            child: _DialButton(
+              label: key,
+              isIcon: isIcon,
+              onTap: () => _onDialTap(key),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  void _onDialTap(String key) {
+    String current = _activeController.text;
+    if (key == '⌫') {
+      if (current.isNotEmpty) {
+        current = current.substring(0, current.length - 1);
+      }
+    } else if (key == '.') {
+      if (!current.contains('.')) {
+        current += '.';
+      }
+    } else {
+      if (current == '0' || current == '0.00' || current == widget.total.toStringAsFixed(2)) {
+        current = key;
+      } else {
+        current += key;
+      }
+    }
+    
+    setState(() {
+      _activeController.text = current;
+      _amountTendered = double.tryParse(current) ?? 0;
+    });
+  }
+}
+
+class _DialButton extends StatelessWidget {
+  final String label;
+  final bool isIcon;
+  final VoidCallback onTap;
+
+  const _DialButton({required this.label, required this.onTap, this.isIcon = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 36,
+          decoration: BoxDecoration(
+            color: theme.whiteAlpha(0.05),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.whiteAlpha(0.1)),
+          ),
+          child: Center(
+            child: isIcon 
+              ? Icon(Icons.backspace_outlined, color: theme.textPrimary, size: 18)
+              : Text(label, style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NoteButton extends StatelessWidget {
+  final double amount;
+  final VoidCallback onTap;
+
+  const _NoteButton({required this.amount, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          height: 36,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: theme.highlight.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(6),
+            border: Border.all(color: theme.highlight.withOpacity(0.2)),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(amount.toStringAsFixed(0), style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13)),
+                Text('NOTE', style: TextStyle(color: theme.highlight.withOpacity(0.7), fontSize: 7, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -744,31 +926,31 @@ class _PaymentMethodButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 100,
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
         decoration: theme.glassDecoration.copyWith(
           color: selected ? theme.highlight : theme.whiteAlpha(0.05),
           border: Border.all(
-              color: selected ? theme.highlight : theme.whiteAlpha(0.1), width: 2),
+              color: selected ? theme.highlight : theme.whiteAlpha(0.1), width: 1.5),
         ),
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: selected ? Colors.white.withOpacity(0.2) : theme.whiteAlpha(0.05),
                 shape: BoxShape.circle,
               ),
               child: Icon(_icon,
                   color: selected ? Colors.white : theme.iconColor,
-                  size: 22),
+                  size: 18),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(name.toUpperCase(),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                     color: selected ? Colors.white : theme.textPrimary,
-                    fontSize: 12,
+                    fontSize: 10,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.5)),
           ],
@@ -823,20 +1005,19 @@ class _TipButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? ThemeProvider.success : theme.whiteAlpha(0.05),
-          borderRadius: BorderRadius.circular(12),
+          color: selected ? theme.highlight : theme.whiteAlpha(0.05),
+          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
           border: Border.all(
-              color:
-                  selected ? ThemeProvider.success : theme.whiteAlpha(0.1)),
+              color: selected ? theme.highlight : theme.whiteAlpha(0.1)),
         ),
         child: Text(
           percent == 0 ? 'NO TIP' : '$percent%',
           style: TextStyle(
               color: selected ? Colors.white : theme.textPrimary,
               fontWeight: FontWeight.w900,
-              fontSize: 13),
+              fontSize: 11),
         ),
       ),
     );

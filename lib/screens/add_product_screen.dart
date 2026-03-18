@@ -201,13 +201,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            _buildIconSelector(),
-                            const SizedBox(height: 16),
                             _buildBarcodeScanner(),
                           ] else ...[
                             _buildCategorySelector(),
-                            const SizedBox(height: 16),
-                            _buildIconSelector(),
                             const SizedBox(height: 16),
                             _buildBarcodeScanner(),
                           ],
@@ -459,52 +455,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _buildIconSelector() {
-    final icons = [
-      {'val': 'devices', 'emoji': '📱'},
-      {'val': 'headphones', 'emoji': '🎧'},
-      {'val': 'cable', 'emoji': '🔌'},
-      {'val': 'box', 'emoji': '📦'},
-    ];
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-        border: Border.all(color: theme.textHint.withOpacity(0.1)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.emoji_emotions_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
-          const SizedBox(width: 12),
-          Text('Select product icon', 
-            style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
-          const Spacer(),
-          ...icons.map((i) {
-            final isSelected = _controller.image.text == i['val'];
-            return Padding(
-              padding: const EdgeInsets.only(left: 8),
-              child: InkWell(
-                onTap: () => setState(() => _controller.image.text = i['val']!),
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? theme.highlight.withOpacity(0.2) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                    border: Border.all(
-                      color: isSelected ? theme.highlight : Colors.transparent,
-                    ),
-                  ),
-                  child: Text(i['emoji']!, style: const TextStyle(fontSize: 20)),
-                ),
-              ),
-            );
-          }).toList(),
-        ],
-      ),
-    );
-  }
 
   Widget _buildBarcodeScanner() {
     return Row(

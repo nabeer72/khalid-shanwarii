@@ -39,6 +39,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   String _searchQuery = '';
   final TextEditingController _searchCtrl = TextEditingController();
   
+  int? _expandedIndex;
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
@@ -204,8 +205,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     setState(() {
       if (existingIndex >= 0 && !isWeight) {
         _cart[existingIndex]['quantity'] += qty;
+        final currentDiscount = (_cart[existingIndex]['discount'] ?? 0.0) as double;
         _cart[existingIndex]['subtotal'] =
-            _cart[existingIndex]['quantity'] * _cart[existingIndex]['price'];
+            (_cart[existingIndex]['quantity'] * _cart[existingIndex]['price']) - currentDiscount;
       } else {
         _cart.add({
           'cart_item_id': cartItemId, // Unique ID for product+batch
@@ -218,6 +220,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           'isWeight': isWeight,
           'emoji': product.image,
           'barcode': stock.barcode,
+          'discount': 0.0,
         });
       }
       _calculateTotals();
@@ -373,8 +376,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       if (_cart[index]['quantity'] <= 0) {
         _cart.removeAt(index);
       } else {
+        final currentDiscount = (_cart[index]['discount'] ?? 0.0) as double;
         _cart[index]['subtotal'] =
-            _cart[index]['quantity'] * _cart[index]['price'];
+            (_cart[index]['quantity'] * _cart[index]['price']) - currentDiscount;
       }
       _calculateTotals();
     });
@@ -944,9 +948,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 controller: barcodeCtrl,
                 autofocus: true,
                 style: TextStyle(color: theme.textPrimary),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                     hintText: 'Scan or type barcode...',
-                    border: OutlineInputBorder()),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
                 onSubmitted: (v) {
                   Navigator.pop(ctx);
                   _processBarcode(v);
@@ -1088,7 +1092,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     color: theme.isDark
                         ? Colors.white.withOpacity(0.05)
                         : Colors.black.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(
                       color: theme.highlight.withOpacity(0.2),
                     ),
@@ -1251,7 +1255,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               Expanded(
                 child: Container(
                   decoration: theme.glassDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     color: theme.isDark
                         ? Colors.white.withOpacity(0.05)
                         : Colors.white.withOpacity(0.2),
@@ -1393,7 +1397,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   _searchCtrl.clear();
                   _searchQuery = '';
                 }),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(8),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: theme.glassDecoration.copyWith(
@@ -1406,7 +1410,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         color: isSelected
                             ? theme.highlight
                             : theme.whiteAlpha(0.1)),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1481,7 +1485,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                     decoration: BoxDecoration(
                       color: _selectedCustomer != null ? theme.highlight.withOpacity(0.1) : theme.whiteAlpha(0.05),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: _selectedCustomer != null ? theme.highlight.withOpacity(0.3) : theme.whiteAlpha(0.1)),
                     ),
                     child: Row(
@@ -1521,7 +1525,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: theme.highlight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(Icons.add_business_rounded, color: theme.highlight, size: 20),
                   ),
@@ -1559,9 +1563,24 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 padding: EdgeInsets.zero,
                 itemBuilder: (ctx, i) => _CartItemTile(
                   item: _cart[i],
+                  isExpanded: _expandedIndex == i,
+                  onToggleExpand: () => setState(() {
+                    _expandedIndex = (_expandedIndex == i) ? null : i;
+                  }),
                   onIncrement: () => _updateQuantity(i, 1),
                   onDecrement: () => _updateQuantity(i, -1),
                   onRemove: () => _removeFromCart(i),
+                  onPriceChanged: (newPrice) => setState(() {
+                    _cart[i]['price'] = newPrice;
+                    _cart[i]['subtotal'] = _cart[i]['quantity'] * newPrice;
+                    _calculateTotals();
+                  }),
+                  onDiscountChanged: (newDiscount) => setState(() {
+                    _cart[i]['discount'] = newDiscount;
+                    // Subtotal includes discount
+                    _cart[i]['subtotal'] = (_cart[i]['quantity'] * _cart[i]['price']) - newDiscount;
+                    _calculateTotals();
+                  }),
                 ),
               );
 
@@ -1818,6 +1837,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         itemBuilder: (ctx, i) => _CartItemTile(
                             item: _cart[i],
+                            isExpanded: _expandedIndex == i,
+                            onToggleExpand: () => setSheetState(() {
+                              _expandedIndex = (_expandedIndex == i) ? null : i;
+                            }),
                             onIncrement: () {
                               _updateQuantity(i, 1);
                               setSheetState(() {});
@@ -1837,7 +1860,18 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                               } else {
                                 setSheetState(() {});
                               }
+                            },
+                            onPriceChanged: (newPrice) => setSheetState(() {
+                              _cart[i]['price'] = newPrice;
+                              _cart[i]['subtotal'] = _cart[i]['quantity'] * newPrice;
+                              _calculateTotals();
                             }),
+                            onDiscountChanged: (newDiscount) => setSheetState(() {
+                              _cart[i]['discount'] = newDiscount;
+                              _cart[i]['subtotal'] = (_cart[i]['quantity'] * _cart[i]['price']) - newDiscount;
+                              _calculateTotals();
+                            }),
+                        ),
                       ),
               ),
               Padding(
@@ -1953,7 +1987,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(8)),
                   ),
                   child: Text(_isReturn ? 'REFUND' : 'PAYMENT',
                       style: const TextStyle(
@@ -2025,7 +2059,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               padding: const EdgeInsets.symmetric(vertical: 18),
               elevation: 0,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
+                  borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(
               _isReturn
@@ -2104,12 +2138,12 @@ class _ProductGridTile extends StatelessWidget {
       child: InkWell(
         onTap: onWeightTap ?? onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: theme.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: product.isFavorite
                   ? ThemeProvider.warning.withOpacity(0.5)
@@ -2137,7 +2171,7 @@ class _ProductGridTile extends StatelessWidget {
                     height: 36,
                     decoration: BoxDecoration(
                       color: theme.highlight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
                       child: Text(
@@ -2155,7 +2189,7 @@ class _ProductGridTile extends StatelessWidget {
                           horizontal: 4, vertical: 1),
                       decoration: BoxDecoration(
                         color: theme.highlight.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${product.totalStock}',
@@ -2224,15 +2258,24 @@ class _ProductGridTile extends StatelessWidget {
 
 class _CartItemTile extends StatelessWidget {
   final Map<String, dynamic> item;
+  final bool isExpanded;
+  final VoidCallback onToggleExpand;
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
   final VoidCallback onRemove;
+  final Function(double) onPriceChanged;
+  final Function(double) onDiscountChanged;
 
-  const _CartItemTile(
-      {required this.item,
-      required this.onIncrement,
-      required this.onDecrement,
-      required this.onRemove});
+  const _CartItemTile({
+    required this.item,
+    required this.isExpanded,
+    required this.onToggleExpand,
+    required this.onIncrement,
+    required this.onDecrement,
+    required this.onRemove,
+    required this.onPriceChanged,
+    required this.onDiscountChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2241,97 +2284,180 @@ class _CartItemTile extends StatelessWidget {
     final qty = isWeight
         ? (item['quantity'] as double).toStringAsFixed(2)
         : '${item['quantity']}';
+    final discount = (item['discount'] ?? 0.0) as double;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.05)))),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
+    return Column(
+      children: [
+        InkWell(
+          onTap: onToggleExpand,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: theme.surface,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.whiteAlpha(0.1)),
-            ),
-            child: Center(
-                child: Text(item['emoji'] ?? '📦',
-                    style: const TextStyle(fontSize: 22))),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+                border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.05)))),
+            child: Row(
               children: [
-                Text(
-                  item['name'],
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14),
-                ),
-                const SizedBox(height: 2),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                          '${BusinessConfig.instance.currency}. ${(item['price'] as double).toStringAsFixed(2)}',
-                          style: TextStyle(
-                              color: theme.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600)),
-                      if (isWeight)
-                        Text(' / ${BusinessConfig.instance.weightUnit}',
-                            style:
-                                TextStyle(color: theme.textHint, fontSize: 12)),
+                        item['name'],
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            color: theme.textPrimary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14),
+                      ),
+                      const SizedBox(height: 2),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          children: [
+                            Text(
+                                '${BusinessConfig.instance.currency}. ${(item['price'] as double).toStringAsFixed(2)}',
+                                style: TextStyle(
+                                    color: theme.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600)),
+                            if (isWeight)
+                              Text(' / ${BusinessConfig.instance.weightUnit}',
+                                  style:
+                                      TextStyle(color: theme.textHint, fontSize: 12)),
+                            if (discount > 0)
+                              Padding(
+                                padding: const EdgeInsets.only(left: 8.0),
+                                child: Text(
+                                  '-${BusinessConfig.instance.currency}. ${discount.toStringAsFixed(2)}',
+                                  style: TextStyle(color: ThemeProvider.warning, fontSize: 12, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+                // Quantity Control Flat
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.whiteAlpha(theme.isDark ? 0.05 : 0.4),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _qtyBtn(Icons.remove_rounded, onDecrement, theme.textSecondary),
+                      SizedBox(
+                        width: 36,
+                        child: Text(qty,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14)),
+                      ),
+                      _qtyBtn(Icons.add_rounded, onIncrement, theme.highlight),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 70,
+                  child: Text(
+                    '${BusinessConfig.instance.currency}. ${(item['subtotal'] as double).toStringAsFixed(2)}',
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 15,
+                        letterSpacing: -0.5),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
             ),
           ),
-          // Quantity Control Flat
+        ),
+        if (isExpanded)
           Container(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
             decoration: BoxDecoration(
-              color: theme.whiteAlpha(theme.isDark ? 0.05 : 0.4),
-              borderRadius: BorderRadius.circular(8),
+              color: theme.whiteAlpha(0.02),
+              border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.05))),
             ),
             child: Row(
-              mainAxisSize: MainAxisSize.min,
               children: [
-                _qtyBtn(Icons.remove_rounded, onDecrement, theme.textSecondary),
-                SizedBox(
-                  width: 36,
-                  child: Text(qty,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: theme.textPrimary,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 14)),
+                _ActionButton(
+                  icon: Icons.edit_rounded,
+                  label: 'Price',
+                  onTap: () => _showEditValueDialog(
+                    context,
+                    title: 'Edit Price',
+                    initialValue: (item['price'] as double),
+                    onChanged: onPriceChanged,
+                  ),
                 ),
-                _qtyBtn(Icons.add_rounded, onIncrement, theme.highlight),
+                const SizedBox(width: 8),
+                _ActionButton(
+                  icon: Icons.discount_rounded,
+                  label: 'Discount',
+                  onTap: () => _showEditValueDialog(
+                    context,
+                    title: 'Apply Discount',
+                    initialValue: discount,
+                    onChanged: onDiscountChanged,
+                  ),
+                ),
+                const Spacer(),
+                _ActionButton(
+                  icon: Icons.delete_outline_rounded,
+                  label: 'Remove',
+                  color: ThemeProvider.error,
+                  onTap: onRemove,
+                ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 70,
-            child: Text(
-              '${BusinessConfig.instance.currency}. ${(item['subtotal'] as double).toStringAsFixed(2)}',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                  color: theme.textPrimary,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 15,
-                  letterSpacing: -0.5),
-              overflow: TextOverflow.ellipsis,
-            ),
+      ],
+    );
+  }
+
+  void _showEditValueDialog(BuildContext context,
+      {required String title,
+      required double initialValue,
+      required Function(double) onChanged}) {
+    final theme = ThemeProvider.instance;
+    final ctrl = TextEditingController(text: initialValue.toString());
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.surface,
+        title: Text(title, style: TextStyle(color: theme.textPrimary)),
+        content: TextField(
+          controller: ctrl,
+          keyboardType: TextInputType.number,
+          autofocus: true,
+          style: TextStyle(color: theme.textPrimary, fontSize: 24),
+          textAlign: TextAlign.center,
+          decoration: InputDecoration(
+            prefixText: '${BusinessConfig.instance.currency} ',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: theme.textSecondary))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
+            onPressed: () {
+              final val = double.tryParse(ctrl.text) ?? initialValue;
+              onChanged(val);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Save'),
           ),
         ],
       ),
@@ -2345,6 +2471,48 @@ class _CartItemTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(6),
         child: Icon(icon, color: color, size: 16),
+      ),
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    final activeColor = color ?? theme.highlight;
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: activeColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: activeColor.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: activeColor, size: 14),
+            const SizedBox(width: 4),
+            Text(label,
+                style: TextStyle(
+                    color: activeColor, fontSize: 11, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
@@ -2386,6 +2554,52 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
     _controller.removeListener(_updateUI);
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final catCtrl = TextEditingController();
+    await showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        backgroundColor: theme.surface,
+        title: Text('Add Category', style: TextStyle(color: theme.textPrimary)),
+        content: TextField(
+          controller: catCtrl,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Category Name',
+            labelStyle: TextStyle(color: theme.textSecondary),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.isDark ? theme.textHint : Colors.black.withOpacity(0.3)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: theme.isDark ? theme.highlight : Colors.black.withOpacity(0.6)),
+            ),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
+            onPressed: () async {
+              if (catCtrl.text.trim().isNotEmpty) {
+                final success = await _controller.addCategory(catCtrl.text.trim());
+                if (success && mounted) {
+                  Navigator.pop(c);
+                }
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleSave() async {
@@ -2527,7 +2741,7 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
                   backgroundColor: theme.highlight,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   elevation: 0,
                 ),
                 child: const Text('SAVE PRODUCT', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -2558,7 +2772,7 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
         filled: true,
         fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -2567,29 +2781,47 @@ class _QuickAddProductPanelState extends State<_QuickAddProductPanel> {
   }
 
   Widget _buildDropdownField() {
-    return DropdownButtonFormField<dynamic>(
-      value: _controller.categories.any((c) => c.id == _controller.selectedCategory)
-          ? _controller.selectedCategory
-          : null,
-      dropdownColor: theme.surface,
-      isExpanded: true,
-      style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(
-        labelText: 'Category',
-        labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
-        prefixIcon: Icon(Icons.category_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
-        filled: true,
-        fillColor: theme.whiteAlpha(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.categories.any((c) => c.id == _controller.selectedCategory)
+                ? _controller.selectedCategory
+                : null,
+            dropdownColor: theme.surface,
+            isExpanded: true,
+            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              labelText: 'Category',
+              labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+              prefixIcon: Icon(Icons.category_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
+              filled: true,
+              fillColor: theme.whiteAlpha(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: _controller.categories
+                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                .toList(),
+            onChanged: _controller.setCategory,
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      items: _controller.categories
-          .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-          .toList(),
-      onChanged: _controller.setCategory,
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: _showAddCategoryDialog,
+          icon: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
+          ),
+        ),
+      ],
     );
   }
 }

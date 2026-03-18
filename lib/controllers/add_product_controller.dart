@@ -18,7 +18,6 @@ class AddProductController with ChangeNotifier {
   late TextEditingController stockLimit;
   late TextEditingController discountLimit;
   late TextEditingController description;
-  late TextEditingController image;
 
   // State
   dynamic selectedCategory;
@@ -41,7 +40,6 @@ class AddProductController with ChangeNotifier {
     stockLimit = TextEditingController(text: (initialProduct?.stockLimit ?? 5).toString());
     discountLimit = TextEditingController(text: initialProduct?.discountLimit?.toString() ?? '');
     description = TextEditingController(text: initialProduct?.description ?? '');
-    image = TextEditingController(text: initialProduct?.image ?? '');
 
     selectedCategory = initialProduct?.categoryId;
     isFavorite = initialProduct?.isFavorite ?? false;
@@ -179,7 +177,7 @@ class AddProductController with ChangeNotifier {
       'stock_limit': limitVal,
       'discount_limit': discountLimitVal,
       'description': description.text.trim(),
-      'image': image.text.trim(),
+      'image': initialProduct?.image ?? 'box',
       'status': status,
       'is_favorite': isFavorite ? 1 : 0,
       'is_synced': 0,
@@ -214,7 +212,6 @@ class AddProductController with ChangeNotifier {
     stockLimit.dispose();
     discountLimit.dispose();
     description.dispose();
-    image.dispose();
     super.dispose();
   }
 }
