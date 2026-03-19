@@ -51,8 +51,8 @@ class _SalesScreenState extends State<SalesScreen> {
     if (_cart.isEmpty) return;
 
     final sale = Sale(
-      businessId: BusinessConfig.instance.businessId.toString(),
-      userId: BusinessConfig.instance.adminId.toString(),
+      businessId: BusinessConfig.instance.businessId,
+      userId: BusinessConfig.instance.adminId,
       grandTotal: _total,
       status: 1,
       isSynced: 0,

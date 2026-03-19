@@ -22,6 +22,7 @@ class BusinessConfig {
   double taxRate = 8.0;
   bool requireCustomer = false;
   bool autoReceipt = true;
+  bool openCashDrawer = true;
   bool soundEnabled = true;
   
   final ValueNotifier<String> currencyNotifier = ValueNotifier<String>('\$');
@@ -61,6 +62,7 @@ class BusinessConfig {
     taxRate = 8.0;
     requireCustomer = false;
     autoReceipt = true;
+    openCashDrawer = true;
     soundEnabled = true;
     weightMode = false;
     weightUnit = 'kg';

@@ -26,6 +26,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   double _taxRate = BusinessConfig.instance.taxRate;
   bool _requireCustomer = BusinessConfig.instance.requireCustomer;
   bool _autoReceipt = BusinessConfig.instance.autoReceipt;
+  bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
 
   Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
@@ -577,6 +578,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _autoReceipt = v);
                   BusinessConfig.instance.autoReceipt = v;
                   await DatabaseHelper.instance.setSetting('auto_receipt', v ? '1' : '0');
+                },
+              ),
+              _SettingsSwitch(
+                icon: Icons.door_sliding_rounded,
+                title: 'Open Cash Drawer',
+                subtitle: 'Automatically open drawer on cash sales',
+                value: _openCashDrawer,
+                onChanged: (v) async {
+                  setState(() => _openCashDrawer = v);
+                  BusinessConfig.instance.openCashDrawer = v;
+                  await DatabaseHelper.instance.setSetting('open_cash_drawer', v ? '1' : '0');
                 },
               ),
               _SettingsSwitch(

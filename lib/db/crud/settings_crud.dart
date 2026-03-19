@@ -52,6 +52,9 @@ mixin SettingsCrud {
     final autoRec = await getSetting('auto_receipt');
     if (autoRec != null) BusinessConfig.instance.autoReceipt = autoRec == '1';
 
+    final openDrawer = await getSetting('open_cash_drawer');
+    if (openDrawer != null) BusinessConfig.instance.openCashDrawer = openDrawer == '1';
+
     final sound = await getSetting('sound_enabled');
     if (sound != null) BusinessConfig.instance.soundEnabled = sound == '1';
 
