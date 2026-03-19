@@ -26,6 +26,7 @@ class AddEmployeeController with ChangeNotifier {
   int status = 1; // 1 = active, 0 = inactive
   int? selectedBranchId;
   List<Branch> branches = [];
+  List<String> selectedRolePermissions = [];
 
   bool _isLoading = false;
   String? _errorMessage;
@@ -69,11 +70,17 @@ class AddEmployeeController with ChangeNotifier {
         // Ensure the selected role still exists in the loaded list
         if (!roles.any((r) => r['id'] == selectedRoleId)) {
           selectedRoleId = null;
+          selectedRolePermissions = [];
+        } else {
+          final perms = await DatabaseHelper.instance.getRolePermissions(selectedRoleId!);
+          selectedRolePermissions = perms.map((p) => p.toString()).toList();
         }
       } else if (initialEmployee?.roleId != null) {
           final targetId = initialEmployee!.roleId!;
           if (roles.any((r) => r['id'] == targetId)) {
             selectedRoleId = targetId;
+            final perms = await DatabaseHelper.instance.getRolePermissions(targetId);
+            selectedRolePermissions = perms.map((p) => p.toString()).toList();
           }
       }
       notifyListeners();
@@ -140,8 +147,14 @@ class AddEmployeeController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setRole(int? newRoleId) {
+  void setRole(int? newRoleId) async {
     selectedRoleId = newRoleId;
+    if (newRoleId != null) {
+      final perms = await DatabaseHelper.instance.getRolePermissions(newRoleId);
+      selectedRolePermissions = perms.map((p) => p.toString()).toList();
+    } else {
+      selectedRolePermissions = [];
+    }
     notifyListeners();
   }
 

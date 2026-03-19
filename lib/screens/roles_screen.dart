@@ -327,14 +327,55 @@ class _RolesScreenState extends State<RolesScreen> {
                                       style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
                                 ],
                               ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  '${role.permissionIds.length} permissions • ${(role.description?.isEmpty ?? true) ? "No description" : role.description}',
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      '${role.permissionIds.length} permissions • ${(role.description?.isEmpty ?? true) ? "No description" : role.description}',
+                                      style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  if (role.permissionIds.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Wrap(
+                                      spacing: 4,
+                                      runSpacing: 4,
+                                      children: role.permissionIds.take(5).map((pid) {
+                                        final p = _controller.allPermissions.firstWhere((p) => (p['id'] ?? p['name']) == pid, orElse: () => {});
+                                        final label = (p['label'] ?? p['name'] ?? pid.toString()).toString();
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: theme.highlight.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: theme.highlight.withOpacity(0.15)),
+                                          ),
+                                          child: Text(
+                                            label.toUpperCase(),
+                                            style: TextStyle(color: theme.highlight, fontSize: 8, fontWeight: FontWeight.w800),
+                                          ),
+                                        );
+                                      }).toList()..addAll([
+                                        if (role.permissionIds.length > 5)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: theme.whiteAlpha(0.05),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              '+${role.permissionIds.length - 5} MORE',
+                                              style: TextStyle(color: theme.textSecondary, fontSize: 8, fontWeight: FontWeight.w800),
+                                            ),
+                                          ),
+                                      ]),
+                                    ),
+                                  ],
+                                ],
                               ),
                               trailing: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 20),
                             ),

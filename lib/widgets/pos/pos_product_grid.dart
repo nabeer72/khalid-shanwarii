@@ -19,10 +19,10 @@ class POSProductGrid extends StatelessWidget {
     final theme = ThemeProvider.instance;
     final screenWidth = MediaQuery.of(context).size.width;
     final gridColumns = screenWidth > 1400
-        ? 7
+        ? 8
         : (screenWidth > 1100
-            ? 6
-            : (screenWidth > 800 ? 5 : (screenWidth > 500 ? 3 : 2)));
+            ? 7
+            : (screenWidth > 800 ? 6 : (screenWidth > 500 ? 4 : 3)));
 
     final filteredProducts = controller.filteredProducts;
     final int itemCount = _getItemCount(filteredProducts);
@@ -35,9 +35,9 @@ class POSProductGrid extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: gridColumns,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.95,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.05,
       ),
       itemCount: itemCount,
       itemBuilder: (ctx, i) {
@@ -107,14 +107,14 @@ class POSProductGrid extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: theme.highlight.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_back_rounded, color: theme.highlight, size: 28),
+              child: Icon(Icons.arrow_back_rounded, color: theme.highlight, size: 24),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               'BACK', 
               style: TextStyle(
@@ -148,8 +148,8 @@ class POSProductGrid extends StatelessWidget {
                   color: theme.highlight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                 ),
-                child: Text('📂', style: const TextStyle(fontSize: 24))),
-            const SizedBox(height: 12),
+                child: Text('📂', style: const TextStyle(fontSize: 20))),
+            const SizedBox(height: 8),
             Text(
               cat.name.toUpperCase(),
               textAlign: TextAlign.center,

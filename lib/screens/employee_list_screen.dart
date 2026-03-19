@@ -17,6 +17,8 @@ class EmployeeListScreen extends StatefulWidget {
 class _EmployeeListScreenState extends State<EmployeeListScreen> {
   final theme = ThemeProvider.instance;
   List<Employee> _employees = [];
+  Map<dynamic, String> _permissionLabels = {};
+  Map<dynamic, String> _branchNames = {};
 
   @override
   void initState() {
@@ -88,8 +90,24 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         ));
       }
 
+      // Load Permission Labels
+      final permsList = await DatabaseHelper.instance.getPermissions();
+      final Map<dynamic, String> labels = {};
+      for (var p in permsList) {
+        labels[p['id'] ?? p['name']] = p['label'] ?? p['name'];
+      }
+
+      // Load Branch Names
+      final branchesList = await DatabaseHelper.instance.getAllBranches();
+      final Map<dynamic, String> bNames = {};
+      for (var b in branchesList) {
+        bNames[b['id']] = b['branch_title'] ?? 'Branch';
+      }
+
       if (mounted) {
         setState(() {
+          _permissionLabels = labels;
+          _branchNames = bNames;
           _employees = tempEmployees;
           // Sort: active employees first, then inactive
           _employees.sort((a, b) => b.isActive ? 1 : -1);
@@ -242,12 +260,52 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                   ),
                                 ],
                               ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  '${emp.phone ?? 'No Phone'} | Branch ID: ${emp.branchId ?? 'N/A'}',
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                                ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 2),
+                                    child: Text(
+                                      '${emp.phone ?? 'No Phone'} | Branch: ${_branchNames[emp.branchId] ?? 'Global'}',
+                                      style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                                    ),
+                                  ),
+                                  if (emp.permissions.isNotEmpty) ...[
+                                    const SizedBox(height: 6),
+                                    Wrap(
+                                      spacing: 4,
+                                      runSpacing: 4,
+                                      children: emp.permissions.take(4).map((p) {
+                                        final label = _permissionLabels[p] ?? _permissionLabels[int.tryParse(p.toString())] ?? p.toString();
+                                        return Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: theme.highlight.withOpacity(0.08),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: theme.highlight.withOpacity(0.15)),
+                                          ),
+                                          child: Text(
+                                            label.toUpperCase(),
+                                            style: TextStyle(color: theme.highlight, fontSize: 8, fontWeight: FontWeight.w800),
+                                          ),
+                                        );
+                                      }).toList()..addAll([
+                                        if (emp.permissions.length > 4)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: theme.whiteAlpha(0.05),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Text(
+                                              '+${emp.permissions.length - 4} MORE',
+                                              style: TextStyle(color: theme.textSecondary, fontSize: 8, fontWeight: FontWeight.w800),
+                                            ),
+                                          ),
+                                      ]),
+                                    ),
+                                  ],
+                                ],
                               ),
                               trailing: Transform.scale(
                                 scale: 0.7,

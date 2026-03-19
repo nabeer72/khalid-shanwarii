@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/add_employee_controller.dart';
+import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 
@@ -16,6 +17,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   late AddEmployeeController _controller;
   final _formKey = GlobalKey<FormState>();
   final theme = ThemeProvider.instance;
+  Map<dynamic, String> _permissionLabels = {};
 
   @override
   void initState() {
@@ -24,6 +26,18 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     _controller.addListener(() {
       if (mounted) setState(() {});
     });
+    _loadPermissionLabels();
+  }
+
+  Future<void> _loadPermissionLabels() async {
+    final perms = await DatabaseHelper.instance.getPermissions();
+    if (mounted) {
+      setState(() {
+        for (var p in perms) {
+          _permissionLabels[p['id'] ?? p['name']] = p['label'] ?? p['name'];
+        }
+      });
+    }
   }
 
   @override
@@ -220,6 +234,36 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       )).toList(),
                       onChanged: _controller.setRole,
                     ),
+                    if (_controller.selectedRoleId != null && _controller.selectedRolePermissions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          'PREVIEW PERMISSIONS',
+                          style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: _controller.selectedRolePermissions.map((p) {
+                          final label = _permissionLabels[p] ?? _permissionLabels[int.tryParse(p)] ?? p;
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: theme.highlight.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: theme.highlight.withOpacity(0.15)),
+                            ),
+                            child: Text(
+                              label.toUpperCase(),
+                              style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.w800),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
                     if (_controller.branches.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       DropdownButtonFormField<int?>(

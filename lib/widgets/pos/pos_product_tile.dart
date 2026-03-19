@@ -27,7 +27,7 @@ class POSProductTile extends StatelessWidget {
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
             color: theme.surface,
             borderRadius: BorderRadius.circular(8),
@@ -54,8 +54,8 @@ class POSProductTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 36,
-                    height: 36,
+                    width: 32,
+                    height: 32,
                     decoration: BoxDecoration(
                       color: theme.highlight.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -63,7 +63,7 @@ class POSProductTile extends StatelessWidget {
                     child: Center(
                       child: Text(
                         product.image ?? '📦',
-                        style: const TextStyle(fontSize: 18),
+                        style: const TextStyle(fontSize: 16),
                       ),
                     ),
                   ),
@@ -82,7 +82,7 @@ class POSProductTile extends StatelessWidget {
                         '${product.totalStock}',
                         style: TextStyle(
                             color: theme.highlight,
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w900),
                       ),
                     ),
@@ -96,7 +96,7 @@ class POSProductTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                   height: 1.1,
                 ),
@@ -111,7 +111,7 @@ class POSProductTile extends StatelessWidget {
                       product.priceRange,
                       style: TextStyle(
                           color: theme.highlight,
-                          fontSize: 13,
+                          fontSize: 12,
                           fontWeight: FontWeight.w900),
                     ),
                     if (product.stocks.length > 1) ...[
@@ -120,7 +120,7 @@ class POSProductTile extends StatelessWidget {
                         '${product.stocks.length} batches',
                         style: TextStyle(
                             color: theme.textSecondary,
-                            fontSize: 12,
+                            fontSize: 10,
                             fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -129,7 +129,7 @@ class POSProductTile extends StatelessWidget {
                       Text(
                         '/ ${BusinessConfig.instance.weightUnit}',
                         style:
-                            TextStyle(color: theme.textSecondary, fontSize: 12),
+                            TextStyle(color: theme.textSecondary, fontSize: 10),
                       ),
                     ],
                   ],
