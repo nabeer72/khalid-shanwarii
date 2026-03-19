@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_app/controllers/pos_controller.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/db/database_helper.dart';
@@ -12,6 +13,7 @@ import 'package:mobile_app/screens/payment_screen.dart';
 import 'package:mobile_app/models/held_order.dart';
 import 'package:mobile_app/screens/held_orders_screen.dart';
 import 'package:mobile_app/widgets/shift_dialogs.dart';
+import 'package:mobile_app/screens/sales_history_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 // Modular Widgets
@@ -34,6 +36,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   final theme = ThemeProvider.instance;
   
   final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
@@ -71,6 +74,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     _controller.removeListener(_onControllerChange);
     _controller.dispose();
     _searchCtrl.dispose();
+    _searchFocusNode.dispose();
     _scannerController?.dispose();
     _quickAddController.dispose();
     super.dispose();
@@ -92,6 +96,35 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _onProductQuickAdded() {
     _toggleQuickAddProduct();
     _controller.loadData();
+  }
+
+  Future<void> _showShiftHistory() async {
+    final shift = await DatabaseHelper.instance.getActiveShift();
+    if (shift == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No active shift found. Please start a shift first.'),
+            backgroundColor: ThemeProvider.warning,
+          ),
+        );
+      }
+      return;
+    }
+    
+    final startTime = shift['start_time'];
+    final now = DateTime.now().toIso8601String();
+    
+    if (mounted) {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => SalesHistoryScreen(
+        shiftId: shift['id'] is int ? shift['id'] : int.tryParse(shift['id'].toString()),
+        isShiftHistory: true,
+      )));
+    }
+  }
+
+  void _showAllHistory() {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
   }
 
   void _showOutOfStockAlert(Product product, Stock stock) {
@@ -998,23 +1031,47 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 final isTablet = constraints.maxWidth > 800;
                 return Stack(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: Column(
-                            children: [
-                              Expanded(child: _buildProductPanel()),
-                              if (!isTablet)
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                  child: _buildMobileCartBar(),
-                                ),
-                            ],
+                    Focus(
+                      autofocus: true,
+                      onKeyEvent: (node, event) {
+                        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
+                          if (_searchCtrl.text.isNotEmpty) {
+                            _processBarcode(_searchCtrl.text);
+                            _searchCtrl.clear();
+                            _controller.setSearchQuery('');
+                            return KeyEventResult.handled;
+                          }
+                        }
+                        if (event is KeyDownEvent && 
+                            event.character != null && 
+                            event.character!.isNotEmpty && 
+                            !_searchFocusNode.hasFocus) {
+                          _searchFocusNode.requestFocus();
+                          _searchCtrl.text += event.character!;
+                          _searchCtrl.selection = TextSelection.collapsed(offset: _searchCtrl.text.length);
+                          _controller.setSearchQuery(_searchCtrl.text);
+                          return KeyEventResult.handled;
+                        }
+                        return KeyEventResult.ignored;
+                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              children: [
+                                Expanded(child: _buildProductPanel()),
+                                if (!isTablet)
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                    child: _buildMobileCartBar(),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
-                        if (isTablet) SizedBox(width: 380, child: _buildCartPanel())
-                      ],
+                          if (isTablet) SizedBox(width: 380, child: _buildCartPanel())
+                        ],
+                      ),
                     ),
                     
                     // Quick Add Product Overlay
@@ -1051,9 +1108,20 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   Widget _buildProductPanel() {
     return Column(
       children: [
-        _buildPOSHeader(),
+        Container(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
+          ),
+          child: _buildPOSHeader(),
+        ),
         if (_isScannerOpen) _buildInlineScanner(),
-        if (!_isScannerOpen) POSCategorySelector(controller: _controller),
+        if (!_isScannerOpen) 
+          Container(
+            decoration: BoxDecoration(
+              border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
+            ),
+            child: POSCategorySelector(controller: _controller),
+          ),
         Expanded(
           child: POSProductGrid(
             controller: _controller,
@@ -1105,7 +1173,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   Widget _buildPOSHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       child: Row(
         children: [
           Container(
@@ -1176,6 +1244,31 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             ),
           ),
           const SizedBox(width: 12),
+       
+          Container(
+            decoration: theme.glassCircleDecoration,
+            child: IconButton(
+              icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: theme.isDark ? Colors.white : Colors.black, size: 20),
+              tooltip: theme.isDark ? 'Light Mode' : 'Dark Mode',
+              onPressed: () => setState(() => theme.toggleTheme()),
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildHeaderActionButton(
+            icon: Icons.history_rounded,
+            label: 'Shift History',
+            color: theme.highlight,
+            onTap: _showShiftHistory,
+          ),
+          const SizedBox(width: 8),
+          _buildHeaderActionButton(
+            icon: Icons.receipt_long_rounded,
+            label: 'All History',
+            onTap: _showAllHistory,
+          ),
+          const SizedBox(width: 12),
+          const Spacer(),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Container(
@@ -1187,7 +1280,15 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               ),
               child: TextField(
                 controller: _searchCtrl,
+                focusNode: _searchFocusNode,
                 onChanged: (v) => _controller.setSearchQuery(v),
+                onSubmitted: (v) {
+                  if (v.isNotEmpty) {
+                    _processBarcode(v);
+                    _searchCtrl.clear();
+                    _controller.setSearchQuery('');
+                  }
+                },
                 style: TextStyle(
                     color: theme.textPrimary, fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
@@ -1310,6 +1411,39 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             child: const Text('Yes', style: TextStyle(color: Colors.white)),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    Color? color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: theme.glassDecoration.copyWith(
+          color: color?.withOpacity(0.1) ?? theme.whiteAlpha(0.05),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: color ?? theme.textPrimary),
+            const SizedBox(width: 8),
+            Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: color ?? theme.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

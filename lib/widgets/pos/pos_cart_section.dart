@@ -43,9 +43,15 @@ class _POSCartSectionState extends State<POSCartSection> {
         Expanded(
           child: widget.controller.cart.isEmpty
               ? _buildEmptyCart(theme)
-              : ListView.builder(
+              : ListView.separated(
                   itemCount: widget.controller.cart.length,
                   padding: EdgeInsets.zero,
+                  separatorBuilder: (context, index) => Divider(
+                    height: 1,
+                    color: theme.cardBorder,
+                    indent: 12,
+                    endIndent: 12,
+                  ),
                   itemBuilder: (ctx, i) => POSCartItemTile(
                     item: widget.controller.cart[i],
                     isExpanded: _expandedIndex == i,
@@ -78,7 +84,7 @@ class _POSCartSectionState extends State<POSCartSection> {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 16, 12, 16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.1))),
+        border: Border(bottom: BorderSide(color: theme.cardBorder)),
       ),
       child: Row(
         children: [
@@ -113,25 +119,28 @@ class _POSCartSectionState extends State<POSCartSection> {
             children: [
               _buildHeaderButton(
                 icon: widget.controller.selectedCustomer != null ? Icons.person_rounded : Icons.person_add_rounded,
+                label: 'Customer',
                 color: widget.controller.selectedCustomer != null ? theme.highlight : theme.textSecondary,
                 onTap: widget.onSelectCustomer,
-                tooltip: 'Select Customer',
+                tooltip: '',
                 theme: theme,
               ),
               const SizedBox(width: 8),
               _buildHeaderButton(
                 icon: Icons.receipt_long_rounded,
+                label: 'Unhold',
                 color: ThemeProvider.warning,
                 onTap: widget.onShowHeldOrders,
-                tooltip: 'Held Orders',
+                tooltip: '',
                 theme: theme,
               ),
               const SizedBox(width: 8),
               _buildHeaderButton(
                 icon: Icons.add_business_rounded,
+                label: 'Quick Add',
                 color: theme.highlight,
                 onTap: widget.onToggleQuickAdd,
-                tooltip: 'Quick Add Product',
+                tooltip: '',
                 theme: theme,
               ),
             ],
@@ -146,7 +155,7 @@ class _POSCartSectionState extends State<POSCartSection> {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: theme.whiteAlpha(0.03),
-        border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.1))),
+        border: Border(bottom: BorderSide(color: theme.cardBorder)),
       ),
       child: Row(
         children: [
@@ -172,7 +181,7 @@ class _POSCartSectionState extends State<POSCartSection> {
           const SizedBox(width: 8),
           SizedBox(
             width: 60,
-            child: Text('RATE',
+            child: Text('PRICE',
                 textAlign: TextAlign.right,
                 style: TextStyle(
                     color: theme.textSecondary,
@@ -221,7 +230,7 @@ class _POSCartSectionState extends State<POSCartSection> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: theme.surface,
-        border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
+        border: Border(top: BorderSide(color: theme.cardBorder)),
       ),
       child: Column(
         children: [
@@ -368,6 +377,7 @@ class _POSCartSectionState extends State<POSCartSection> {
 
   Widget _buildHeaderButton({
     required IconData icon,
+    required String label,
     required Color color,
     required VoidCallback onTap,
     String? tooltip,
@@ -379,12 +389,27 @@ class _POSCartSectionState extends State<POSCartSection> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: color.withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, color: color, size: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 18),
+              const SizedBox(height: 4),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

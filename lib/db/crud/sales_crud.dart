@@ -7,18 +7,39 @@ import 'common_crud.dart';
 
 mixin SalesCrud on CommonCrud {
   // Sales
-  Future<List<Map<String, dynamic>>> getSales({int? limit}) async {
+  Future<List<Map<String, dynamic>>> getSales({int? limit, String? startTime, String? endTime, int? shiftId}) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     
-    final branchFilter = getBranchFilter();
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    String extraFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (shiftId != null) {
+      extraFilter = ' AND s.shift_id = ?';
+      args.add(shiftId);
+    } else if (startTime != null && endTime != null) {
+      extraFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.add(startTime);
+      args.add(endTime);
+    }
 
     return await db.rawQuery(
-      'SELECT * FROM sales WHERE business_id = ? AND admin_id = ?$branchFilter ORDER BY created_at DESC${limit != null ? ' LIMIT $limit' : ''}',
+      '''
+      SELECT 
+        s.*, 
+        c.name as customer_name, 
+        c.phone as customer_phone,
+        u.name as employee_name
+      FROM sales s
+      LEFT JOIN customers c ON s.customer_id = c.id
+      LEFT JOIN users u ON s.user_id = u.id
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$extraFilter 
+      ORDER BY s.created_at DESC${limit != null ? ' LIMIT $limit' : ''}
+      ''',
       args,
     );
   }
@@ -35,6 +56,7 @@ mixin SalesCrud on CommonCrud {
         'business_id': bid,
         'admin_id': aid,
         'branch_id': brid,
+        'shift_id': sale['shift_id'],
         'is_synced': 0
       });
       

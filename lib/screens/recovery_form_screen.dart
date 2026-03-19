@@ -349,7 +349,7 @@ class _RecoveryFormScreenState extends State<RecoveryFormScreen> {
 
                   // Footer Actions
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
                     ),
@@ -364,6 +364,7 @@ class _RecoveryFormScreenState extends State<RecoveryFormScreen> {
                                 color: theme.textSecondary,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.5,
+                                fontSize: 13,
                               ),
                             ),
                           ),
@@ -376,7 +377,7 @@ class _RecoveryFormScreenState extends State<RecoveryFormScreen> {
                             style: ElevatedButton.styleFrom(
                               backgroundColor: ThemeProvider.success,
                               foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               elevation: 0,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                             ),
@@ -385,6 +386,7 @@ class _RecoveryFormScreenState extends State<RecoveryFormScreen> {
                               style: TextStyle(
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: 0.5,
+                                fontSize: 13,
                               ),
                             ),
                           ),

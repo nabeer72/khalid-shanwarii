@@ -34,7 +34,7 @@ class POSProductTile extends StatelessWidget {
             border: Border.all(
               color: product.isFavorite
                   ? ThemeProvider.warning.withOpacity(0.5)
-                  : theme.whiteAlpha(theme.isDark ? 0.05 : 0.2),
+                  : theme.cardBorder,
               width: product.isFavorite ? 1.2 : 1.0,
             ),
             boxShadow: [

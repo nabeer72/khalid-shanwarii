@@ -86,7 +86,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
         ),
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: theme.surface.withOpacity(0.8),
         ),
@@ -95,14 +95,14 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
             onPressed: _controller.isLoading ? null : _handleSave,
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.highlight,
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
               elevation: 4,
             ),
             child: Text(
               _controller.buttonLabel,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
                 letterSpacing: 1.2,

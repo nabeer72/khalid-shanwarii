@@ -59,14 +59,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void _processPayment() async {
     if (_processing) return;
 
-    // Validate credit payment requires customer
-    if (_selectedPayment == 'Credit' && _selectedCustomer == null) {
+    // Validate partial/credit payment requires customer
+    final unpaidAmount = _grandTotal - _amountTendered;
+    if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer == null) {
       final customer = await _showCustomerSelectionDialog();
       if (customer == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Credit sales require a customer. Please select a customer.'),
+              content: Text('Partial payments and credit sales require a customer. Please select a customer.'),
               backgroundColor: ThemeProvider.error,
             ),
           );
@@ -100,6 +101,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         await DatabaseHelper.instance.insertReturn(returnData, items);
       } else {
+        final activeShift = await DatabaseHelper.instance.getActiveShift();
         final sale = {
           'business_id': BusinessConfig.instance.businessId,
           'branch_id': BusinessConfig.instance.branchId,
@@ -114,6 +116,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'payment_method': _selectedPayment,
           'status': 1,
           'is_synced': 0,
+          'shift_id': activeShift?['id'],
           'created_at': DateTime.now().toIso8601String(),
         };
 
@@ -130,10 +133,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         final saleId = await DatabaseHelper.instance.insertSale(sale, items);
 
-        // If credit payment, create credit sale record
-        if (_selectedPayment == 'Credit' && _selectedCustomer != null) {
-          double partialPayment = double.tryParse(_partialController.text) ?? 0.0;
-
+        // Record credit if there's an unpaid balance OR if explicitly selected as Credit
+        if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
           final creditSale = {
             'business_id': BusinessConfig.instance.businessId,
             'branch_id': BusinessConfig.instance.branchId,
@@ -148,16 +149,17 @@ class _PaymentScreenState extends State<PaymentScreen> {
           final creditSaleId = await DatabaseHelper.instance.insertCreditSale(creditSale);
           await DatabaseHelper.instance.updateCustomerCreditBalance(_selectedCustomer!.id ?? 0, _grandTotal);
 
-          if (partialPayment > 0) {
+          // If they paid SOMETHING now, record it as a credit payment instantly
+          if (_amountTendered > 0) {
             final payment = {
               'business_id': BusinessConfig.instance.businessId,
               'branch_id': BusinessConfig.instance.branchId,
               'credit_sale_id': creditSaleId,
               'customer_id': _selectedCustomer!.id,
-              'amount': partialPayment,
+              'amount': _amountTendered,
               'payment_date': DateTime.now().toIso8601String(),
               'created_at': DateTime.now().toIso8601String(),
-              'notes': 'Partial payment during sale',
+              'notes': 'Paid at time of sale',
             };
             await DatabaseHelper.instance.insertCreditPayment(payment);
           }
@@ -315,8 +317,19 @@ class _PaymentScreenState extends State<PaymentScreen> {
                           name: pm.name,
                           iconName: pm.icon,
                           selected: _selectedPayment == pm.name,
-                          onTap: () =>
-                              setState(() => _selectedPayment = pm.name),
+                          onTap: () {
+                            setState(() {
+                              _selectedPayment = pm.name;
+                              if (pm.name == 'Credit') {
+                                _amountTendered = 0;
+                                _cashController.text = '0.00';
+                                _partialController.text = '0.00';
+                              } else if (pm.name == 'Cash') {
+                                _amountTendered = _grandTotal;
+                                _cashController.text = _grandTotal.toStringAsFixed(2);
+                              }
+                            });
+                          },
                         ),
                       ),
                     )
@@ -345,74 +358,39 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 16),
   
-            if (_selectedPayment == 'Credit') ...[
-              Text('Partial Payment (Paid Now)',
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _partialController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  TextInputFormatter.withFunction((oldValue, newValue) {
-                    if (newValue.text.isEmpty) return newValue;
-                    final value = double.tryParse(newValue.text);
-                    if (value == null || value > _grandTotal) {
-                      return oldValue;
-                    }
-                    return newValue;
-                  }),
-                ],
-                style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900),
-                decoration: theme.glassInputDecoration('Amount Paid', Icons.payments_rounded).copyWith(
-                  prefixText: '${BusinessConfig.instance.currency}. ',
-                  prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 16),
-                  helperStyle: TextStyle(color: theme.textSecondary, fontSize: 10),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                onChanged: (v) => setState(() {}),
-              ),
-            ] else ...[
-              _buildAmountField(),
-              const SizedBox(height: 10),
-              _buildUniversalDialPad(),
-            ],
+            const SizedBox(height: 16),
   
-            if (_selectedPayment == 'Cash' && _change > 0) ...[
+            _buildAmountField(),
+            const SizedBox(height: 10),
+            _buildUniversalDialPad(),
+
+            if (_amountTendered < _grandTotal && _selectedPayment != 'Credit') ...[ 
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: ThemeProvider.success.withOpacity(0.1),
+                  color: ThemeProvider.warning.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  border: Border.all(color: ThemeProvider.success.withOpacity(0.3), width: 1.5),
+                  border: Border.all(color: ThemeProvider.warning.withOpacity(0.3), width: 1.5),
                 ),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('CHANGE DUE',
-                             style: TextStyle(
-                                 color: ThemeProvider.success, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                        const SizedBox(height: 2),
-                        Text(
-                          '${BusinessConfig.instance.currency}. ${_change.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                              color: ThemeProvider.success,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1),
-                        ),
-                      ],
+                    Icon(Icons.info_outline_rounded, color: ThemeProvider.warning, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('PARTIAL PAYMENT', 
+                              style: TextStyle(color: ThemeProvider.warning, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Remaining ${BusinessConfig.instance.currency}. ${(_grandTotal - _amountTendered).toStringAsFixed(2)} will be added to credit.',
+                            style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
                     ),
-                    const Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 24),
                   ],
                 ),
               ),
@@ -493,6 +471,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ],
                   ),
                 ),
+                if (_selectedCustomer == null && (_amountTendered < _grandTotal || _selectedPayment == 'Credit'))
+                  IconButton(
+                    icon: Icon(Icons.add_circle_outline_rounded, size: 20, color: theme.highlight),
+                    onPressed: () async {
+                      final customer = await _showCustomerSelectionDialog();
+                      if (customer != null) setState(() => _selectedCustomer = customer);
+                    },
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -581,7 +569,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ),
                     )
                   : Text(
-                      widget.isReturn ? 'PROCESS REFUND' : 'COMPLETE TRANSACTION',
+                      widget.isReturn 
+                        ? 'PROCESS REFUND' 
+                        : (_amountTendered < _grandTotal ? 'COMPLETE & ADD TO CREDIT' : 'COMPLETE TRANSACTION'),
                       style: const TextStyle(
                           fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
                     ),

@@ -248,14 +248,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                         onPressed: _handleSave,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: theme.highlight,
-                          minimumSize: const Size(double.infinity, 56),
+                          minimumSize: const Size(double.infinity, 48),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                           elevation: 4,
                         ),
                         child: Text(
                           _controller.saveButtonLabel,
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                             letterSpacing: 1.2,

@@ -1,23 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/db/database_helper.dart';
 
-class ReceiptScreen extends StatelessWidget {
+class ReceiptScreen extends StatefulWidget {
   final Map<String, dynamic> sale;
   
   const ReceiptScreen({super.key, required this.sale});
 
   @override
+  State<ReceiptScreen> createState() => _ReceiptScreenState();
+}
+
+class _ReceiptScreenState extends State<ReceiptScreen> {
+  List<Map<String, dynamic>> _items = [];
+  bool _loadingItems = false;
+  final theme = ThemeProvider.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    // If items are already passed (from POS), use them
+    if (widget.sale['items'] != null && (widget.sale['items'] as List).isNotEmpty) {
+      setState(() {
+        _items = List<Map<String, dynamic>>.from(widget.sale['items']);
+      });
+      return;
+    }
+
+    // Otherwise, fetch from database (from History)
+    final saleId = widget.sale['id'];
+    if (saleId != null) {
+      setState(() => _loadingItems = true);
+      try {
+        final dbItems = await DatabaseHelper.instance.getSaleItems(saleId);
+        if (mounted) {
+          setState(() {
+            _items = dbItems;
+            _loadingItems = false;
+          });
+        }
+      } catch (e) {
+        if (mounted) setState(() => _loadingItems = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final theme = ThemeProvider.instance;
-    final timestamp = DateTime.tryParse(sale['timestamp'] ?? '');
-    final isReturn = sale['isReturn'] == true;
-    final total = sale['total'] as double? ?? 0;
-    final discount = sale['discount'] as double? ?? 0;
-    final items = sale['items'] as List? ?? [];
-    final paymentMethod = sale['paymentMethod'] ?? 'Cash';
-    final customer = sale['customerName'];
-    final receiptNumber = sale['id']?.toString().substring(0, 8).toUpperCase() ?? 'N/A';
+    final sale = widget.sale;
+    final timestamp = DateTime.tryParse(sale['created_at'] ?? sale['timestamp'] ?? '');
+    final isReturn = sale['is_return'] == 1 || sale['isReturn'] == true;
+    final total = (sale['total'] as num? ?? 0).toDouble();
+    final discount = (sale['discount'] as num? ?? 0).toDouble();
+    final paymentMethod = (sale['payment_method'] ?? sale['paymentMethod'] ?? 'Cash').toString();
+    final customer = sale['customer_name'] ?? sale['customerName'];
+    
+    // SAFE ID SUBSTRING
+    String rawId = sale['id']?.toString() ?? 'N/A';
+    final receiptNumber = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.padLeft(4, '0').toUpperCase();
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -133,23 +178,28 @@ class ReceiptScreen extends StatelessWidget {
                       const SizedBox(height: 16),
     
                       // Items
-                      ...items.map((item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(item['name'] ?? 'Unknown', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                  Text('${item['quantity']} x ${BusinessConfig.instance.currency}. ${(item['price'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                                ],
+                      if (_loadingItems)
+                        const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                      else if (_items.isEmpty)
+                        const Padding(padding: EdgeInsets.all(20), child: Text('No items found', style: TextStyle(color: Colors.black45, fontSize: 12)))
+                      else
+                        ..._items.map((item) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(item['product_name'] ?? item['name'] ?? 'Unknown', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w600)),
+                                    Text('${item['quantity']} x ${BusinessConfig.instance.currency}. ${(item['price'] as num? ?? item['purchase_price'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                  ],
+                                ),
                               ),
-                            ),
-                            Text('${BusinessConfig.instance.currency}. ${(item['subtotal'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                      )),
+                              Text('${BusinessConfig.instance.currency}. ${(item['subtotal'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        )),
     
                       const SizedBox(height: 16),
                       const Divider(color: Colors.black12),

@@ -782,7 +782,7 @@ class _SaveButton extends StatelessWidget {
     final bool isDisabled = onPressed == null;
     
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: theme.glassDecoration.copyWith(
         borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
         // Ensure visibility in light mode by adding a subtle border or background adjustment
@@ -791,10 +791,11 @@ class _SaveButton extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           SizedBox(
-            width: double.infinity,
-            height: 56,
+            width: 200,
+            height: 48,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.highlight, 

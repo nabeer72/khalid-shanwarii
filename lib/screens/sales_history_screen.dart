@@ -5,7 +5,18 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/receipt_screen.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
-  const SalesHistoryScreen({super.key});
+  final String? startTime;
+  final String? endTime;
+  final int? shiftId;
+  final bool isShiftHistory;
+
+  const SalesHistoryScreen({
+    super.key,
+    this.startTime,
+    this.endTime,
+    this.shiftId,
+    this.isShiftHistory = false,
+  });
 
   @override
   State<SalesHistoryScreen> createState() => _SalesHistoryScreenState();
@@ -14,6 +25,9 @@ class SalesHistoryScreen extends StatefulWidget {
 class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   final theme = ThemeProvider.instance;
   String _filter = 'all'; // all, today, week
+  final TextEditingController _searchCtrl = TextEditingController();
+  String _query = '';
+  bool _showOnlyRefunds = false;
 
   List<Map<String, dynamic>> _sales = [];
   bool _isLoading = true;
@@ -24,10 +38,20 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     _loadSales();
   }
 
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSales() async {
     setState(() => _isLoading = true);
     try {
-      final data = await DatabaseHelper.instance.getSales();
+      final data = await DatabaseHelper.instance.getSales(
+        startTime: widget.startTime,
+        endTime: widget.endTime,
+        shiftId: widget.shiftId,
+      );
       if (mounted) {
         setState(() {
           _sales = data;
@@ -41,22 +65,51 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   }
 
   List<Map<String, dynamic>> get _filteredSales {
-    final now = DateTime.now();
-    final sales = _sales;
-    
-    if (_filter == 'today') {
-      return sales.where((s) {
-        final ts = DateTime.tryParse(s['created_at'] ?? '');
-        return ts != null && ts.day == now.day && ts.month == now.month && ts.year == now.year;
-      }).toList();
-    } else if (_filter == 'week') {
-      final weekAgo = now.subtract(const Duration(days: 7));
-      return sales.where((s) {
-        final ts = DateTime.tryParse(s['created_at'] ?? '');
-        return ts != null && ts.isAfter(weekAgo);
+    List<Map<String, dynamic>> filtered = _sales;
+
+    // Apply time/shift filter
+    if (widget.isShiftHistory) {
+      filtered = _sales;
+    } else {
+      final now = DateTime.now();
+      if (_filter == 'today') {
+        filtered = _sales.where((s) {
+          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          return ts != null && ts.day == now.day && ts.month == now.month && ts.year == now.year;
+        }).toList();
+      } else if (_filter == 'week') {
+        final weekAgo = now.subtract(const Duration(days: 7));
+        filtered = _sales.where((s) {
+          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          return ts != null && ts.isAfter(weekAgo);
+        }).toList();
+      }
+    }
+
+    // Apply refund filter
+    if (_showOnlyRefunds) {
+      filtered = filtered.where((s) => s['is_return'] == 1).toList();
+    }
+
+    // Apply search query
+    if (_query.isNotEmpty) {
+      final q = _query.toLowerCase();
+      filtered = filtered.where((s) {
+        final customerName = (s['customer_name'] ?? '').toString().toLowerCase();
+        final customerPhone = (s['customer_phone'] ?? '').toString().toLowerCase();
+        final employeeName = (s['employee_name'] ?? '').toString().toLowerCase();
+        final invoiceNum = s['id'].toString();
+        final date = (s['created_at'] ?? '').toString().toLowerCase();
+        
+        return customerName.contains(q) || 
+               customerPhone.contains(q) || 
+               employeeName.contains(q) || 
+               invoiceNum.contains(q) || 
+               date.contains(q);
       }).toList();
     }
-    return sales;
+
+    return filtered;
   }
 
   double get _totalAmount => _filteredSales.fold(0.0, (sum, s) => sum + (s['total'] as num? ?? 0).toDouble());
@@ -69,7 +122,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
-          'Sales History',
+          widget.isShiftHistory ? 'Shift History' : 'Sales History',
           style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
@@ -120,19 +173,52 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   ),
                 ),
               ),
-              
+
+              // Search & Filter Bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
                   children: [
-                    _FilterChip(label: 'ALL', selected: _filter == 'all', onTap: () => setState(() => _filter = 'all')),
+                    Expanded(
+                      child: Container(
+                        decoration: theme.glassDecoration,
+                        child: TextField(
+                          controller: _searchCtrl,
+                          onChanged: (v) => setState(() => _query = v),
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                          decoration: InputDecoration(
+                            hintText: 'Search records...',
+                            hintStyle: TextStyle(color: theme.textHint),
+                            prefixIcon: Icon(Icons.search_rounded, color: theme.highlight),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    _FilterChip(label: 'TODAY', selected: _filter == 'today', onTap: () => setState(() => _filter = 'today')),
-                    const SizedBox(width: 8),
-                    _FilterChip(label: 'WEEK', selected: _filter == 'week', onTap: () => setState(() => _filter = 'week')),
+                    _FilterChip(
+                      label: 'REFUNDS',
+                      selected: _showOnlyRefunds,
+                      onTap: () => setState(() => _showOnlyRefunds = !_showOnlyRefunds),
+                    ),
                   ],
                 ),
               ),
+              
+              if (!widget.isShiftHistory)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Row(
+                    children: [
+                      _FilterChip(label: 'ALL', selected: _filter == 'all', onTap: () => setState(() => _filter = 'all')),
+                      const SizedBox(width: 8),
+                      _FilterChip(label: 'TODAY', selected: _filter == 'today', onTap: () => setState(() => _filter = 'today')),
+                      const SizedBox(width: 8),
+                      _FilterChip(label: 'WEEK', selected: _filter == 'week', onTap: () => setState(() => _filter = 'week')),
+                    ],
+                  ),
+                ),
 
               // Sales list
               Expanded(
@@ -221,23 +307,41 @@ class _SaleTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassDecoration,
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         onTap: onTap,
         title: Row(
           children: [
             Expanded(
-              child: Text(isReturn ? 'REFUND' : 'SALE', 
-                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(isReturn ? 'REFUND' : 'SALE', 
+                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                  if (sale['customer_name'] != null)
+                    Text(sale['customer_name'].toString().toUpperCase(), 
+                        style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                ],
+              ),
             ),
             Text('#${sale['id'] ?? '??'}', 
                 style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
           ],
         ),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 2),
-          child: Text(
-            timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')} | ${timestamp.day}/${timestamp.month}/${timestamp.year}' : 'Unknown',
-            style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+          padding: const EdgeInsets.only(top: 4),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')} | ${timestamp.day}/${timestamp.month}/${timestamp.year}' : 'Unknown',
+                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+              if (sale['employee_name'] != null)
+                Text(
+                  'BY: ${sale['employee_name']}',
+                  style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w700),
+                ),
+            ],
           ),
         ),
         trailing: Column(

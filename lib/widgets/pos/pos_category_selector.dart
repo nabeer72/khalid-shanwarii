@@ -47,12 +47,12 @@ class POSCategorySelector extends StatelessWidget {
                   color: isSelected
                       ? theme.highlight
                       : (theme.isDark
-                          ? Colors.white.withOpacity(0.05)
+                          ? Colors.white.withOpacity(0.03)
                           : Colors.white.withOpacity(0.4)),
                   border: Border.all(
                       color: isSelected
                           ? theme.highlight
-                          : theme.whiteAlpha(0.1)),
+                          : theme.cardBorder),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(

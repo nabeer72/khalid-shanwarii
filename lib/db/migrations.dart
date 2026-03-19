@@ -909,5 +909,13 @@ class DbMigrations {
         ''');
       });
     }
+    if (oldVersion < 45) {
+      if (kDebugMode) print('Upgrading DB to v45: Adding shift_id to sales...');
+      try {
+        await db.execute('ALTER TABLE sales ADD COLUMN shift_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v45 sales shift_id error: $e');
+      }
+    }
   }
 }
