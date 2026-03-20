@@ -160,7 +160,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text('${BusinessConfig.instance.currency}. ${_netSales.toStringAsFixed(2)}', 
+                      Text('${BusinessConfig.instance.currencyDisplay} ${_netSales.toStringAsFixed(2)}', 
                         style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1)),
                       const SizedBox(height: 16),
                       Container(
@@ -313,7 +313,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Text('${BusinessConfig.instance.currency}. ${amount.toStringAsFixed(2)}', 
+                    Text('${BusinessConfig.instance.currencyDisplay} ${amount.toStringAsFixed(2)}', 
                       style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w800)),
                   ],
                 ),
@@ -475,7 +475,7 @@ class _SummaryCard extends StatelessWidget {
               alignment: Alignment.centerLeft,
               child: Text(
                 isCurrency 
-                    ? '$currency. ${value.toStringAsFixed(0)}' 
+                    ? '${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(0)}' 
                     : value.toInt().toString(),
                 style: TextStyle(
                   color: theme.textPrimary, 
@@ -532,7 +532,7 @@ class _BreakdownRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${value < 0 ? "-" : ""}${BusinessConfig.instance.currency}. ${value.abs().toStringAsFixed(2)}',
+            '${value < 0 ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${value.abs().toStringAsFixed(2)}',
             style: TextStyle(
               color: color, 
               fontSize: bold ? 20 : (small ? 13 : 15), 

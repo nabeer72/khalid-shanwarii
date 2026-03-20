@@ -582,11 +582,9 @@ class DbTables {
         PRIMARY KEY (role_id, permission_id)
       )
     ''');
-
     if (kDebugMode) print('Database created with all tables including RBAC');
     await DbTables.seedPermissions(db);
   }
-
   static Future<void> seedPermissions(Database db) async {
     final perms = [
       {'name': 'pos_access', 'label': 'POS Access'},

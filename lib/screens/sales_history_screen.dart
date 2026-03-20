@@ -152,7 +152,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                             Text('TOTAL REVENUE', 
                               style: TextStyle(color: theme.textHint, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
                             const SizedBox(height: 4),
-                            Text('${BusinessConfig.instance.currency}. ${_totalAmount.toStringAsFixed(2)}', 
+                            Text('${BusinessConfig.instance.currencyDisplay} ${_totalAmount.toStringAsFixed(2)}', 
                               style: TextStyle(color: theme.highlight, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1)),
                           ],
                         ),
@@ -349,7 +349,7 @@ class _SaleTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${isReturn ? "-" : ""}${BusinessConfig.instance.currency}. ${total.abs().toStringAsFixed(2)}',
+              '${isReturn ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${total.abs().toStringAsFixed(2)}',
               style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
             ),
             Text(

@@ -249,7 +249,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           children: [
                             if (displayPrice.isNotEmpty)
                               Text(
-                                '${BusinessConfig.instance.currency}. $displayPrice',
+                                '${BusinessConfig.instance.currencyDisplay} $displayPrice',
                                 style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
                               ),
                             Text(

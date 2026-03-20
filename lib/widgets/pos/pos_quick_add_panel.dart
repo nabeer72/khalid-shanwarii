@@ -211,7 +211,7 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
         filled: true,
         fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -237,7 +237,7 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
               filled: true,
               fillColor: theme.whiteAlpha(0.05),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -267,7 +267,7 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
         filled: true,
         fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

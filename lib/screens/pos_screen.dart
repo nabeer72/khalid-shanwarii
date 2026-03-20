@@ -170,7 +170,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             itemBuilder: (ctx, i) {
               final stock = product.stocks[i];
               return ListTile(
-                title: Text('${BusinessConfig.instance.currency}. ${stock.salePrice.toStringAsFixed(2)}', 
+                title: Text('${BusinessConfig.instance.currencyDisplay} ${stock.salePrice.toStringAsFixed(2)}', 
                     style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
                 subtitle: Text('Stock: ${stock.quantity} | Barcode: ${stock.barcode ?? 'N/A'}',
                     style: TextStyle(color: theme.textSecondary, fontSize: 13)),
@@ -445,7 +445,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                     subtitle: Padding(
                                       padding: const EdgeInsets.only(top: 2),
                                       child: Text(
-                                        'Total: ${BusinessConfig.instance.currency}. ${(data['total'] as num).toStringAsFixed(2)}',
+                                        'Total: ${BusinessConfig.instance.currencyDisplay} ${(data['total'] as num).toStringAsFixed(2)}',
                                         style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
                                       ),
                                     ),
@@ -972,7 +972,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(
-                      'Price: $currency. ${stock.salePrice.toStringAsFixed(2)}  ·  Stock: ${stock.quantity}',
+                      'Price: ${BusinessConfig.instance.currencyDisplay} ${stock.salePrice.toStringAsFixed(2)}  ·  Stock: ${stock.quantity}',
                       style: TextStyle(color: theme.textSecondary, fontSize: 13),
                     ),
                     trailing: inStock
@@ -1377,7 +1377,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               ),
             ),
             Text(
-              '${BusinessConfig.instance.currency}. ${_controller.total.toStringAsFixed(2)}',
+              '${BusinessConfig.instance.currencyDisplay} ${_controller.total.toStringAsFixed(2)}',
               style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,

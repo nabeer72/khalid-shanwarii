@@ -228,7 +228,7 @@ class _CustomerCreditCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${BusinessConfig.instance.currency}. ${creditBalance.toStringAsFixed(2)}',
+              '${BusinessConfig.instance.currencyDisplay} ${creditBalance.toStringAsFixed(2)}',
               style: const TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 13),
             ),
             Text(

@@ -176,7 +176,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(
-                                    '${BusinessConfig.instance.currency}. ${totalCostVal.toStringAsFixed(2)}',
+                                    '${BusinessConfig.instance.currencyDisplay} ${totalCostVal.toStringAsFixed(2)}',
                                     style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
                                   ),
                                   Text(
@@ -248,7 +248,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                 isCurrency 
-                    ? '$currency. ${value.toStringAsFixed(0)}' 
+                    ? '${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(0)}' 
                     : value.toInt().toString(),
                 style: TextStyle(color: theme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
               ),

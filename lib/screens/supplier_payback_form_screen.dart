@@ -258,7 +258,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
                                        ),
                                        const SizedBox(height: 4),
                                        Text(
-                                         '${BusinessConfig.instance.currency}. ${_creditBalance.toStringAsFixed(2)}',
+                                         '${BusinessConfig.instance.currencyDisplay} ${_creditBalance.toStringAsFixed(2)}',
                                          style: const TextStyle(
                                            color: ThemeProvider.warning,
                                            fontSize: 24,
@@ -324,7 +324,7 @@ class _SupplierPaybackFormScreenState extends State<SupplierPaybackFormScreen> {
                                    ),
                                    const SizedBox(width: 12),
                                    Text(
-                                     '${BusinessConfig.instance.currency}. ${_remainingBalance.toStringAsFixed(2)}',
+                                     '${BusinessConfig.instance.currencyDisplay} ${_remainingBalance.toStringAsFixed(2)}',
                                      style: TextStyle(
                                        color: _remainingBalance > 0 ? ThemeProvider.warning : ThemeProvider.success,
                                        fontSize: 20,

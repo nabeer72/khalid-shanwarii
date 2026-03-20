@@ -172,7 +172,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      '${BusinessConfig.instance.currency}. ${purchase.totalAmount.toStringAsFixed(2)}',
+                                      '${BusinessConfig.instance.currencyDisplay} ${purchase.totalAmount.toStringAsFixed(2)}',
                                       style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
                                     ),
                                     Text(

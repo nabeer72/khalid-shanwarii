@@ -385,7 +385,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               style: TextStyle(color: ThemeProvider.warning, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
                           const SizedBox(height: 2),
                           Text(
-                            'Remaining ${BusinessConfig.instance.currency}. ${(_grandTotal - _amountTendered).toStringAsFixed(2)} will be added to credit.',
+                            'Remaining ${BusinessConfig.instance.currencyDisplay} ${(_grandTotal - _amountTendered).toStringAsFixed(2)} will be added to credit.',
                             style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -495,22 +495,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
             _SummaryRow(
                 label: 'Subtotal',
                 value:
-                    '${BusinessConfig.instance.currency}. ${widget.subtotal.toStringAsFixed(2)}'),
+                    '${BusinessConfig.instance.currencyDisplay} ${widget.subtotal.toStringAsFixed(2)}'),
             _SummaryRow(
                 label: 'Tax',
                 value:
-                    '${BusinessConfig.instance.currency}. ${widget.tax.toStringAsFixed(2)}'),
+                    '${BusinessConfig.instance.currencyDisplay} ${widget.tax.toStringAsFixed(2)}'),
             if (widget.discount > 0)
               _SummaryRow(
                   label: 'Discount',
                   value:
-                      '-${BusinessConfig.instance.currency}. ${widget.discount.toStringAsFixed(2)}',
+                      '-${BusinessConfig.instance.currencyDisplay} ${widget.discount.toStringAsFixed(2)}',
                   valueColor: ThemeProvider.warning),
             if (_tipAmount > 0)
               _SummaryRow(
                   label: 'Tip',
                   value:
-                      '${BusinessConfig.instance.currency}. ${_tipAmount.toStringAsFixed(2)}',
+                      '${BusinessConfig.instance.currencyDisplay} ${_tipAmount.toStringAsFixed(2)}',
                 valueColor: ThemeProvider.success),
 
           const SizedBox(height: 10),
@@ -528,7 +528,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    '${BusinessConfig.instance.currency}. ${_grandTotal.toStringAsFixed(2)}',
+                    '${BusinessConfig.instance.currencyDisplay} ${_grandTotal.toStringAsFixed(2)}',
                     style: TextStyle(
                         color: theme.highlight,
                         fontSize: 20,
@@ -782,7 +782,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
               ),
               Text(
-                '${BusinessConfig.instance.currency}. ${(item['subtotal'] as double).toStringAsFixed(2)}',
+                '${BusinessConfig.instance.currencyDisplay} ${(item['subtotal'] as double).toStringAsFixed(2)}',
                 style: TextStyle(
                     color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w800),
               ),
@@ -814,7 +814,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               fontSize: 20,
               fontWeight: FontWeight.w900),
           decoration: theme.glassInputDecoration('Amount', Icons.payments_rounded).copyWith(
-            prefixText: '${BusinessConfig.instance.currency}. ',
+            prefixText: '${BusinessConfig.instance.currencyDisplay} ',
             prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 16),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             suffixIcon: IconButton(
@@ -1106,7 +1106,7 @@ class _QuickCashButton extends StatelessWidget {
         ),
         child: Text(
           label ??
-              '${BusinessConfig.instance.currency}. ${amount.toStringAsFixed(0)}',
+              '${BusinessConfig.instance.currencyDisplay} ${amount.toStringAsFixed(0)}',
           style: TextStyle(
               color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 13),
         ),

@@ -30,6 +30,7 @@ class BusinessConfig {
   set currency(String value) {
     currencyNotifier.value = value;
   }
+  String get currencyDisplay => currency == 'Rs' ? '$currency.' : currency;
   IconData get currencyIcon {
     switch (currency) {
       case '\$': return Icons.attach_money;

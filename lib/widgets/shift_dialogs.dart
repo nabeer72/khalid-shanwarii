@@ -151,7 +151,7 @@ class _ClockInDialogState extends State<ClockInDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Total Opening Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
-                    Text('${BusinessConfig.instance.currency}. ${_totalOpeningCash.toStringAsFixed(0)}', 
+                    Text('${BusinessConfig.instance.currencyDisplay} ${_totalOpeningCash.toStringAsFixed(0)}', 
                       style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
                   ],
                 ),
@@ -346,7 +346,7 @@ class _ClockOutDenominationsDialogState extends State<ClockOutDenominationsDialo
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Total Closing Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
-                  Text('${BusinessConfig.instance.currency}. ${_totalClosingCash.toStringAsFixed(0)}', 
+                  Text('${BusinessConfig.instance.currencyDisplay} ${_totalClosingCash.toStringAsFixed(0)}', 
                     style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
                 ],
               ),
@@ -492,7 +492,7 @@ class _ClockOutDialogState extends State<ClockOutDialog> {
                         children: [
                           Text(discrepancy > 0 ? 'Surplus:' : 'Shortage:', 
                             style: TextStyle(color: discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 12)),
-                          Text('${BusinessConfig.instance.currency}. ${discrepancy.abs().toStringAsFixed(0)}', 
+                          Text('${BusinessConfig.instance.currencyDisplay} ${discrepancy.abs().toStringAsFixed(0)}', 
                             style: TextStyle(color: discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
                       ),
@@ -621,7 +621,7 @@ class _SummaryRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: theme.textSecondary, fontSize: fontSize - 1)),
-          Text('${BusinessConfig.instance.currency}. ${value.toStringAsFixed(0)}', 
+          Text('${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(0)}', 
             style: TextStyle(
               color: color, 
               fontSize: fontSize, 

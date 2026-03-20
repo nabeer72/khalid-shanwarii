@@ -417,13 +417,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                   _QuickStat(
                                     icon: Icons.payments_rounded,
                                     value:
-                                        '${BusinessConfig.instance.currency}. ${_todayRecoveryAmount.toStringAsFixed(0)}',
+                                        '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
                                     label: 'RECOVERY',
                                   ),
                                   _QuickStat(
                                     icon: BusinessConfig.instance.currencyIcon,
                                     value:
-                                        '${BusinessConfig.instance.currency}. ${_todaySalesAmount.toStringAsFixed(0)}',
+                                        '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
                                     label: 'TODAY',
                                   ),
                                 ],

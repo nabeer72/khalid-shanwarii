@@ -192,11 +192,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(item['product_name'] ?? item['name'] ?? 'Unknown', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                    Text('${item['quantity']} x ${BusinessConfig.instance.currency}. ${(item['price'] as num? ?? item['purchase_price'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                    Text('${item['quantity']} x ${BusinessConfig.instance.currencyDisplay} ${(item['price'] as num? ?? item['purchase_price'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
                                   ],
                                 ),
                               ),
-                              Text('${BusinessConfig.instance.currency}. ${(item['subtotal'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w700)),
+                              Text('${BusinessConfig.instance.currencyDisplay} ${(item['subtotal'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w700)),
                             ],
                           ),
                         )),
@@ -206,16 +206,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       const SizedBox(height: 16),
     
                       // Totals
-                      _ReceiptRow(label: 'Subtotal', value: '${BusinessConfig.instance.currency}. ${(total.abs() / 1.08).toStringAsFixed(2)}'),
-                      _ReceiptRow(label: 'Tax (8%)', value: '${BusinessConfig.instance.currency}. ${(total.abs() - total.abs() / 1.08).toStringAsFixed(2)}'),
+                      _ReceiptRow(label: 'Subtotal', value: '${BusinessConfig.instance.currencyDisplay} ${(total.abs() / 1.08).toStringAsFixed(2)}'),
+                      _ReceiptRow(label: 'Tax (8%)', value: '${BusinessConfig.instance.currencyDisplay} ${(total.abs() - total.abs() / 1.08).toStringAsFixed(2)}'),
                       if (discount > 0)
-                        _ReceiptRow(label: 'Discount', value: '-${BusinessConfig.instance.currency}. ${(discount as num).toDouble().toStringAsFixed(2)}', valueColor: ThemeProvider.warning),
+                        _ReceiptRow(label: 'Discount', value: '-${BusinessConfig.instance.currencyDisplay} ${(discount as num).toDouble().toStringAsFixed(2)}', valueColor: ThemeProvider.warning),
                       const SizedBox(height: 16),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: -0.5)),
-                          Text('${BusinessConfig.instance.currency}. ${total.abs().toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0A2647), letterSpacing: -1)),
+                          Text('${BusinessConfig.instance.currencyDisplay} ${total.abs().toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0A2647), letterSpacing: -1)),
                         ],
                       ),
     

@@ -116,7 +116,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '${BusinessConfig.instance.currency}. ${supplier.creditBalance.toStringAsFixed(2)}',
+                                  '${BusinessConfig.instance.currencyDisplay} ${supplier.creditBalance.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     color: supplier.creditBalance > 0 ? ThemeProvider.error : theme.highlight,
                                     fontWeight: FontWeight.w900,

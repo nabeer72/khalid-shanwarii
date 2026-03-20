@@ -203,7 +203,7 @@ class POSCartItemTile extends StatelessWidget {
           decoration: InputDecoration(
             filled: true,
             fillColor: theme.whiteAlpha(0.05),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
           ),
         ),
         actions: [

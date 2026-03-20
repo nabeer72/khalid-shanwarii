@@ -250,7 +250,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                         fontSize: 13,
                         fontWeight: FontWeight.w700)),
                 Text(
-                    '-${BusinessConfig.instance.currency}. ${widget.controller.discount.toStringAsFixed(2)}',
+                    '-${BusinessConfig.instance.currencyDisplay} ${widget.controller.discount.toStringAsFixed(2)}',
                     style: TextStyle(
                         color: theme.highlight,
                         fontSize: 13,
@@ -271,7 +271,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5)),
               Text(
-                  '${BusinessConfig.instance.currency}. ${widget.controller.total.toStringAsFixed(2)}',
+                  '${BusinessConfig.instance.currencyDisplay} ${widget.controller.total.toStringAsFixed(2)}',
                   style: TextStyle(
                       color: theme.highlight,
                       fontSize: 15,
@@ -350,7 +350,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                 color: theme.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600)),
-        Text('${BusinessConfig.instance.currency}. ${value.toStringAsFixed(2)}',
+        Text('${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(2)}',
             style: TextStyle(
                 color: theme.textPrimary,
                 fontSize: 13,
