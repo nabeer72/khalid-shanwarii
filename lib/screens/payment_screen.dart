@@ -84,14 +84,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     try {
       if (widget.isReturn) {
         final returnData = {
-          'sale_id': null, // Can be linked to an original sale if needed in future
+          'sale_id': null,
           'customer_id': _selectedCustomer?.id,
           'user_id': BusinessConfig.instance.adminId,
           'total_amount': widget.total,
           'reason': 'POS Return',
         };
-
-        final items = widget.cart.map((item) => {
+        final returnItems = widget.cart.map((item) => {
           'product_id': item['id'] ?? item['productId'],
           'stock_id': item['stock_id'],
           'quantity': item['quantity'],
@@ -99,7 +98,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'subtotal': item['subtotal'],
         }).toList();
 
-        await DatabaseHelper.instance.insertReturn(returnData, items);
+        final returnId = await DatabaseHelper.instance.insertReturn(returnData, returnItems);
+        
+        final saleForReceipt = {
+          'id': returnId,
+          'business_id': BusinessConfig.instance.businessId,
+          'branch_id': BusinessConfig.instance.branchId,
+          'customer_id': _selectedCustomer?.id,
+          'user_id': BusinessConfig.instance.adminId,
+          'total': -_grandTotal,
+          'subtotal': -widget.subtotal,
+          'tax': -widget.tax,
+          'discount': -widget.discount,
+          'tip': -_tipAmount,
+          'is_return': 1,
+          'payment_method': _selectedPayment,
+          'status': 1,
+          'is_synced': 0,
+          'created_at': DateTime.now().toIso8601String(),
+          'items': widget.cart.map((item) => {
+            'name': item['name'],
+            'price': (item['price'] as num).toDouble(),
+            'quantity': item['quantity'],
+            'subtotal': (item['subtotal'] as num).toDouble(),
+            'discount': (item['discount'] as num? ?? 0).toDouble(),
+          }).toList(),
+          'timestamp': DateTime.now().toIso8601String(),
+          'isReturn': true,
+          'paymentMethod': _selectedPayment,
+          'customerName': _selectedCustomer?.name,
+          'amount_tendered': _amountTendered,
+          'change': _change,
+          'employee_name': BusinessConfig.instance.staffName,
+        };
+
+        if (mounted) {
+          if (_generateReceipt) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
+            );
+          } else {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Refund completed!'), backgroundColor: ThemeProvider.success),
+            );
+          }
+        }
       } else {
         final activeShift = await DatabaseHelper.instance.getActiveShift();
         final sale = {
@@ -120,7 +164,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'created_at': DateTime.now().toIso8601String(),
         };
 
-        final items = widget.cart.map((item) {
+        final saleItems = widget.cart.map((item) {
           return {
             'product_id': item['id'] ?? item['productId'],
             'stock_id': item['stock_id'],
@@ -131,9 +175,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           };
         }).toList();
 
-        final saleId = await DatabaseHelper.instance.insertSale(sale, items);
-
-        // Record credit if there's an unpaid balance OR if explicitly selected as Credit
+        final saleId = await DatabaseHelper.instance.insertSale(sale, saleItems);
+        
         if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
           final creditSale = {
             'business_id': BusinessConfig.instance.businessId,
@@ -149,7 +192,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           final creditSaleId = await DatabaseHelper.instance.insertCreditSale(creditSale);
           await DatabaseHelper.instance.updateCustomerCreditBalance(_selectedCustomer!.id ?? 0, _grandTotal);
 
-          // If they paid SOMETHING now, record it as a credit payment instantly
           if (_amountTendered > 0) {
             final payment = {
               'business_id': BusinessConfig.instance.businessId,
@@ -164,52 +206,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
             await DatabaseHelper.instance.insertCreditPayment(payment);
           }
         }
-      }
+        
+        final saleForReceipt = {
+          'id': saleId,
+          'business_id': BusinessConfig.instance.businessId,
+          'branch_id': BusinessConfig.instance.branchId,
+          'customer_id': _selectedCustomer?.id,
+          'user_id': BusinessConfig.instance.adminId,
+          'total': _grandTotal,
+          'subtotal': widget.subtotal,
+          'tax': widget.tax,
+          'discount': widget.discount,
+          'tip': _tipAmount,
+          'is_return': 0,
+          'payment_method': _selectedPayment,
+          'status': 1,
+          'is_synced': 0,
+          'created_at': DateTime.now().toIso8601String(),
+          'items': widget.cart.map((item) => {
+            'name': item['name'],
+            'price': (item['price'] as num).toDouble(),
+            'quantity': item['quantity'],
+            'subtotal': (item['subtotal'] as num).toDouble(),
+            'discount': (item['discount'] as num? ?? 0).toDouble(),
+          }).toList(),
+          'timestamp': DateTime.now().toIso8601String(),
+          'isReturn': false,
+          'paymentMethod': _selectedPayment,
+          'customerName': _selectedCustomer?.name,
+          'amount_tendered': _amountTendered,
+          'change': _change,
+          'employee_name': BusinessConfig.instance.staffName,
+        };
 
-      final saleForReceipt = {
-        'business_id': BusinessConfig.instance.businessId,
-        'branch_id': BusinessConfig.instance.branchId,
-        'customer_id': _selectedCustomer?.id,
-        'user_id': BusinessConfig.instance.adminId,
-        'total': widget.isReturn ? -_grandTotal : _grandTotal,
-        'subtotal': widget.subtotal,
-        'tax': widget.tax,
-        'discount': widget.discount,
-        'tip': _tipAmount,
-        'is_return': widget.isReturn ? 1 : 0,
-        'payment_method': _selectedPayment,
-        'status': 1,
-        'is_synced': 0,
-        'created_at': DateTime.now().toIso8601String(),
-        'items': widget.cart.map((item) => {
-          'name': item['name'],
-          'price': (item['price'] as num).toDouble(),
-          'quantity': item['quantity'],
-          'subtotal': (item['subtotal'] as num).toDouble(),
-        }).toList(),
-        'timestamp': DateTime.now().toIso8601String(),
-        'isReturn': widget.isReturn,
-        'paymentMethod': _selectedPayment,
-        'customerName': _selectedCustomer?.name,
-      };
+        if (_openCashDrawer) _handleOpenCashDrawer();
 
-      if (_openCashDrawer) {
-        _handleOpenCashDrawer();
-      }
-
-      if (mounted) {
-        if (_generateReceipt) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
-          );
-        } else {
-          Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(widget.isReturn ? 'Refund completed!' : 'Sale completed successfully!'),
-              backgroundColor: ThemeProvider.success,
-            ),
-          );
+        if (mounted) {
+          if (_generateReceipt) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
+            );
+          } else {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Sale completed successfully!'), backgroundColor: ThemeProvider.success),
+            );
+          }
         }
       }
     } catch (e) {

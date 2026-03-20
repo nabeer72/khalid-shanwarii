@@ -114,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
             permissions: perms,
           );
         });
+        BusinessConfig.instance.staffName = staffData['name'] ?? '';
       }
     }
   }

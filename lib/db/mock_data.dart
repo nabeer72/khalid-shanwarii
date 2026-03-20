@@ -16,6 +16,7 @@ class BusinessConfig {
   dynamic branchId;
   dynamic adminId;
   dynamic staffId;
+  String staffName = '';
   List<dynamic> activeBranchIds = [];
   List<dynamic> inactiveBranchIds = [];
   String receiptFooter = 'Thank you!';
@@ -51,6 +52,7 @@ class BusinessConfig {
       branchId = null;
       adminId = null;
       staffId = null;
+      staffName = '';
       activeBranchIds = [];
       inactiveBranchIds = [];
     }

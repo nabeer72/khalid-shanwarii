@@ -64,8 +64,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     String rawId = sale['id']?.toString() ?? 'N/A';
     final receiptNumber = rawId.length > 8 ? rawId.substring(0, 8).toUpperCase() : rawId.padLeft(4, '0').toUpperCase();
 
+    final employeeStr = (sale['employee_name']?.toString() ?? BusinessConfig.instance.staffName).trim();
+    final employee = employeeStr.isEmpty ? 'Admin' : employeeStr;
+    final tendered = (sale['amount_tendered'] as num? ?? total).toDouble();
+    final change = (sale['change'] as num? ?? 0).toDouble();
+
+    // Check if any item has a discount
+    final hasItemDiscounts = _items.any((item) => (item['discount'] as num? ?? 0) > 0);
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: theme.isDark ? Colors.black : Colors.grey[200],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -74,179 +82,227 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_rounded),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Share feature coming soon!'), backgroundColor: ThemeProvider.warning),
-              );
-            },
+            onPressed: () {},
           ),
           IconButton(
             icon: const Icon(Icons.print_rounded),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Print feature coming soon!'), backgroundColor: ThemeProvider.warning),
-              );
-            },
+            onPressed: () {},
           ),
         ],
       ),
-      body: theme.glassBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 400),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+          child: Container(
+            width: 380,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)
+              ],
+            ),
+            child: Column(
+              children: [
+                // Top "Paper Cut" effect or just padding
+                const SizedBox(height: 20),
+                
+                // Content
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       // Header
-                      const Icon(Icons.store_rounded, size: 64, color: Color(0xFF0A2647)),
-                      const SizedBox(height: 16),
-                      Text(BusinessConfig.instance.businessName.toUpperCase(), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: -0.5), textAlign: TextAlign.center),
-                      Text(BusinessConfig.instance.businessType?.toUpperCase() ?? 'RETAIL STORE', style: const TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 1.5)),
-                      const SizedBox(height: 12),
-                      if (BusinessConfig.instance.businessAddress.isNotEmpty)
-                        Text(BusinessConfig.instance.businessAddress, style: const TextStyle(fontSize: 12, color: Colors.black54), textAlign: TextAlign.center),
-                      if (BusinessConfig.instance.businessPhone.isNotEmpty)
-                        Text('Phone: ${BusinessConfig.instance.businessPhone}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
-                      
-                      const SizedBox(height: 24),
-                      const Divider(color: Colors.black12),
-                      const SizedBox(height: 16),
-    
-                      // Receipt info
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('RECEIPT #', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                          Text(receiptNumber, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                        ],
+                      Text(
+                        BusinessConfig.instance.businessName.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        textAlign: TextAlign.center,
                       ),
+                      if (BusinessConfig.instance.businessAddress.isNotEmpty)
+                        Text(
+                          BusinessConfig.instance.businessAddress,
+                          style: const TextStyle(color: Colors.black87, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      if (BusinessConfig.instance.businessPhone.isNotEmpty)
+                        Text(
+                          BusinessConfig.instance.businessPhone,
+                          style: const TextStyle(color: Colors.black87, fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                      
+                      const SizedBox(height: 8),
+                      const Divider(color: Colors.black, thickness: 1),
+                      const SizedBox(height: 8),
+
+                      // Meta Info
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('DATE:', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+                          Text('Bill No: $receiptNumber', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
                           Text(
-                            timestamp != null ? '${timestamp.day}/${timestamp.month}/${timestamp.year}' : '',
-                            style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700),
+                            timestamp != null ? '${timestamp.month}/${timestamp.day}/${timestamp.year} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')} ${timestamp.hour >= 12 ? 'PM' : 'AM'}' : '',
+                            style: const TextStyle(color: Colors.black, fontSize: 11),
                           ),
                         ],
                       ),
-                      if (customer != null) ...[
-                        const SizedBox(height: 8),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('CUSTOMER:', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                            Text(customer, style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700)),
-                          ],
-                        ),
-                      ],
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text('PAYMENT:', style: TextStyle(fontSize: 12, color: Colors.black54, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
-                          Text(paymentMethod.toUpperCase(), style: const TextStyle(fontSize: 12, color: Colors.black87, fontWeight: FontWeight.w700)),
-                        ],
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Casher: ${employee.toUpperCase()}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
                       ),
-                      if (isReturn) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: ThemeProvider.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(ThemeProvider.radiusList), border: Border.all(color: ThemeProvider.warning.withOpacity(0.5))),
-                          child: const Text('RETURN', style: TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
-                        ),
-                      ],
-    
-                      const SizedBox(height: 24),
-                      const Divider(color: Colors.black12),
-                      const SizedBox(height: 16),
-    
-                      // Items
+                      const SizedBox(height: 4),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Customer: ${customer ?? "Walk-In"}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                      ),
+                      
+                      const SizedBox(height: 8),
+                      const _DashedLine(),
+                      const SizedBox(height: 4),
+
+                      // Header & Items Section
                       if (_loadingItems)
-                        const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-                      else if (_items.isEmpty)
-                        const Padding(padding: EdgeInsets.all(20), child: Text('No items found', style: TextStyle(color: Colors.black45, fontSize: 12)))
+                        const Center(child: CircularProgressIndicator(color: Colors.black))
                       else
-                        ..._items.map((item) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                        Column(
+                          children: [
+                            // Header Row
+                            Table(
+                              columnWidths: {
+                                0: const FlexColumnWidth(4.5),
+                                1: const FlexColumnWidth(1),
+                                2: const FlexColumnWidth(2),
+                                if (hasItemDiscounts) 3: const FlexColumnWidth(1.5),
+                                4: const FlexColumnWidth(2.5),
+                              },
+                              children: [
+                                TableRow(
                                   children: [
-                                    Text(item['product_name'] ?? item['name'] ?? 'Unknown', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w600)),
-                                    Text('${item['quantity']} x ${BusinessConfig.instance.currencyDisplay} ${(item['price'] as num? ?? item['purchase_price'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+                                    const Text('Description',
+                                        style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    const Text('QTY',
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    const Text('Price',
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    if (hasItemDiscounts)
+                                      const Text('Disc',
+                                          textAlign: TextAlign.right,
+                                          style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    const Text('Total',
+                                        textAlign: TextAlign.right,
+                                        style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
-                              ),
-                              Text('${BusinessConfig.instance.currencyDisplay} ${(item['subtotal'] as num? ?? 0).toDouble().toStringAsFixed(2)}', style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w700)),
-                            ],
-                          ),
-                        )),
-    
-                      const SizedBox(height: 16),
-                      const Divider(color: Colors.black12),
-                      const SizedBox(height: 16),
-    
-                      // Totals
-                      _ReceiptRow(label: 'Subtotal', value: '${BusinessConfig.instance.currencyDisplay} ${(total.abs() / 1.08).toStringAsFixed(2)}'),
-                      _ReceiptRow(label: 'Tax (8%)', value: '${BusinessConfig.instance.currencyDisplay} ${(total.abs() - total.abs() / 1.08).toStringAsFixed(2)}'),
-                      if (discount > 0)
-                        _ReceiptRow(label: 'Discount', value: '-${BusinessConfig.instance.currencyDisplay} ${(discount as num).toDouble().toStringAsFixed(2)}', valueColor: ThemeProvider.warning),
-                      const SizedBox(height: 16),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            const _DashedLine(),
+                            const SizedBox(height: 8),
+
+                            // Items Table
+                            Table(
+                              columnWidths: {
+                                0: const FlexColumnWidth(4.5),
+                                1: const FlexColumnWidth(1),
+                                2: const FlexColumnWidth(2),
+                                if (hasItemDiscounts) 3: const FlexColumnWidth(1.5),
+                                4: const FlexColumnWidth(2.5),
+                              },
+                              children: _items.map((item) {
+                                final name = item['product_name'] ?? item['name'] ?? 'Item';
+                                final qty = (item['quantity'] as num? ?? 0).toDouble();
+                                final price = (item['price'] as num? ?? 0).toDouble();
+                                final subtotal = (item['subtotal'] as num? ?? 0).toDouble();
+                                final disc = (item['discount'] as num? ?? 0).toDouble();
+
+                                return TableRow(
+                                  children: [
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 6),
+                                      child: Text(name.toUpperCase(),
+                                          style: const TextStyle(
+                                              color: Colors.black, fontSize: 11, fontWeight: FontWeight.w600)),
+                                    ),
+                                    Text(qty.toStringAsFixed(0),
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(color: Colors.black, fontSize: 11)),
+                                    Text(price.toStringAsFixed(0),
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(color: Colors.black, fontSize: 11)),
+                                    if (hasItemDiscounts)
+                                      Text(disc.toStringAsFixed(0),
+                                          textAlign: TextAlign.right,
+                                          style: const TextStyle(color: Colors.black, fontSize: 11)),
+                                    Text(subtotal.toStringAsFixed(0),
+                                        textAlign: TextAlign.right,
+                                        style: const TextStyle(
+                                            color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                                  ],
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ),
+                      
+                      const SizedBox(height: 4),
+                      const _DashedLine(),
+                      const SizedBox(height: 4),
+
+                      // Item levels
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('TOTAL', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: -0.5)),
-                          Text('${BusinessConfig.instance.currencyDisplay} ${total.abs().toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: Color(0xFF0A2647), letterSpacing: -1)),
+                          Text('[${_items.length}] Items', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text('[${_items.fold<double>(0, (p, e) => p + (e['quantity'] as num? ?? 0)).toStringAsFixed(0)}] Qty', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
                       ),
-    
+                      const SizedBox(height: 4),
+                      const _DashedLine(),
+                      const SizedBox(height: 12),
+
+            // Totals Section
+            _SummaryRow(label: 'Gross Total', value: (total + discount).toStringAsFixed(2)),
+            if (discount > 0)
+              _SummaryRow(label: '(-)Total Disc', value: discount.toStringAsFixed(2)),
+            _SummaryRow(label: 'Net Total', value: total.toStringAsFixed(2), isBold: true, fontSize: 18),
+            
+            if (tendered > 0) ...[
+              const SizedBox(height: 8),
+              _SummaryRow(label: 'Cash Received', value: tendered.toStringAsFixed(2)),
+              if (change > 0)
+                _SummaryRow(label: 'Cash Back', value: change.toStringAsFixed(2)),
+            ],
+                      
+                      const SizedBox(height: 12),
+                      const _DottedLine(),
+                      const SizedBox(height: 12),
+
+                      // You Saved
+                      if (discount > 0)
+                        Text(
+                          'You Saved: ${discount.toStringAsFixed(2)}',
+                          style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
+                        ),
+                      
+                      const SizedBox(height: 12),
+                      const _DottedLine(),
+                      const SizedBox(height: 16),
+
+                      const Text(
+                        '*** Thanks For Your Kind Visit ***',
+                        style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 32),
-                      const Divider(color: Colors.black12),
-                      const SizedBox(height: 24),
-    
-                      // Footer
-                      Text(BusinessConfig.instance.receiptFooter, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.black87), textAlign: TextAlign.center),
-                      const SizedBox(height: 16),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(12, (i) => Container(
-                          width: 4,
-                          height: 4,
-                          margin: const EdgeInsets.symmetric(horizontal: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.black26,
-                            shape: BoxShape.circle,
-                          ),
-                        )),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')}' : '',
-                        style: const TextStyle(fontSize: 12, color: Colors.black45, fontWeight: FontWeight.w600),
-                      ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
@@ -255,22 +311,59 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   }
 }
 
-class _ReceiptRow extends StatelessWidget {
+class _DashedLine extends StatelessWidget {
+  const _DashedLine();
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(80, (i) => Expanded(
+        child: Container(
+          height: 1,
+          color: i.isEven ? Colors.black : Colors.transparent,
+          margin: const EdgeInsets.symmetric(horizontal: 0.2),
+        ),
+      )),
+    );
+  }
+}
+
+class _DottedLine extends StatelessWidget {
+  const _DottedLine();
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(120, (i) => Expanded(
+        child: Container(
+          height: 1.2,
+          color: i.isEven ? Colors.black : Colors.transparent,
+          margin: const EdgeInsets.symmetric(horizontal: 0.3),
+        ),
+      )),
+    );
+  }
+}
+
+class _SummaryRow extends StatelessWidget {
   final String label;
   final String value;
-  final Color? valueColor;
+  final bool isBold;
+  final double fontSize;
 
-  const _ReceiptRow({required this.label, required this.value, this.valueColor});
+  const _SummaryRow({required this.label, required this.value, this.isBold = false, this.fontSize = 14});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Text(label, style: const TextStyle(fontSize: 13, color: Colors.black54, fontWeight: FontWeight.w600)),
-          Text(value, style: TextStyle(fontSize: 13, color: valueColor ?? Colors.black87, fontWeight: FontWeight.w700)),
+          Text(label, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          const SizedBox(width: 20),
+          SizedBox(
+            width: 100,
+            child: Text(value, textAlign: TextAlign.right, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          ),
         ],
       ),
     );
