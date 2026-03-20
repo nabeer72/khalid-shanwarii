@@ -30,6 +30,7 @@ class POSCategorySelector extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Wrap(
+        alignment: WrapAlignment.start,
         spacing: 8,
         runSpacing: 8,
         children: categories.map((cat) {

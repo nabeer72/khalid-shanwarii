@@ -79,7 +79,7 @@ class ThemeProvider extends ChangeNotifier {
   Color get textHint => _isDark ? const Color(0xFF4B5563) : const Color(0xFF9CA3AF);
   Color get divider => _isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
   Color get secondary => _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
-  Color get cardBorder => _isDark ? Colors.white.withOpacity(0.15) : Colors.black.withOpacity(0.15);
+  Color get cardBorder => _isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04);
   Color get iconColor => _isDark ? Colors.white : Colors.black;
 
   // Responsive UI Helpers

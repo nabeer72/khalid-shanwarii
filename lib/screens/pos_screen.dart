@@ -1107,6 +1107,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   Widget _buildProductPanel() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           decoration: BoxDecoration(

@@ -127,10 +127,12 @@ class _POSCartSectionState extends State<POSCartSection> {
               ),
               const SizedBox(width: 8),
               _buildHeaderButton(
-                icon: Icons.receipt_long_rounded,
-                label: 'Unhold',
-                color: ThemeProvider.warning,
-                onTap: widget.onShowHeldOrders,
+                icon: widget.controller.isReturn
+                    ? Icons.shopping_cart_checkout_rounded
+                    : Icons.assignment_return_rounded,
+                label: widget.controller.isReturn ? 'Sale' : 'Return',
+                color: widget.controller.isReturn ? ThemeProvider.success : ThemeProvider.error,
+                onTap: () => widget.controller.toggleReturn(!widget.controller.isReturn),
                 tooltip: '',
                 theme: theme,
               ),
@@ -236,7 +238,7 @@ class _POSCartSectionState extends State<POSCartSection> {
         children: [
           _totalRow(theme, 'Subtotal', widget.controller.subtotal),
           const SizedBox(height: 6),
-          _totalRow(theme, 'Tax (8%)', widget.controller.tax),
+          _totalRow(theme, 'Tax', widget.controller.tax),
           if (widget.controller.discount > 0) ...[
             const SizedBox(height: 6),
             Row(
@@ -300,12 +302,10 @@ class _POSCartSectionState extends State<POSCartSection> {
             const SizedBox(width: 4),
             _buildCartAction(
               theme: theme,
-              icon: widget.controller.isReturn
-                  ? Icons.shopping_cart_checkout_rounded
-                  : Icons.assignment_return_rounded,
-              label: widget.controller.isReturn ? 'Sale Mode' : 'Return Mode',
-              color: widget.controller.isReturn ? ThemeProvider.success : ThemeProvider.error,
-              onTap: () => widget.controller.toggleReturn(!widget.controller.isReturn),
+              icon: Icons.receipt_long_rounded,
+              label: 'Unhold',
+              color: ThemeProvider.warning,
+              onTap: widget.onShowHeldOrders,
             ),
           ],
         ),
