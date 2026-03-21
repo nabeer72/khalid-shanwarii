@@ -1,7 +1,9 @@
+import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:shake/shake.dart';
 
 // Conditional import for desktop SQLite
@@ -38,8 +40,8 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     
-    // Initialize shake detector
-    if (!kIsWeb) {
+    // Initialize shake detector only on mobile platforms
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       detector = ShakeDetector.autoStart(
         onPhoneShake: (event) {
           // Only allow shake navigation if authenticated AND not on Login Screen
@@ -70,19 +72,28 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey, // Assign the global navigator key
-      title: 'SATA POS',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF0A2647),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0D1B2A),
-      ),
-      home: const LoginScreen(),
+    return ListenableBuilder(
+      listenable: ThemeProvider.instance,
+      builder: (context, child) {
+        final theme = ThemeProvider.instance;
+        return MaterialApp(
+          navigatorKey: navigatorKey, // Assign the global navigator key
+          title: 'SATA POS',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF0A2647),
+              brightness: theme.isDark ? Brightness.dark : Brightness.light,
+            ),
+            useMaterial3: true,
+            scaffoldBackgroundColor: theme.background,
+            dialogTheme: DialogThemeData(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          home: const LoginScreen(),
+        );
+      },
     );
   }
 }

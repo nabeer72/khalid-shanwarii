@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/models/pos_cart_item.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/db/mock_data.dart';
 
 class POSCartItemTile extends StatelessWidget {
   final POSCartItem item;
@@ -30,7 +31,7 @@ class POSCartItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
     final qty = item.isWeight
-        ? item.quantity.toStringAsFixed(2)
+        ? BusinessConfig.instance.formatAmount(item.quantity)
         : '${item.quantity.toInt()}';
 
     return Column(
@@ -58,7 +59,7 @@ class POSCartItemTile extends StatelessWidget {
 
                 // QTY
                 SizedBox(
-                  width: 90,
+                  width: 60,
                   child: Text(
                     qty,
                     textAlign: TextAlign.center,
@@ -70,11 +71,25 @@ class POSCartItemTile extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
 
+                // DISC
+                SizedBox(
+                  width: 60,
+                  child: Text(
+                    BusinessConfig.instance.formatAmount(item.discount),
+                    textAlign: TextAlign.right,
+                    style: TextStyle(
+                        color: theme.highlight,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12),
+                  ),
+                ),
+                const SizedBox(width: 8),
+
                 // RATE
                 SizedBox(
                   width: 60,
                   child: Text(
-                    item.price.toStringAsFixed(2),
+                    BusinessConfig.instance.formatAmount(item.price),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         color: theme.textSecondary,
@@ -88,7 +103,7 @@ class POSCartItemTile extends StatelessWidget {
                 SizedBox(
                   width: 75,
                   child: Text(
-                    item.subtotal.toStringAsFixed(2),
+                    BusinessConfig.instance.formatAmount(item.subtotal),
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         color: theme.textPrimary,

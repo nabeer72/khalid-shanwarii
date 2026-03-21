@@ -652,7 +652,7 @@ extension ThemeProviderExt on ThemeProvider {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: child,
       ),
     );

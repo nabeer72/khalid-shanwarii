@@ -34,6 +34,7 @@ class POSController with ChangeNotifier {
   double get subtotal => _subtotal;
   double get tax => _tax;
   double get discount => _discount;
+  double get totalDiscount => _cart.fold(0.0, (sum, item) => sum + item.discount) + _discount;
   double get total => _total;
   bool get isReturn => _isReturn;
   Customer? get selectedCustomer => _selectedCustomer;
@@ -208,11 +209,12 @@ class POSController with ChangeNotifier {
 
   void resumeOrder(HeldOrder order) {
     _cart = order.items.map((itemMap) {
-      final product = _products.firstWhere((p) => p.id == itemMap['id'], orElse: () => _products.first);
+      final productId = itemMap['product_id'] ?? itemMap['id'];
+      final product = _products.firstWhere((p) => p.id == productId, orElse: () => _products.first);
       final stock = product.stocks.firstWhere((s) => s.id == itemMap['stock_id'], orElse: () => product.stocks.first);
       
       return POSCartItem(
-        cartItemId: itemMap['cart_item_id'],
+        cartItemId: '${product.id}_${stock.id}',
         product: product,
         stock: stock,
         quantity: (itemMap['quantity'] as num).toDouble(),

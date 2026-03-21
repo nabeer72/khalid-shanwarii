@@ -171,9 +171,20 @@ class _POSCartSectionState extends State<POSCartSection> {
           ),
           const SizedBox(width: 8),
           SizedBox(
-            width: 90,
+            width: 60,
             child: Text('QTY',
                 textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5)),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 60,
+            child: Text('DISC',
+                textAlign: TextAlign.right,
                 style: TextStyle(
                     color: theme.textSecondary,
                     fontSize: 10,
@@ -239,18 +250,18 @@ class _POSCartSectionState extends State<POSCartSection> {
           _totalRow(theme, 'Subtotal', widget.controller.subtotal),
           const SizedBox(height: 6),
           _totalRow(theme, 'Tax', widget.controller.tax),
-          if (widget.controller.discount > 0) ...[
+          if (widget.controller.totalDiscount > 0) ...[
             const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Discount',
+                Text('Total Discount',
                     style: TextStyle(
                         color: theme.highlight,
                         fontSize: 13,
                         fontWeight: FontWeight.w700)),
                 Text(
-                    '-${BusinessConfig.instance.currencyDisplay} ${widget.controller.discount.toStringAsFixed(2)}',
+                    '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.totalDiscount)}',
                     style: TextStyle(
                         color: theme.highlight,
                         fontSize: 13,
@@ -271,7 +282,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5)),
               Text(
-                  '${BusinessConfig.instance.currencyDisplay} ${widget.controller.total.toStringAsFixed(2)}',
+                  '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.total)}',
                   style: TextStyle(
                       color: theme.highlight,
                       fontSize: 15,
@@ -350,7 +361,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                 color: theme.textSecondary,
                 fontSize: 13,
                 fontWeight: FontWeight.w600)),
-        Text('${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(2)}',
+        Text('${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(value)}',
             style: TextStyle(
                 color: theme.textPrimary,
                 fontSize: 13,

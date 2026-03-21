@@ -51,8 +51,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   void initState() {
     super.initState();
     _amountTendered = widget.total;
-    _cashController.text = widget.total.toStringAsFixed(2);
-    _partialController.text = widget.total.toStringAsFixed(2);
+    _cashController.text = BusinessConfig.instance.formatAmount(widget.total);
+    _partialController.text = BusinessConfig.instance.formatAmount(widget.total);
     _selectedCustomer = widget.customer;
   }
 
@@ -368,7 +368,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                                 _partialController.text = '0.00';
                               } else if (pm.name == 'Cash') {
                                 _amountTendered = _grandTotal;
-                                _cashController.text = _grandTotal.toStringAsFixed(2);
+                                _cashController.text = BusinessConfig.instance.formatAmount(_grandTotal);
                               }
                             });
                           },
@@ -427,7 +427,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               style: TextStyle(color: ThemeProvider.warning, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
                           const SizedBox(height: 2),
                           Text(
-                            'Remaining ${BusinessConfig.instance.currencyDisplay} ${(_grandTotal - _amountTendered).toStringAsFixed(2)} will be added to credit.',
+                            'Remaining ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_grandTotal - _amountTendered)} will be added to credit.',
                             style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600),
                           ),
                         ],
@@ -537,22 +537,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
             _SummaryRow(
                 label: 'Subtotal',
                 value:
-                    '${BusinessConfig.instance.currencyDisplay} ${widget.subtotal.toStringAsFixed(2)}'),
+                    '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.subtotal)}'),
             _SummaryRow(
                 label: 'Tax',
                 value:
-                    '${BusinessConfig.instance.currencyDisplay} ${widget.tax.toStringAsFixed(2)}'),
+                    '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
             if (widget.discount > 0)
               _SummaryRow(
                   label: 'Discount',
                   value:
-                      '-${BusinessConfig.instance.currencyDisplay} ${widget.discount.toStringAsFixed(2)}',
+                      '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.discount)}',
                   valueColor: ThemeProvider.warning),
             if (_tipAmount > 0)
               _SummaryRow(
                   label: 'Tip',
                   value:
-                      '${BusinessConfig.instance.currencyDisplay} ${_tipAmount.toStringAsFixed(2)}',
+                      '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_tipAmount)}',
                 valueColor: ThemeProvider.success),
 
           const SizedBox(height: 10),
@@ -570,7 +570,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    '${BusinessConfig.instance.currencyDisplay} ${_grandTotal.toStringAsFixed(2)}',
+                    '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_grandTotal)}',
                     style: TextStyle(
                         color: theme.highlight,
                         fontSize: 20,

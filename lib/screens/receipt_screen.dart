@@ -229,17 +229,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                           style: const TextStyle(
                                               color: Colors.black, fontSize: 11, fontWeight: FontWeight.w600)),
                                     ),
-                                    Text(qty.toStringAsFixed(0),
+                                    Text(BusinessConfig.instance.formatAmount(qty),
                                         textAlign: TextAlign.center,
                                         style: const TextStyle(color: Colors.black, fontSize: 11)),
-                                    Text(price.toStringAsFixed(0),
+                                    Text(BusinessConfig.instance.formatAmount(price),
                                         textAlign: TextAlign.right,
                                         style: const TextStyle(color: Colors.black, fontSize: 11)),
                                     if (hasItemDiscounts)
-                                      Text(disc.toStringAsFixed(0),
+                                      Text(BusinessConfig.instance.formatAmount(disc),
                                           textAlign: TextAlign.right,
                                           style: const TextStyle(color: Colors.black, fontSize: 11)),
-                                    Text(subtotal.toStringAsFixed(0),
+                                    Text(BusinessConfig.instance.formatAmount(subtotal),
                                         textAlign: TextAlign.right,
                                         style: const TextStyle(
                                             color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
@@ -259,7 +259,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('[${_items.length}] Items', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-                          Text('[${_items.fold<double>(0, (p, e) => p + (e['quantity'] as num? ?? 0)).toStringAsFixed(0)}] Qty', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text('[${BusinessConfig.instance.formatAmount(_items.fold<double>(0, (p, e) => p + (e['quantity'] as num? ?? 0)))}] Qty', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -267,16 +267,16 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       const SizedBox(height: 12),
 
             // Totals Section
-            _SummaryRow(label: 'Gross Total', value: (total + discount).toStringAsFixed(2)),
+            _SummaryRow(label: 'Gross Total', value: BusinessConfig.instance.formatAmount(total + discount)),
             if (discount > 0)
-              _SummaryRow(label: '(-)Total Disc', value: discount.toStringAsFixed(2)),
-            _SummaryRow(label: 'Net Total', value: total.toStringAsFixed(2), isBold: true, fontSize: 18),
+              _SummaryRow(label: '(-)Total Disc', value: BusinessConfig.instance.formatAmount(discount)),
+            _SummaryRow(label: 'Net Total', value: BusinessConfig.instance.formatAmount(total), isBold: true, fontSize: 18),
             
             if (tendered > 0) ...[
               const SizedBox(height: 8),
-              _SummaryRow(label: 'Cash Received', value: tendered.toStringAsFixed(2)),
+              _SummaryRow(label: 'Cash Received', value: BusinessConfig.instance.formatAmount(tendered)),
               if (change > 0)
-                _SummaryRow(label: 'Cash Back', value: change.toStringAsFixed(2)),
+                _SummaryRow(label: 'Cash Back', value: BusinessConfig.instance.formatAmount(change)),
             ],
                       
                       const SizedBox(height: 12),
@@ -286,7 +286,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       // You Saved
                       if (discount > 0)
                         Text(
-                          'You Saved: ${discount.toStringAsFixed(2)}',
+                          'You Saved: ${BusinessConfig.instance.formatAmount(discount)}',
                           style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
                         ),
                       

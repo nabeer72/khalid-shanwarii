@@ -16,9 +16,9 @@ class ThemeProvider extends ChangeNotifier {
 
   // Border Radius standards
   static const double radiusList = 8;
-  static const double radiusCard = 10;
+  static const double radiusCard = 8;
   static const double radiusInput = 8;
-  static const double radiusGlass = 10;
+  static const double radiusGlass = 8;
 
   bool _isDark = true;
   bool get isDark => _isDark;

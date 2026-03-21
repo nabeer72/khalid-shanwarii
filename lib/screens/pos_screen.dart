@@ -131,7 +131,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: Row(
           children: [
             Icon(Icons.error_outline_rounded, color: ThemeProvider.error),
@@ -160,6 +160,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         backgroundColor: theme.surface,
         title: Text('Select Batch for ${product.name}', style: TextStyle(color: theme.textPrimary)),
         content: SizedBox(
@@ -170,7 +171,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             itemBuilder: (ctx, i) {
               final stock = product.stocks[i];
               return ListTile(
-                title: Text('${BusinessConfig.instance.currencyDisplay} ${stock.salePrice.toStringAsFixed(2)}', 
+                title: Text('${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)}', 
                     style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
                 subtitle: Text('Stock: ${stock.quantity} | Barcode: ${stock.barcode ?? 'N/A'}',
                     style: TextStyle(color: theme.textSecondary, fontSize: 13)),
@@ -225,7 +226,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       suffixStyle:
                           TextStyle(color: theme.textSecondary, fontSize: 18),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12)))),
+                          borderRadius: BorderRadius.circular(8)))),
               const SizedBox(height: 12),
               Wrap(
                   spacing: 8,
@@ -262,6 +263,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         backgroundColor: theme.surface,
         title: Row(
           children: [
@@ -298,18 +300,56 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     final defaultName = _controller.selectedCustomer?.name ??
         'Order #${existingOrders.length + 1}';
         
-    await _controller.parkCurrentCart(defaultName);
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Order held successfully!')));
+    final nameCtrl = TextEditingController(text: defaultName);
+    
+    if (!mounted) return;
+    
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+        title: Text('Hold Order', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: InputDecoration(
+            labelText: 'Reference Name',
+            labelStyle: TextStyle(color: theme.textSecondary),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, nameCtrl.text),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: ThemeProvider.warning,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('HOLD ORDER', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (name != null && name.isNotEmpty) {
+      await _controller.parkCurrentCart(name);
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Order held successfully!')));
+      }
     }
   }
 
-  void _showHeldOrdersModal() {
-    showModalBottomSheet(
+  void _showHeldOrdersDialog() {
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return FutureBuilder<List<Map<String, dynamic>>>(
@@ -318,175 +358,133 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               final ordersData = snapshot.data ?? [];
               final loading = snapshot.connectionState == ConnectionState.waiting;
 
-              return Container(
-                height: MediaQuery.of(context).size.height * 0.85,
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
-                ),
-                child: Column(
-                  children: [
-                    // Modal Handle
-                    Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                            color: theme.isDark
-                                ? Colors.white.withOpacity(0.2)
-                                : theme.textHint.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(2))),
-                    
-                    // Title & Close
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('ORDERS',
-                              style: TextStyle(
-                                  color: theme.textPrimary,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900)),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded),
-                            onPressed: () => Navigator.pop(ctx),
-                            color: theme.iconColor,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    // Park Current Cart Button (only if cart is not empty)
-                    if (_controller.cart.isNotEmpty)
+              return AlertDialog(
+                backgroundColor: theme.surface,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+                titlePadding: EdgeInsets.zero,
+                contentPadding: EdgeInsets.zero,
+                content: SizedBox(
+                  width: 450,
+                  height: MediaQuery.of(context).size.height * 0.7,
+                  child: Column(
+                    children: [
+                      // Title & Close
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-                        child: InkWell(
-                          onTap: () async {
-                            await _handleParkCart();
-                            if (ctx.mounted) Navigator.pop(ctx);
-                          },
-                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: ThemeProvider.warning.withOpacity(0.1),
-                              border: Border.all(color: ThemeProvider.warning.withOpacity(0.3)),
-                              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                        padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('HELD ORDERS',
+                                style: TextStyle(
+                                    color: theme.textPrimary,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900)),
+                            IconButton(
+                              icon: const Icon(Icons.close_rounded),
+                              onPressed: () => Navigator.pop(ctx),
+                              color: theme.iconColor,
                             ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.pause_circle_filled_rounded, color: ThemeProvider.warning),
-                                const SizedBox(width: 8),
-                                Text('Park Current Cart', 
-                                    style: TextStyle(
-                                      color: ThemeProvider.warning, 
-                                      fontWeight: FontWeight.w900,
-                                      fontSize: 15,
-                                    ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          ],
                         ),
                       ),
+                      const Divider(),
 
-                    // List of Held Orders
-                    Expanded(
-                      child: loading 
-                        ? Center(child: CircularProgressIndicator(color: theme.highlight))
-                        : ordersData.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.inventory_2_outlined, size: 48, color: theme.iconColor.withOpacity(0.5)),
-                                  const SizedBox(height: 12),
-                                  Text('No parked orders', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
-                                ],
-                              ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
-                              itemCount: ordersData.length,
-                              itemBuilder: (context, index) {
-                                final data = ordersData[index];
-                                final createdAt = DateTime.parse(data['created_at']);
-                                final elapsed = DateTime.now().difference(createdAt);
-                                final elapsedStr = elapsed.inMinutes < 60 
-                                    ? '${elapsed.inMinutes}m ago'
-                                    : '${elapsed.inHours}h ${elapsed.inMinutes % 60}m ago';
+                      // List of Held Orders
+                      Expanded(
+                        child: loading 
+                          ? Center(child: CircularProgressIndicator(color: theme.highlight))
+                          : ordersData.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.inventory_2_outlined, size: 48, color: theme.iconColor.withOpacity(0.5)),
+                                    const SizedBox(height: 12),
+                                    Text('No parked orders', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.all(16),
+                                itemCount: ordersData.length,
+                                itemBuilder: (context, index) {
+                                  final data = ordersData[index];
+                                  final createdAt = DateTime.parse(data['created_at']);
+                                  final elapsed = DateTime.now().difference(createdAt);
+                                  final elapsedStr = elapsed.inMinutes < 60 
+                                      ? '${elapsed.inMinutes}m ago'
+                                      : '${elapsed.inHours}h ${elapsed.inMinutes % 60}m ago';
 
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 8),
-                                  decoration: theme.glassDecoration,
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                                    leading: Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: ThemeProvider.warning.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                                      ),
-                                      child: const Icon(Icons.pause_rounded, color: ThemeProvider.warning, size: 20),
-                                    ),
-                                    title: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(data['name'] ?? 'Order', 
-                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                                  return Container(
+                                    margin: const EdgeInsets.only(bottom: 8),
+                                    decoration: theme.glassDecoration,
+                                    child: ListTile(
+                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                      leading: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: ThemeProvider.warning.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                         ),
-                                        Text(elapsedStr, 
-                                            style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
-                                      ],
-                                    ),
-                                    subtitle: Padding(
-                                      padding: const EdgeInsets.only(top: 2),
-                                      child: Text(
-                                        'Total: ${BusinessConfig.instance.currencyDisplay} ${(data['total'] as num).toStringAsFixed(2)}',
-                                        style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                        child: const Icon(Icons.pause_rounded, color: ThemeProvider.warning, size: 20),
                                       ),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 18),
-                                          onPressed: () async {
-                                            await DatabaseHelper.instance.deleteHeldOrder(data['id']);
-                                            setModalState(() {});
-                                          },
-                                        ),
-                                        const SizedBox(width: 4),
-                                        IconButton(
-                                          icon: const Icon(Icons.play_arrow_rounded, color: ThemeProvider.success, size: 18),
-                                          style: IconButton.styleFrom(
-                                            backgroundColor: ThemeProvider.success.withOpacity(0.1),
-                                            padding: const EdgeInsets.all(8),
+                                      title: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Text(data['name'] ?? 'Order', 
+                                                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                           ),
-                                          onPressed: () async {
-                                            final items = await DatabaseHelper.instance.getHeldOrderItems(data['id']);
-                                            Customer? customer;
-                                            if (data['customer_id'] != null) {
-                                              final cData = await DatabaseHelper.instance.getCustomer(data['customer_id']);
-                                              if (cData != null) customer = Customer.fromMap(cData);
-                                            }
-                                            final order = HeldOrder.fromMap(data, childItems: items, customer: customer);
-                                            await DatabaseHelper.instance.deleteHeldOrder(data['id']);
-                                            _controller.resumeOrder(order);
-                                            if (ctx.mounted) Navigator.pop(ctx);
-                                          },
+                                          Text(elapsedStr, 
+                                              style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+                                        ],
+                                      ),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(top: 2),
+                                        child: Text(
+                                          'Total: ${BusinessConfig.instance.currencyDisplay} ${(data['total'] as num).toStringAsFixed(2)}',
+                                          style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
                                         ),
-                                      ],
+                                      ),
+                                      trailing: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 18),
+                                            onPressed: () async {
+                                              await DatabaseHelper.instance.deleteHeldOrder(data['id']);
+                                              setModalState(() {});
+                                            },
+                                          ),
+                                          const SizedBox(width: 4),
+                                          IconButton(
+                                            icon: const Icon(Icons.play_arrow_rounded, color: ThemeProvider.success, size: 18),
+                                            style: IconButton.styleFrom(
+                                              backgroundColor: ThemeProvider.success.withOpacity(0.1),
+                                              padding: const EdgeInsets.all(8),
+                                            ),
+                                            onPressed: () async {
+                                              final items = await DatabaseHelper.instance.getHeldOrderItems(data['id']);
+                                              Customer? customer;
+                                              if (data['customer_id'] != null) {
+                                                final cData = await DatabaseHelper.instance.getCustomer(data['customer_id']);
+                                                if (cData != null) customer = Customer.fromMap(cData);
+                                              }
+                                              final order = HeldOrder.fromMap(data, childItems: items, customer: customer);
+                                              await DatabaseHelper.instance.deleteHeldOrder(data['id']);
+                                              _controller.resumeOrder(order);
+                                              if (ctx.mounted) Navigator.pop(ctx);
+                                            },
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                  ],
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
@@ -514,7 +512,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               style: TextStyle(color: theme.textPrimary, fontSize: 24),
               textAlign: TextAlign.center,
               decoration: InputDecoration(
-                  prefixText: '\$ ', border: const OutlineInputBorder())),
+                  prefixText: '\$ ', border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))))),
         ),
         actions: [
           TextButton(
@@ -544,7 +542,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             cart: _controller.cart.map((item) => item.toMap()).toList(),
             subtotal: _controller.subtotal,
             tax: _controller.tax,
-            discount: _controller.discount,
+            discount: _controller.totalDiscount,
             total: _controller.total,
             isReturn: _controller.isReturn,
             customer: _controller.selectedCustomer,
@@ -620,7 +618,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                             hintStyle: TextStyle(color: theme.textHint),
                             prefixIcon:
                                 Icon(Icons.search, color: theme.iconColor),
-                            border: const OutlineInputBorder(),
+                            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                           ),
                           onChanged: (v) => setDialogState(() => query = v),
                         ),
@@ -746,11 +744,11 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: theme.highlight, width: 2),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         child: Stack(
           children: [
             if (_scannerController != null)
@@ -811,7 +809,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   style: TextStyle(color: theme.textPrimary),
                   decoration: InputDecoration(
                       hintText: 'Scan or type barcode...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10))),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
                   onSubmitted: (v) {
                     Navigator.pop(ctx);
                     _processBarcode(v);
@@ -910,7 +908,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         return Container(
           decoration: BoxDecoration(
             color: theme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           child: Column(
@@ -1165,7 +1163,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           final customer = await _showCustomerSelectionDialog();
           if (customer != null) _controller.setSelectedCustomer(customer);
         },
-        onShowHeldOrders: _showHeldOrdersModal,
+        onShowHeldOrders: _showHeldOrdersDialog,
         onToggleQuickAdd: _toggleQuickAddProduct,
         onApplyDiscount: _showDiscountDialog,
       ),
@@ -1327,7 +1325,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: theme.glassDecoration.copyWith(
         color: theme.highlight,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: InkWell(
         onTap: () {
@@ -1342,7 +1340,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               builder: (_, scrollController) => Container(
                 decoration: BoxDecoration(
                   color: theme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
                 ),
                 child: _buildCartPanel(),
               ),
@@ -1406,7 +1404,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.highlight,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Yes', style: TextStyle(color: Colors.white)),

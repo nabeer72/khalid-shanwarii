@@ -31,7 +31,23 @@ class BusinessConfig {
   set currency(String value) {
     currencyNotifier.value = value;
   }
-  String get currencyDisplay => currency == 'Rs' ? '$currency.' : currency;
+  String get currencyDisplay {
+    if (currency.toLowerCase().startsWith('rs') && !currency.contains('.')) {
+      return '$currency.';
+    }
+    return currency;
+  }
+  
+  String formatAmount(double amount) {
+    final c = currency.toLowerCase();
+    // Include various Rupee symbols: Rs, ₹ (INR), ₨ (PKR), etc.
+    if (c.startsWith('rs') || c.startsWith('rupee') || c == '₹' || c == '₨' || c.contains('rs')) {
+      return amount.toStringAsFixed(2);
+    } else {
+      return amount.toStringAsFixed(0);
+    }
+  }
+
   IconData get currencyIcon {
     switch (currency) {
       case '\$': return Icons.attach_money;

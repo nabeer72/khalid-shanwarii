@@ -1,4 +1,5 @@
 import 'stock.dart';
+import 'package:mobile_app/db/mock_data.dart';
 
 class Product {
   final dynamic id;
@@ -131,8 +132,9 @@ class Product {
   
   String get priceRange {
     if (stocks.isEmpty) return 'N/A';
-    if (minPrice == maxPrice) return minPrice.toStringAsFixed(2);
-    return '${minPrice.toStringAsFixed(2)} - ${maxPrice.toStringAsFixed(2)}';
+    final config = BusinessConfig.instance;
+    if (minPrice == maxPrice) return config.formatAmount(minPrice);
+    return '${config.formatAmount(minPrice)} - ${config.formatAmount(maxPrice)}';
   }
 
   // Getters for legacy/controller compatibility (prefer denormalized fields)

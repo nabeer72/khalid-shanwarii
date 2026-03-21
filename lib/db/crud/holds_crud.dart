@@ -36,8 +36,14 @@ mixin HoldsCrud on CommonCrud {
 
       for (var item in items) {
         await txn.insert('held_order_items', {
-          ...item,
           'held_order_id': heldOrderId,
+          'product_id': item['product_id'] ?? item['id'],
+          'stock_id': item['stock_id'],
+          'quantity': item['quantity'],
+          'price': item['price'],
+          'subtotal': item['subtotal'],
+          'discount': item['discount'] ?? 0,
+          'category_id': item['category_id'],
         });
       }
       return heldOrderId;
