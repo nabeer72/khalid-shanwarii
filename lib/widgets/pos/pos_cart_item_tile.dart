@@ -190,11 +190,19 @@ class POSCartItemTile extends StatelessWidget {
   }
 
   Widget _qtyBtn(IconData icon, VoidCallback onTap, Color color) {
-    return IconButton(
-      icon: Icon(icon, color: color, size: 20),
-      onPressed: onTap,
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
+    final theme = ThemeProvider.instance;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: theme.whiteAlpha(0.1),
+          border: Border.all(color: theme.whiteAlpha(0.15), width: 1),
+        ),
+        child: Icon(icon, color: color, size: 18),
+      ),
     );
   }
 

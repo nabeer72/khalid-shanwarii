@@ -327,22 +327,15 @@ class _SaleTile extends StatelessWidget {
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         onTap: onTap,
-        title: Row(
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(isReturn ? 'REFUND' : 'SALE', 
-                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
-                  if (sale['customer_name'] != null)
-                    Text(sale['customer_name'].toString().toUpperCase(), 
-                        style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
-                ],
-              ),
-            ),
-            Text('#${sale['id'] ?? '??'}', 
-                style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+            Text(isReturn ? 'REFUND' : 'SALE', 
+                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+            if (sale['customer_name'] != null)
+              Text(sale['customer_name'].toString().toUpperCase(), 
+                  style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
           ],
         ),
         subtitle: Padding(
@@ -364,23 +357,17 @@ class _SaleTile extends StatelessWidget {
         ),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            IconButton(
-              icon: Icon(Icons.print_rounded, color: theme.textSecondary, size: 20),
-              onPressed: onPrint,
-              tooltip: 'Print Receipt',
-            ),
-            if (!isReturn)
-              IconButton(
-                icon: Icon(Icons.keyboard_return_rounded, color: ThemeProvider.error, size: 20),
-                onPressed: onRefund,
-                tooltip: 'Refund Sale',
-              ),
-            const SizedBox(width: 8),
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
+                Text(
+                  'BILL #${sale['id'] ?? '??'}',
+                  style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900),
+                ),
                 Text(
                   '${isReturn ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',
                   style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
@@ -391,6 +378,30 @@ class _SaleTile extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(width: 12),
+            IconButton(
+              icon: Icon(Icons.print_rounded, color: theme.textSecondary, size: 22),
+              constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+              padding: EdgeInsets.zero,
+              onPressed: onPrint,
+              tooltip: 'Print Receipt',
+            ),
+            if (!isReturn)
+              IconButton(
+                icon: Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: ThemeProvider.warning.withOpacity(0.15),
+                  ),
+                  child: const Icon(Icons.currency_exchange_rounded, color: ThemeProvider.warning, size: 16),
+                ),
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                padding: EdgeInsets.zero,
+                onPressed: onRefund,
+                tooltip: 'Refund Sale',
+              ),
           ],
         ),
       ),

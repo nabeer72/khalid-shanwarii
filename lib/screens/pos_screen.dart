@@ -1175,6 +1175,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         onShowHeldOrders: _showHeldOrdersDialog,
         onToggleQuickAdd: _toggleQuickAddProduct,
         onApplyDiscount: _showDiscountDialog,
+        onOpenCashDrawer: () => debugPrint('Opening Cash Drawer...'),
       ),
     );
   }

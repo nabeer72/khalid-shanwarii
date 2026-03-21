@@ -279,24 +279,27 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                 _SummaryRow(label: 'Cash Back', value: BusinessConfig.instance.formatAmount(change)),
             ],
                       
-                      const SizedBox(height: 12),
-                      const _DottedLine(),
-                      const SizedBox(height: 12),
-
-                      // You Saved
-                      if (discount > 0)
+                      if (discount > 0) ...[
+                        const SizedBox(height: 12),
+                        const _DottedLine(),
+                        const SizedBox(height: 12),
                         Text(
                           'You Saved: ${BusinessConfig.instance.formatAmount(discount)}',
                           style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
                         ),
-                      
-                      const SizedBox(height: 12),
-                      const _DottedLine(),
+                        const SizedBox(height: 12),
+                        const _DottedLine(),
+                      ],
                       const SizedBox(height: 16),
 
                       const Text(
                         '*** Thanks For Your Kind Visit ***',
                         style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Copyright Powered by SATA Technologies',
+                        style: TextStyle(color: Colors.black54, fontSize: 10, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 32),
                     ],

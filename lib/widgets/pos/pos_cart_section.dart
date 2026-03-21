@@ -13,6 +13,7 @@ class POSCartSection extends StatefulWidget {
   final VoidCallback onShowHeldOrders;
   final VoidCallback onToggleQuickAdd;
   final VoidCallback onApplyDiscount;
+  final VoidCallback onOpenCashDrawer;
 
   const POSCartSection({
     super.key,
@@ -24,6 +25,7 @@ class POSCartSection extends StatefulWidget {
     required this.onShowHeldOrders,
     required this.onToggleQuickAdd,
     required this.onApplyDiscount,
+    required this.onOpenCashDrawer,
   });
 
   @override
@@ -300,7 +302,7 @@ class _POSCartSectionState extends State<POSCartSection> {
   Widget _buildActionButtons(ThemeProvider theme) {
     return Column(
       children: [
-        Row(
+          Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             _buildCartAction(
@@ -317,6 +319,14 @@ class _POSCartSectionState extends State<POSCartSection> {
               label: 'Unhold',
               color: ThemeProvider.warning,
               onTap: widget.onShowHeldOrders,
+            ),
+            const SizedBox(width: 4),
+            _buildCartAction(
+              theme: theme,
+              icon: Icons.point_of_sale_rounded,
+              label: 'Cash Drawer',
+              color: ThemeProvider.success,
+              onTap: widget.onOpenCashDrawer,
             ),
           ],
         ),
