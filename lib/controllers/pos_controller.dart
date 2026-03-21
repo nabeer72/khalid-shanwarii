@@ -156,8 +156,7 @@ class POSController with ChangeNotifier {
       _cart.removeAt(index);
     } else {
       if (nextQty > item.stock.quantity) return;
-      item.quantity = nextQty;
-      item.updateSubtotal();
+      item.setQuantity(nextQty);
     }
     calculateTotals();
   }
@@ -170,8 +169,7 @@ class POSController with ChangeNotifier {
     } else {
       final item = _cart[index];
       if (value > item.stock.quantity) return;
-      item.quantity = value;
-      item.updateSubtotal();
+      item.setQuantity(value);
     }
     calculateTotals();
   }
