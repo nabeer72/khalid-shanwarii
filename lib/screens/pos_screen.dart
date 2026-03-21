@@ -1181,152 +1181,171 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   }
 
   Widget _buildPOSHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Row(
-        children: [
-          Container(
-            decoration: theme.glassCircleDecoration,
-            child: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded,
-                  color: theme.iconColor, size: 20),
-              onPressed: () async {
-                final shouldPop = await _showBackConfirmDialog(context);
-                if (shouldPop == true && context.mounted) {
-                  Navigator.pop(context);
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            decoration: theme.glassCircleDecoration,
-            child: IconButton(
-              icon: Icon(Icons.logout_rounded,
-                  color: ThemeProvider.error, size: 20),
-              tooltip: 'Clock Out',
-              onPressed: () async {
-                final activeShift = await DatabaseHelper.instance.getActiveShift();
-                if (activeShift != null && mounted) {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      backgroundColor: theme.surface,
-                      title: const Text('Clock Out'),
-                      content: const Text('Are you sure you want to clock out? This will end your current shift.'),
-                      actions: [
-                        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: ThemeProvider.error),
-                          onPressed: () => Navigator.pop(ctx, true), 
-                          child: const Text('Yes, Clock Out')
-                        ),
-                      ],
-                    ),
-                  );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool showLabel = constraints.maxWidth > 600;
 
-                  if (confirm != true || !mounted) return;
-
-                  final closingData = await showDialog<Map<String, dynamic>>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (ctx) => const ClockOutDenominationsDialog(),
-                  );
-
-                  if (closingData == null || !mounted) return;
-
-                  final clockedOut = await showDialog<bool>(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (ctx) => ClockOutDialog(
-                      activeShift: activeShift,
-                      closingCash: closingData['total'],
-                      closingDenominations: closingData['denominations'],
-                    ),
-                  );
-
-                  if (clockedOut == true && mounted) {
-                    Navigator.pop(context);
-                  }
-                }
-              },
-            ),
-          ),
-          const SizedBox(width: 12),
-       
-          Container(
-            decoration: theme.glassCircleDecoration,
-            child: IconButton(
-              icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                  color: theme.isDark ? Colors.white : Colors.black, size: 20),
-              tooltip: theme.isDark ? 'Light Mode' : 'Dark Mode',
-              onPressed: () => setState(() => theme.toggleTheme()),
-            ),
-          ),
-          const SizedBox(width: 12),
-          _buildHeaderActionButton(
-            icon: Icons.history_rounded,
-            label: 'Shift History',
-            color: theme.highlight,
-            onTap: _showShiftHistory,
-          ),
-          const SizedBox(width: 8),
-          _buildHeaderActionButton(
-            icon: Icons.receipt_long_rounded,
-            label: 'All History',
-            onTap: _showAllHistory,
-          ),
-          const SizedBox(width: 12),
-          const Spacer(),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Container(
-              decoration: theme.glassDecoration.copyWith(
-                borderRadius: BorderRadius.circular(8),
-                color: theme.isDark
-                    ? Colors.white.withOpacity(0.05)
-                    : Colors.white.withOpacity(0.2),
-              ),
-              child: TextField(
-                controller: _searchCtrl,
-                focusNode: _searchFocusNode,
-                onChanged: (v) => _controller.setSearchQuery(v),
-                onSubmitted: (v) {
-                  if (v.isNotEmpty) {
-                    _processBarcode(v);
-                    _searchCtrl.clear();
-                    _controller.setSearchQuery('');
-                  }
-                },
-                style: TextStyle(
-                    color: theme.textPrimary, fontWeight: FontWeight.w500),
-                decoration: InputDecoration(
-                  hintText: 'Search product or scan barcode...',
-                  hintStyle: TextStyle(
-                      color: theme.textHint, fontWeight: FontWeight.w400),
-                  prefixIcon:
-                      Icon(Icons.search_rounded, color: theme.iconColor),
-                  suffixIcon: _controller.searchQuery.isNotEmpty
-                      ? IconButton(
-                          icon: Icon(Icons.close_rounded,
-                              size: 18, color: theme.iconColor),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            _controller.setSearchQuery('');
-                          })
-                      : IconButton(
-                          icon: Icon(Icons.qr_code_scanner_rounded,
-                              color: theme.iconColor),
-                          onPressed: _openBarcodeScanner),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 12),
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Row(
+            children: [
+              Container(
+                decoration: theme.glassCircleDecoration,
+                child: IconButton(
+                  icon: Icon(Icons.arrow_back_ios_new_rounded,
+                      color: theme.iconColor, size: 20),
+                  onPressed: () async {
+                    final shouldPop = await _showBackConfirmDialog(context);
+                    if (shouldPop == true && context.mounted) {
+                      Navigator.pop(context);
+                    }
+                  },
                 ),
               ),
-            ),
+              const SizedBox(width: 8),
+              Container(
+                decoration: theme.glassCircleDecoration,
+                child: IconButton(
+                  icon: Icon(Icons.logout_rounded,
+                      color: ThemeProvider.error, size: 20),
+                  tooltip: 'Clock Out',
+                  onPressed: () async {
+                    final activeShift =
+                        await DatabaseHelper.instance.getActiveShift();
+                    if (activeShift != null && mounted) {
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: theme.surface,
+                          title: const Text('Clock Out'),
+                          content: const Text(
+                              'Are you sure you want to clock out? This will end your current shift.'),
+                          actions: [
+                            TextButton(
+                                onPressed: () => Navigator.pop(ctx, false),
+                                child: const Text('No')),
+                            ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: ThemeProvider.error),
+                                onPressed: () => Navigator.pop(ctx, true),
+                                child: const Text('Yes, Clock Out')),
+                          ],
+                        ),
+                      );
+
+                      if (confirm != true || !mounted) return;
+
+                      final closingData = await showDialog<Map<String, dynamic>>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => const ClockOutDenominationsDialog(),
+                      );
+
+                      if (closingData == null || !mounted) return;
+
+                      final clockedOut = await showDialog<bool>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => ClockOutDialog(
+                          activeShift: activeShift,
+                          closingCash: closingData['total'],
+                          closingDenominations: closingData['denominations'],
+                        ),
+                      );
+
+                      if (clockedOut == true && mounted) {
+                        Navigator.pop(context);
+                      }
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              Container(
+                decoration: theme.glassCircleDecoration,
+                child: IconButton(
+                  icon: Icon(
+                      theme.isDark
+                          ? Icons.light_mode_rounded
+                          : Icons.dark_mode_rounded,
+                      color: theme.isDark ? Colors.white : Colors.black,
+                      size: 20),
+                  tooltip: theme.isDark ? 'Light Mode' : 'Dark Mode',
+                  onPressed: () => setState(() => theme.toggleTheme()),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _buildHeaderActionButton(
+                icon: Icons.history_rounded,
+                label: 'Shift History',
+                showLabel: showLabel,
+                color: theme.highlight,
+                onTap: _showShiftHistory,
+              ),
+              const SizedBox(width: 8),
+              _buildHeaderActionButton(
+                icon: Icons.receipt_long_rounded,
+                label: 'All History',
+                showLabel: showLabel,
+                onTap: _showAllHistory,
+              ),
+              const SizedBox(width: 12),
+              const Spacer(),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Container(
+                    decoration: theme.glassDecoration.copyWith(
+                      borderRadius: BorderRadius.circular(8),
+                      color: theme.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.white.withOpacity(0.2),
+                    ),
+                    child: TextField(
+                      controller: _searchCtrl,
+                      focusNode: _searchFocusNode,
+                      onChanged: (v) => _controller.setSearchQuery(v),
+                      onSubmitted: (v) {
+                        if (v.isNotEmpty) {
+                          _processBarcode(v);
+                          _searchCtrl.clear();
+                          _controller.setSearchQuery('');
+                        }
+                      },
+                      style: TextStyle(
+                          color: theme.textPrimary, fontWeight: FontWeight.w500),
+                      decoration: InputDecoration(
+                        hintText: showLabel
+                            ? 'Search product or scan barcode...'
+                            : 'Search...',
+                        hintStyle: TextStyle(
+                            color: theme.textHint, fontWeight: FontWeight.w400),
+                        prefixIcon:
+                            Icon(Icons.search_rounded, color: theme.iconColor),
+                        suffixIcon: _controller.searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(Icons.close_rounded,
+                                    size: 18, color: theme.iconColor),
+                                onPressed: () {
+                                  _searchCtrl.clear();
+                                  _controller.setSearchQuery('');
+                                })
+                            : IconButton(
+                                icon: Icon(Icons.qr_code_scanner_rounded,
+                                    color: theme.iconColor),
+                                onPressed: _openBarcodeScanner),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -1428,6 +1447,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    bool showLabel = true,
     Color? color,
   }) {
     return InkWell(
@@ -1442,15 +1462,17 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, size: 18, color: color ?? theme.textPrimary),
-            const SizedBox(width: 8),
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                color: color ?? theme.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
+            if (showLabel) ...[
+              const SizedBox(width: 8),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  color: color ?? theme.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),

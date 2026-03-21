@@ -246,17 +246,11 @@ class _LoginScreenState extends State<LoginScreen>
           // Load user settings (currency, etc.)
           await _dbHelper.loadSettings();
 
-          // Try to sync with backend (wait for token)
-          await _syncLoginToBackend();
-
-          try {
-            print('🔄 [LOGIN] Running background sync after local admin login...');
-            await SyncService().syncPull();
-            // CRITICAL: Update configuration again just in case API returns newer IDs
-            await _dbHelper.loadSettings();
-          } catch (e) {
+          // Background Sync: Verify credentials or push/pull data in background
+          _syncLoginToBackend();
+          SyncService().syncPull().then((_) => _dbHelper.loadSettings()).catchError((e) {
             print('⚠️ [LOGIN] Background sync failed (offline?): $e');
-          }
+          });
 
           await _proceedToHome(isQuickLogin, email);
           return;
@@ -301,17 +295,11 @@ class _LoginScreenState extends State<LoginScreen>
           // Load settings (currency, etc.)
           await _dbHelper.loadSettings();
 
-          // Try to sync with backend (wait for token)
-          await _syncLoginToBackend();
-
-          try {
-            print('🔄 [LOGIN] Running background sync after local staff login...');
-            await SyncService().syncPull();
-            // CRITICAL: Update configuration again just in case API returns newer IDs
-            await _dbHelper.loadSettings();
-          } catch (e) {
+          // Background Sync: Verify credentials or push/pull data in background
+          _syncLoginToBackend();
+          SyncService().syncPull().then((_) => _dbHelper.loadSettings()).catchError((e) {
             print('⚠️ [LOGIN] Background sync failed (offline?): $e');
-          }
+          });
 
           await _proceedToHome(isQuickLogin, email);
           return;
