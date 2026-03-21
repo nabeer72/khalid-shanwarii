@@ -24,8 +24,9 @@ import 'package:mobile_app/widgets/pos/pos_quick_add_panel.dart';
 
 class POSScreen extends StatefulWidget {
   final HeldOrder? resumeOrder;
+  final Map<String, dynamic>? returnSale;
   static bool isActive = false;
-  const POSScreen({super.key, this.resumeOrder});
+  const POSScreen({super.key, this.resumeOrder, this.returnSale});
 
   @override
   State<POSScreen> createState() => _POSScreenState();
@@ -53,6 +54,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     
     if (widget.resumeOrder != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _controller.resumeOrder(widget.resumeOrder!));
+    } else if (widget.returnSale != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _controller.loadReturnSale(widget.returnSale!));
     }
     
     _quickAddController = AnimationController(
@@ -116,15 +119,21 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     final now = DateTime.now().toIso8601String();
     
     if (mounted) {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => SalesHistoryScreen(
+      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => SalesHistoryScreen(
         shiftId: shift['id'] is int ? shift['id'] : int.tryParse(shift['id'].toString()),
         isShiftHistory: true,
       )));
+      if (result != null && result is Map && mounted) {
+        _controller.loadReturnSale(Map<String, dynamic>.from(result));
+      }
     }
   }
 
-  void _showAllHistory() {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
+  void _showAllHistory() async {
+    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
+    if (result != null && result is Map && mounted) {
+      _controller.loadReturnSale(Map<String, dynamic>.from(result));
+    }
   }
 
   void _showOutOfStockAlert(Product product, Stock stock) {

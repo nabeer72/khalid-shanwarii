@@ -38,8 +38,8 @@ class ThemeProvider extends ChangeNotifier {
 
   // Premium Light theme colors
   static const lightBackground = Color(0xFFF8F9FA);
-  static const lightSurface = Color(0xFFFFFFFF);
-  static const lightCard = Color(0xFFFFFFFF);
+  static const lightSurface = Color(0xFFF1F5F9); // Slightly darker for clear visibility
+  static const lightCard = Color(0xFFF1F5F9);    // Slightly darker for clear visibility
   static const lightPrimary = Color(0xFF1A73E8);
   static const lightAccent = Color(0xFF4285F4);
   static const lightHighlight = Color(0xFFEA4335);
@@ -87,9 +87,9 @@ class ThemeProvider extends ChangeNotifier {
 
   // Glassmorphism effect
   BoxDecoration get glassDecoration => BoxDecoration(
-    color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.05 : 0.15),
+    color: whiteAlpha(0.05),
     borderRadius: BorderRadius.circular(radiusGlass),
-    border: Border.all(color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.1 : 0.2), width: 1.5),
+    border: Border.all(color: whiteAlpha(0.1), width: 1.5),
     boxShadow: [
       BoxShadow(
         color: Colors.black.withOpacity(_isDark ? 0.3 : 0.05),
@@ -100,9 +100,9 @@ class ThemeProvider extends ChangeNotifier {
   );
 
   BoxDecoration get glassCircleDecoration => BoxDecoration(
-    color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.05 : 0.15),
+    color: whiteAlpha(0.05),
     shape: BoxShape.circle,
-    border: Border.all(color: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.1 : 0.2), width: 1.5),
+    border: Border.all(color: whiteAlpha(0.1), width: 1.5),
     boxShadow: [
       BoxShadow(
         color: Colors.black.withOpacity(_isDark ? 0.3 : 0.05),
@@ -124,7 +124,7 @@ class ThemeProvider extends ChangeNotifier {
       labelStyle: TextStyle(color: _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563)),
       prefixIcon: Icon(icon, color: iconColor),
       filled: true,
-      fillColor: (_isDark ? Colors.white : Colors.white).withOpacity(_isDark ? 0.08 : 0.1),
+      fillColor: whiteAlpha(0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
         borderSide: BorderSide(color: _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
@@ -156,6 +156,6 @@ class ThemeProvider extends ChangeNotifier {
     );
   }
 
-  // Helper for white with opacity
-  Color whiteAlpha(double opacity) => Colors.white.withOpacity(opacity);
+  // Helper for contrast layer (white in dark, black in light)
+  Color whiteAlpha(double opacity) => _isDark ? Colors.white.withOpacity(opacity) : Colors.black.withOpacity(opacity);
 }

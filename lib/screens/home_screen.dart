@@ -583,7 +583,26 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.receipt_long_outlined,
                               label: 'Sales',
                               color: const Color(0xFF22C55E),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen())).then((_) => _loadStats())),
+                              onTap: () async {
+                                final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
+                                _loadStats();
+                                if (result != null && result is Map && mounted) {
+                                  final Map<String, dynamic> castedResult = Map<String, dynamic>.from(result);
+                                  final activeShift = await DatabaseHelper.instance.getActiveShift();
+                                  if (activeShift != null) {
+                                    Navigator.push(context, MaterialPageRoute(builder: (_) => POSScreen(returnSale: castedResult))).then((_) => _loadStats());
+                                  } else {
+                                    final clockedIn = await showDialog<bool>(
+                                      context: context,
+                                      barrierDismissible: false,
+                                      builder: (ctx) => const ClockInDialog(),
+                                    );
+                                    if (clockedIn == true && mounted) {
+                                      Navigator.push(context, MaterialPageRoute(builder: (_) => POSScreen(returnSale: castedResult))).then((_) => _loadStats());
+                                    }
+                                  }
+                                }
+                              }),
                         
                         // 8. Reports
                         if (_hasPerm(AppPermissions.reportsView))

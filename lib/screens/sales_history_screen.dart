@@ -3,6 +3,8 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/receipt_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:mobile_app/controllers/pos_controller.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
   final String? startTime;
@@ -247,7 +249,12 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                         itemCount: _filteredSales.length,
                         itemBuilder: (context, index) {
                           final sale = _filteredSales[_filteredSales.length - 1 - index]; // Reverse order
-                          return _SaleTile(sale: sale, onTap: () => _showSaleDetail(sale));
+                          return _SaleTile(
+                            sale: sale, 
+                            onTap: () => _showSaleDetail(sale),
+                            onPrint: () => _showSaleDetail(sale),
+                            onRefund: () => _handleRefund(sale),
+                          );
                         },
                       ),
               ),
@@ -260,6 +267,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
   void _showSaleDetail(Map<String, dynamic> sale) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => ReceiptScreen(sale: sale)));
+  }
+
+  void _handleRefund(Map<String, dynamic> sale) {
+    Navigator.pop(context, sale); // Return to caller with sale data
   }
 }
 
@@ -292,8 +303,15 @@ class _FilterChip extends StatelessWidget {
 class _SaleTile extends StatelessWidget {
   final Map<String, dynamic> sale;
   final VoidCallback onTap;
+  final VoidCallback onPrint;
+  final VoidCallback onRefund;
 
-  const _SaleTile({required this.sale, required this.onTap});
+  const _SaleTile({
+    required this.sale, 
+    required this.onTap,
+    required this.onPrint,
+    required this.onRefund,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -344,17 +362,34 @@ class _SaleTile extends StatelessWidget {
             ],
           ),
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '${isReturn ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',
-              style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+            IconButton(
+              icon: Icon(Icons.print_rounded, color: theme.textSecondary, size: 20),
+              onPressed: onPrint,
+              tooltip: 'Print Receipt',
             ),
-            Text(
-              paymentMethod.toUpperCase(),
-              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+            if (!isReturn)
+              IconButton(
+                icon: Icon(Icons.keyboard_return_rounded, color: ThemeProvider.error, size: 20),
+                onPressed: onRefund,
+                tooltip: 'Refund Sale',
+              ),
+            const SizedBox(width: 8),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${isReturn ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',
+                  style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                ),
+                Text(
+                  paymentMethod.toUpperCase(),
+                  style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                ),
+              ],
             ),
           ],
         ),

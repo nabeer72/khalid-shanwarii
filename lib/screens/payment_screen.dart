@@ -82,172 +82,117 @@ class _PaymentScreenState extends State<PaymentScreen> {
     setState(() => _processing = true);
 
     try {
-      if (widget.isReturn) {
-        final returnData = {
-          'sale_id': null,
-          'customer_id': _selectedCustomer?.id,
-          'user_id': BusinessConfig.instance.adminId,
-          'total_amount': widget.total,
-          'reason': 'POS Return',
-        };
-        final returnItems = widget.cart.map((item) => {
+      final activeShift = await DatabaseHelper.instance.getActiveShift();
+      final isReturnVal = widget.isReturn ? 1 : 0;
+      final sign = widget.isReturn ? -1.0 : 1.0;
+      
+      final sale = {
+        'business_id': BusinessConfig.instance.businessId,
+        'branch_id': BusinessConfig.instance.branchId,
+        'customer_id': _selectedCustomer?.id,
+        'user_id': BusinessConfig.instance.adminId,
+        'total': _grandTotal * sign,
+        'subtotal': widget.subtotal * sign,
+        'tax': widget.tax * sign,
+        'discount': widget.discount * sign,
+        'tip': _tipAmount * sign,
+        'is_return': isReturnVal,
+        'payment_method': _selectedPayment,
+        'status': 1,
+        'is_synced': 0,
+        'shift_id': activeShift?['id'],
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      final saleItems = widget.cart.map((item) {
+        return {
           'product_id': item['id'] ?? item['productId'],
           'stock_id': item['stock_id'],
           'quantity': item['quantity'],
           'price': item['price'],
           'subtotal': item['subtotal'],
-        }).toList();
+          'is_synced': 0,
+        };
+      }).toList();
 
-        final returnId = await DatabaseHelper.instance.insertReturn(returnData, returnItems);
-        
-        final saleForReceipt = {
-          'id': returnId,
+      final saleId = await DatabaseHelper.instance.insertSale(sale, saleItems);
+      
+      if (!widget.isReturn && (_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
+        final creditSale = {
           'business_id': BusinessConfig.instance.businessId,
           'branch_id': BusinessConfig.instance.branchId,
-          'customer_id': _selectedCustomer?.id,
-          'user_id': BusinessConfig.instance.adminId,
-          'total': -_grandTotal,
-          'subtotal': -widget.subtotal,
-          'tax': -widget.tax,
-          'discount': -widget.discount,
-          'tip': -_tipAmount,
-          'is_return': 1,
-          'payment_method': _selectedPayment,
+          'customer_id': _selectedCustomer!.id,
+          'sale_id': saleId,
+          'amount': _grandTotal,
+          'remaining_balance': _grandTotal,
           'status': 1,
-          'is_synced': 0,
           'created_at': DateTime.now().toIso8601String(),
-          'items': widget.cart.map((item) => {
-            'name': item['name'],
-            'price': (item['price'] as num).toDouble(),
-            'quantity': item['quantity'],
-            'subtotal': (item['subtotal'] as num).toDouble(),
-            'discount': (item['discount'] as num? ?? 0).toDouble(),
-          }).toList(),
-          'timestamp': DateTime.now().toIso8601String(),
-          'isReturn': true,
-          'paymentMethod': _selectedPayment,
-          'customerName': _selectedCustomer?.name,
-          'amount_tendered': _amountTendered,
-          'change': _change,
-          'employee_name': BusinessConfig.instance.staffName,
+          'updated_at': DateTime.now().toIso8601String(),
         };
+        final creditSaleId = await DatabaseHelper.instance.insertCreditSale(creditSale);
+        await DatabaseHelper.instance.updateCustomerCreditBalance(_selectedCustomer!.id ?? 0, _grandTotal);
 
-        if (mounted) {
-          if (_generateReceipt) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
-            );
-          } else {
-            Navigator.of(context).pop();
+        if (_amountTendered > 0) {
+          final payment = {
+            'business_id': BusinessConfig.instance.businessId,
+            'branch_id': BusinessConfig.instance.branchId,
+            'credit_sale_id': creditSaleId,
+            'customer_id': _selectedCustomer!.id,
+            'amount': _amountTendered,
+            'payment_date': DateTime.now().toIso8601String(),
+            'created_at': DateTime.now().toIso8601String(),
+            'notes': 'Paid at time of sale',
+          };
+          await DatabaseHelper.instance.insertCreditPayment(payment);
+        }
+      }
+      
+      final saleForReceipt = {
+        'id': saleId,
+        'business_id': BusinessConfig.instance.businessId,
+        'branch_id': BusinessConfig.instance.branchId,
+        'customer_id': _selectedCustomer?.id,
+        'user_id': BusinessConfig.instance.adminId,
+        'total': _grandTotal * sign,
+        'subtotal': widget.subtotal * sign,
+        'tax': widget.tax * sign,
+        'discount': widget.discount * sign,
+        'tip': _tipAmount * sign,
+        'is_return': isReturnVal,
+        'payment_method': _selectedPayment,
+        'status': 1,
+        'is_synced': 0,
+        'created_at': DateTime.now().toIso8601String(),
+        'items': widget.cart.map((item) => {
+          'name': item['name'],
+          'price': (item['price'] as num).toDouble(),
+          'quantity': item['quantity'],
+          'subtotal': (item['subtotal'] as num).toDouble(),
+          'discount': (item['discount'] as num? ?? 0).toDouble(),
+        }).toList(),
+        'timestamp': DateTime.now().toIso8601String(),
+        'isReturn': widget.isReturn,
+        'paymentMethod': _selectedPayment,
+        'customerName': _selectedCustomer?.name,
+        'amount_tendered': _amountTendered,
+        'change': _change,
+        'employee_name': BusinessConfig.instance.staffName,
+      };
+
+      if (_openCashDrawer) _handleOpenCashDrawer();
+
+      if (mounted) {
+        if (_generateReceipt) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
+          );
+        } else {
+          Navigator.of(context).pop();
+          if (widget.isReturn) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Refund completed!'), backgroundColor: ThemeProvider.success),
             );
-          }
-        }
-      } else {
-        final activeShift = await DatabaseHelper.instance.getActiveShift();
-        final sale = {
-          'business_id': BusinessConfig.instance.businessId,
-          'branch_id': BusinessConfig.instance.branchId,
-          'customer_id': _selectedCustomer?.id,
-          'user_id': BusinessConfig.instance.adminId,
-          'total': _grandTotal,
-          'subtotal': widget.subtotal,
-          'tax': widget.tax,
-          'discount': widget.discount,
-          'tip': _tipAmount,
-          'is_return': 0,
-          'payment_method': _selectedPayment,
-          'status': 1,
-          'is_synced': 0,
-          'shift_id': activeShift?['id'],
-          'created_at': DateTime.now().toIso8601String(),
-        };
-
-        final saleItems = widget.cart.map((item) {
-          return {
-            'product_id': item['id'] ?? item['productId'],
-            'stock_id': item['stock_id'],
-            'quantity': item['quantity'],
-            'price': item['price'],
-            'subtotal': item['subtotal'],
-            'is_synced': 0,
-          };
-        }).toList();
-
-        final saleId = await DatabaseHelper.instance.insertSale(sale, saleItems);
-        
-        if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
-          final creditSale = {
-            'business_id': BusinessConfig.instance.businessId,
-            'branch_id': BusinessConfig.instance.branchId,
-            'customer_id': _selectedCustomer!.id,
-            'sale_id': saleId,
-            'amount': _grandTotal,
-            'remaining_balance': _grandTotal,
-            'status': 1,
-            'created_at': DateTime.now().toIso8601String(),
-            'updated_at': DateTime.now().toIso8601String(),
-          };
-          final creditSaleId = await DatabaseHelper.instance.insertCreditSale(creditSale);
-          await DatabaseHelper.instance.updateCustomerCreditBalance(_selectedCustomer!.id ?? 0, _grandTotal);
-
-          if (_amountTendered > 0) {
-            final payment = {
-              'business_id': BusinessConfig.instance.businessId,
-              'branch_id': BusinessConfig.instance.branchId,
-              'credit_sale_id': creditSaleId,
-              'customer_id': _selectedCustomer!.id,
-              'amount': _amountTendered,
-              'payment_date': DateTime.now().toIso8601String(),
-              'created_at': DateTime.now().toIso8601String(),
-              'notes': 'Paid at time of sale',
-            };
-            await DatabaseHelper.instance.insertCreditPayment(payment);
-          }
-        }
-        
-        final saleForReceipt = {
-          'id': saleId,
-          'business_id': BusinessConfig.instance.businessId,
-          'branch_id': BusinessConfig.instance.branchId,
-          'customer_id': _selectedCustomer?.id,
-          'user_id': BusinessConfig.instance.adminId,
-          'total': _grandTotal,
-          'subtotal': widget.subtotal,
-          'tax': widget.tax,
-          'discount': widget.discount,
-          'tip': _tipAmount,
-          'is_return': 0,
-          'payment_method': _selectedPayment,
-          'status': 1,
-          'is_synced': 0,
-          'created_at': DateTime.now().toIso8601String(),
-          'items': widget.cart.map((item) => {
-            'name': item['name'],
-            'price': (item['price'] as num).toDouble(),
-            'quantity': item['quantity'],
-            'subtotal': (item['subtotal'] as num).toDouble(),
-            'discount': (item['discount'] as num? ?? 0).toDouble(),
-          }).toList(),
-          'timestamp': DateTime.now().toIso8601String(),
-          'isReturn': false,
-          'paymentMethod': _selectedPayment,
-          'customerName': _selectedCustomer?.name,
-          'amount_tendered': _amountTendered,
-          'change': _change,
-          'employee_name': BusinessConfig.instance.staffName,
-        };
-
-        if (_openCashDrawer) _handleOpenCashDrawer();
-
-        if (mounted) {
-          if (_generateReceipt) {
-            Navigator.of(context).pushReplacement(
-              MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
-            );
           } else {
-            Navigator.of(context).pop();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Sale completed successfully!'), backgroundColor: ThemeProvider.success),
             );

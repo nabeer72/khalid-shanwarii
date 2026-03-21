@@ -238,4 +238,57 @@ class POSController with ChangeNotifier {
     
     clearCart();
   }
+
+  Future<void> loadReturnSale(Map<String, dynamic> sale) async {
+    debugPrint('START loadReturnSale: sale_id=${sale['id']}');
+    if (_products.isEmpty) {
+      debugPrint('Products empty, waiting for loadData...');
+      await loadData();
+      debugPrint('Products loaded. Count: ${_products.length}');
+    }
+    
+    final items = await DatabaseHelper.instance.getSaleItems(sale['id']);
+    debugPrint('Fetched sale items: ${items.length}');
+    _cart.clear();
+    
+    for (var itemMap in items) {
+      final productId = itemMap['product_id'];
+      final stockId = itemMap['stock_id'];
+      debugPrint('Processing item: product_id=$productId, stock_id=$stockId');
+      
+      try {
+        final product = _products.firstWhere((p) => p.id == productId);
+        final stock = product.stocks.firstWhere((s) => s.id == stockId);
+        
+        _cart.add(POSCartItem(
+          cartItemId: '${product.id}_${stock.id}',
+          product: product,
+          stock: stock,
+          quantity: (itemMap['quantity'] as num).toDouble(),
+          price: (itemMap['price'] as num).toDouble(),
+          discount: (itemMap['discount'] as num? ?? 0).toDouble(), // Though typically 0 here or calculated
+          isWeight: itemMap['isWeight'] == 1,
+        ));
+      } catch (e) {
+        debugPrint('Product or stock not found for return item: $e');
+      }
+    }
+    
+    if (sale['customer_id'] != null) {
+      try {
+         final customers = await DatabaseHelper.instance.getCustomers();
+         final customerMap = customers.firstWhere((c) => c['id'] == sale['customer_id']);
+         _selectedCustomer = Customer.fromMap(customerMap);
+      } catch (e) {
+         _selectedCustomer = null; 
+      }
+    } else {
+      _selectedCustomer = null;
+    }
+    
+    _isReturn = true;
+    _discount = 0; // We reset global discount for the return process
+    debugPrint('loadReturnSale complete. Cart size: ${_cart.length}');
+    calculateTotals();
+  }
 }
