@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/product.dart';
@@ -81,7 +82,11 @@ class AddProductController with ChangeNotifier {
 
       // Now load subcategories for the resolved selectedCategory
       if (selectedCategory != null) {
-        subCategories = allCats.where((c) => c.parentId?.toString() == selectedCategory.toString()).toList();
+        final rawSub = await DatabaseHelper.instance.getSubCategories(categoryId: selectedCategory);
+        subCategories = rawSub.map((map) => ProductCategory.fromMap({
+          ...map,
+          'parent_id': map['category_id'], // Map category_id to parentId for ProductCategory compatibility
+        })).toList();
       } else {
         subCategories = [];
       }
@@ -105,14 +110,26 @@ class AddProductController with ChangeNotifier {
 
 
   Future<bool> addCategory(String name, {dynamic parentId}) async {
+    if (kDebugMode) print('➕ [CONTROLLER] addCategory: name=$name, parentId=$parentId');
     try {
-      final newId = await DatabaseHelper.instance.insertCategory({
-        'business_id': BusinessConfig.instance.businessId!,
-        'name': name,
-        'parent_id': parentId,
-        'status': 1,
-        'updated_at': DateTime.now().toIso8601String(),
-      });
+      int newId;
+      if (parentId == null) {
+        newId = await DatabaseHelper.instance.insertCategory({
+          'business_id': BusinessConfig.instance.businessId!,
+          'name': name,
+          'status': 1,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      } else {
+        newId = await DatabaseHelper.instance.insertSubCategory({
+          'business_id': BusinessConfig.instance.businessId!,
+          'category_id': parentId,
+          'name': name,
+          'status': 1,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      }
+      if (kDebugMode) print('✅ [CONTROLLER] Category/Sub added with ID: $newId');
 
       final newCat = ProductCategory(
         id: newId,
@@ -128,12 +145,14 @@ class AddProductController with ChangeNotifier {
         subCategories = []; // Reset subcategories when parent changes
         selectedSubCategoryId = null;
       } else {
+        if (kDebugMode) print('📂 [CONTROLLER] Updating UI for subcategory');
         subCategories.add(newCat);
         selectedSubCategoryId = newCat.id;
       }
       notifyListeners();
       return true;
     } catch (e) {
+      if (kDebugMode) print('❌ [CONTROLLER] Failed to add category: $e');
       _errorMessage = 'Failed to add category: $e';
       notifyListeners();
       return false;
@@ -141,13 +160,18 @@ class AddProductController with ChangeNotifier {
   }
 
   void setCategory(dynamic value) async {
+    if (kDebugMode) print('🔄 [CONTROLLER] setCategory: $value');
     selectedCategory = value;
     selectedSubCategoryId = null; // Reset subcategory when parent changes
     
     // Refresh subcategories for the new parent
-    final raw = await DatabaseHelper.instance.getCategories();
-    final allCats = raw.map((map) => ProductCategory.fromMap(map)).toList();
-    subCategories = allCats.where((c) => c.parentId?.toString() == value.toString()).toList();
+    final rawSub = await DatabaseHelper.instance.getSubCategories(categoryId: value);
+    if (kDebugMode) print('   - Loaded ${rawSub.length} subcategories for category $value');
+
+    subCategories = rawSub.map((map) => ProductCategory.fromMap({
+      ...map,
+      'parent_id': map['category_id'],
+    })).toList();
     
     notifyListeners();
   }

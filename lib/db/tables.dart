@@ -52,6 +52,24 @@ class DbTables {
       )
     ''');
 
+    // Subcategories
+    await db.execute('''
+      CREATE TABLE subcategories (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        category_id INTEGER,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        name TEXT NOT NULL,
+        code TEXT,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (category_id) REFERENCES categories(id)
+      )
+    ''');
+
     // Products
     await db.execute('''
       CREATE TABLE products (

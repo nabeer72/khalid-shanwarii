@@ -917,5 +917,47 @@ class DbMigrations {
         if (kDebugMode) print('v45 sales shift_id error: $e');
       }
     }
+    if (oldVersion < 46) {
+      if (kDebugMode) print('Upgrading DB to v46: Creating subcategories table...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS subcategories (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          category_id INTEGER,
+          business_id INTEGER,
+          branch_id INTEGER,
+          admin_id INTEGER,
+          name TEXT NOT NULL,
+          code TEXT,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT,
+          FOREIGN KEY (category_id) REFERENCES categories(id)
+        )
+      ''');
+      
+      // Optional: Migrate existing subcategories (where parent_id is not null)
+      try {
+          final subCats = await db.query('categories', where: 'parent_id IS NOT NULL');
+          for (var sc in subCats) {
+              await db.insert('subcategories', {
+                  'id': sc['id'],
+                  'category_id': sc['parent_id'],
+                  'business_id': sc['business_id'],
+                  'branch_id': sc['branch_id'],
+                  'admin_id': sc['admin_id'],
+                  'name': sc['name'],
+                  'status': sc['status'],
+                  'is_synced': sc['is_synced'],
+                  'created_at': sc['created_at'],
+                  'updated_at': sc['updated_at'],
+              }, conflictAlgorithm: ConflictAlgorithm.ignore);
+          }
+          // Remove from categories table
+          await db.delete('categories', where: 'parent_id IS NOT NULL');
+      } catch (e) {
+          if (kDebugMode) print('v46 migration data move error: $e');
+      }
+    }
   }
 }

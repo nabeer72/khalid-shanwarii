@@ -145,6 +145,30 @@ class SyncService {
             }
             if (kDebugMode) print('Synced ${data['categories'].length} categories');
           }
+          
+          // Subcategories
+          if (data['sub_categories'] != null) {
+            for (var sc in data['sub_categories']) {
+              final subCatId = sc['id'] is int ? sc['id'] : int.tryParse(sc['id']?.toString() ?? '');
+              await txn.insert(
+                'subcategories',
+                {
+                  'id': subCatId,
+                  'category_id': sc['category_id'] is int ? sc['category_id'] : int.tryParse(sc['category_id']?.toString() ?? ''),
+                  'business_id': sc['business_id'] is int ? sc['business_id'] : int.tryParse(sc['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': await _safeBranchId(txn, 'subcategories', subCatId, sc['branch_id']),
+                  'admin_id': sc['admin_id'] is int ? sc['admin_id'] : int.tryParse(sc['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'name': sc['name'] ?? 'Unknown',
+                  'code': sc['code'],
+                  'status': _parseStatus(sc['status']),
+                  'is_synced': 1,
+                  'updated_at': sc['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['sub_categories'].length} subcategories');
+          }
 
           // Products & Stocks
           if (data['products'] != null) {
@@ -160,6 +184,7 @@ class SyncService {
                 'branch_id': safeProdBranch,
                 'admin_id': p['admin_id'] is int ? p['admin_id'] : int.tryParse(p['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                 'category_id': p['category_id'] is int ? p['category_id'] : int.tryParse(p['category_id']?.toString() ?? ''),
+                'sub_category_id': p['sub_category_id'] is int ? p['sub_category_id'] : int.tryParse(p['sub_category_id']?.toString() ?? ''),
                 'name': p['name'] ?? 'Unknown',
                 'image': p['image'],
                 'description': p['description'],
@@ -170,6 +195,7 @@ class SyncService {
                 'stock_quantity': _parseNum(p['stock_quantity'] ?? p['quantity']),
                 'is_price_per_weight': (p['is_price_per_weight'] == true || p['is_price_per_weight'] == 1) ? 1 : 0,
                 'is_favorite': (p['is_favorite'] == true || p['is_favorite'] == 1) ? 1 : 0,
+                'discount_limit': _parseNum(p['discount_limit']),
                 'status': _parseStatus(p['status']),
                 'is_synced': 1,
                 'updated_at': p['updated_at'],
@@ -244,11 +270,12 @@ class SyncService {
                   'branch_id': await _safeBranchId(txn, 'customers', custId, c['branch_id']),
                   'admin_id': c['admin_id'] is int ? c['admin_id'] : int.tryParse(c['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': c['name'] ?? 'Unknown',
-                  'phone': c['phone'],
+                  'phone': c['phone'] ?? c['cell_number'],
                   'email': c['email'],
                   'notes': c['notes'],
                   'total_spent': _parseNum(c['total_spent']),
                   'visit_count': c['visit_count'] ?? 0,
+                  'discount': _parseNum(c['discount'] ?? c['discount_percent'] ?? c['discount_limit']),
                   'credit_balance': _parseNum(c['credit_balance'] ?? c['balance']),
                   'status': _parseStatus(c['status']),
                   'is_synced': 1,
@@ -739,12 +766,27 @@ class SyncService {
         }).toList();
       }
 
+      // Unsynced Subcategories
+      final unsyncedSubCategories = await db.query('subcategories', where: 'is_synced = 0');
+      if (unsyncedSubCategories.isNotEmpty) {
+        changes['sub_categories'] = unsyncedSubCategories.map((sc) {
+          var m = Map.from(sc);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
       // Unsynced Customers
       unsyncedCustomers = await db.query('customers', where: 'is_synced = 0');
       if (unsyncedCustomers.isNotEmpty) {
         changes['customers'] = unsyncedCustomers.map((c) {
           var m = Map.from(c);
           m.remove('is_synced');
+          // Defensive mapping for backend (mirroring syncPull fallbacks)
+          m['cell_number'] = c['phone'];
+          m['discount_percent'] = c['discount'];
+          m['discount_limit'] = c['discount'];
+          m['balance'] = c['credit_balance'];
           return m;
         }).toList();
       }
@@ -969,8 +1011,13 @@ class SyncService {
         changes['roles'] = rolesList;
       }
 
+      // TEMPORARY: Force re-sync for all bank accounts once
+      await db.update('bank_accounts', {'is_synced': 0});
+      
       // Unsynced Bank Accounts
+      final allBanks = await db.query('bank_accounts');
       unsyncedBankAccounts = await db.query('bank_accounts', where: 'is_synced = 0');
+      if (kDebugMode) print('🔍 [SYNC] Bank account total: ${allBanks.length}, Unsynced: ${unsyncedBankAccounts.length}');
       if (unsyncedBankAccounts.isNotEmpty) {
         changes['bank_accounts'] = unsyncedBankAccounts.map((b) {
           var m = Map<String, dynamic>.from(b);
@@ -1004,6 +1051,7 @@ class SyncService {
         return;
       }
 
+      if (kDebugMode) print('📤 [SYNC] Pushing changes: ${changes.keys.toList()}');
       final response = await _api.post('/sync/push', data: {'changes': changes});
 
       if (response.statusCode == 200 && response.data['success'] == true) {

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/models/product.dart';
@@ -549,6 +550,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Widget _buildSubCategorySelector() {
+    if (kDebugMode) print('🎨 [UI] Building SubCategorySelector: selected=${_controller.selectedSubCategoryId}, count=${_controller.subCategories.length}');
+    for (var sc in _controller.subCategories) {
+      if (kDebugMode) print('   - SubCat Item: ${sc.id} (${sc.name})');
+    }
+    
     return Row(
       children: [
         Expanded(

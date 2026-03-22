@@ -9,6 +9,7 @@ import 'package:mobile_app/models/held_order.dart';
 
 class POSController with ChangeNotifier {
   List<ProductCategory> _categories = [];
+  List<ProductCategory> _subCategories = [];
   List<Product> _products = [];
   List<POSCartItem> _cart = [];
   
@@ -26,6 +27,7 @@ class POSController with ChangeNotifier {
 
   // Getters
   List<ProductCategory> get categories => _categories;
+  List<ProductCategory> get subCategories => _subCategories;
   List<Product> get products => _products;
   List<POSCartItem> get cart => _cart;
   String get selectedCategory => _selectedCategory;
@@ -50,12 +52,22 @@ class POSController with ChangeNotifier {
     try {
       final productsData = await DatabaseHelper.instance.getProducts();
       final categoriesData = await DatabaseHelper.instance.getCategories();
+      final subCategoriesData = await DatabaseHelper.instance.getSubCategories();
       
       _products = productsData.map((p) {
         final stocksData = (p['stocks'] as List<Map<String, dynamic>>? ?? []);
         return Product.fromMap(p, stocks: stocksData.map((s) => Stock.fromMap(s)).toList());
       }).toList();
       _categories = categoriesData.map((c) => ProductCategory.fromMap(c)).toList();
+      
+      // Load and map subcategories
+      final List<ProductCategory> subCats = subCategoriesData.map((c) => ProductCategory.fromMap({
+        ...c,
+        'parent_id': c['category_id'],
+      })).toList();
+      
+      // We can also store them in a separate list if we want to show a subcategory selector
+      _subCategories = subCats;
       
     } catch (e) {
       debugPrint('Error loading POS data: $e');
@@ -85,9 +97,9 @@ class POSController with ChangeNotifier {
       
       if (_selectedSubCategoryId != null) {
         filtered = filtered.where((p) => p.subCategoryId?.toString() == _selectedSubCategoryId.toString()).toList();
-      } else {
-        filtered = filtered.where((p) => p.subCategoryId == null || p.subCategoryId == 0 || p.subCategoryId == '').toList();
       }
+      // Removing the 'else' that hid products with subcategories when none selected
+      // This ensures all products in a category show up by default
     }
     
     // Only show products with stock
