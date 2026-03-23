@@ -47,13 +47,19 @@ mixin ExpensesCrud on CommonCrud {
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     
-    final branchFilter = getBranchFilter();
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'e.branch_id');
     final branchArgs = getBranchArgs();
     
     final args = [bid, aid, ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM expenses WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter ORDER BY date DESC',
+      '''
+      SELECT e.*, eh.name AS expense_head_name 
+      FROM expenses e 
+      LEFT JOIN expense_heads eh ON e.expense_head_id = eh.id 
+      WHERE e.status = 1 AND e.business_id = ? AND e.admin_id = ?$branchFilter 
+      ORDER BY e.date DESC
+      ''',
       args,
     );
   }

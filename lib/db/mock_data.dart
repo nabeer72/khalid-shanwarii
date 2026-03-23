@@ -178,6 +178,7 @@ class AppPermissions {
   static const String giftCards = 'gift_cards';
   static const String loyalty = 'loyalty';
   static const String recovery = 'recovery';
+  static const String reportsPrint = 'reports_print';
   static const String stockView = 'stock_view';
   static const String supportView = 'support_view';
   static const String paybackManage = 'payback_manage';
@@ -188,6 +189,7 @@ class AppPermissions {
     posAccess,
     newSale,
     reportsView,
+    reportsPrint,
     productManage,
     products,
     customerManage,
@@ -247,6 +249,8 @@ class AppPermissions {
       case branchesManage: return 'Manage Branches';
       case '19':
       case bankManage: return 'Manage Bank';
+      case '20':
+      case reportsPrint: return 'Print Reports';
       default: return permission;
     }
   }
@@ -432,7 +436,7 @@ class Expense {
     return Expense(
       id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       expenseHeadId: map['expense_head_id'] is int ? map['expense_head_id'] : int.tryParse(map['expense_head_id']?.toString() ?? '') ?? 0,
-      expenseHeadName: headName,
+      expenseHeadName: headName ?? map['expense_head_name']?.toString(),
       amount: (map['amount'] as num?)?.toDouble() ?? 0,
       description: map['description']?.toString(),
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),

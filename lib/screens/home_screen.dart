@@ -9,6 +9,7 @@ import 'package:mobile_app/screens/sales_history_screen.dart';
 import 'package:mobile_app/screens/stock_report_screen.dart'; // Import Stock Report
 import 'package:mobile_app/screens/support_screen.dart'; // Import Support Screen
 import 'package:mobile_app/screens/reports_screen.dart';
+import 'package:mobile_app/screens/reports_printing_screen.dart';
 import 'package:mobile_app/screens/employee_list_screen.dart';
 import 'package:mobile_app/screens/settings_screen.dart';
 import 'package:mobile_app/screens/held_orders_screen.dart';
@@ -629,6 +630,14 @@ class _HomeScreenState extends State<HomeScreen> {
                               label: 'Reports',
                               color: const Color(0xFFF59E0B),
                               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())).then((_) => setState(() {}))),
+                        
+                        // 8b. Print Reports
+                        if (_hasPerm(AppPermissions.reportsPrint) || _hasPerm(AppPermissions.reportsView))
+                          _ModuleCard(
+                              icon: Icons.print_outlined,
+                              label: 'Print Reports',
+                              color: const Color(0xFF0EA5E9),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsPrintingScreen()))),
                         
                         // 9. Staff
                         if (_hasPerm(AppPermissions.staffManage))
