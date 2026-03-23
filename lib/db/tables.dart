@@ -603,6 +603,20 @@ class DbTables {
         PRIMARY KEY (role_id, permission_id)
       )
     ''');
+
+    // Currency Notes
+    await db.execute('''
+      CREATE TABLE currency_notes (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        value REAL NOT NULL,
+        label TEXT,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
     if (kDebugMode) print('Database created with all tables including RBAC');
     await DbTables.seedPermissions(db);
   }

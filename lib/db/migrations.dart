@@ -984,5 +984,21 @@ class DbMigrations {
         if (kDebugMode) print('v48 return_items discount error: $e');
       }
     }
+
+    if (oldVersion < 49) {
+      if (kDebugMode) print('Upgrading DB to v49: Creating currency_notes table...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS currency_notes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          business_id INTEGER,
+          value REAL NOT NULL,
+          label TEXT,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+    }
   }
 }

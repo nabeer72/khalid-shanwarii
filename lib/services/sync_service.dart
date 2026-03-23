@@ -795,6 +795,27 @@ class SyncService {
             }
             if (kDebugMode) print('Synced ${data['supplier_paybacks'].length} supplier paybacks');
           }
+          
+          // Currency Notes
+          if (data['currency_notes'] != null) {
+            for (var cn in data['currency_notes']) {
+              await txn.insert(
+                'currency_notes',
+                {
+                  'id': cn['id'] is int ? cn['id'] : int.tryParse(cn['id']?.toString() ?? ''),
+                  'business_id': cn['business_id'] is int ? cn['business_id'] : int.tryParse(cn['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'value': _parseNum(cn['value']),
+                  'label': cn['label'],
+                  'status': cn['status'] ?? 1,
+                  'is_synced': 1,
+                  'created_at': cn['created_at'],
+                  'updated_at': cn['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['currency_notes'].length} currency notes');
+          }
 
         });
 
@@ -837,6 +858,7 @@ class SyncService {
       List<Map<String, dynamic>> unsyncedSupplierPaybacks = [];
       List<Map<String, dynamic>> unsyncedSupplierCreditPurchases = [];
       List<Map<String, dynamic>> unsyncedGiftCards = [];
+      List<Map<String, dynamic>> unsyncedCurrencyNotes = [];
 
       // Unsynced Sales
       unsyncedSales = await db.query('sales', where: 'is_synced = 0');
@@ -1171,6 +1193,16 @@ class SyncService {
         }).toList();
       }
 
+      // Unsynced Currency Notes
+      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0');
+      if (unsyncedCurrencyNotes.isNotEmpty) {
+        changes['currency_notes'] = unsyncedCurrencyNotes.map((cn) {
+          var m = Map.from(cn);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
       if (changes.isEmpty) {
         if (kDebugMode) print('No changes to push');
         return;
@@ -1297,6 +1329,11 @@ class SyncService {
           for (var g in unsyncedGiftCards) {
             if (g['id'] == null) continue;
             await txn.update('gift_cards', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [g['id']]);
+          }
+          // Mark currency notes as synced
+          for (var cn in unsyncedCurrencyNotes) {
+            if (cn['id'] == null) continue;
+            await txn.update('currency_notes', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [cn['id']]);
           }
         });
         if (kDebugMode) {

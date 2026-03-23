@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart'; // For BusinessConfig
-import 'package:mobile_app/db/mock_data.dart'; // For BusinessConfig
 import 'package:mobile_app/services/report_service.dart';
 
 class ClockInDialog extends StatefulWidget {
@@ -14,24 +13,36 @@ class ClockInDialog extends StatefulWidget {
 }
 
 class _ClockInDialogState extends State<ClockInDialog> {
-  final Map<String, int> _denominations = {
-    '5000': 0,
-    '1000': 0,
-    '500': 0,
-    '100': 0,
-    '50': 0,
-    '20': 0,
-    '10': 0,
-  };
-
+  Map<String, int> _denominations = {};
   final Map<String, TextEditingController> _controllers = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadDenominations();
+  }
+
+  Future<void> _loadDenominations() async {
+    final notes = await DatabaseHelper.instance.getCurrencyNotes();
+    final activeNotes = notes.where((n) => n['status'] == 1).toList();
+    
+    if (activeNotes.isEmpty) {
+      _denominations = {
+        '5000': 0, '1000': 0, '500': 0, '100': 0, '50': 0, '20': 0, '10': 0,
+      };
+    } else {
+      activeNotes.sort((a, b) => (b['value'] as num).compareTo(a['value'] as num));
+      for (var note in activeNotes) {
+        _denominations[note['value'].toStringAsFixed(0)] = 0;
+      }
+    }
+
     for (var denom in _denominations.keys) {
       _controllers[denom] = TextEditingController(text: '0');
     }
+    
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -60,122 +71,124 @@ class _ClockInDialogState extends State<ClockInDialog> {
         child: Container(
           width: 400,
           padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+          child: _isLoading 
+            ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+            : SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: theme.glassCircleDecoration,
-                      child: Icon(Icons.login_rounded, color: theme.highlight, size: 24),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: theme.glassCircleDecoration,
+                          child: Icon(Icons.login_rounded, color: theme.highlight, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Shift Clock-In', 
+                          style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text('Shift Clock-In', 
-                      style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text('Enter opening cash denominations:', 
-                  style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-                const SizedBox(height: 16),
-                Column(
-                  children: _denominations.keys.map((denom) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
-                          ),
-                          Expanded(
-                            flex: 3,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
+                    const SizedBox(height: 20),
+                    Text('Enter opening cash denominations:', 
+                      style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+                    const SizedBox(height: 16),
+                    Column(
+                      children: _denominations.keys.map((denom) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
                               ),
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
-                                    onPressed: () {
-                                      final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                      if (current > 0) {
-                                        final newValue = current - 1;
-                                        _controllers[denom]!.text = newValue.toString();
-                                        setState(() => _denominations[denom] = newValue);
-                                      }
-                                    },
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                   ),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _controllers[denom],
-                                      keyboardType: TextInputType.number,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                        border: InputBorder.none,
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
+                                        onPressed: () {
+                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                          if (current > 0) {
+                                            final newValue = current - 1;
+                                            _controllers[denom]!.text = newValue.toString();
+                                            setState(() => _denominations[denom] = newValue);
+                                          }
+                                        },
                                       ),
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _denominations[denom] = int.tryParse(val) ?? 0;
-                                        });
-                                      },
-                                    ),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _controllers[denom],
+                                          keyboardType: TextInputType.number,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                                          decoration: const InputDecoration(
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                            border: InputBorder.none,
+                                          ),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _denominations[denom] = int.tryParse(val) ?? 0;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
+                                        onPressed: () {
+                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                          final newValue = current + 1;
+                                          _controllers[denom]!.text = newValue.toString();
+                                          setState(() => _denominations[denom] = newValue);
+                                        },
+                                      ),
+                                    ],
                                   ),
-                                  IconButton(
-                                    icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
-                                    onPressed: () {
-                                      final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                      final newValue = current + 1;
-                                      _controllers[denom]!.text = newValue.toString();
-                                      setState(() => _denominations[denom] = newValue);
-                                    },
-                                  ),
-                                ],
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        ],
+                        );
+                      }).toList(),
+                    ),
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Opening Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
+                        Text('${BusinessConfig.instance.currencyDisplay} ${_totalOpeningCash.toStringAsFixed(0)}', 
+                          style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.highlight,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        ),
+                        onPressed: () => _handleClockIn(context),
+                        child: const Text('START SHIFT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                       ),
-                    );
-                  }).toList(),
-                ),
-                const Divider(height: 32),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Total Opening Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
-                    Text('${BusinessConfig.instance.currencyDisplay} ${_totalOpeningCash.toStringAsFixed(0)}', 
-                      style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.highlight,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                    ),
-                    onPressed: () => _handleClockIn(context),
-                    child: const Text('START SHIFT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
-                ),
-              ],
-            ),
-          ),
+              ),
         ),
       ),
     );
@@ -209,24 +222,36 @@ class ClockOutDenominationsDialog extends StatefulWidget {
 }
 
 class _ClockOutDenominationsDialogState extends State<ClockOutDenominationsDialog> {
-  final Map<String, int> _denominations = {
-    '5000': 0,
-    '1000': 0,
-    '500': 0,
-    '100': 0,
-    '50': 0,
-    '20': 0,
-    '10': 0,
-  };
-
+  Map<String, int> _denominations = {};
   final Map<String, TextEditingController> _controllers = {};
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _loadDenominations();
+  }
+
+  Future<void> _loadDenominations() async {
+    final notes = await DatabaseHelper.instance.getCurrencyNotes();
+    final activeNotes = notes.where((n) => n['status'] == 1).toList();
+    
+    if (activeNotes.isEmpty) {
+      _denominations = {
+        '5000': 0, '1000': 0, '500': 0, '100': 0, '50': 0, '20': 0, '10': 0,
+      };
+    } else {
+      activeNotes.sort((a, b) => (b['value'] as num).compareTo(a['value'] as num));
+      for (var note in activeNotes) {
+        _denominations[note['value'].toStringAsFixed(0)] = 0;
+      }
+    }
+
     for (var denom in _denominations.keys) {
       _controllers[denom] = TextEditingController(text: '0');
     }
+    
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -255,128 +280,130 @@ class _ClockOutDenominationsDialogState extends State<ClockOutDenominationsDialo
         child: Container(
           width: 400,
           padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
+          child: _isLoading 
+            ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+            : SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: theme.glassCircleDecoration,
-                      child: Icon(Icons.money_off_rounded, color: theme.highlight, size: 24),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: theme.glassCircleDecoration,
+                          child: Icon(Icons.money_off_rounded, color: theme.highlight, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Text('Closing Cash Count', 
+                          style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                      ],
                     ),
-                    const SizedBox(width: 12),
-                    Text('Closing Cash Count', 
-                      style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 20),
+                    Text('Enter remaining cash denominations in drawer:', 
+                      style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+                    const SizedBox(height: 16),
+                    Column(
+                      children: _denominations.keys.map((denom) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 2,
+                                child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
+                                        onPressed: () {
+                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                          if (current > 0) {
+                                            final newValue = current - 1;
+                                            _controllers[denom]!.text = newValue.toString();
+                                            setState(() => _denominations[denom] = newValue);
+                                          }
+                                        },
+                                      ),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _controllers[denom],
+                                          keyboardType: TextInputType.number,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                                          decoration: const InputDecoration(
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                            border: InputBorder.none,
+                                          ),
+                                          onChanged: (val) {
+                                            setState(() {
+                                              _denominations[denom] = int.tryParse(val) ?? 0;
+                                            });
+                                          },
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
+                                        onPressed: () {
+                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                          final newValue = current + 1;
+                                          _controllers[denom]!.text = newValue.toString();
+                                          setState(() => _denominations[denom] = newValue);
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const Divider(height: 32),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Total Closing Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
+                        Text('${BusinessConfig.instance.currencyDisplay} ${_totalClosingCash.toStringAsFixed(0)}', 
+                          style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: theme.highlight,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        ),
+                        onPressed: () => Navigator.pop(context, {
+                          'total': _totalClosingCash,
+                          'denominations': jsonEncode(_denominations),
+                        }),
+                        child: const Text('PROCEED TO SUMMARY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                Text('Enter remaining cash denominations in drawer:', 
-                  style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-                const SizedBox(height: 16),
-                Column(
-                  children: _denominations.keys.map((denom) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
-                          ),
-                          Expanded(
-                            flex: 3,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                              ),
-                              child: Row(
-                                children: [
-                                  IconButton(
-                                    icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
-                                    onPressed: () {
-                                      final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                      if (current > 0) {
-                                        final newValue = current - 1;
-                                        _controllers[denom]!.text = newValue.toString();
-                                        setState(() => _denominations[denom] = newValue);
-                                      }
-                                    },
-                                  ),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _controllers[denom],
-                                      keyboardType: TextInputType.number,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                        border: InputBorder.none,
-                                      ),
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _denominations[denom] = int.tryParse(val) ?? 0;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
-                                    onPressed: () {
-                                      final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                      final newValue = current + 1;
-                                      _controllers[denom]!.text = newValue.toString();
-                                      setState(() => _denominations[denom] = newValue);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                ),
-              const Divider(height: 32),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Total Closing Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
-                  Text('${BusinessConfig.instance.currencyDisplay} ${_totalClosingCash.toStringAsFixed(0)}', 
-                    style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
-                ],
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.highlight,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                  ),
-                  onPressed: () => Navigator.pop(context, {
-                    'total': _totalClosingCash,
-                    'denominations': jsonEncode(_denominations),
-                  }),
-                  child: const Text('PROCEED TO SUMMARY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                ),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
-              ),
-                ],
-              ),
-            ),
-          ),
         ),
-      );
+      ),
+    );
   }
 }
 
@@ -431,7 +458,6 @@ class _ClockOutDialogState extends State<ClockOutDialog> {
     
     final totalShiftRevenue = (cashSales + mobileSales + cardSales + creditSalesTotal);
     final totalCashExpected = (openingCash + cashSales + creditReceived);
-    final netCashExpected = totalCashExpected - openingCash;
     
     final discrepancy = widget.closingCash - totalCashExpected;
 
@@ -448,109 +474,109 @@ class _ClockOutDialogState extends State<ClockOutDialog> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                  Row(
-                    children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: theme.glassCircleDecoration,
+                          child: Icon(Icons.assessment_rounded, color: theme.highlight, size: 24),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Shift Summary', 
+                                style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
+                              Text('Reconciliation & Breakdown', 
+                                style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    
+                    // Financial Breakdown
+                    _SummaryRow(label: 'Opening Cash', value: openingCash, color: theme.textSecondary),
+                    _SummaryRow(label: 'Cash Sales', value: cashSales, color: theme.textPrimary),
+                    _SummaryRow(label: 'Credit Received (Paid)', value: creditReceived, color: ThemeProvider.success),
+                    const Divider(height: 16),
+                    _SummaryRow(label: 'Expected Cash in Drawer', value: totalCashExpected, color: theme.textPrimary, isBold: true),
+                    _SummaryRow(label: 'Actual Cash Counted', value: widget.closingCash, color: theme.highlight, isBold: true),
+                    
+                    if (discrepancy != 0)
                       Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: theme.glassCircleDecoration,
-                        child: Icon(Icons.assessment_rounded, color: theme.highlight, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                    Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: (discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Text('Shift Summary', 
-                              style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text('Reconciliation & Breakdown', 
-                              style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                            Text(discrepancy > 0 ? 'Surplus:' : 'Shortage:', 
+                              style: TextStyle(color: discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 12)),
+                            Text('${BusinessConfig.instance.currencyDisplay} ${discrepancy.abs().toStringAsFixed(0)}', 
+                              style: TextStyle(color: discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 12)),
                           ],
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Financial Breakdown
-                  _SummaryRow(label: 'Opening Cash', value: openingCash, color: theme.textSecondary),
-                  _SummaryRow(label: 'Cash Sales', value: cashSales, color: theme.textPrimary),
-                  _SummaryRow(label: 'Credit Received (Paid)', value: creditReceived, color: ThemeProvider.success),
-                  const Divider(height: 16),
-                  _SummaryRow(label: 'Expected Cash in Drawer', value: totalCashExpected, color: theme.textPrimary, isBold: true),
-                  _SummaryRow(label: 'Actual Cash Counted', value: widget.closingCash, color: theme.highlight, isBold: true),
-                  
-                  if (discrepancy != 0)
-                    Container(
-                      margin: const EdgeInsets.only(top: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: (discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(discrepancy > 0 ? 'Surplus:' : 'Shortage:', 
-                            style: TextStyle(color: discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 12)),
-                          Text('${BusinessConfig.instance.currencyDisplay} ${discrepancy.abs().toStringAsFixed(0)}', 
-                            style: TextStyle(color: discrepancy > 0 ? ThemeProvider.success : ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 12)),
-                        ],
-                      ),
+
+                    const Divider(height: 24),
+                    
+                    _SummaryRow(label: 'Mobile Transfer', value: mobileSales, color: ThemeProvider.info),
+                    _SummaryRow(label: 'Card Payments', value: cardSales, color: ThemeProvider.info),
+                    _SummaryRow(label: 'Credit (Outstanding)', value: creditSalesTotal - creditReceived, color: ThemeProvider.warning),
+                    
+                    const Divider(height: 16),
+                    // New Section for Expenses and Purchases
+                    _SummaryRow(label: 'Daily Expenses', value: totalExpenses, color: ThemeProvider.error),
+                    _SummaryRow(label: 'Total Purchases', value: totalPurchases, color: ThemeProvider.warning),
+
+                    const Divider(height: 24, thickness: 1.2),
+                    _SummaryRow(label: 'TOTAL SHIFT REVENUE', value: totalShiftRevenue, color: theme.textPrimary, isBold: true),
+
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _generateReport(context),
+                            icon: const Icon(Icons.description_outlined, size: 18),
+                            label: const Text('REPORT'),
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(color: theme.highlight),
+                              foregroundColor: theme.highlight,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _handleClockOut(context),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ThemeProvider.error,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            child: const Text('CLOCK OUT', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
                     ),
-
-                  const Divider(height: 24),
-                  
-                  _SummaryRow(label: 'Mobile Transfer', value: mobileSales, color: ThemeProvider.info),
-                  _SummaryRow(label: 'Card Payments', value: cardSales, color: ThemeProvider.info),
-                  _SummaryRow(label: 'Credit (Outstanding)', value: creditSalesTotal - creditReceived, color: ThemeProvider.warning),
-                  
-                  const Divider(height: 16),
-                  // New Section for Expenses and Purchases
-                  _SummaryRow(label: 'Daily Expenses', value: totalExpenses, color: ThemeProvider.error),
-                  _SummaryRow(label: 'Total Purchases', value: totalPurchases, color: ThemeProvider.warning),
-
-                  const Divider(height: 24, thickness: 1.2),
-                  _SummaryRow(label: 'TOTAL SHIFT REVENUE', value: totalShiftRevenue, color: theme.textPrimary, isBold: true),
-
-                  const SizedBox(height: 32),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _generateReport(context),
-                          icon: const Icon(Icons.description_outlined, size: 18),
-                          label: const Text('REPORT'),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: theme.highlight),
-                            foregroundColor: theme.highlight,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _handleClockOut(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ThemeProvider.error,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text('CLOCK OUT', style: TextStyle(fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('Go Back', style: TextStyle(color: theme.textSecondary)),
-                  ),
-                ],
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('Go Back', style: TextStyle(color: theme.textSecondary)),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
         ),
-      );
+      ),
+    );
   }
 
   Future<void> _handleClockOut(BuildContext context) async {
@@ -638,7 +664,7 @@ extension ThemeProviderExt on ThemeProvider {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E1E1E).withOpacity(0.8) : Colors.white.withOpacity(0.9),
-      borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         border: Border.all(
           color: isDark ? Colors.white.withOpacity(0.1) : Colors.black.withOpacity(0.05),
           width: 1.5,

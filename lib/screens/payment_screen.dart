@@ -48,6 +48,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _processing = false;
   bool _generateReceipt = BusinessConfig.instance.autoReceipt;
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
+  List<Map<String, dynamic>> _currencyNotes = [];
 
   @override
   void initState() {
@@ -56,6 +57,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _cashController.text = BusinessConfig.instance.formatAmount(widget.total);
     _partialController.text = BusinessConfig.instance.formatAmount(widget.total);
     _selectedCustomer = widget.customer;
+    _loadCurrencyNotes();
+  }
+
+  Future<void> _loadCurrencyNotes() async {
+    final notes = await DatabaseHelper.instance.getCurrencyNotes();
+    if (mounted) {
+      setState(() {
+        _currencyNotes = notes.where((n) => n['status'] == 1).toList();
+      });
+    }
   }
 
   void _processPayment() async {
@@ -841,6 +852,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildUniversalDialPad() {
+    final leftNotes = _currencyNotes.take((_currencyNotes.length / 2).ceil()).toList();
+    final rightNotes = _currencyNotes.skip(leftNotes.length).toList();
+
+    // Fallback if no notes defined
+    final displayLeft = leftNotes.isNotEmpty ? leftNotes : [{'value': 10}, {'value': 20}, {'value': 50}];
+    final displayRight = rightNotes.isNotEmpty ? rightNotes : [{'value': 100}, {'value': 500}, {'value': 1000}];
+
     return Column(
       children: [
         Row(
@@ -850,9 +868,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Expanded(
               flex: 1,
               child: Column(
-                children: [10, 20, 50].map((amt) => Padding(
+                children: displayLeft.map((note) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: _NoteButton(amount: amt.toDouble(), onTap: () => _setCash(amt.toDouble())),
+                  child: _NoteButton(amount: (note['value'] as num).toDouble(), onTap: () => _setCash((note['value'] as num).toDouble())),
                 )).toList(),
               ),
             ),
@@ -877,9 +895,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Expanded(
               flex: 1,
               child: Column(
-                children: [100, 500, 1000].map((amt) => Padding(
+                children: displayRight.map((note) => Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: _NoteButton(amount: amt.toDouble(), onTap: () => _setCash(amt.toDouble())),
+                  child: _NoteButton(amount: (note['value'] as num).toDouble(), onTap: () => _setCash((note['value'] as num).toDouble())),
                 )).toList(),
               ),
             ),

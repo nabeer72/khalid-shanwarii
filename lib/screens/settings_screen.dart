@@ -6,6 +6,7 @@ import 'package:mobile_app/data/currency_list.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
+import 'package:mobile_app/screens/currency_notes_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -547,6 +548,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Universal Tax Rate',
                 subtitle: '$_taxRate%',
                 onTap: _showTaxDialog,
+              ),
+              _SettingsTile(
+                icon: Icons.money_rounded,
+                title: 'Currency Notes',
+                subtitle: 'Manage denominations for cash counting',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const CurrencyNotesScreen()),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),
