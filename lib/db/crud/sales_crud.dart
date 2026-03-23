@@ -150,6 +150,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getSaleItems(dynamic saleId) async {
     final db = await database;
-    return await db.query('sale_items', where: 'sale_id = ?', whereArgs: [saleId]);
+    return await db.rawQuery('''
+      SELECT si.*, p.name as product_name
+      FROM sale_items si
+      LEFT JOIN products p ON si.product_id = p.id
+      WHERE si.sale_id = ?
+    ''', [saleId]);
   }
 }

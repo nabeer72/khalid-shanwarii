@@ -213,6 +213,7 @@ class DbTables {
         quantity REAL DEFAULT 1,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
+        discount REAL DEFAULT 0,
         branch_id INTEGER,
         is_synced INTEGER DEFAULT 0,
         FOREIGN KEY (sale_id) REFERENCES sales(id),
@@ -303,6 +304,7 @@ class DbTables {
         quantity REAL DEFAULT 0,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
+        discount REAL DEFAULT 0,
         FOREIGN KEY (return_id) REFERENCES returns(id),
         FOREIGN KEY (product_id) REFERENCES products(id),
         FOREIGN KEY (stock_id) REFERENCES stocks(id)

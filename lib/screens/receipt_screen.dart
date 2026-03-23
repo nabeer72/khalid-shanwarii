@@ -151,7 +151,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       const Divider(color: Colors.black, thickness: 1),
                       const SizedBox(height: 8),
 
-                      // Meta Info
+                      // Meta Info Row 1: Bill No & Date
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -163,14 +163,13 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Casher: ${employee.toUpperCase()}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
-                      ),
-                      const SizedBox(height: 4),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Customer: ${customer ?? "Walk-In"}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                      // Meta Info Row 2: Casher & Customer
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Casher: ${employee.toUpperCase()}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text('Customer: ${customer ?? "Walk-In"}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                        ],
                       ),
                       
                       const SizedBox(height: 8),
@@ -279,18 +278,67 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       const _DashedLine(),
                       const SizedBox(height: 12),
 
-            // Totals Section
-            _SummaryRow(label: 'Gross Total', value: BusinessConfig.instance.formatAmount(total + discount)),
-            if (discount > 0)
-              _SummaryRow(label: '(-)Total Disc', value: BusinessConfig.instance.formatAmount(discount)),
-            _SummaryRow(label: 'Net Total', value: BusinessConfig.instance.formatAmount(total), isBold: true, fontSize: 18),
-            
-            if (tendered > 0) ...[
-              const SizedBox(height: 8),
-              _SummaryRow(label: 'Cash Received', value: BusinessConfig.instance.formatAmount(tendered)),
-              if (change > 0)
-                _SummaryRow(label: 'Cash Back', value: BusinessConfig.instance.formatAmount(change)),
-            ],
+            // Totals Section (Two Columns)
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Left Column: Gross & Disc
+                Expanded(
+                  flex: 5,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _SummaryRow(
+                        label: 'Gross:', 
+                        value: BusinessConfig.instance.formatAmount(total + discount),
+                        alignment: MainAxisAlignment.start,
+                        labelWidth: 55,
+                      ),
+                      if (discount > 0)
+                        _SummaryRow(
+                          label: 'Disc:', 
+                          value: BusinessConfig.instance.formatAmount(discount),
+                          alignment: MainAxisAlignment.start,
+                          labelWidth: 55,
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Right Column: Net Total & Cash
+                Expanded(
+                  flex: 6,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _SummaryRow(
+                        label: 'Net:', 
+                        value: BusinessConfig.instance.formatAmount(total), 
+                        isBold: true, 
+                        fontSize: 16,
+                        alignment: MainAxisAlignment.end,
+                        labelWidth: 40,
+                      ),
+                      if (tendered > 0) ...[
+                        _SummaryRow(
+                          label: 'Rec:', 
+                          value: BusinessConfig.instance.formatAmount(tendered),
+                          alignment: MainAxisAlignment.end,
+                          labelWidth: 40,
+                        ),
+                        if (change > 0)
+                          _SummaryRow(
+                            label: 'Back:', 
+                            value: BusinessConfig.instance.formatAmount(change),
+                            alignment: MainAxisAlignment.end,
+                            labelWidth: 40,
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
                       
                       if (discount > 0) ...[
                         const SizedBox(height: 12),
@@ -364,22 +412,30 @@ class _SummaryRow extends StatelessWidget {
   final String value;
   final bool isBold;
   final double fontSize;
+  final MainAxisAlignment alignment;
+  final double labelWidth;
 
-  const _SummaryRow({required this.label, required this.value, this.isBold = false, this.fontSize = 14});
+  const _SummaryRow({
+    required this.label, 
+    required this.value, 
+    this.isBold = false, 
+    this.fontSize = 12,
+    this.alignment = MainAxisAlignment.end,
+    this.labelWidth = 80,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+        mainAxisAlignment: alignment,
         children: [
-          Text(label, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
-          const SizedBox(width: 20),
           SizedBox(
-            width: 100,
-            child: Text(value, textAlign: TextAlign.right, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+            width: labelWidth,
+            child: Text(label, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           ),
+          Text(value, textAlign: TextAlign.right, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
         ],
       ),
     );

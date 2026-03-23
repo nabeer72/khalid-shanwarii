@@ -971,5 +971,18 @@ class DbMigrations {
         if (kDebugMode) print('v47 sales shift_id error: $e');
       }
     }
+    if (oldVersion < 48) {
+      if (kDebugMode) print('Upgrading DB to v48: Adding discount column to sale_items and return_items...');
+      try {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN discount REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v48 sale_items discount error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE return_items ADD COLUMN discount REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v48 return_items discount error: $e');
+      }
+    }
   }
 }

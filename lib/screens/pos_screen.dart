@@ -168,34 +168,142 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _showStockBatchDialog(Product product) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        backgroundColor: theme.surface,
-        title: Text('Select Batch for ${product.name}', style: TextStyle(color: theme.textPrimary)),
-        content: SizedBox(
-          width: 350,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: product.stocks.length,
-            itemBuilder: (ctx, i) {
-              final stock = product.stocks[i];
-              return ListTile(
-                title: Text('${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)}', 
-                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                subtitle: Text('Stock: ${stock.quantity} | Barcode: ${stock.barcode ?? 'N/A'}',
-                    style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-                trailing: Icon(Icons.add_shopping_cart, color: theme.highlight),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  if (product.isPricePerWeight) {
-                    _showWeightDialog(product, stock);
-                  } else {
-                    final success = _controller.addToCart(product, stock);
-                    if (!success) _showOutOfStockAlert(product, stock);
-                  }
-                },
-              );
-            },
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(20),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.surface,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Select Stock Batch'.toUpperCase(),
+                            style: TextStyle(
+                                color: theme.textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5)),
+                        const SizedBox(height: 4),
+                        Text(product.name,
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(ctx),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.textHint.withOpacity(0.1),
+                        ),
+                        child: Icon(Icons.close, color: theme.textSecondary, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: product.stocks.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, i) {
+                    final stock = product.stocks[i];
+                    final bool isLowStock = stock.quantity <= product.stockLimit;
+                    
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          if (product.isPricePerWeight) {
+                            _showWeightDialog(product, stock);
+                          } else {
+                            final success = _controller.addToCart(product, stock);
+                            if (!success) _showOutOfStockAlert(product, stock);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: theme.cardBorder),
+                            color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: theme.highlight.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.inventory_2_outlined, color: theme.highlight, size: 22),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)}',
+                                        style: TextStyle(
+                                            color: theme.textPrimary,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text('Barcode: ${stock.barcode ?? 'Default'}',
+                                        style: TextStyle(
+                                            color: theme.textSecondary,
+                                            fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isLowStock ? ThemeProvider.error.withOpacity(0.1) : ThemeProvider.success.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${stock.quantity} Unit',
+                                  style: TextStyle(
+                                    color: isLowStock ? ThemeProvider.error : ThemeProvider.success,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -206,64 +314,130 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     final weightCtrl = TextEditingController(text: '1.00');
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Row(children: [
-          Text(product.image ?? '🏷️', style: const TextStyle(fontSize: 24)),
-          const SizedBox(width: 12),
-          Expanded(
-              child: Text('${product.name} (${stock.barcode ?? 'Batch'})',
-                  style: TextStyle(color: theme.textPrimary, fontSize: 16)))
-        ]),
-        content: SizedBox(
-          width: 320,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 380,
+          padding: const EdgeInsets.all(20),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.surface,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Enter Weight'.toUpperCase(),
+                            style: TextStyle(
+                                color: theme.textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5)),
+                        const SizedBox(height: 4),
+                        Text(product.name,
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900,
+                                overflow: TextOverflow.ellipsis)),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.highlight.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)} / ${BusinessConfig.instance.weightUnit}',
+                      style: TextStyle(color: theme.highlight, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
               TextField(
-                  controller: weightCtrl,
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                  autofocus: true,
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                      suffixText: BusinessConfig.instance.weightUnit,
-                      suffixStyle:
-                          TextStyle(color: theme.textSecondary, fontSize: 18),
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8)))),
-              const SizedBox(height: 12),
-              Wrap(
-                  spacing: 8,
-                  children: ['0.5', '1.0', '2.0']
-                      .map((w) => ActionChip(
-                          label: Text('$w kg'),
-                          onPressed: () => weightCtrl.text = w))
-                      .toList()),
+                controller: weightCtrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                autofocus: true,
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 48,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1),
+                textAlign: TextAlign.center,
+                decoration: InputDecoration(
+                  hintText: '0.00',
+                  hintStyle: TextStyle(color: theme.textHint.withOpacity(0.2)),
+                  suffixText: BusinessConfig.instance.weightUnit,
+                  suffixStyle: TextStyle(color: theme.textSecondary, fontSize: 18, fontWeight: FontWeight.bold),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: ['0.5', '1.0', '2.0', '5.0'].map((w) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: ActionChip(
+                      label: Text('$w ${BusinessConfig.instance.weightUnit}', 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                      backgroundColor: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                      side: BorderSide(color: theme.cardBorder),
+                      onPressed: () => weightCtrl.text = w,
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: theme.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final weight = double.tryParse(weightCtrl.text);
+                        if (weight != null && weight > 0) {
+                          _controller.addToCart(product, stock, qty: weight, isWeight: true);
+                          Navigator.pop(ctx);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('ADD TO CART', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Cancel', style: TextStyle(color: theme.textSecondary))),
-          ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: ThemeProvider.success),
-              onPressed: () {
-                final weight = double.tryParse(weightCtrl.text);
-                if (weight != null && weight > 0) {
-                  _controller.addToCart(product, stock, qty: weight, isWeight: true);
-                  Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Add')),
-        ],
       ),
     );
   }
@@ -508,34 +682,111 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         TextEditingController(text: _controller.discount > 0 ? _controller.discount.toString() : '');
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title:
-            Text('Apply Discount', style: TextStyle(color: theme.textPrimary)),
-        content: SizedBox(
-          width: 300,
-          child: TextField(
-              controller: discountCtrl,
-              keyboardType: TextInputType.number,
-              autofocus: true,
-              style: TextStyle(color: theme.textPrimary, fontSize: 24),
-              textAlign: TextAlign.center,
-              decoration: InputDecoration(
-                  prefixText: '\$ ', border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))))),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 350,
+          padding: const EdgeInsets.all(20),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.surface,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Cart Discount'.toUpperCase(),
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5)),
+                      const SizedBox(height: 4),
+                      Text('Apply Discount',
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: theme.highlight.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.percent_rounded, color: theme.highlight, size: 20),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.cardBorder),
+                ),
+                child: TextField(
+                  controller: discountCtrl,
+                  keyboardType: TextInputType.number,
+                  autofocus: true,
+                  style: TextStyle(color: theme.textPrimary, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    prefixText: '${BusinessConfig.instance.currencyDisplay} ',
+                    prefixStyle: TextStyle(color: theme.textSecondary, fontSize: 20, fontWeight: FontWeight.bold),
+                    hintText: '0.00',
+                    hintStyle: TextStyle(color: theme.textHint.withOpacity(0.2)),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  ),
+                  onSubmitted: (v) {
+                    _controller.setDiscount(double.tryParse(v) ?? 0);
+                    Navigator.pop(ctx);
+                  },
+                ),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: theme.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _controller.setDiscount(double.tryParse(discountCtrl.text) ?? 0);
+                        Navigator.pop(ctx);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('APPLY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Cancel', style: TextStyle(color: theme.textSecondary))),
-          ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
-              onPressed: () {
-                _controller.setDiscount(double.tryParse(discountCtrl.text) ?? 0);
-                Navigator.pop(ctx);
-              },
-              child: const Text('Apply')),
-        ],
       ),
     );
   }
@@ -801,60 +1052,142 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     final barcodeCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Row(children: [
-          const Icon(Icons.qr_code, color: ThemeProvider.info),
-          const SizedBox(width: 8),
-          Text('Enter Barcode', style: TextStyle(color: theme.textPrimary))
-        ]),
-        content: SizedBox(
-          width: 350,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 380,
+          padding: const EdgeInsets.all(20),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.surface,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextField(
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Barcode Entry'.toUpperCase(),
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5)),
+                      const SizedBox(height: 4),
+                      Text('Manual Scan',
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: ThemeProvider.info.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.qr_code_scanner_rounded, color: ThemeProvider.info, size: 24),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Container(
+                decoration: BoxDecoration(
+                  color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.cardBorder),
+                ),
+                child: TextField(
                   controller: barcodeCtrl,
                   autofocus: true,
-                  style: TextStyle(color: theme.textPrimary),
+                  style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
                   decoration: InputDecoration(
-                      hintText: 'Scan or type barcode...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8))),
+                    hintText: 'Enter barcode...',
+                    hintStyle: TextStyle(color: theme.textHint.withOpacity(0.5), fontSize: 16),
+                    prefixIcon: Icon(Icons.keyboard_outlined, color: theme.textSecondary, size: 20),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  ),
                   onSubmitted: (v) {
                     Navigator.pop(ctx);
-                    _processBarcode(v);
-                  }),
-              const SizedBox(height: 12),
-              Text('Quick test barcodes:',
-                  style: TextStyle(color: theme.textHint, fontSize: 12)),
-              const SizedBox(height: 6),
-              Wrap(
-                  spacing: 6,
+                    if (v.isNotEmpty) _processBarcode(v);
+                  },
+                ),
+              ),
+              const SizedBox(height: 20),
+              if (_controller.products.isNotEmpty) ...[
+                Text('Quick Selection',
+                    style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
                   children: _controller.products
+                      .where((p) => p.barcode != null && p.barcode!.isNotEmpty)
                       .take(3)
-                      .map((Product p) => ActionChip(
-                          label: Text(p.barcode ?? 'N/A',
-                              style: const TextStyle(fontSize: 12)),
-                          onPressed: () {
-                            Navigator.pop(ctx);
-                            _processBarcode(p.barcode ?? '');
-                          }))
-                      .toList()),
+                      .map((p) => Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                _processBarcode(p.barcode!);
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: theme.cardBorder),
+                                  color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                ),
+                                child: Text(p.barcode!, style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                              ),
+                            ),
+                          ))
+                      .toList(),
+                ),
+              ],
+              const SizedBox(height: 30),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: theme.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        if (barcodeCtrl.text.isNotEmpty) _processBarcode(barcodeCtrl.text);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('ADD PRODUCT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child:
-                  Text('Cancel', style: TextStyle(color: theme.textSecondary))),
-          ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _processBarcode(barcodeCtrl.text);
-              },
-              child: const Text('Add')),
-        ],
       ),
     );
   }
@@ -910,114 +1243,182 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   }
 
   void _showPriceVariantDialog(List<Product> variants, String barcode) {
-    final currency = BusinessConfig.instance.currency;
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 450,
+          padding: const EdgeInsets.all(20),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
             color: theme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
           ),
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  decoration: BoxDecoration(
-                    color: theme.textHint.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Multiple Products Found',
-                style: TextStyle(
-                  color: ThemeProvider.error,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Select the product for barcode: $barcode',
-                style: TextStyle(color: theme.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 16),
-              ...variants.map((v) {
-                // Find matching stock for this specific variant
-                Stock? stock;
-                try {
-                  stock = v.stocks.firstWhere((s) => s.barcode == barcode);
-                } catch (_) {
-                  stock = v.stocks.isNotEmpty ? v.stocks.first : null;
-                }
-                
-                if (stock == null) return const SizedBox.shrink();
-                final inStock = stock.quantity > 0;
-
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  decoration: BoxDecoration(
-                    color: theme.isDark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.04),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: theme.highlight.withOpacity(0.2),
-                    ),
-                  ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                    title: Text(
-                      v.name,
-                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Text(
-                      'Price: ${BusinessConfig.instance.currencyDisplay} ${stock.salePrice.toStringAsFixed(2)}  ·  Stock: ${stock.quantity}',
-                      style: TextStyle(color: theme.textSecondary, fontSize: 13),
-                    ),
-                    trailing: inStock
-                        ? Icon(Icons.add_circle_rounded, color: theme.highlight)
-                        : const Text(
-                            'Out of Stock',
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Multiple Products Found'.toUpperCase(),
                             style: TextStyle(
-                              color: ThemeProvider.error,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
+                                color: ThemeProvider.error,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5)),
+                        const SizedBox(height: 4),
+                        Text('Select Product for $barcode',
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                  ),
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(ctx),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.textHint.withOpacity(0.1),
+                        ),
+                        child: Icon(Icons.close, color: theme.textSecondary, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: variants.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, i) {
+                    final v = variants[i];
+                    Stock? stock;
+                    try {
+                      stock = v.stocks.firstWhere((s) => s.barcode == barcode);
+                    } catch (_) {
+                      stock = v.stocks.isNotEmpty ? v.stocks.first : null;
+                    }
+                    
+                    if (stock == null) return const SizedBox.shrink();
+                    final inStock = stock.quantity > 0;
+                    final bool isLowStock = stock.quantity <= v.stockLimit;
+
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: inStock
+                            ? () {
+                                Navigator.pop(ctx);
+                                if (v.isPricePerWeight) {
+                                  _showWeightDialog(v, stock!);
+                                } else {
+                                  final success = _controller.addToCart(v, stock!);
+                                  if (!success) {
+                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                      content: Text('${v.name} is out of stock!'),
+                                      backgroundColor: ThemeProvider.error,
+                                    ));
+                                  }
+                                }
+                              }
+                            : null,
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                                color: inStock ? theme.cardBorder : theme.cardBorder.withOpacity(0.5)),
+                            color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                          ),
+                          child: Opacity(
+                            opacity: inStock ? 1.0 : 0.6,
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: (inStock ? theme.highlight : theme.textHint).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Icon(Icons.inventory_2_outlined,
+                                      color: inStock ? theme.highlight : theme.textHint, size: 22),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(v.name,
+                                          style: TextStyle(
+                                              color: theme.textPrimary,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold)),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                          '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)}',
+                                          style: TextStyle(
+                                              color: theme.highlight,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600)),
+                                    ],
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: !inStock
+                                        ? ThemeProvider.error.withOpacity(0.1)
+                                        : isLowStock
+                                            ? ThemeProvider.warning.withOpacity(0.1)
+                                            : ThemeProvider.success.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    !inStock
+                                        ? 'Out of Stock'
+                                        : '${stock.quantity} Unit',
+                                    style: TextStyle(
+                                      color: !inStock
+                                          ? ThemeProvider.error
+                                          : isLowStock
+                                              ? ThemeProvider.warning
+                                              : ThemeProvider.success,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                    onTap: inStock
-                        ? () {
-                            Navigator.pop(ctx);
-                            if (v.isPricePerWeight) {
-                              _showWeightDialog(v, stock!);
-                            } else {
-                              final success = _controller.addToCart(v, stock!);
-                              if (!success) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                  content: Text('${v.name} is out of stock!'),
-                                  backgroundColor: ThemeProvider.error,
-                                ));
-                              }
-                            }
-                          }
-                        : null,
-                  ),
-                );
-              }),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
