@@ -76,13 +76,13 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
       final now = DateTime.now();
       if (_filter == 'today') {
         filtered = _sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
           return ts != null && ts.day == now.day && ts.month == now.month && ts.year == now.year;
         }).toList();
       } else if (_filter == 'week') {
         final weekAgo = now.subtract(const Duration(days: 7));
         filtered = _sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
           return ts != null && ts.isAfter(weekAgo);
         }).toList();
       }

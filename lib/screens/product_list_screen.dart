@@ -291,61 +291,151 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void _showGroupPopup(String name, List<Product> group) {
     final theme = ThemeProvider.instance;
-    final currency = BusinessConfig.instance.currency;
-    showModalBottomSheet(
+    final List<MapEntry<Product, Stock>> flattened = [];
+    for (var p in group) {
+      for (var s in p.stocks) {
+        flattened.add(MapEntry(p, s));
+      }
+    }
+
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (ctx) {
-        return Container(
-          decoration: BoxDecoration(
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(20),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
             color: theme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
           ),
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Center(
-                child: Container(
-                  width: 40, height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(color: theme.textHint.withOpacity(0.3), borderRadius: BorderRadius.circular(2)),
-                ),
-              ),
-              Text('Price Variants', style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
-              const SizedBox(height: 4),
-              Text(name, style: TextStyle(color: theme.textPrimary, fontSize: 24, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 24),
-            ...group.expand((p) => p.stocks.map((s) => MapEntry(p, s))).map((entry) {
-              final p = entry.key;
-              final s = entry.value;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                decoration: theme.glassDecoration.copyWith(
-                  color: theme.highlight.withOpacity(0.05),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  title: Text(
-                    'Price: $currency ${s.salePrice.toStringAsFixed(2)}',
-                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Select Price Variant'.toUpperCase(),
+                            style: TextStyle(
+                                color: theme.textSecondary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5)),
+                        const SizedBox(height: 4),
+                        Text(name,
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900)),
+                      ],
+                    ),
                   ),
-                  subtitle: Text('Batch Quantity: ${s.quantity.toStringAsFixed(0)}', 
-                      style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
-                  trailing: Icon(Icons.edit_note_rounded, color: theme.highlight),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _openProductScreen(product: p);
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => Navigator.pop(ctx),
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: theme.textHint.withOpacity(0.1),
+                        ),
+                        child: Icon(Icons.close, color: theme.textSecondary, size: 18),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: flattened.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  itemBuilder: (ctx, i) {
+                    final entry = flattened[i];
+                    final product = entry.key;
+                    final stock = entry.value;
+                    final bool isLowStock = stock.quantity <= product.stockLimit;
+                    
+                    return Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _openProductScreen(product: product);
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: theme.cardBorder),
+                            color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: theme.highlight.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 22),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)}',
+                                        style: TextStyle(
+                                            color: theme.textPrimary,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 4),
+                                    Text('Barcode: ${stock.barcode ?? 'Default'}',
+                                        style: TextStyle(
+                                            color: theme.textSecondary,
+                                            fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isLowStock ? ThemeProvider.error.withOpacity(0.1) : ThemeProvider.success.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${stock.quantity.toStringAsFixed(0)} Unit',
+                                  style: TextStyle(
+                                    color: isLowStock ? ThemeProvider.error : ThemeProvider.success,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
                   },
                 ),
-              );
-            }),
+              ),
             ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

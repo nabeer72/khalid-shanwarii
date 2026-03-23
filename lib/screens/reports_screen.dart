@@ -46,18 +46,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
     switch (_period) {
       case 'today':
         return sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
           return ts != null && ts.day == now.day && ts.month == now.month && ts.year == now.year;
         }).toList();
       case 'week':
         final weekAgo = now.subtract(const Duration(days: 7));
         return sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
           return ts != null && ts.isAfter(weekAgo);
         }).toList();
       case 'month':
         return sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
           return ts != null && ts.month == now.month && ts.year == now.year;
         }).toList();
       default:
@@ -138,6 +138,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(28),
+                  clipBehavior: Clip.antiAlias,
                   decoration: theme.glassDecoration.copyWith(
                     gradient: LinearGradient(
                       colors: [theme.highlight, theme.highlight.withOpacity(0.8)],
@@ -145,7 +146,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       end: Alignment.bottomRight,
                     ),
                     boxShadow: [
-                      BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 10)),
+                      BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 0)),
                     ],
                   ),
                   child: Column(
@@ -155,22 +156,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text('NET REVENUE', 
-                            style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-                          Icon(Icons.auto_graph_rounded, color: Colors.white.withOpacity(0.9), size: 20),
+                            style: TextStyle(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
+                          Icon(Icons.auto_graph_rounded, color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.9), size: 20),
                         ],
                       ),
                       const SizedBox(height: 8),
                       Text('${BusinessConfig.instance.currencyDisplay} ${_netSales.toStringAsFixed(2)}', 
-                        style: const TextStyle(color: Colors.white, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                        style: TextStyle(color: theme.isDark ? Colors.white : Colors.black, fontSize: 38, fontWeight: FontWeight.w900, letterSpacing: -1)),
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.15),
+                          color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text('$_transactionCount transactions completed', 
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w800)),
+                          style: TextStyle(color: theme.isDark ? Colors.white : Colors.black, fontSize: 12, fontWeight: FontWeight.w800)),
                       ),
                     ],
                   ),
@@ -389,7 +390,7 @@ class _PeriodChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
         decoration: BoxDecoration(
           color: selected ? theme.highlight : theme.whiteAlpha(0.05),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: selected ? theme.highlight : theme.whiteAlpha(0.1), width: 1.5),
           boxShadow: selected ? [BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))] : null,
         ),

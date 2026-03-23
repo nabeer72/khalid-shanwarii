@@ -67,6 +67,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       }
     });
 
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -78,6 +80,16 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         ),
         leading: BackButton(color: theme.textPrimary),
       ),
+      floatingActionButton: isDesktop
+          ? FloatingActionButton.extended(
+              onPressed: _controller.canSave ? _controller.savePurchase : null,
+              backgroundColor: _controller.canSave ? theme.highlight : theme.highlight.withOpacity(0.3),
+              foregroundColor: Colors.white,
+              elevation: _controller.canSave ? 8 : 0,
+              icon: const Icon(Icons.save_rounded),
+              label: const Text('SAVE PURCHASE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5)),
+            )
+          : null,
       body: theme.glassBackground(
         child: SafeArea(
           child: Column(
@@ -172,13 +184,14 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                 ),
               ),
 
-              // Bottom save bar
-              _SaveButton(
-                theme: theme,
-                total: _controller.formattedTotal,
-                previous: _controller.formattedPreviousCredit,
-                onPressed: _controller.canSave ? _controller.savePurchase : null,
-              ),
+              // Bottom save bar (mobile only)
+              if (!isDesktop)
+                _SaveButton(
+                  theme: theme,
+                  total: _controller.formattedTotal,
+                  previous: _controller.formattedPreviousCredit,
+                  onPressed: _controller.canSave ? _controller.savePurchase : null,
+                ),
             ],
           ),
         ),

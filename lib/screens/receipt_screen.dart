@@ -1,7 +1,12 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 class ReceiptScreen extends StatefulWidget {
   final Map<String, dynamic> sale;
@@ -16,6 +21,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   List<Map<String, dynamic>> _items = [];
   bool _loadingItems = false;
   final theme = ThemeProvider.instance;
+  final GlobalKey _receiptKey = GlobalKey();
 
   @override
   void initState() {
@@ -63,6 +69,65 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     }
   }
 
+  Future<pw.Document?> _captureReceiptAsPdf() async {
+    try {
+      final boundary = _receiptKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) return null;
+
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) return null;
+
+      final pngBytes = byteData.buffer.asUint8List();
+      final pdfImage = pw.MemoryImage(pngBytes);
+
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat(
+            image.width / 3.0,
+            image.height / 3.0,
+          ),
+          build: (context) => pw.Center(
+            child: pw.Image(pdfImage, fit: pw.BoxFit.contain),
+          ),
+        ),
+      );
+      return pdf;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  Future<void> _handlePrint() async {
+    final pdf = await _captureReceiptAsPdf();
+    if (pdf == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to capture receipt'), backgroundColor: ThemeProvider.error),
+        );
+      }
+      return;
+    }
+    await Printing.layoutPdf(onLayout: (_) async => pdf.save());
+  }
+
+  Future<void> _handleShare() async {
+    final pdf = await _captureReceiptAsPdf();
+    if (pdf == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to capture receipt'), backgroundColor: ThemeProvider.error),
+        );
+      }
+      return;
+    }
+    final bytes = await pdf.save();
+    final sale = widget.sale;
+    final invoiceId = sale['invoice_number'] ?? sale['id']?.toString() ?? 'receipt';
+    await Printing.sharePdf(bytes: bytes, filename: 'receipt_$invoiceId.pdf');
+  }
+
   @override
   Widget build(BuildContext context) {
     final sale = widget.sale;
@@ -95,18 +160,20 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.share_rounded),
-            onPressed: () {},
+            onPressed: _handleShare,
           ),
           IconButton(
             icon: const Icon(Icons.print_rounded),
-            onPressed: () {},
+            onPressed: _handlePrint,
           ),
         ],
       ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-          child: Container(
+          child: RepaintBoundary(
+            key: _receiptKey,
+            child: Container(
             width: 380,
             decoration: BoxDecoration(
               color: Colors.white,
@@ -367,6 +434,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ),
