@@ -85,29 +85,17 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: theme.surface.withOpacity(0.8),
-        ),
-        child: SafeArea(
-          child: ElevatedButton(
-            onPressed: _controller.isLoading ? null : _handleSave,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.highlight,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-              elevation: 4,
-            ),
-            child: Text(
-              _controller.buttonLabel,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 1.2,
-              ),
-            ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: theme.highlight,
+        onPressed: _controller.isLoading ? null : _handleSave,
+        icon: const Icon(Icons.person_add_rounded, color: Colors.white),
+        label: Text(
+          _controller.buttonLabel,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.2,
           ),
         ),
       ),

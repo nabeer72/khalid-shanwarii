@@ -346,56 +346,22 @@ class _RecoveryFormScreenState extends State<RecoveryFormScreen> {
                       ),
                     ),
                   ),
-
-                  // Footer Actions
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'CANCEL',
-                              style: TextStyle(
-                                color: theme.textSecondary,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: ElevatedButton(
-                            onPressed: _recordPayment,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: ThemeProvider.success,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                            ),
-                            child: const Text(
-                              'RECORD PAYMENT',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.5,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
                 ],
               ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: ThemeProvider.success,
+        onPressed: _recordPayment,
+        icon: const Icon(Icons.check_rounded, color: Colors.white),
+        label: const Text(
+          'RECORD PAYMENT',
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+            fontSize: 13,
+            color: Colors.white,
+          ),
         ),
       ),
     );

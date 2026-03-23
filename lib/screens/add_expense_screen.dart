@@ -243,31 +243,25 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           );
                         }),
                       ]),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: _handleSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.highlight,
-                          minimumSize: const Size(double.infinity, 48),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                          elevation: 4,
-                        ),
-                        child: Text(
-                          _controller.saveButtonLabel,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
                     ],
                   ),
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: theme.highlight,
+        onPressed: _handleSave,
+        icon: const Icon(Icons.save_rounded, color: Colors.white),
+        label: Text(
+          _controller.saveButtonLabel,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 1.2,
           ),
         ),
       ),

@@ -304,57 +304,20 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                   ),
                 ),
               ),
-              Container(
-                constraints: BoxConstraints(maxWidth: maxContentWidth),
-                padding: EdgeInsets.all(horizontalPadding),
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.symmetric(vertical: isTablet ? 18 : 16),
-                        ),
-                        child: Text(
-                          'CANCEL',
-                          style: TextStyle(
-                            color: theme.textSecondary,
-                            fontWeight: FontWeight.w900,
-                            fontSize: buttonFontSize,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: isTablet ? 16 : 12),
-                    Expanded(
-                      flex: 2,
-                      child: ElevatedButton(
-                        onPressed: _controller.isLoading ? null : _handleSave,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.highlight,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: EdgeInsets.symmetric(vertical: isTablet ? 18 : 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                          ),
-                        ),
-                        child: Text(
-                          _controller.saveButtonLabel,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: buttonFontSize,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ],
+          ),
+        ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: theme.highlight,
+        onPressed: _controller.isLoading ? null : _handleSave,
+        icon: const Icon(Icons.person_add_rounded, color: Colors.white),
+        label: Text(
+          _controller.saveButtonLabel,
+          style: TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: buttonFontSize,
+            color: Colors.white,
           ),
         ),
       ),

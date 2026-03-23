@@ -96,24 +96,13 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
         ),
         leading: BackButton(color: theme.textPrimary),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        decoration: BoxDecoration(
-          color: theme.background,
-          border: Border(top: BorderSide(color: theme.whiteAlpha(0.1))),
-        ),
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: theme.highlight,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-            elevation: 0,
-          ),
-          onPressed: _isLoading ? null : _saveCustomer,
-          child: Text(
-            widget.customer == null ? 'CREATE CUSTOMER' : 'UPDATE CUSTOMER',
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1),
-          ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: theme.highlight,
+        onPressed: _isLoading ? null : _saveCustomer,
+        icon: const Icon(Icons.check_rounded, color: Colors.white),
+        label: Text(
+          widget.customer == null ? 'CREATE CUSTOMER' : 'UPDATE CUSTOMER',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1),
         ),
       ),
       body: theme.glassBackground(
