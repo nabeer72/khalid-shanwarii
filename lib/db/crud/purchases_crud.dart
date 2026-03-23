@@ -64,28 +64,24 @@ mixin PurchasesCrud on CommonCrud {
         final newWholesalePrice = (item['wholesale_price'] as num? ?? 0).toDouble();
         final now = DateTime.now().toIso8601String();
 
-        // Check if a matching stock batch exists with the same prices IN THIS BRANCH
-        final existingStocks = await txn.rawQuery(
+        // Check if a matching stock batch exists with the same EXACT prices IN THIS BRANCH
+        final matchingStocks = await txn.rawQuery(
           '''SELECT * FROM stocks 
              WHERE product_id = ? AND branch_id = ? AND status = 1 
+             AND cost_price = ? AND sale_price = ? AND wholesale_price = ?
              ORDER BY created_at DESC LIMIT 1''',
-          [productId, brid],
+          [productId, brid, newPurchasePrice, newSellingPrice, newWholesalePrice],
         );
 
-        bool pricesChanged = true;
-        if (existingStocks.isNotEmpty) {
-          final latest = existingStocks.first;
-          final oldCost = (latest['cost_price'] as num? ?? 0).toDouble();
-          final oldSale = (latest['sale_price'] as num? ?? 0).toDouble();
-          final oldWholesale = (latest['wholesale_price'] as num? ?? 0).toDouble();
-          
-          pricesChanged = (oldCost != newPurchasePrice) || 
-                          (oldSale != newSellingPrice) || 
-                          (oldWholesale != newWholesalePrice);
-        }
-
-        if (pricesChanged || existingStocks.isEmpty) {
-          // Prices changed → create a NEW stock batch
+        if (matchingStocks.isNotEmpty) {
+          // Prices match an existing batch → just add quantity to THAT batch
+          final matchingId = matchingStocks.first['id'];
+          await txn.rawUpdate(
+            'UPDATE stocks SET quantity = quantity + ?, is_synced = 0, updated_at = ? WHERE id = ?',
+            [qtyToAdd, now, matchingId],
+          );
+        } else {
+          // No match or prices changed → create a NEW stock batch
           await txn.insert('stocks', {
             'id': null,
             'business_id': bid,
@@ -101,13 +97,6 @@ mixin PurchasesCrud on CommonCrud {
             'created_at': now,
             'updated_at': now,
           });
-        } else {
-          // Prices unchanged → just add quantity to existing batch
-          final latestId = existingStocks.first['id'];
-          await txn.rawUpdate(
-            'UPDATE stocks SET quantity = quantity + ?, is_synced = 0, updated_at = ? WHERE id = ?',
-            [qtyToAdd, now, latestId],
-          );
         }
 
         // Update the product's updated_at timestamp

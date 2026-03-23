@@ -164,68 +164,41 @@ mixin ProductsCrud on CommonCrud {
       // 3. Handle Stock (Batch)
       final barcode = product['barcode']?.toString();
       final pid = product['id'] ?? generatedProductId;
+      
+      final currentPrice = (product['price'] as num?)?.toDouble() ?? 0.0;
+      final currentCost = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
+      final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
 
-      // Check if a stock entry exists with same barcode for this product IN THIS BRANCH
-      List<Map<String, dynamic>> existingStocks = [];
-      if (barcode != null && barcode.isNotEmpty) {
-        existingStocks = await txn.query('stocks', 
-            where: 'product_id = ? AND barcode = ? AND branch_id = ?', 
-            whereArgs: [pid, barcode, brid]);
+      // Check if an EXACT price-matching stock entry exists for this product IN THIS BRANCH
+      final matchingStocks = await txn.rawQuery(
+        '''SELECT * FROM stocks 
+           WHERE product_id = ? AND branch_id = ? AND status = 1 
+           AND sale_price = ? AND cost_price = ? AND wholesale_price = ?
+           ORDER BY created_at DESC LIMIT 1''',
+        [pid, brid, currentPrice, currentCost, currentWholesale],
+      );
+
+      if (matchingStocks.isNotEmpty) {
+        // EXACT PRICE MATCH -> Update existing batch
+        final matchingId = matchingStocks.first['id'];
+        await txn.update('stocks', {
+          'barcode': barcode ?? matchingStocks.first['barcode'],
+          'quantity': product['stock_quantity'] ?? matchingStocks.first['quantity'],
+          'updated_at': DateTime.now().toIso8601String(),
+          'is_synced': 0,
+        }, where: 'id = ?', whereArgs: [matchingId]);
       } else {
-        // Find latest batch if no barcode for this branch
-        existingStocks = await txn.query('stocks', 
-            where: 'product_id = ? AND branch_id = ?', 
-            orderBy: 'created_at DESC', 
-            limit: 1, 
-            whereArgs: [pid, brid]);
-      }
-
-      if (existingStocks.isNotEmpty) {
-        // Update the existing batch ONLY IF current price matches existing or if only stock is being updated
-        final existingStock = existingStocks.first;
-        final existingPrice = (existingStock['sale_price'] as num?)?.toDouble();
-        final newPrice = (product['price'] as num?)?.toDouble();
-        
-        bool shouldUpdateExisting = (newPrice == null || newPrice == existingPrice);
-
-        if (shouldUpdateExisting) {
-          final sid = existingStock['id'];
-          await txn.update('stocks', {
-            'quantity': product['stock_quantity'] ?? existingStock['quantity'],
-            'sale_price': product['price'] ?? existingStock['sale_price'],
-            'cost_price': product['purchase_price'] ?? existingStock['cost_price'],
-            'wholesale_price': product['wholesale_price'] ?? existingStock['wholesale_price'],
-            'updated_at': DateTime.now().toIso8601String(),
-            'is_synced': 0,
-          }, where: 'id = ?', whereArgs: [sid]);
-        } else {
-          // PRICE CHANGED -> Create new variant/batch
-          await txn.insert('stocks', {
-            'business_id': bid,
-            'branch_id': brid,
-            'product_id': pid,
-            'barcode': barcode,
-            'quantity': product['stock_quantity'] ?? 0,
-            'sale_price': product['price'] ?? 0,
-            'cost_price': product['purchase_price'] ?? 0,
-            'wholesale_price': product['wholesale_price'] ?? 0,
-            'status': 1,
-            'is_synced': 0,
-            'created_at': DateTime.now().toIso8601String(),
-            'updated_at': DateTime.now().toIso8601String(),
-          });
-        }
-      } else {
-        // Insert NEW batch
+        // PRICE CHANGED or NO BATCH -> Create new batch
         await txn.insert('stocks', {
+          'id': null,
           'business_id': bid,
           'branch_id': brid,
           'product_id': pid,
           'barcode': barcode,
           'quantity': product['stock_quantity'] ?? 0,
-          'sale_price': product['price'] ?? 0,
-          'cost_price': product['purchase_price'] ?? 0,
-          'wholesale_price': product['wholesale_price'] ?? 0,
+          'sale_price': currentPrice,
+          'cost_price': currentCost,
+          'wholesale_price': currentWholesale,
           'status': 1,
           'is_synced': 0,
           'created_at': DateTime.now().toIso8601String(),
