@@ -698,6 +698,52 @@ class SyncService {
             if (kDebugMode) print('Synced ${data['bank_accounts'].length} bank accounts');
           }
 
+          // Returns
+          if (data['returns'] != null) {
+            for (var r in data['returns']) {
+              final returnId = r['id'] is int ? r['id'] : int.tryParse(r['id']?.toString() ?? '');
+              await txn.insert(
+                'returns',
+                {
+                  'id': returnId,
+                  'business_id': r['business_id'] is int ? r['business_id'] : int.tryParse(r['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': await _safeBranchId(txn, 'returns', returnId, r['branch_id']),
+                  'admin_id': r['admin_id'] is int ? r['admin_id'] : int.tryParse(r['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'sale_id': r['sale_id'] is int ? r['sale_id'] : int.tryParse(r['sale_id']?.toString() ?? ''),
+                  'customer_id': r['customer_id'] is int ? r['customer_id'] : int.tryParse(r['customer_id']?.toString() ?? ''),
+                  'user_id': r['user_id'] is int ? r['user_id'] : int.tryParse(r['user_id']?.toString() ?? ''),
+                  'total_amount': _parseNum(r['total_amount']),
+                  'reason': r['reason'],
+                  'status': _parseStatus(r['status']),
+                  'is_synced': 1,
+                  'created_at': r['created_at'],
+                  'updated_at': r['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+
+              if (r['return_items'] != null) {
+                for (var item in r['return_items']) {
+                  await txn.insert(
+                    'return_items',
+                    {
+                      'id': item['id'] is int ? item['id'] : int.tryParse(item['id']?.toString() ?? ''),
+                      'return_id': returnId,
+                      'sale_item_id': item['sale_item_id'] is int ? item['sale_item_id'] : int.tryParse(item['sale_item_id']?.toString() ?? ''),
+                      'product_id': item['product_id'] is int ? item['product_id'] : int.tryParse(item['product_id']?.toString() ?? ''),
+                      'stock_id': item['stock_id'] is int ? item['stock_id'] : int.tryParse(item['stock_id']?.toString() ?? ''),
+                      'quantity': _parseNum(item['quantity']),
+                      'price': _parseNum(item['price']),
+                      'subtotal': _parseNum(item['subtotal']),
+                    },
+                    conflictAlgorithm: ConflictAlgorithm.replace,
+                  );
+                }
+              }
+            }
+            if (kDebugMode) print('Synced ${data['returns'].length} returns');
+          }
+
         });
 
 
@@ -753,6 +799,22 @@ class SyncService {
             return m;
           }).toList();
           changes['sales']?.add(saleData);
+        }
+      }
+
+      // Unsynced Returns
+      List<Map<String, dynamic>> unsyncedReturns = await db.query('returns', where: 'is_synced = 0');
+      if (unsyncedReturns.isNotEmpty) {
+        changes['returns'] = [];
+        for (var ret in unsyncedReturns) {
+          final items = await db.query('return_items', where: 'return_id = ?', whereArgs: [ret['id']]);
+          Map<String, dynamic> retData = Map.from(ret);
+          retData.remove('is_synced');
+          retData['items'] = items.map((i) {
+            var m = Map.from(i);
+            return m;
+          }).toList();
+          changes['returns']?.add(retData);
         }
       }
 
@@ -1372,6 +1434,18 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         await txn.update('branches', {'id': newId}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 16. Returns
+    if (allMappings['returns'] != null && allMappings['returns'] is Map) {
+      final map = allMappings['returns'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Return: $oldId -> $newId');
+        await txn.update('returns', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('return_items', {'return_id': newId}, where: 'return_id = ?', whereArgs: [oldId]);
       }
     }
   }

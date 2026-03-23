@@ -959,5 +959,17 @@ class DbMigrations {
           if (kDebugMode) print('v46 migration data move error: $e');
       }
     }
+    if (oldVersion < 47) {
+      if (kDebugMode) print('Upgrading DB to v47: Ensuring shift_id exists in sales...');
+      try {
+        var columns = await db.rawQuery('PRAGMA table_info(sales)');
+        bool hasShiftId = columns.any((c) => c['name'] == 'shift_id');
+        if (!hasShiftId) {
+          await db.execute('ALTER TABLE sales ADD COLUMN shift_id INTEGER');
+        }
+      } catch (e) {
+        if (kDebugMode) print('v47 sales shift_id error: $e');
+      }
+    }
   }
 }

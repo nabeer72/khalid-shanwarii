@@ -34,10 +34,23 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
     // Otherwise, fetch from database (from History)
     final saleId = widget.sale['id'];
+    final isReturn = widget.sale['is_return'] == 1;
     if (saleId != null) {
       setState(() => _loadingItems = true);
       try {
-        final dbItems = await DatabaseHelper.instance.getSaleItems(saleId);
+        List<Map<String, dynamic>> dbItems;
+        if (isReturn) {
+          // Fetch from return_items table and join product name
+          final db = await DatabaseHelper.instance.database;
+          dbItems = await db.rawQuery('''
+            SELECT ri.*, p.name as product_name
+            FROM return_items ri
+            LEFT JOIN products p ON ri.product_id = p.id
+            WHERE ri.return_id = ?
+          ''', [saleId]);
+        } else {
+          dbItems = await DatabaseHelper.instance.getSaleItems(saleId);
+        }
         if (mounted) {
           setState(() {
             _items = dbItems;

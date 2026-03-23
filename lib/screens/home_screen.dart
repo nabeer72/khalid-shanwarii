@@ -129,33 +129,6 @@ class _HomeScreenState extends State<HomeScreen> {
       final db = DatabaseHelper.instance;
       final products = await db.getProducts();
       final customers = await db.getCustomers();
-      final sales = await db.getSales();
-
-      double todayTotal = 0;
-      double recoveryTotal = 0;
-      final now = DateTime.now();
-
-      for (var s in sales) {
-        final ts = DateTime.tryParse(s['created_at'] ?? '');
-        if (ts != null &&
-            ts.day == now.day &&
-            ts.month == now.month &&
-            ts.year == now.year) {
-          todayTotal += (s['total'] as num? ?? 0).toDouble();
-        }
-      }
-
-      final payments = await db.getCreditPayments();
-      for (var p in payments) {
-        final ts = DateTime.tryParse(p['payment_date'] ?? '');
-        if (ts != null &&
-            ts.day == now.day &&
-            ts.month == now.month &&
-            ts.year == now.year) {
-          recoveryTotal += (p['amount'] as num? ?? 0).toDouble();
-        }
-      }
-
       final heldOrders = await db.getHeldOrders();
 
       if (mounted) {
@@ -163,16 +136,61 @@ class _HomeScreenState extends State<HomeScreen> {
           final uniqueProductNames = products.map((p) => p['name'] as String).toSet();
           _productCount = uniqueProductNames.length;
           _customerCount = customers.length;
-          _saleCount = sales.length;
           _heldCount = heldOrders.length;
           _favoritesCount = products
               .where((p) => (p['is_favorite'] ?? 0) == 1)
               .map((p) => p['name'] as String)
               .toSet()
               .length;
-          _todaySalesAmount = todayTotal;
-          _todayRecoveryAmount = recoveryTotal;
         });
+      }
+
+      // Sales query is isolated so a failure doesn't zero out product/customer counts
+      try {
+        final sales = await db.getSales();
+        double todayTotal = 0;
+        final now = DateTime.now();
+
+        for (var s in sales) {
+          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          if (ts != null &&
+              ts.day == now.day &&
+              ts.month == now.month &&
+              ts.year == now.year) {
+            todayTotal += (s['total'] as num? ?? 0).toDouble();
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _saleCount = sales.length;
+            _todaySalesAmount = todayTotal;
+          });
+        }
+      } catch (e) {
+        print('Error loading sales stats: $e');
+      }
+
+      try {
+        double recoveryTotal = 0;
+        final now = DateTime.now();
+        final payments = await db.getCreditPayments();
+        for (var p in payments) {
+          final ts = DateTime.tryParse(p['payment_date'] ?? '');
+          if (ts != null &&
+              ts.day == now.day &&
+              ts.month == now.month &&
+              ts.year == now.year) {
+            recoveryTotal += (p['amount'] as num? ?? 0).toDouble();
+          }
+        }
+        if (mounted) {
+          setState(() {
+            _todayRecoveryAmount = recoveryTotal;
+          });
+        }
+      } catch (e) {
+        print('Error loading recovery stats: $e');
       }
     } catch (e) {
       print('Error loading stats: $e');

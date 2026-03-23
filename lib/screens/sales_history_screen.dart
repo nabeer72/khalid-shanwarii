@@ -365,7 +365,7 @@ class _SaleTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'BILL #${sale['id'] ?? '??'}',
+                  isReturn ? 'REFUND #${sale['id'] ?? '??'}' : 'BILL #${sale['id'] ?? '??'}',
                   style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900),
                 ),
                 Text(
@@ -395,7 +395,7 @@ class _SaleTile extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: ThemeProvider.warning.withOpacity(0.15),
                   ),
-                  child: const Icon(Icons.currency_exchange_rounded, color: ThemeProvider.warning, size: 16),
+                  child: const Icon(Icons.undo, color: ThemeProvider.warning, size: 16),
                 ),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 padding: EdgeInsets.zero,

@@ -554,6 +554,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             discount: _controller.totalDiscount,
             total: _controller.total,
             isReturn: _controller.isReturn,
+            originalSaleId: _controller.originalSaleId,
             customer: _controller.selectedCustomer,
           ),
         ),

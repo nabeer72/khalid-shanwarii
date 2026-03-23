@@ -22,6 +22,7 @@ class POSController with ChangeNotifier {
   double _discount = 0;
   double _total = 0;
   bool _isReturn = false;
+  int? _originalSaleId;
   Customer? _selectedCustomer;
   String _searchQuery = '';
 
@@ -39,6 +40,7 @@ class POSController with ChangeNotifier {
   double get totalDiscount => _cart.fold(0.0, (sum, item) => sum + item.discount) + _discount;
   double get total => _total;
   bool get isReturn => _isReturn;
+  int? get originalSaleId => _originalSaleId;
   Customer? get selectedCustomer => _selectedCustomer;
   String get searchQuery => _searchQuery;
 
@@ -203,8 +205,17 @@ class POSController with ChangeNotifier {
     _cart.clear();
     _discount = 0;
     _isReturn = false;
+    _originalSaleId = null;
     _selectedCustomer = null;
     calculateTotals();
+  }
+
+  void clearSaleData() {
+    _subtotal = 0;
+    _selectedCustomer = null;
+    _isReturn = false;
+    _originalSaleId = null;
+    notifyListeners();
   }
 
   void setSelectedCustomer(Customer? customer) {
@@ -253,6 +264,7 @@ class POSController with ChangeNotifier {
 
   Future<void> loadReturnSale(Map<String, dynamic> sale) async {
     debugPrint('START loadReturnSale: sale_id=${sale['id']}');
+    _originalSaleId = sale['id'];
     if (_products.isEmpty) {
       debugPrint('Products empty, waiting for loadData...');
       await loadData();
@@ -270,7 +282,17 @@ class POSController with ChangeNotifier {
       
       try {
         final product = _products.firstWhere((p) => p.id == productId);
-        final stock = product.stocks.firstWhere((s) => s.id == stockId);
+        // Use matching stock if stockId is present, otherwise fall back to first stock
+        Stock? stock;
+        if (stockId != null) {
+          stock = product.stocks.where((s) => s.id == stockId).firstOrNull;
+        }
+        stock ??= product.stocks.isNotEmpty ? product.stocks.first : null;
+        
+        if (stock == null) {
+          debugPrint('No stocks found for product $productId, skipping');
+          continue;
+        }
         
         _cart.add(POSCartItem(
           cartItemId: '${product.id}_${stock.id}',
@@ -278,7 +300,7 @@ class POSController with ChangeNotifier {
           stock: stock,
           quantity: (itemMap['quantity'] as num).toDouble(),
           price: (itemMap['price'] as num).toDouble(),
-          discount: (itemMap['discount'] as num? ?? 0).toDouble(), // Though typically 0 here or calculated
+          discount: (itemMap['discount'] as num? ?? 0).toDouble(),
           isWeight: itemMap['isWeight'] == 1,
         ));
       } catch (e) {

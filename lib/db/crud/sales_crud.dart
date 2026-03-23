@@ -12,33 +12,64 @@ mixin SalesCrud on CommonCrud {
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilterS = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilterR = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
     
-    String extraFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    String extraFilterS = '';
+    String extraFilterR = '';
+    final List<dynamic> args = [];
 
     if (shiftId != null) {
-      extraFilter = ' AND s.shift_id = ?';
+      extraFilterS = ' AND s.shift_id = ?';
+      extraFilterR = ' AND rs.shift_id = ?';
+    } else if (startTime != null && endTime != null) {
+      extraFilterS = ' AND s.created_at BETWEEN ? AND ?';
+      extraFilterR = ' AND r.created_at BETWEEN ? AND ?';
+    }
+
+    // Args for SELECT 1 (sales)
+    args.addAll([bid, aid, ...branchArgs]);
+    if (shiftId != null) {
       args.add(shiftId);
     } else if (startTime != null && endTime != null) {
-      extraFilter = ' AND s.created_at BETWEEN ? AND ?';
-      args.add(startTime);
-      args.add(endTime);
+      args.addAll([startTime, endTime]);
+    }
+
+    // Args for SELECT 2 (returns)
+    args.addAll([bid, aid, ...branchArgs]);
+    if (shiftId != null) {
+      args.add(shiftId);
+    } else if (startTime != null && endTime != null) {
+      args.addAll([startTime, endTime]);
     }
 
     return await db.rawQuery(
       '''
       SELECT 
-        s.*, 
+        s.id, s.business_id, s.branch_id, s.admin_id, s.customer_id, s.user_id, s.subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.tip, s.status, s.is_synced, s.created_at as created_at, s.updated_at, s.shift_id,
         c.name as customer_name, 
         c.phone as customer_phone,
         u.name as employee_name
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
       LEFT JOIN users u ON s.user_id = u.id
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$extraFilter 
-      ORDER BY s.created_at DESC${limit != null ? ' LIMIT $limit' : ''}
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilterS$extraFilterS 
+      
+      UNION ALL
+      
+      SELECT
+        r.id, r.business_id, r.branch_id, r.admin_id, r.customer_id, r.user_id, r.total_amount as subtotal, 0 as tax, 0 as discount, r.total_amount as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, rs.shift_id as shift_id,
+        c.name as customer_name,
+        c.phone as customer_phone,
+        u.name as employee_name
+      FROM returns r
+      LEFT JOIN sales rs ON r.sale_id = rs.id
+      LEFT JOIN customers c ON r.customer_id = c.id
+      LEFT JOIN users u ON r.user_id = u.id
+      WHERE r.business_id = ? AND r.admin_id = ?$branchFilterR$extraFilterR
+      
+      ORDER BY 16 DESC${limit != null ? ' LIMIT $limit' : ''}
       ''',
       args,
     );

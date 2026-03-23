@@ -31,7 +31,7 @@ class PinDialogs {
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.highlight,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('YES, SETUP PIN', style: TextStyle(fontWeight: FontWeight.w900)),
@@ -272,7 +272,7 @@ class _EnterPinDialogState extends State<_EnterPinDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       backgroundColor: theme.surface,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(32)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
         child: Padding(

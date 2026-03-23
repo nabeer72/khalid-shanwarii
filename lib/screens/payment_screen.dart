@@ -14,6 +14,7 @@ class PaymentScreen extends StatefulWidget {
   final double discount;
   final double total;
   final bool isReturn;
+  final int? originalSaleId;
   final Customer? customer;
 
   const PaymentScreen({
@@ -24,6 +25,7 @@ class PaymentScreen extends StatefulWidget {
     required this.discount,
     required this.total,
     required this.isReturn,
+    this.originalSaleId,
     this.customer,
   });
 
@@ -115,7 +117,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
         };
       }).toList();
 
-      final saleId = await DatabaseHelper.instance.insertSale(sale, saleItems);
+      int saleId = 0;
+      if (widget.isReturn) {
+        final returnData = {
+          'business_id': BusinessConfig.instance.businessId,
+          'branch_id': BusinessConfig.instance.branchId,
+          'admin_id': BusinessConfig.instance.adminId,
+          'sale_id': widget.originalSaleId,
+          'customer_id': _selectedCustomer?.id,
+          'user_id': BusinessConfig.instance.adminId,
+          'total_amount': _grandTotal,
+          'reason': 'Refund',
+          'status': 1,
+          'is_synced': 0,
+        };
+        final returnItems = widget.cart.map((item) {
+          return {
+            'sale_item_id': null,
+            'product_id': item['id'] ?? item['productId'],
+            'stock_id': item['stock_id'],
+            'quantity': item['quantity'],
+            'price': item['price'],
+            'subtotal': item['subtotal'],
+          };
+        }).toList();
+        saleId = await DatabaseHelper.instance.insertReturn(returnData, returnItems);
+      } else {
+        saleId = await DatabaseHelper.instance.insertSale(sale, saleItems);
+      }
       
       if (!widget.isReturn && (_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
         final creditSale = {
