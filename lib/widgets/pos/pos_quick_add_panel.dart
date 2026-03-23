@@ -5,11 +5,15 @@ import 'package:mobile_app/providers/theme_provider.dart';
 class POSQuickAddPanel extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onSuccess;
+  final void Function(VoidCallback refresh)? onAddCategory;
+  final void Function(VoidCallback refresh, String? catId)? onAddSubCategory;
 
   const POSQuickAddPanel({
     super.key,
     required this.onClose,
     required this.onSuccess,
+    this.onAddCategory,
+    this.onAddSubCategory,
   });
 
   @override
@@ -248,37 +252,74 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
             onChanged: _controller.setCategory,
           ),
         ),
+        if (widget.onAddCategory != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
+              onPressed: () => widget.onAddCategory!(() => _controller.loadCategories()),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            ),
+          ),
+        ],
       ],
     );
   }
 
   Widget _buildSubCategoryDropdownField() {
-    return DropdownButtonFormField<dynamic>(
-      value: _controller.subCategories.any((c) => c.id == _controller.selectedSubCategoryId)
-          ? _controller.selectedSubCategoryId
-          : null,
-      dropdownColor: theme.surface,
-      isExpanded: true,
-      style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(
-        labelText: 'Sub-Category',
-        labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
-        prefixIcon: Icon(Icons.account_tree_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
-        filled: true,
-        fillColor: theme.whiteAlpha(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.subCategories.any((c) => c.id == _controller.selectedSubCategoryId)
+                ? _controller.selectedSubCategoryId
+                : null,
+            dropdownColor: theme.surface,
+            isExpanded: true,
+            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              labelText: 'Sub-Category',
+              labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+              prefixIcon: Icon(Icons.account_tree_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
+              filled: true,
+              fillColor: theme.whiteAlpha(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Sub-Category')),
+              ..._controller.subCategories
+                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                .toList(),
+            ],
+            onChanged: _controller.setSubCategory,
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      ),
-      items: [
-        const DropdownMenuItem(value: null, child: Text('No Sub-Category')),
-        ..._controller.subCategories
-          .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-          .toList(),
+        if (widget.onAddSubCategory != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: IconButton(
+              icon: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
+              onPressed: () => widget.onAddSubCategory!(
+                () => _controller.loadCategories(),
+                _controller.selectedCategory?.toString(),
+              ),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+            ),
+          ),
+        ],
       ],
-      onChanged: _controller.setSubCategory,
     );
   }
 }

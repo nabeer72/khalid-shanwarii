@@ -1419,6 +1419,218 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
+  void _showAddCategoryDialog({VoidCallback? onSuccess}) {
+    final nameCtrl = TextEditingController();
+    final iconCtrl = TextEditingController(text: '📦');
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(24),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.surface,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('QUICK ADD'.toUpperCase(),
+                  style: TextStyle(
+                      color: theme.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5)),
+              const SizedBox(height: 4),
+              Text('New Category',
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 24),
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                style: TextStyle(color: theme.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Category Name',
+                  labelStyle: TextStyle(color: theme.textSecondary),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: theme.cardBorder),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: iconCtrl,
+                style: TextStyle(color: theme.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Icon / Emoji',
+                  labelStyle: TextStyle(color: theme.textSecondary),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: theme.cardBorder),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: theme.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (nameCtrl.text.isEmpty) return;
+                        await DatabaseHelper.instance.insertCategory({
+                          'name': nameCtrl.text,
+                          'icon': iconCtrl.text,
+                          'status': 1,
+                        });
+                        if (mounted) {
+                          _controller.loadData();
+                          if (onSuccess != null) onSuccess();
+                          Navigator.pop(ctx);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAddSubCategoryDialog({VoidCallback? onSuccess, String? categoryId}) {
+    final String effectiveCategoryId = categoryId ?? _controller.selectedCategory;
+    final bool isRealCategory = int.tryParse(effectiveCategoryId) != null;
+    
+    if (!isRealCategory) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a main category first'), backgroundColor: ThemeProvider.error)
+      );
+      return;
+    }
+
+    final nameCtrl = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: 400,
+          padding: const EdgeInsets.all(24),
+          decoration: theme.glassDecoration.copyWith(
+            borderRadius: BorderRadius.circular(16),
+            color: theme.surface,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('QUICK ADD'.toUpperCase(),
+                  style: TextStyle(
+                      color: theme.textSecondary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.5)),
+              const SizedBox(height: 4),
+              Text('New Sub-Category',
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900)),
+              const SizedBox(height: 24),
+              TextField(
+                controller: nameCtrl,
+                autofocus: true,
+                style: TextStyle(color: theme.textPrimary),
+                decoration: InputDecoration(
+                  labelText: 'Sub-Category Name',
+                  labelStyle: TextStyle(color: theme.textSecondary),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: theme.cardBorder),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 32),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: BorderSide(color: theme.cardBorder),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        if (nameCtrl.text.isEmpty) return;
+                        await DatabaseHelper.instance.insertSubCategory({
+                          'name': nameCtrl.text,
+                          'category_id': int.parse(effectiveCategoryId),
+                          'status': 1,
+                        });
+                        if (mounted) {
+                          _controller.loadData();
+                          if (onSuccess != null) onSuccess();
+                          Navigator.pop(ctx);
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1500,6 +1712,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                             child: POSQuickAddPanel(
                               onClose: _toggleQuickAddProduct,
                               onSuccess: _onProductQuickAdded,
+                              onAddCategory: (refresh) => _showAddCategoryDialog(onSuccess: refresh),
+                              onAddSubCategory: (refresh, catId) => _showAddSubCategoryDialog(onSuccess: refresh, categoryId: catId),
                             ),
                           ),
                         ),
@@ -1530,7 +1744,11 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             decoration: BoxDecoration(
               border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
             ),
-            child: POSCategorySelector(controller: _controller),
+            child: POSCategorySelector(
+              controller: _controller,
+              onAddCategory: _showAddCategoryDialog,
+              onAddSubCategory: _showAddSubCategoryDialog,
+            ),
           ),
         Expanded(
           child: POSProductGrid(
