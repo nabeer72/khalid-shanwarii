@@ -173,4 +173,58 @@ mixin SuppliersCrud on CommonCrud {
     return 0.0;
   }
 
+  // Reconcile all supplier balances based on active credit purchases
+  Future<void> reconcileSupplierBalances([DatabaseExecutor? executor]) async {
+    if (executor != null) {
+      await _executeSupplierReconciliation(executor);
+    } else {
+      final db = await database;
+      await db.transaction((txn) async {
+        await _executeSupplierReconciliation(txn);
+      });
+    }
+  }
+
+  Future<void> _executeSupplierReconciliation(DatabaseExecutor txn) async {
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+
+    // 1. Reset credit balances to 0 for current tenant
+    if (bid != null && aid != null) {
+      await txn.update(
+        'suppliers', 
+        {'credit_balance': 0}, 
+        where: 'business_id = ? AND admin_id = ?', 
+        whereArgs: [bid, aid]
+      );
+    } else {
+      await txn.update('suppliers', {'credit_balance': 0});
+    }
+
+    // 2. Aggregate remaining balances from supplier_credit_purchases
+    final branchFilter = getBranchFilter();
+    final branchArgs = getBranchArgs();
+    
+    final List<Map<String, dynamic>> results = await txn.rawQuery('''
+      SELECT supplier_id, SUM(remaining_balance) as calculated_balance
+      FROM supplier_credit_purchases
+      WHERE status = 1 AND business_id = ? AND admin_id = ? $branchFilter
+      GROUP BY supplier_id
+    ''', [bid, aid, ...branchArgs]);
+
+    // 3. Update each supplier with their calculated balance
+    for (var row in results) {
+      final supplierId = row['supplier_id'];
+      final balance = (row['calculated_balance'] as num?)?.toDouble() ?? 0.0;
+      if (supplierId != null) {
+        await txn.update(
+          'suppliers',
+          {'credit_balance': balance},
+          where: 'id = ?',
+          whereArgs: [supplierId],
+        );
+      }
+    }
+  }
+
 }

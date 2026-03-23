@@ -475,6 +475,7 @@ class SyncService {
 
           // Trigger reconciliation of customer balances after ALL sync data is inserted
           await _dbHelper.reconcileCustomerBalances(txn);
+          await _dbHelper.reconcileSupplierBalances(txn);
 
           // Suppliers
           if (data['suppliers'] != null) {
@@ -744,6 +745,57 @@ class SyncService {
             if (kDebugMode) print('Synced ${data['returns'].length} returns');
           }
 
+          // Supplier Credit Purchases
+          if (data['supplier_credit_purchases'] != null) {
+            for (var scp in data['supplier_credit_purchases']) {
+              await txn.insert(
+                'supplier_credit_purchases',
+                {
+                  'id': scp['id'] is int ? scp['id'] : int.tryParse(scp['id']?.toString() ?? ''),
+                  'business_id': scp['business_id'] is int ? scp['business_id'] : int.tryParse(scp['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': scp['branch_id'] is int ? scp['branch_id'] : int.tryParse(scp['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': scp['admin_id'] is int ? scp['admin_id'] : int.tryParse(scp['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'supplier_id': scp['supplier_id'] is int ? scp['supplier_id'] : int.tryParse(scp['supplier_id']?.toString() ?? ''),
+                  'purchase_id': scp['purchase_id'] is int ? scp['purchase_id'] : int.tryParse(scp['purchase_id']?.toString() ?? ''),
+                  'amount': _parseNum(scp['amount']),
+                  'remaining_balance': _parseNum(scp['remaining_balance']),
+                  'status': scp['status'] ?? 1,
+                  'is_synced': 1,
+                  'created_at': scp['created_at'],
+                  'updated_at': scp['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['supplier_credit_purchases'].length} supplier credit purchases');
+          }
+
+          // Supplier Paybacks
+          if (data['supplier_paybacks'] != null) {
+            for (var sp in data['supplier_paybacks']) {
+              await txn.insert(
+                'supplier_paybacks',
+                {
+                  'id': sp['id'] is int ? sp['id'] : int.tryParse(sp['id']?.toString() ?? ''),
+                  'business_id': sp['business_id'] is int ? sp['business_id'] : int.tryParse(sp['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': sp['branch_id'] is int ? sp['branch_id'] : int.tryParse(sp['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': sp['admin_id'] is int ? sp['admin_id'] : int.tryParse(sp['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'supplier_credit_purchase_id': sp['supplier_credit_purchase_id'] is int ? sp['supplier_credit_purchase_id'] : int.tryParse(sp['supplier_credit_purchase_id']?.toString() ?? ''),
+                  'supplier_id': sp['supplier_id'] is int ? sp['supplier_id'] : int.tryParse(sp['supplier_id']?.toString() ?? ''),
+                  'amount': _parseNum(sp['amount']),
+                  'paid_by': sp['paid_by'],
+                  'payment_date': sp['payment_date'],
+                  'notes': sp['notes'],
+                  'is_synced': 1,
+                  'created_at': sp['created_at'],
+                  'updated_at': sp['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['supplier_paybacks'].length} supplier paybacks');
+          }
+
         });
 
 
@@ -783,6 +835,7 @@ class SyncService {
       List<Map<String, dynamic>> unsyncedRoles = [];
       List<Map<String, dynamic>> unsyncedBankAccounts = [];
       List<Map<String, dynamic>> unsyncedSupplierPaybacks = [];
+      List<Map<String, dynamic>> unsyncedSupplierCreditPurchases = [];
       List<Map<String, dynamic>> unsyncedGiftCards = [];
 
       // Unsynced Sales
@@ -1088,6 +1141,16 @@ class SyncService {
         }).toList();
       }
 
+      // Unsynced Supplier Credit Purchases
+      unsyncedSupplierCreditPurchases = await db.query('supplier_credit_purchases', where: 'is_synced = 0');
+      if (unsyncedSupplierCreditPurchases.isNotEmpty) {
+        changes['supplier_credit_purchases'] = unsyncedSupplierCreditPurchases.map((s) {
+          var m = Map<String, dynamic>.from(s);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
       // Unsynced Supplier Paybacks
       unsyncedSupplierPaybacks = await db.query('supplier_paybacks', where: 'is_synced = 0');
       if (unsyncedSupplierPaybacks.isNotEmpty) {
@@ -1224,6 +1287,11 @@ class SyncService {
           for (var s in unsyncedSupplierPaybacks) {
             if (s['id'] == null) continue;
             await txn.update('supplier_paybacks', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
+          }
+          // Mark supplier credit purchases as synced
+          for (var s in unsyncedSupplierCreditPurchases) {
+            if (s['id'] == null) continue;
+            await txn.update('supplier_credit_purchases', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
           }
           // Mark gift cards as synced
           for (var g in unsyncedGiftCards) {
@@ -1446,6 +1514,29 @@ class SyncService {
         if (kDebugMode) print('🔄 [MAPPING] Return: $oldId -> $newId');
         await txn.update('returns', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('return_items', {'return_id': newId}, where: 'return_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 17. Supplier Credit Purchases
+    if (allMappings['supplier_credit_purchases'] != null && allMappings['supplier_credit_purchases'] is Map) {
+      final map = allMappings['supplier_credit_purchases'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        await txn.update('supplier_credit_purchases', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('supplier_paybacks', {'supplier_credit_purchase_id': newId}, where: 'supplier_credit_purchase_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 18. Supplier Paybacks
+    if (allMappings['supplier_paybacks'] != null && allMappings['supplier_paybacks'] is Map) {
+      final map = allMappings['supplier_paybacks'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        await txn.update('supplier_paybacks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
       }
     }
   }
