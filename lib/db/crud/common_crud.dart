@@ -11,6 +11,12 @@ mixin CommonCrud {
   String getBranchFilter() {
     final activeBranches = BusinessConfig.instance.activeBranchIds;
     final brid = BusinessConfig.instance.branchId;
+    final staffId = BusinessConfig.instance.staffId;
+
+    // Staff are strictly isolated to their own branch
+    if (staffId != null && brid != null) {
+      return ' AND (branch_id = ?)';
+    }
 
     if (activeBranches.isNotEmpty) {
       final placeholders = List.filled(activeBranches.length, '?').join(', ');
@@ -25,6 +31,12 @@ mixin CommonCrud {
   List<dynamic> getBranchArgs() {
     final activeBranches = BusinessConfig.instance.activeBranchIds;
     final brid = BusinessConfig.instance.branchId;
+    final staffId = BusinessConfig.instance.staffId;
+
+    // Staff are strictly isolated to their own branch
+    if (staffId != null && brid != null) {
+      return [getSafeInt(brid)];
+    }
 
     if (activeBranches.isNotEmpty) {
       return activeBranches.map((b) => getSafeInt(b)).toList();

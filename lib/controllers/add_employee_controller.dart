@@ -91,9 +91,13 @@ class AddEmployeeController with ChangeNotifier {
 
   Future<void> _loadBranches() async {
     try {
-      // Load ALL branches (no active filter) so dropdowns show everything
       final data = await DatabaseHelper.instance.getAllBranches();
-      branches = data.map((b) => Branch.fromMap(b)).toList();
+      final activeBranchIds = BusinessConfig.instance.activeBranchIds;
+      
+      branches = data.map((b) => Branch.fromMap(b)).where((b) {
+        // Show branch if it is the Main Branch (ID 1) OR if it is assigned to the current user
+        return b.id == 1 || activeBranchIds.contains(b.id);
+      }).toList();
       
       // If employee has a branch ID that exists, keep it. Otherwise null.
       if (selectedBranchId != null) {

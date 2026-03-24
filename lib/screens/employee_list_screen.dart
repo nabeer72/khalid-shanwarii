@@ -49,7 +49,9 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
       final currentAdminId = BusinessConfig.instance.adminId;
 
       for (var e in data) {
-        if (e['id'] == currentAdminId) continue;
+        // Removed: if (e['id'] == currentAdminId) continue;
+        // The admin is in the 'users' table, while staff are in the 'employees' table.
+        // Comparing their primary keys is incorrect as they can overlap.
 
         Set<String> perms = {};
         // 1. Direct permissions

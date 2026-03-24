@@ -239,6 +239,7 @@ class _LoginScreenState extends State<LoginScreen>
           await _storage.delete(key: 'staff_id');
 
           if (localUser['branch_id'] != null) {
+            BusinessConfig.instance.branchId = localUser['branch_id'];
             final String bid = localUser['branch_id'].toString();
             await _storage.write(key: 'branch_id', value: bid);
           }
@@ -267,16 +268,17 @@ class _LoginScreenState extends State<LoginScreen>
 
           // Store staff session
           await _storage.write(
-              key: 'user_id', value: staff['admin_id']); // Context is admin
-          await _storage.write(key: 'staff_id', value: staff['id']);
+              key: 'user_id', value: staff['admin_id']?.toString()); // Context is admin
+          await _storage.write(key: 'staff_id', value: staff['id']?.toString());
           await _storage.write(key: 'user_email', value: staff['email']);
-          await _storage.write(key: 'business_id', value: staff['business_id']);
+          await _storage.write(key: 'business_id', value: staff['business_id']?.toString());
 
           // Initialize BusinessConfig for Staff
           BusinessConfig.instance.adminId = staff['admin_id']; // For data isolation
           BusinessConfig.instance.staffId = staff['id']; // For identity
 
           if (staff['branch_id'] != null) {
+            BusinessConfig.instance.branchId = staff['branch_id'];
             final String bid = staff['branch_id'].toString();
             await _storage.write(key: 'branch_id', value: bid);
           }

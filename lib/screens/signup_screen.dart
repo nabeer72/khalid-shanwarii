@@ -218,8 +218,9 @@ class _SignupScreenState extends State<SignupScreen>
       businessId ??= insertedBusinessId;
 
       // Create a default Main Branch for the business
+      branchId = 1; // Force Branch 1 for the main branch
       final branchData = {
-        if (branchId != null) 'id': branchId,
+        'id': branchId,
         'business_id': businessId,
         'user_id': userId,
         'name': 'Main Branch',
@@ -231,8 +232,7 @@ class _SignupScreenState extends State<SignupScreen>
         'updated_at': now,
       };
 
-      final insertedBranchId = await _dbHelper.insertBranch(branchData);
-      branchId ??= insertedBranchId;
+      await _dbHelper.insertBranch(branchData);
 
       // Ensure branch insertion is synced if API was successful
       if (isSynced == 1 && branchId != null) {
