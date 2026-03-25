@@ -53,8 +53,11 @@ class POSProductGrid extends StatelessWidget {
     } else if (controller.selectedCategory != 'favorites' && 
                controller.selectedCategory != 'recent' && 
                controller.selectedCategory != 'all') {
-      final subCats = controller.subCategories.where((c) => 
-          c.parentId?.toString() == controller.selectedCategory).toList();
+      final subCats = controller.subCategories.where((c) {
+        if (c.parentId?.toString() != controller.selectedCategory) return false;
+        final pCount = controller.products.where((p) => p.subCategoryId?.toString() == c.id.toString()).length;
+        return pCount > 1;
+      }).toList();
       count += subCats.length;
     }
     return count;
@@ -74,8 +77,11 @@ class POSProductGrid extends StatelessWidget {
         controller.selectedCategory != 'favorites' && 
         controller.selectedCategory != 'recent' && 
         controller.selectedCategory != 'all') {
-      final subCats = controller.subCategories.where((c) => 
-          c.parentId?.toString() == controller.selectedCategory).toList();
+      final subCats = controller.subCategories.where((c) {
+        if (c.parentId?.toString() != controller.selectedCategory) return false;
+        final pCount = controller.products.where((p) => p.subCategoryId?.toString() == c.id.toString()).length;
+        return pCount > 1;
+      }).toList();
       if (index < subCats.length) {
         return _buildSubCategoryTile(subCats[index], theme);
       }

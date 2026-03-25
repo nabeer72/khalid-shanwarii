@@ -5,14 +5,10 @@ import 'package:mobile_app/providers/theme_provider.dart';
 
 class POSCategorySelector extends StatelessWidget {
   final POSController controller;
-  final VoidCallback? onAddCategory;
-  final VoidCallback? onAddSubCategory;
 
   const POSCategorySelector({
     super.key,
     required this.controller,
-    this.onAddCategory,
-    this.onAddSubCategory,
   });
 
   String _getCategoryEmoji(String? icon) {
@@ -44,25 +40,6 @@ class POSCategorySelector extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             children: [
-              // Quick Add Category Button
-              if (onAddCategory != null)
-                Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: onAddCategory,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: theme.glassDecoration.copyWith(
-                        color: theme.highlight.withOpacity(0.1),
-                        border: Border.all(color: theme.highlight.withOpacity(0.3)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
-                    ),
-                  ),
-                ),
-                
               ...categories.map((cat) {
                 final catIdStr = cat.id == -1 ? 'favorites' : (cat.id == -2 ? 'recent' : (cat.id == 0 ? 'all' : cat.id.toString()));
                 final isSelected = controller.selectedCategory == catIdStr;
@@ -123,25 +100,6 @@ class POSCategorySelector extends StatelessWidget {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    // Quick Add Sub-Category Button
-                    if (onAddSubCategory != null)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: InkWell(
-                          onTap: onAddSubCategory,
-                          borderRadius: BorderRadius.circular(20),
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.highlight.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: theme.highlight.withOpacity(0.3)),
-                            ),
-                            child: Icon(Icons.add_rounded, color: theme.highlight, size: 16),
-                          ),
-                        ),
-                      ),
-                      
                     ...controller.subCategories
                         .where((sc) => sc.parentId.toString() == controller.selectedCategory)
                         .map((sc) {

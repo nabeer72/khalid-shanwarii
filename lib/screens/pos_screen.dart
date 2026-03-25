@@ -1758,8 +1758,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             ),
             child: POSCategorySelector(
               controller: _controller,
-              onAddCategory: _showAddCategoryDialog,
-              onAddSubCategory: _showAddSubCategoryDialog,
             ),
           ),
         Expanded(

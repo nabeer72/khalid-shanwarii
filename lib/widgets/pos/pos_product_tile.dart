@@ -61,9 +61,10 @@ class POSProductTile extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
-                      child: Text(
-                        product.image ?? '📦',
-                        style: const TextStyle(fontSize: 16),
+                      child: Icon(
+                        Icons.inventory_2_rounded,
+                        color: theme.primary,
+                        size: 18,
                       ),
                     ),
                   ),

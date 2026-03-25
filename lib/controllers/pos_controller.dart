@@ -95,25 +95,24 @@ class POSController with ChangeNotifier {
     } else if (_selectedCategory == 'all') {
       filtered = _products;
     } else {
-      // Find all products that belong to this category OR belong to a subcategory of this category
-      filtered = _products.where((p) {
-        final pcid = p.categoryId?.toString();
-        final pscid = p.subCategoryId?.toString();
-        
-        // Direct match with category
-        if (pcid == _selectedCategory) return true;
-        
-        // Match through subcategory's parent
-        if (pscid != null) {
-          final subCat = _subCategories.where((sc) => sc.id.toString() == pscid).firstOrNull;
-          if (subCat != null && subCat.parentId?.toString() == _selectedCategory) return true;
-        }
-        
-        return false;
-      }).toList();
-      
       if (_selectedSubCategoryId != null) {
-        filtered = filtered.where((p) => p.subCategoryId?.toString() == _selectedSubCategoryId.toString()).toList();
+        filtered = _products.where((p) => p.subCategoryId?.toString() == _selectedSubCategoryId.toString()).toList();
+      } else {
+        filtered = _products.where((p) {
+          final pcid = p.categoryId?.toString();
+          final pscid = p.subCategoryId?.toString();
+          
+          if (pscid != null) {
+            final subCat = _subCategories.where((sc) => sc.id.toString() == pscid).firstOrNull;
+            if (subCat != null && subCat.parentId?.toString() == _selectedCategory) {
+              final count = _products.where((p2) => p2.subCategoryId?.toString() == pscid).length;
+              if (count <= 1) return true; // Show directly if 1 or 0 items
+            }
+          } else if (pcid == _selectedCategory) {
+            return true; // Direct category match with no subcategory
+          }
+          return false;
+        }).toList();
       }
     }
     
