@@ -366,6 +366,7 @@ class DbTables {
         email TEXT,
         address TEXT,
         credit_balance REAL DEFAULT 0,
+        opening_amount REAL DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,

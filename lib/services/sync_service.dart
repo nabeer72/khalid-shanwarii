@@ -492,6 +492,8 @@ class SyncService {
                   'phone': s['cell_number'], // Backend calls it cell_number
                   'email': s['email'],
                   'address': s['address'],
+                  'opening_amount': _parseNum(s['credit_balance']), // Server sends opening_amount as credit_balance
+                  'credit_balance': _parseNum(s['credit_balance']),  // Keep visible balance in sync
                   'status': _parseStatus(s['status']),
                   'created_at': s['created_at'],
                   'updated_at': s['updated_at'],
@@ -1053,8 +1055,11 @@ class SyncService {
       unsyncedSuppliers = await db.query('suppliers', where: 'is_synced = 0');
       if (unsyncedSuppliers.isNotEmpty) {
         changes['suppliers'] = unsyncedSuppliers.map((s) {
-          var m = Map.from(s);
+          var m = Map<String, dynamic>.from(s);
           m.remove('is_synced');
+          // Backend SyncController reads 'credit_balance' to set opening_amount + outstandings
+          // So we ensure opening_amount is exposed as credit_balance for the server
+          m['credit_balance'] = (m['opening_amount'] as num?)?.toDouble() ?? 0.0;
           return m;
         }).toList();
       }

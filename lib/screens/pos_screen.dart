@@ -136,29 +136,41 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     }
   }
 
-  void _showOutOfStockAlert(Product product, Stock stock) {
+  void _showStockNotFoundDialog(Product product, Stock stock) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: theme.surface,
         title: Row(
           children: [
             Icon(Icons.error_outline_rounded, color: ThemeProvider.error),
-            const SizedBox(width: 8),
-            Text('Out of Stock', style: TextStyle(color: theme.textPrimary)),
+            const SizedBox(width: 12),
+            Text('Stock Not Found', 
+              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
           ],
         ),
-        content: SizedBox(
-          width: 320,
-          child: Text(
-            'The product "${product.name}" (Batch: ${stock.barcode ?? 'Default'}) is out of stock and cannot be added to the cart.',
-            style: TextStyle(color: theme.textSecondary),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Out of Stock Alert', 
+              style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 12),
+            Text(
+              'The product "${product.name}" (Batch: ${stock.barcode ?? 'Default'}) has zero stock and cannot be sold.',
+              style: TextStyle(color: theme.textSecondary, fontSize: 14),
+            ),
+          ],
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('OK', style: TextStyle(color: theme.highlight)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.highlight,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -236,11 +248,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       child: InkWell(
                         onTap: () {
                           Navigator.pop(ctx);
-                          if (product.isPricePerWeight) {
+                          if (stock.quantity <= 0) {
+                            _showStockNotFoundDialog(product, stock);
+                          } else if (product.isPricePerWeight) {
                             _showWeightDialog(product, stock);
                           } else {
                             final success = _controller.addToCart(product, stock);
-                            if (!success) _showOutOfStockAlert(product, stock);
+                            if (!success) _showStockNotFoundDialog(product, stock);
                           }
                         },
                         borderRadius: BorderRadius.circular(12),
@@ -1225,15 +1239,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         return;
       }
 
-      if (product.isPricePerWeight) {
+      if (stock.quantity <= 0) {
+        _showStockNotFoundDialog(product, stock);
+      } else if (product.isPricePerWeight) {
         _showWeightDialog(product, stock);
       } else {
         final success = _controller.addToCart(product, stock);
         if (!success) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('${product.name} is out of stock!'),
-            backgroundColor: ThemeProvider.error,
-          ));
+          _showStockNotFoundDialog(product, stock);
         }
       }
     } else {
@@ -1320,22 +1333,21 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     return Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: inStock
-                            ? () {
+                        onTap: () {
+                                if (!inStock) {
+                                  _showStockNotFoundDialog(v, stock!);
+                                  return;
+                                }
                                 Navigator.pop(ctx);
                                 if (v.isPricePerWeight) {
                                   _showWeightDialog(v, stock!);
                                 } else {
                                   final success = _controller.addToCart(v, stock!);
                                   if (!success) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                      content: Text('${v.name} is out of stock!'),
-                                      backgroundColor: ThemeProvider.error,
-                                    ));
+                                    _showStockNotFoundDialog(v, stock!);
                                   }
                                 }
-                              }
-                            : null,
+                              },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(16),
@@ -1758,15 +1770,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 _showStockBatchDialog(product);
               } else {
                 final stock = product.stocks.first;
-                if (product.isPricePerWeight) {
+                if (stock.quantity <= 0) {
+                  _showStockNotFoundDialog(product, stock);
+                } else if (product.isPricePerWeight) {
                   _showWeightDialog(product, stock);
                 } else {
                   final success = _controller.addToCart(product, stock);
                   if (!success) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text('${product.name} is out of stock!'),
-                      backgroundColor: ThemeProvider.error,
-                    ));
+                    _showStockNotFoundDialog(product, stock);
                   }
                 }
               }

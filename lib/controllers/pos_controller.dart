@@ -104,8 +104,8 @@ class POSController with ChangeNotifier {
       // This ensures all products in a category show up by default
     }
     
-    // Only show products with stock
-    return filtered.where((p) => p.stocks.any((s) => s.quantity > 0)).toList();
+    // Show all products in the filtered list
+    return filtered.toList();
   }
 
   void setSearchQuery(String query) {

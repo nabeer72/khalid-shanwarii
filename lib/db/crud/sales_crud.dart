@@ -157,4 +157,286 @@ mixin SalesCrud on CommonCrud {
       WHERE si.sale_id = ?
     ''', [saleId]);
   }
+
+  // --- Reporting Methods ---
+
+  Future<List<Map<String, dynamic>>> getDetailedSaleItems({int? userId, int? categoryId, String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    String userFilter = '';
+    if (userId != null) {
+      userFilter = ' AND s.user_id = ?';
+      args.add(userId);
+    }
+
+    String catFilter = '';
+    if (categoryId != null) {
+      catFilter = ' AND c.id = ?';
+      args.add(categoryId);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        si.id, si.sale_id, si.product_id, si.stock_id, si.quantity, si.price, si.subtotal, si.discount,
+        p.name as product_name, 
+        p.purchase_price,
+        c.name as category_name,
+        s.created_at,
+        u.name as employee_name
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      LEFT JOIN products p ON si.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN users u ON s.user_id = u.id
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter$catFilter
+      ORDER BY s.created_at DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getCategorySalesSummary({int? categoryId, String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    String catFilter = '';
+    if (categoryId != null) {
+      catFilter = ' AND c.id = ?';
+      args.add(categoryId);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        c.name as category_name,
+        SUM(si.quantity) as total_qty,
+        SUM(si.subtotal) as total_amount,
+        SUM(si.discount) as total_discount,
+        SUM(si.subtotal - si.discount) as total_net
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      LEFT JOIN products p ON si.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$catFilter
+      GROUP BY c.id, c.name
+      ORDER BY total_amount DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getEmployeeSalesSummary({int? userId, String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    String userFilter = '';
+    if (userId != null) {
+      userFilter = ' AND u.id = ?';
+      args.add(userId);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        u.name as employee_name,
+        COUNT(DISTINCT s.id) as total_sales_count,
+        SUM(s.subtotal) as total_gross,
+        SUM(s.discount) as total_discount,
+        SUM(s.total) as total_amount
+      FROM sales s
+      LEFT JOIN users u ON s.user_id = u.id
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter
+      GROUP BY u.id, u.name
+      ORDER BY total_amount DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getTopSellingItems({String? startTime, String? endTime, int limit = 20}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        p.name as product_name,
+        SUM(si.quantity) as total_qty,
+        SUM(si.subtotal) as total_amount
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id
+      LEFT JOIN products p ON si.product_id = p.id
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter
+      GROUP BY p.id, p.name
+      ORDER BY total_qty DESC
+      LIMIT $limit
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getDateWiseSalesSummary({String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        DATE(s.created_at) as sale_date,
+        COUNT(DISTINCT s.id) as total_sales_count,
+        SUM(s.total) as total_amount
+      FROM sales s
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter
+      GROUP BY DATE(s.created_at)
+      ORDER BY sale_date DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getCategoryReturnsSummary({int? categoryId, String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND r.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    String catFilter = '';
+    if (categoryId != null) {
+      catFilter = ' AND c.id = ?';
+      args.add(categoryId);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        c.name as category_name,
+        SUM(ri.quantity) as total_qty,
+        SUM(ri.subtotal) as total_amount,
+        SUM(ri.discount) as total_discount,
+        SUM(ri.subtotal - ri.discount) as total_net
+      FROM return_items ri
+      JOIN returns r ON ri.return_id = r.id
+      LEFT JOIN products p ON ri.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      WHERE r.business_id = ? AND r.admin_id = ?$branchFilter$dateFilter$catFilter
+      GROUP BY c.id, c.name
+      ORDER BY total_amount DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getEmployeeReturnsSummary({int? userId, String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND r.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    String userFilter = '';
+    if (userId != null) {
+      userFilter = ' AND u.id = ?';
+      args.add(userId);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        u.name as employee_name,
+        COUNT(DISTINCT r.id) as total_returns_count,
+        SUM(r.total_amount) as total_amount
+      FROM returns r
+      LEFT JOIN users u ON r.user_id = u.id
+      WHERE r.business_id = ? AND r.admin_id = ?$branchFilter$dateFilter$userFilter
+      GROUP BY u.id, u.name
+      ORDER BY total_amount DESC
+    ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getDetailedReturnItems({String? startTime, String? endTime}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND r.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    return await db.rawQuery('''
+      SELECT 
+        ri.id, ri.return_id, ri.product_id, ri.stock_id, ri.quantity, ri.price, ri.subtotal, ri.discount,
+        p.name as product_name, 
+        c.name as category_name,
+        r.created_at,
+        u.name as employee_name
+      FROM return_items ri
+      JOIN returns r ON ri.return_id = r.id
+      LEFT JOIN products p ON ri.product_id = p.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN users u ON r.user_id = u.id
+      WHERE r.business_id = ? AND r.admin_id = ?$branchFilter$dateFilter
+      ORDER BY r.created_at DESC
+    ''', args);
+  }
 }

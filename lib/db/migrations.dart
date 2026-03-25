@@ -1000,5 +1000,14 @@ class DbMigrations {
         )
       ''');
     }
+
+    if (oldVersion < 50) {
+      if (kDebugMode) print('Upgrading DB to v50: Adding opening_amount to suppliers...');
+      try {
+        await db.execute('ALTER TABLE suppliers ADD COLUMN opening_amount REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v50 suppliers opening_amount error: $e');
+      }
+    }
   }
 }

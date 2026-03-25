@@ -267,6 +267,7 @@ class Supplier {
   final String? email;
   final String? address;
   final double creditBalance;
+  final double openingAmount;
   final int? branchId;
 
   Supplier({
@@ -277,6 +278,7 @@ class Supplier {
     this.email,
     this.address,
     this.creditBalance = 0,
+    this.openingAmount = 0,
     this.branchId,
   });
 
@@ -289,6 +291,7 @@ class Supplier {
       email: map['email']?.toString(),
       address: map['address']?.toString(),
       creditBalance: (map['credit_balance'] as num?)?.toDouble() ?? 0,
+      openingAmount: (map['opening_amount'] as num?)?.toDouble() ?? 0,
       branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
     );
   }
@@ -302,6 +305,7 @@ class Supplier {
       'email': email,
       'address': address,
       'credit_balance': creditBalance,
+      'opening_amount': openingAmount,
       'branch_id': branchId,
     };
   }

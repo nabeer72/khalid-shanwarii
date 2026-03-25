@@ -26,7 +26,7 @@ class AddSupplierController with ChangeNotifier {
     phoneCtrl = TextEditingController(text: initialSupplier?.phone ?? '');
     emailCtrl = TextEditingController(text: initialSupplier?.email ?? '');
     addressCtrl = TextEditingController(text: initialSupplier?.address ?? '');
-    balanceCtrl = TextEditingController(text: initialSupplier?.creditBalance.toString() ?? '0');
+    balanceCtrl = TextEditingController(text: initialSupplier?.openingAmount.toString() ?? '0');
     selectedBranchId = initialSupplier?.branchId ?? BusinessConfig.instance.branchId;
   }
 
@@ -53,6 +53,7 @@ class AddSupplierController with ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    final openingAmount = double.tryParse(balanceCtrl.text.trim()) ?? 0.0;
     final supplierData = {
       'id': initialSupplier?.id,
       'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
@@ -61,7 +62,9 @@ class AddSupplierController with ChangeNotifier {
       'phone': phoneCtrl.text.trim(),
       'email': emailCtrl.text.trim(),
       'address': addressCtrl.text.trim(),
-      'credit_balance': double.tryParse(balanceCtrl.text.trim()) ?? 0.0,
+      'opening_amount': openingAmount,
+      // Set credit_balance = opening_amount so the supplier list shows it immediately
+      'credit_balance': openingAmount,
       'status': 1,
       'updated_at': DateTime.now().toIso8601String(),
     };

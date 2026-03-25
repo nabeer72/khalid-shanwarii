@@ -201,16 +201,29 @@ mixin SuppliersCrud on CommonCrud {
       await txn.update('suppliers', {'credit_balance': 0});
     }
 
-    // 2. Aggregate remaining balances from supplier_credit_purchases
+    // 2. Aggregate remaining balances from supplier_credit_purchases AND add opening_amount
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
-    
-    final List<Map<String, dynamic>> results = await txn.rawQuery('''
-      SELECT supplier_id, SUM(remaining_balance) as calculated_balance
-      FROM supplier_credit_purchases
-      WHERE status = 1 AND business_id = ? AND admin_id = ? $branchFilter
-      GROUP BY supplier_id
-    ''', [bid, aid, ...branchArgs]);
+
+    List<Map<String, dynamic>> results = [];
+    try {
+      // Try query with opening_amount (requires v50 schema)
+      results = await txn.rawQuery('''
+        SELECT s.id as supplier_id, (SUM(IFNULL(scp.remaining_balance, 0)) + IFNULL(s.opening_amount, 0)) as calculated_balance
+        FROM suppliers s
+        LEFT JOIN supplier_credit_purchases scp ON s.id = scp.supplier_id AND scp.status = 1
+        WHERE s.status = 1 AND s.business_id = ? AND s.admin_id = ? $branchFilter
+        GROUP BY s.id
+      ''', [bid, aid, ...branchArgs]);
+    } catch (_) {
+      // Fallback: opening_amount column not yet migrated — only sum credit purchases
+      results = await txn.rawQuery('''
+        SELECT supplier_id, SUM(remaining_balance) as calculated_balance
+        FROM supplier_credit_purchases
+        WHERE status = 1 AND business_id = ? AND admin_id = ? $branchFilter
+        GROUP BY supplier_id
+      ''', [bid, aid, ...branchArgs]);
+    }
 
     // 3. Update each supplier with their calculated balance
     for (var row in results) {

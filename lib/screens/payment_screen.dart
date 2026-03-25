@@ -124,6 +124,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'quantity': item['quantity'],
           'price': item['price'],
           'subtotal': item['subtotal'],
+          'discount': item['discount'] ?? 0,
           'is_synced': 0,
         };
       }).toList();
@@ -150,6 +151,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             'quantity': item['quantity'],
             'price': item['price'],
             'subtotal': item['subtotal'],
+            'discount': item['discount'] ?? 0,
           };
         }).toList();
         saleId = await DatabaseHelper.instance.insertReturn(returnData, returnItems);
