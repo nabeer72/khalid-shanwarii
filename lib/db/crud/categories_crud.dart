@@ -45,17 +45,46 @@ mixin CategoriesCrud on CommonCrud {
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    String query = 'SELECT * FROM subcategories WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter';
-    List<dynamic> args = [bid, aid, ...branchArgs];
+    // 1. Fetch from subcategories table
+    String subQuery = 'SELECT * FROM subcategories WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter';
+    List<dynamic> subArgs = [bid, aid, ...branchArgs];
 
     if (categoryId != null) {
-      query += ' AND category_id = ?';
-      args.add(getSafeInt(categoryId));
+      subQuery += ' AND category_id = ?';
+      subArgs.add(getSafeInt(categoryId));
     }
 
-    query += ' ORDER BY name ASC';
+    final List<Map<String, dynamic>> subResults = await db.rawQuery(subQuery, subArgs);
+    
+    // 2. Fetch from categories table (where parent_id is NOT NULL)
+    String catQuery = 'SELECT * FROM categories WHERE status = 1 AND parent_id IS NOT NULL AND business_id = ? AND admin_id = ?$branchFilter';
+    List<dynamic> catArgs = [bid, aid, ...branchArgs];
+    
+    if (categoryId != null) {
+      catQuery += ' AND parent_id = ?';
+      catArgs.add(getSafeInt(categoryId));
+    }
+    
+    final List<Map<String, dynamic>> catResults = await db.rawQuery(catQuery, catArgs);
+    
+    // Combine and normalize results
+    final List<Map<String, dynamic>> combined = [];
+    
+    // Map subcategories (normalize category_id to parent_id for consistency)
+    for (var row in subResults) {
+      combined.add({
+        ...row,
+        'parent_id': row['category_id'],
+      });
+    }
+    
+    // Map categories that are subcategories
+    combined.addAll(catResults);
+    
+    // Sort by name
+    combined.sort((a, b) => (a['name'] ?? '').toString().compareTo((b['name'] ?? '').toString()));
 
-    return await db.rawQuery(query, args);
+    return combined;
   }
 
   Future<int> insertSubCategory(Map<String, dynamic> subcategory) async {

@@ -173,7 +173,9 @@ mixin ProductsCrud on CommonCrud {
       final matchingStocks = await txn.rawQuery(
         '''SELECT * FROM stocks 
            WHERE product_id = ? AND branch_id = ? AND status = 1 
-           AND sale_price = ? AND cost_price = ? AND wholesale_price = ?
+           AND CAST(sale_price AS REAL) = CAST(? AS REAL) 
+           AND CAST(cost_price AS REAL) = CAST(? AS REAL) 
+           AND CAST(wholesale_price AS REAL) = CAST(? AS REAL)
            ORDER BY created_at DESC LIMIT 1''',
         [pid, brid, currentPrice, currentCost, currentWholesale],
       );

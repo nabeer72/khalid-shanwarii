@@ -94,6 +94,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           decoration: theme.glassDecoration,
                           child: ListTile(
+                            isThreeLine: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                             onTap: () => _handleAddEdit(supplier),
                             title: Text(
@@ -106,9 +107,19 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 2),
-                              child: Text(
-                                '${supplier.contactPerson ?? 'No Contact'} | ${supplier.phone ?? 'No Phone'}',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${supplier.contactPerson ?? 'No Contact'} | ${supplier.phone ?? 'No Phone'}',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'RUNNING: ${BusinessConfig.instance.currencyDisplay}${supplier.openingAmount.toStringAsFixed(2)}',
+                                    style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800),
+                                  ),
+                                ],
                               ),
                             ),
                             trailing: Column(
@@ -116,7 +127,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end,
                               children: [
                                 Text(
-                                  '${BusinessConfig.instance.currencyDisplay} ${supplier.creditBalance.toStringAsFixed(2)}',
+                                  '${BusinessConfig.instance.currencyDisplay}${supplier.creditBalance.toStringAsFixed(2)}',
                                   style: TextStyle(
                                     color: supplier.creditBalance > 0 ? ThemeProvider.error : theme.highlight,
                                     fontWeight: FontWeight.w900,

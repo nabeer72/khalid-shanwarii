@@ -472,7 +472,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                       ),
                       onPressed: () async {
-                        setState(() => _taxRate = double.tryParse(taxCtrl.text) ?? 8.0);
+                        setState(() => _taxRate = double.tryParse(taxCtrl.text) ?? 0.0);
                         BusinessConfig.instance.taxRate = _taxRate;
                         await DatabaseHelper.instance.setSetting('tax_rate', _taxRate.toString());
                         Navigator.pop(ctx);

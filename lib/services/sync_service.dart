@@ -136,6 +136,7 @@ class SyncService {
                   'admin_id': c['admin_id'] is int ? c['admin_id'] : int.tryParse(c['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'name': c['name'] ?? 'Unknown',
                   'icon': c['icon'],
+                  'parent_id': c['parent_id'] is int ? c['parent_id'] : int.tryParse(c['parent_id']?.toString() ?? ''),
                   'status': _parseStatus(c['status']),
                   'is_synced': 1,
                   'updated_at': c['updated_at'],
@@ -410,8 +411,8 @@ class SyncService {
                       'product_id': item['product_id'] is int ? item['product_id'] : int.tryParse(item['product_id']?.toString() ?? ''),
                       'branch_id': s['branch_id'] is int ? s['branch_id'] : int.tryParse(s['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                       'quantity': _parseNum(item['quantity']),
-                      'price': _parseNum(item['price']),
-                      'subtotal': _parseNum(item['subtotal']),
+                      'price': _parseNum(item['price'] ?? item['sale_price'] ?? item['unit_price'] ?? item['selling_price']),
+                      'subtotal': _parseNum(item['subtotal'] ?? item['total']),
                       'is_synced': 1,
                     },
                     conflictAlgorithm: ConflictAlgorithm.replace,
@@ -492,8 +493,8 @@ class SyncService {
                   'phone': s['cell_number'], // Backend calls it cell_number
                   'email': s['email'],
                   'address': s['address'],
-                  'opening_amount': _parseNum(s['credit_balance']), // Server sends opening_amount as credit_balance
-                  'credit_balance': _parseNum(s['credit_balance']),  // Keep visible balance in sync
+                  'opening_amount': _parseNum(s['opening_amount'] ?? s['opening_balance']), 
+                  'credit_balance': _parseNum(s['credit_balance'] ?? s['balance']),  // Keep visible balance in sync
                   'status': _parseStatus(s['status']),
                   'created_at': s['created_at'],
                   'updated_at': s['updated_at'],
@@ -1057,9 +1058,8 @@ class SyncService {
         changes['suppliers'] = unsyncedSuppliers.map((s) {
           var m = Map<String, dynamic>.from(s);
           m.remove('is_synced');
-          // Backend SyncController reads 'credit_balance' to set opening_amount + outstandings
-          // So we ensure opening_amount is exposed as credit_balance for the server
-          m['credit_balance'] = (m['opening_amount'] as num?)?.toDouble() ?? 0.0;
+          // BACKWARD COMPATIBILITY: Ensure server receives some form of balance/opening info
+          m['balance'] = (m['credit_balance'] as num?)?.toDouble() ?? 0.0;
           return m;
         }).toList();
       }
@@ -1340,6 +1340,11 @@ class SyncService {
             if (cn['id'] == null) continue;
             await txn.update('currency_notes', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [cn['id']]);
           }
+          // Mark subcategories as synced
+          for (var sc in unsyncedSubCategories) {
+            if (sc['id'] == null) continue;
+            await txn.update('subcategories', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [sc['id']]);
+          }
         });
         if (kDebugMode) {
           final mappingKeys = (response.data['mappings'] is Map) ? (response.data['mappings'] as Map).keys.toList() : [];
@@ -1365,6 +1370,20 @@ class SyncService {
         if (kDebugMode) print('🔄 [MAPPING] Category: $oldId -> $newId');
         await txn.update('categories', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('products', {'category_id': newId}, where: 'category_id = ?', whereArgs: [oldId]);
+        await txn.update('subcategories', {'category_id': newId}, where: 'category_id = ?', whereArgs: [oldId]);
+        await txn.update('categories', {'parent_id': newId}, where: 'parent_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 1b. Subcategories Table
+    if (allMappings['sub_categories'] != null && allMappings['sub_categories'] is Map) {
+      final map = allMappings['sub_categories'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] SubCategory: $oldId -> $newId');
+        await txn.update('subcategories', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('products', {'sub_category_id': newId}, where: 'sub_category_id = ?', whereArgs: [oldId]);
       }
     }
 

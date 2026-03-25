@@ -17,7 +17,14 @@ class ReportsPrintingScreen extends StatefulWidget {
 
 class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   final theme = ThemeProvider.instance;
-  bool _isGenerating = false;
+  String? _generatingReportTitle;
+  pw.Font? _cachedFont;
+  pw.Font? _cachedBoldFont;
+
+  Future<void> _ensureFontsLoaded() async {
+    _cachedFont ??= await PdfGoogleFonts.notoSansRegular();
+    _cachedBoldFont ??= await PdfGoogleFonts.notoSansBold();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +181,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _isGenerating ? null : onTap,
+        onTap: _generatingReportTitle != null ? null : onTap,
         borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
           decoration: BoxDecoration(
@@ -194,7 +201,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                   color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: _isGenerating 
+                child: _generatingReportTitle == title 
                   ? SizedBox(width: 28, height: 28, child: CircularProgressIndicator(strokeWidth: 2, color: color))
                   : Icon(icon, color: color, size: 28),
               ),
@@ -483,7 +490,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('UNIFIED REPORT'.toUpperCase(),
+                            Text(' REPORT'.toUpperCase(),
                                 style: TextStyle(
                                     color: theme.textSecondary,
                                     fontSize: 10,
@@ -767,10 +774,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     if (result == null) return;
 
     final selectedCategory = result['selection'] as Map?;
-    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + ' 00:00:00';
-    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + ' 23:59:59';
+    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + 'T00:00:00';
+    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + 'T23:59:59';
 
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = 'Category Wise');
     try {
       final salesSummary = await DatabaseHelper.instance.getCategorySalesSummary(
         categoryId: selectedCategory?['id'],
@@ -801,7 +808,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       ]);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
 
@@ -813,16 +820,16 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
 
     if (result == null) return;
 
-    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + ' 00:00:00';
-    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + ' 23:59:59';
+    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + 'T00:00:00';
+    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + 'T23:59:59';
 
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = 'Top Selling');
     try {
       final data = await DatabaseHelper.instance.getTopSellingItems(
         startTime: start,
         endTime: end,
       );
-      final title = 'Top Selling Items Analysis';
+      final title = 'Top Selling Items ';
       final pdf = await _generateSummaryPdf(title, [
         {
           'title': 'TOP SELLING PRODUCTS',
@@ -833,7 +840,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       ]);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
   Future<void> _handlePrintGeneralSales() async {
@@ -849,10 +856,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
 
     final selectedCategory = result['category'] as Map?;
     final selectedEmployee = result['employee'] as Map?;
-    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + ' 00:00:00';
-    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + ' 23:59:59';
+    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + 'T00:00:00';
+    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + 'T23:59:59';
 
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = 'Sales Report');
     try {
       final items = await DatabaseHelper.instance.getDetailedSaleItems(
         userId: selectedEmployee?['id'],
@@ -860,8 +867,17 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         startTime: start,
         endTime: end,
       );
+      final paymentSummary = await DatabaseHelper.instance.getPaymentMethodSummary(
+        userId: selectedEmployee?['id'],
+        startTime: start,
+        endTime: end,
+      );
+      final returns = await DatabaseHelper.instance.getDetailedReturnItems(
+        startTime: start,
+        endTime: end,
+      );
       
-      String filterInfo = 'Period: ${start.split(' ')[0]} to ${end.split(' ')[0]}';
+      String filterInfo = 'Period: ${start.split('T')[0]} to ${end.split('T')[0]}';
       if (selectedCategory != null && selectedCategory['id'] != null) {
         filterInfo += ' | Category: ${selectedCategory['name']}';
       }
@@ -869,11 +885,11 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         filterInfo += ' | Employee: ${selectedEmployee['name']}';
       }
 
-      final title = 'Unified Sales Report';
-      final pdf = await _generateSalesPdf(items, title, subtitle: filterInfo);
+      final title = 'Sales Report';
+      final pdf = await _generateSalesPdf(items, title, subtitle: filterInfo, returnItems: returns, paymentMethodSummary: paymentSummary);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
 
@@ -893,10 +909,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     if (result == null) return;
 
     final selectedEmployee = result['selection'] as Map?;
-    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + ' 00:00:00';
-    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + ' 23:59:59';
+    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + 'T00:00:00';
+    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + 'T23:59:59';
 
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = 'Employee Wise');
     try {
       final salesSummary = await DatabaseHelper.instance.getEmployeeSalesSummary(
         userId: selectedEmployee?['id'],
@@ -927,7 +943,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       ]);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
 
@@ -939,10 +955,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
 
     if (result == null) return;
 
-    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + ' 00:00:00';
-    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + ' 23:59:59';
+    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + 'T00:00:00';
+    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + 'T23:59:59';
 
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = 'Product Wise');
     try {
       final items = await DatabaseHelper.instance.getDetailedSaleItems(
         startTime: start,
@@ -956,12 +972,12 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       final pdf = await _generateSalesPdf(items, title, returnItems: returns);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
 
   Future<void> _handlePrintStockReport({bool onlyLow = false}) async {
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = onlyLow ? 'Low Stock Alert' : 'Current Stock');
     try {
       final products = await DatabaseHelper.instance.getProducts();
       final categoriesData = await DatabaseHelper.instance.getCategories();
@@ -995,19 +1011,19 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       final pdf = await _generateStockPdf(filtered, title);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
 
   Future<void> _handlePrintExpenseReport() async {
-    setState(() => _isGenerating = true);
+    setState(() => _generatingReportTitle = 'Expense Summary');
     try {
       final expenses = await DatabaseHelper.instance.getExpenses();
       final title = 'Operational Expense Report';
       final pdf = await _generateExpensePdf(expenses, title);
       _showPreview(pdf, title);
     } finally {
-      setState(() => _isGenerating = false);
+      setState(() => _generatingReportTitle = null);
     }
   }
 
@@ -1043,41 +1059,81 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   }
 
   // PDF Generation Helpers
-  pw.Widget _buildReportHeader(pw.Context context, String title, BusinessConfig business, {String userId = 'ADMIN', String? subtitle}) {
+  Future<pw.TextStyle> _getStyle({bool bold = false, double fontSize = 10, PdfColor? color}) async {
+    await _ensureFontsLoaded();
+    final font = bold ? _cachedBoldFont! : _cachedFont!;
+    return pw.TextStyle(font: font, fontSize: fontSize, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color);
+  }
+
+  pw.Widget _buildReportHeader(pw.Context context, String title, BusinessConfig business, pw.Font font, pw.Font boldFont, {String userId = 'ADMIN', String? subtitle}) {
+    final reportDate = DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now());
     final reportNum = 'REP-${DateFormat('yyyyMMdd').format(DateTime.now())}-${business.businessId ?? "001"}';
+    
     return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         pw.Row(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
-          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
           children: [
+            // Left Section: Store Info & Period
             pw.Expanded(
-              child: pw.Text('${business.businessName} ($reportNum)', style: const pw.TextStyle(fontSize: 10)),
+              flex: 2,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text(business.businessName.toUpperCase(), style: pw.TextStyle(font: boldFont, fontSize: 12, fontWeight: pw.FontWeight.bold)),
+                  if (subtitle != null) ...[
+                    pw.SizedBox(height: 4),
+                    pw.Text(subtitle, style: pw.TextStyle(font: font, fontSize: 7, color: PdfColors.blueGrey800)),
+                  ],
+                  pw.SizedBox(height: 2),
+                  pw.Text('Report ID: $reportNum', style: pw.TextStyle(font: font, fontSize: 6, color: PdfColors.grey700)),
+                ],
+              ),
             ),
-            pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                pw.Text('Date : ${DateFormat('dd/MM/yyyy HH:mm:ss').format(DateTime.now())}', style: const pw.TextStyle(fontSize: 8)),
-                pw.Text('User ID : $userId', style: const pw.TextStyle(fontSize: 8)),
-                pw.SizedBox(height: 10),
-                pw.Text('Page ${context.pageNumber} of ${context.pagesCount}', style: const pw.TextStyle(fontSize: 10)),
-              ],
+
+            // Center Section: Header Label
+            // pw.Expanded(
+            //   flex: 2,
+            //   child: pw.Center(
+            //     child: pw.Text('OFFICIAL REPORT', style: pw.TextStyle(font: boldFont, fontSize: 9, color: PdfColors.grey400, letterSpacing: 1)),
+            //   ),
+            // ),
+
+            // Right Section: Title, User & Date
+            pw.Expanded(
+              flex: 3,
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.end,
+                children: [
+                  pw.Text(title.toUpperCase(), style: pw.TextStyle(font: boldFont, fontSize: 12, fontWeight: pw.FontWeight.bold, color: PdfColors.blue900)),
+                  pw.SizedBox(height: 2),
+                  pw.Text('USER: ${userId.toUpperCase()}', style: pw.TextStyle(font: font, fontSize: 8, color: PdfColors.grey800)),
+                  pw.SizedBox(height: 2),
+                  pw.Text(reportDate, style: pw.TextStyle(font: font, fontSize: 8, color: PdfColors.grey600)),
+                ],
+              ),
             ),
           ],
         ),
-        pw.SizedBox(height: 10),
-        pw.Center(
-          child: pw.Text(title, style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-        ),
-        if (subtitle != null) ...[
-          pw.SizedBox(height: 4),
-          pw.Center(
-            child: pw.Text(subtitle, style: pw.TextStyle(fontSize: 9, color: PdfColors.grey700)),
-          ),
-        ],
-        pw.SizedBox(height: 15),
-      ]
+        pw.SizedBox(height: 8),
+        pw.Divider(thickness: 0.5, color: PdfColors.grey400),
+        pw.SizedBox(height: 8),
+      ],
+    );
+  }
+
+  pw.Widget _buildReportFooter(pw.Context context, pw.Font font) {
+    return pw.Container(
+      alignment: pw.Alignment.centerRight,
+      margin: const pw.EdgeInsets.only(top: 10),
+      padding: const pw.EdgeInsets.only(top: 5),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(top: pw.BorderSide(width: 0.5, color: PdfColors.grey300)),
+      ),
+      child: pw.Text(
+        'PAGE ${context.pageNumber} OF ${context.pagesCount}',
+        style: pw.TextStyle(font: font, fontSize: 7, color: PdfColors.grey600),
+      ),
     );
   }
 
@@ -1088,7 +1144,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     return 0.0;
   }
 
-  Future<pw.Document> _generateSalesPdf(List<Map<String, dynamic>> items, String title, {List<Map<String, dynamic>>? returnItems, String? subtitle}) async {
+  Future<pw.Document> _generateSalesPdf(List<Map<String, dynamic>> items, String title, {List<Map<String, dynamic>>? returnItems, String? subtitle, List<Map<String, dynamic>>? paymentMethodSummary}) async {
+    await _ensureFontsLoaded();
+    final font = _cachedFont!;
+    final boldFont = _cachedBoldFont!;
     final pdf = pw.Document();
     final business = BusinessConfig.instance;
 
@@ -1099,27 +1158,39 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4.copyWith(marginLeft: 20, marginRight: 20, marginTop: 20, marginBottom: 20),
-        header: (context) => _buildReportHeader(context, title, business, subtitle: subtitle),
+        header: (context) => _buildReportHeader(context, title, business, font, boldFont, subtitle: subtitle),
+        footer: (context) => _buildReportFooter(context, font),
         build: (context) {
-          grandTotalAmount = 0;
-          grandTotalDiscount = 0;
-          grandTotalProfit = 0;
+          double totalSalesGross = 0;
+          double totalSalesDiscount = 0;
+          double totalSalesNet = 0;
+          double totalSalesProfit = 0;
+          double totalSalesQty = 0;
 
+          // Process Sales Data
           final tableData = List<Map<String, dynamic>>.from(items).asMap().entries.map((entry) {
             final index = entry.key;
             final item = entry.value;
             final qty = _parseAmount(item['quantity']);
             final price = _parseAmount(item['price']);
-            final subtotal = _parseAmount(item['subtotal']);
+            double subtotal = _parseAmount(item['subtotal']);
+            
+            // Fallback for historical data where subtotal might be 0
+            if (subtotal == 0 && qty > 0 && price > 0) {
+              subtotal = qty * price;
+            }
+            
             final discount = _parseAmount(item['discount']);
-            final amount = subtotal - discount;
+            final net = subtotal - discount;
             final cost = _parseAmount(item['purchase_price']) * qty;
-            final profit = amount - cost;
-            final profitPercent = amount != 0 ? (profit / amount * 100) : 0.0;
+            final profit = net - cost;
+            final profitPercent = net != 0 ? (profit / net * 100) : 0.0;
 
-            grandTotalAmount += amount;
-            grandTotalDiscount += discount;
-            grandTotalProfit += profit;
+            totalSalesQty += qty;
+            totalSalesGross += subtotal;
+            totalSalesDiscount += discount;
+            totalSalesNet += net;
+            totalSalesProfit += profit;
 
             return [
               (index + 1).toString(),
@@ -1128,46 +1199,85 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               price.toStringAsFixed(2),
               subtotal.toStringAsFixed(2),
               discount.toStringAsFixed(2),
-              amount.toStringAsFixed(2),
+              net.toStringAsFixed(2),
               '${profitPercent.toStringAsFixed(1)}%',
             ];
           }).toList();
 
-          // Calculate Total Qty and Gross
-          double totalQty = 0;
-          double totalGross = 0;
-          for (var item in items) {
-            totalQty += _parseAmount(item['quantity']);
-            totalGross += _parseAmount(item['subtotal']);
-          }
-
-          // Append Grand Total Row
           tableData.add([
             '',
-            'TOTAL',
-            totalQty.toString(),
+            'TOTAL SALES',
+            totalSalesQty.toString(),
             '',
-            totalGross.toStringAsFixed(2),
-            grandTotalDiscount.toStringAsFixed(2),
-            grandTotalAmount.toStringAsFixed(2),
+            totalSalesGross.toStringAsFixed(2),
+            totalSalesDiscount.toStringAsFixed(2),
+            totalSalesNet.toStringAsFixed(2),
             '',
           ]);
 
+          // Process Return Data
+          double retQty = 0;
+          double retGross = 0;
+          double retDisc = 0;
+          double retNet = 0;
+          List<List<dynamic>> returnTableData = [];
+
+          if (returnItems != null && returnItems.isNotEmpty) {
+            returnTableData = List<Map<String, dynamic>>.from(returnItems).asMap().entries.map((entry) {
+              final index = entry.key;
+              final item = entry.value;
+              final qty = _parseAmount(item['quantity']);
+              final price = _parseAmount(item['price']);
+              double gross = _parseAmount(item['subtotal']);
+              
+              // Fallback for historical data
+              if (gross == 0 && qty > 0 && price > 0) {
+                gross = qty * price;
+              }
+              
+              final disc = _parseAmount(item['discount']);
+              final net = gross - disc;
+
+              retQty += qty;
+              retGross += gross;
+              retDisc += disc;
+              retNet += net;
+
+              return [
+                (index + 1).toString(),
+                item['product_name'] ?? 'Unknown',
+                qty.toString(),
+                price.toStringAsFixed(2),
+                gross.toStringAsFixed(2),
+                disc.toStringAsFixed(2),
+                net.toStringAsFixed(2),
+                item['created_at']?.split('T')[0] ?? '',
+              ];
+            }).toList();
+
+            returnTableData.add([
+              '',
+              'TOTAL RETURNS',
+              retQty.toString(),
+              '',
+              retGross.toStringAsFixed(2),
+              retDisc.toStringAsFixed(2),
+              retNet.toStringAsFixed(2),
+              '',
+            ]);
+          }
+
           final List<pw.Widget> widgets = [];
           
-          widgets.add(pw.Text('SALES DETAILS', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)));
+          // 1. Sales Details
+          widgets.add(pw.Text('SALES DETAILS', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 12)));
           widgets.add(pw.SizedBox(height: 5));
           widgets.add(pw.TableHelper.fromTextArray(
             headers: ['S#', 'Product Name', 'QTY', 'Price', 'Total', 'Discount', 'Amount', 'Profit %'],
             data: tableData,
-            border: const pw.TableBorder(
-              top: pw.BorderSide(width: 1),
-              bottom: pw.BorderSide(width: 1),
-              horizontalInside: pw.BorderSide.none,
-              verticalInside: pw.BorderSide.none,
-            ),
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
-            cellStyle: const pw.TextStyle(fontSize: 8),
+            border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
+            headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 8),
+            cellStyle: pw.TextStyle(font: font, fontSize: 8),
             headerAlignment: pw.Alignment.centerLeft,
             cellAlignment: pw.Alignment.centerLeft,
             headerAlignments: {
@@ -1189,78 +1299,17 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
           ));
 
-          widgets.add(pw.SizedBox(height: 10));
-          widgets.add(pw.Container(
-            alignment: pw.Alignment.centerRight,
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.end,
-              children: [
-                pw.Text('Total Discount: ${business.currency} ${grandTotalDiscount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10)),
-                pw.Text('Net Sales Amount: ${business.currency} ${grandTotalAmount.toStringAsFixed(2)}', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)),
-                pw.Text('Total Profit from Sales: ${business.currency} ${grandTotalProfit.toStringAsFixed(2)}', style: pw.TextStyle(color: PdfColors.green, fontSize: 10, fontWeight: pw.FontWeight.bold)),
-              ]
-            )
-          ));
-
-          if (returnItems != null && returnItems.isNotEmpty) {
+          // 2. Returns Details (Move before summary)
+          if (returnTableData.isNotEmpty) {
             widgets.add(pw.SizedBox(height: 20));
-            widgets.add(pw.Text('RETURNS DETAILS', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 12)));
+            widgets.add(pw.Text('RETURNS DETAILS', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 12)));
             widgets.add(pw.SizedBox(height: 5));
-            
-            double retQty = 0;
-            double retGross = 0;
-            double retDisc = 0;
-            double retNet = 0;
-
-            final returnData = List<Map<String, dynamic>>.from(returnItems).asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              final qty = _parseAmount(item['quantity']);
-              final price = _parseAmount(item['price']);
-              final gross = _parseAmount(item['subtotal']);
-              final disc = _parseAmount(item['discount']);
-              final net = gross - disc;
-
-              retQty += qty;
-              retGross += gross;
-              retDisc += disc;
-              retNet += net;
-
-              return [
-                (index + 1).toString(),
-                item['product_name'] ?? 'Unknown',
-                qty.toString(),
-                price.toStringAsFixed(2),
-                gross.toStringAsFixed(2),
-                disc.toStringAsFixed(2),
-                net.toStringAsFixed(2),
-                item['created_at']?.split('T')[0] ?? '',
-              ];
-            }).toList();
-
-            // Append Total Row for Returns
-            returnData.add([
-              '',
-              'TOTAL',
-              retQty.toString(),
-              '',
-              retGross.toStringAsFixed(2),
-              retDisc.toStringAsFixed(2),
-              retNet.toStringAsFixed(2),
-              '',
-            ]);
-
             widgets.add(pw.TableHelper.fromTextArray(
               headers: ['S#', 'Product Name', 'QTY', 'Price', 'Gross', 'Discount', 'Net Refund', 'Date'],
-              data: returnData,
-              border: const pw.TableBorder(
-                top: pw.BorderSide(width: 1),
-                bottom: pw.BorderSide(width: 1),
-                horizontalInside: pw.BorderSide.none,
-                verticalInside: pw.BorderSide.none,
-              ),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 8),
-              cellStyle: const pw.TextStyle(fontSize: 8),
+              data: returnTableData,
+              border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
+              headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 8),
+              cellStyle: pw.TextStyle(font: font, fontSize: 8),
               headerAlignment: pw.Alignment.centerLeft,
               cellAlignment: pw.Alignment.centerLeft,
               headerAlignments: {
@@ -1281,6 +1330,76 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             ));
           }
 
+          // 3. Final Summary Section (At the end)
+          widgets.add(pw.SizedBox(height: 10));
+          widgets.add(pw.Divider(thickness: 1, color: PdfColors.grey800));
+          widgets.add(pw.SizedBox(height: 5));
+          widgets.add(pw.Text('FINAL SUMMARY', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 12)));
+          widgets.add(pw.SizedBox(height: 8));
+
+          // Build payment method amounts
+          double cashAmount = 0;
+          double creditAmount = 0;
+          double mobileAmount = 0;
+          double cardAmount = 0;
+
+          if (paymentMethodSummary != null) {
+            for (var row in paymentMethodSummary) {
+              final method = (row['payment_method']?.toString() ?? '').toLowerCase();
+              final amount = (row['total_amount'] as num? ?? 0).toDouble();
+              if (method == 'cash') {
+                cashAmount = amount;
+              } else if (method == 'credit') {
+                creditAmount = amount;
+              } else if (method.contains('mobile')) {
+                mobileAmount = amount;
+              } else if (method.contains('card')) {
+                cardAmount = amount;
+              }
+            }
+          }
+
+          pw.Widget summaryRow(String label, String value, {bool bold = false, PdfColor? color}) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.symmetric(vertical: 2),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  pw.Text(label, style: pw.TextStyle(font: bold ? boldFont : font, fontSize: bold ? 11 : 10, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal)),
+                  pw.Text(value, style: pw.TextStyle(font: bold ? boldFont : font, fontSize: bold ? 11 : 10, fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal, color: color)),
+                ],
+              ),
+            );
+          }
+
+          final finalNetAmount = totalSalesNet - retNet;
+          final finalProfit = totalSalesProfit - retNet; // Simple profit - refund subtraction
+
+          widgets.add(summaryRow('Total Sales (Gross)', '${business.currency} ${totalSalesGross.toStringAsFixed(2)}'));
+          widgets.add(summaryRow('Total Sales Discount', '${business.currency} ${totalSalesDiscount.toStringAsFixed(2)}'));
+          widgets.add(summaryRow('Net Sales Amount', '${business.currency} ${totalSalesNet.toStringAsFixed(2)}', bold: true));
+          
+          if (retNet > 0) {
+            widgets.add(summaryRow('Total Returns (Net)', '${business.currency} ${retNet.toStringAsFixed(2)}', color: PdfColors.red));
+            widgets.add(summaryRow('GRAND TOTAL (NET)', '${business.currency} ${finalNetAmount.toStringAsFixed(2)}', bold: true, color: PdfColors.blue900));
+          }
+
+          widgets.add(pw.SizedBox(height: 5));
+          widgets.add(pw.Divider(borderStyle: pw.BorderStyle.dashed, thickness: 0.5));
+          widgets.add(pw.SizedBox(height: 5));
+          
+          widgets.add(summaryRow('Cash Received', '${business.currency} ${cashAmount.toStringAsFixed(2)}'));
+          widgets.add(summaryRow('Credit Amount', '${business.currency} ${creditAmount.toStringAsFixed(2)}'));
+          widgets.add(summaryRow('Mobile Transfer', '${business.currency} ${mobileAmount.toStringAsFixed(2)}'));
+          widgets.add(summaryRow('Card Payments', '${business.currency} ${cardAmount.toStringAsFixed(2)}'));
+          
+          widgets.add(pw.SizedBox(height: 5));
+          widgets.add(pw.Divider(borderStyle: pw.BorderStyle.dashed, thickness: 0.5));
+          widgets.add(pw.SizedBox(height: 5));
+          
+          widgets.add(summaryRow('Final Business profit', '${business.currency} ${finalProfit.toStringAsFixed(2)}', bold: true, color: PdfColors.green));
+          widgets.add(pw.Divider(thickness: 1));
+
           return widgets;
         },
       ),
@@ -1289,6 +1408,9 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   }
 
   Future<pw.Document> _generateSummaryPdf(String title, List<Map<String, dynamic>> sections) async {
+    await _ensureFontsLoaded();
+    final font = _cachedFont!;
+    final boldFont = _cachedBoldFont!;
     final pdf = pw.Document();
     final business = BusinessConfig.instance;
 
@@ -1298,7 +1420,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        header: (context) => _buildReportHeader(context, title, business),
+        header: (context) => _buildReportHeader(context, title, business, font, boldFont),
+        footer: (context) => _buildReportFooter(context, font),
         build: (context) => sections.expand((section) {
           final headers = section['headers'] as List<String>;
           final keys = section['keys'] as List<String>;
@@ -1320,7 +1443,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
 
           return [
             pw.SizedBox(height: 15),
-            pw.Text(sectionTitle, style: pw.TextStyle(fontSize: 12, fontWeight: pw.FontWeight.bold)),
+            pw.Text(sectionTitle, style: pw.TextStyle(font: boldFont, fontSize: 12, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 5),
             pw.TableHelper.fromTextArray(
               headers: headers,
@@ -1358,14 +1481,9 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                     rows.add(totals);
                     return rows;
                   })(),
-              border: const pw.TableBorder(
-                top: pw.BorderSide(width: 1),
-                bottom: pw.BorderSide(width: 1),
-                horizontalInside: pw.BorderSide.none,
-                verticalInside: pw.BorderSide.none,
-              ),
-              headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-              cellStyle: const pw.TextStyle(fontSize: 10),
+              border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
+              headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 10),
+              cellStyle: pw.TextStyle(font: font, fontSize: 10),
               headerAlignment: pw.Alignment.centerLeft,
               headerAlignments: headerAlignments,
               cellAlignment: pw.Alignment.centerLeft,
@@ -1380,13 +1498,17 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   }
 
   Future<pw.Document> _generateStockPdf(List<Map<String, dynamic>> products, String title) async {
+    await _ensureFontsLoaded();
+    final font = _cachedFont!;
+    final boldFont = _cachedBoldFont!;
     final pdf = pw.Document();
     final business = BusinessConfig.instance;
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        header: (context) => _buildReportHeader(context, title, business),
+        header: (context) => _buildReportHeader(context, title, business, font, boldFont),
+        footer: (context) => _buildReportFooter(context, font),
         build: (context) => [
           pw.TableHelper.fromTextArray(
             headers: ['Product Name', 'Category', 'Current Stock', 'Stock Limit'],
@@ -1405,12 +1527,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               rows.add(['TOTAL', '', totalQty.toString(), '']);
               return rows;
             })(),
-            border: const pw.TableBorder(
-              top: pw.BorderSide(width: 1),
-              bottom: pw.BorderSide(width: 1),
-              horizontalInside: pw.BorderSide.none,
-              verticalInside: pw.BorderSide.none,
-            ),
+            border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
             headerAlignment: pw.Alignment.centerLeft,
             headerAlignments: {
               2: pw.Alignment.centerRight,
@@ -1421,8 +1538,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               2: pw.Alignment.centerRight,
               3: pw.Alignment.centerRight,
             },
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 10),
+            cellStyle: pw.TextStyle(font: font, fontSize: 9),
             headerDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(width: 1))),
           ),
           pw.SizedBox(height: 5),
@@ -1437,7 +1554,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('End of Report', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Text('End of Report', style: pw.TextStyle(font: boldFont, fontSize: 10, fontWeight: pw.FontWeight.bold)),
               ],
             )
           ),
@@ -1448,6 +1565,9 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   }
 
   Future<pw.Document> _generateExpensePdf(List<Map<String, dynamic>> expenses, String title) async {
+    await _ensureFontsLoaded();
+    final font = _cachedFont!;
+    final boldFont = _cachedBoldFont!;
     final pdf = pw.Document();
     final business = BusinessConfig.instance;
 
@@ -1456,7 +1576,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        header: (context) => _buildReportHeader(context, title, business),
+        header: (context) => _buildReportHeader(context, title, business, font, boldFont),
+        footer: (context) => _buildReportFooter(context, font),
         build: (context) => [
           pw.TableHelper.fromTextArray(
             headers: ['Date', 'Category', 'Description', 'Amount'],
@@ -1466,12 +1587,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               e['description'] ?? '',
               '${business.currency} ${e['amount']}',
             ]).toList(),
-            border: const pw.TableBorder(
-              top: pw.BorderSide(width: 1),
-              bottom: pw.BorderSide(width: 1),
-              horizontalInside: pw.BorderSide.none,
-              verticalInside: pw.BorderSide.none,
-            ),
+            border: pw.TableBorder.all(width: 0.5, color: PdfColors.grey400),
             headerAlignment: pw.Alignment.centerLeft,
             headerAlignments: {
               3: pw.Alignment.centerRight,
@@ -1480,8 +1596,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             cellAlignments: {
               3: pw.Alignment.centerRight,
             },
-            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 10),
-            cellStyle: const pw.TextStyle(fontSize: 9),
+            headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 10),
+            cellStyle: pw.TextStyle(font: font, fontSize: 9),
             headerDecoration: const pw.BoxDecoration(border: pw.Border(bottom: pw.BorderSide(width: 1))),
           ),
           pw.SizedBox(height: 5),
@@ -1496,8 +1612,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text('Grand Total:', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
-                pw.Text('${business.currency} ${total.toStringAsFixed(2)}', style: pw.TextStyle(fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Text('Grand Total:', style: pw.TextStyle(font: boldFont, fontSize: 10, fontWeight: pw.FontWeight.bold)),
+                pw.Text('${business.currency} ${total.toStringAsFixed(2)}', style: pw.TextStyle(font: boldFont, fontSize: 10, fontWeight: pw.FontWeight.bold)),
               ],
             )
           ),

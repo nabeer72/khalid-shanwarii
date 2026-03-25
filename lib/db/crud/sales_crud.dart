@@ -189,15 +189,16 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        si.id, si.sale_id, si.product_id, si.stock_id, si.quantity, si.price, si.subtotal, si.discount,
+        si.*,
         p.name as product_name, 
-        p.purchase_price,
+        COALESCE(st.cost_price, p.purchase_price) as purchase_price,
         c.name as category_name,
         s.created_at,
         u.name as employee_name
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
+      LEFT JOIN stocks st ON si.stock_id = st.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON s.user_id = u.id
       WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter$catFilter
@@ -307,6 +308,70 @@ mixin SalesCrud on CommonCrud {
       ORDER BY total_qty DESC
       LIMIT $limit
     ''', args);
+  }
+
+  Future<List<Map<String, dynamic>>> getPaymentMethodSummary({String? startTime, String? endTime, int? userId, int? categoryId}) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+
+    String dateFilter = '';
+    final List<dynamic> salesArgs = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      salesArgs.addAll([startTime, endTime]);
+    }
+
+    String userFilter = '';
+    if (userId != null) {
+      userFilter = ' AND s.user_id = ?';
+      salesArgs.add(userId);
+    }
+
+    // Sales by payment method
+    final salesByMethod = await db.rawQuery('''
+      SELECT 
+        s.payment_method,
+        COUNT(DISTINCT s.id) as total_count,
+        SUM(s.total) as total_amount
+      FROM sales s
+      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter
+      GROUP BY s.payment_method
+      ORDER BY total_amount DESC
+    ''', salesArgs);
+
+    // Returns total
+    final branchFilterR = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    String dateFilterR = '';
+    final List<dynamic> returnArgs = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilterR = ' AND r.created_at BETWEEN ? AND ?';
+      returnArgs.addAll([startTime, endTime]);
+    }
+
+    final returnsSummary = await db.rawQuery('''
+      SELECT 
+        COUNT(DISTINCT r.id) as total_count,
+        SUM(r.total_amount) as total_amount
+      FROM returns r
+      WHERE r.business_id = ? AND r.admin_id = ?$branchFilterR$dateFilterR
+    ''', returnArgs);
+
+    final List<Map<String, dynamic>> result = salesByMethod.map((r) => Map<String, dynamic>.from(r)).toList();
+
+    if (returnsSummary.isNotEmpty && (returnsSummary.first['total_amount'] as num? ?? 0) > 0) {
+      result.add({
+        'payment_method': 'Returns',
+        'total_count': returnsSummary.first['total_count'] ?? 0,
+        'total_amount': returnsSummary.first['total_amount'] ?? 0,
+      });
+    }
+
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getDateWiseSalesSummary({String? startTime, String? endTime}) async {

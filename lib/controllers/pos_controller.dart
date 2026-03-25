@@ -95,13 +95,26 @@ class POSController with ChangeNotifier {
     } else if (_selectedCategory == 'all') {
       filtered = _products;
     } else {
-      filtered = _products.where((p) => p.categoryId?.toString() == _selectedCategory).toList();
+      // Find all products that belong to this category OR belong to a subcategory of this category
+      filtered = _products.where((p) {
+        final pcid = p.categoryId?.toString();
+        final pscid = p.subCategoryId?.toString();
+        
+        // Direct match with category
+        if (pcid == _selectedCategory) return true;
+        
+        // Match through subcategory's parent
+        if (pscid != null) {
+          final subCat = _subCategories.where((sc) => sc.id.toString() == pscid).firstOrNull;
+          if (subCat != null && subCat.parentId?.toString() == _selectedCategory) return true;
+        }
+        
+        return false;
+      }).toList();
       
       if (_selectedSubCategoryId != null) {
         filtered = filtered.where((p) => p.subCategoryId?.toString() == _selectedSubCategoryId.toString()).toList();
       }
-      // Removing the 'else' that hid products with subcategories when none selected
-      // This ensures all products in a category show up by default
     }
     
     // Show all products in the filtered list

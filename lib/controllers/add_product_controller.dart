@@ -85,7 +85,7 @@ class AddProductController with ChangeNotifier {
         final rawSub = await DatabaseHelper.instance.getSubCategories(categoryId: selectedCategory);
         subCategories = rawSub.map((map) => ProductCategory.fromMap({
           ...map,
-          'parent_id': map['category_id'], // Map category_id to parentId for ProductCategory compatibility
+          'parent_id': map['category_id'] ?? map['parent_id'], // Map category_id or parent_id for ProductCategory compatibility
         })).toList();
       } else {
         subCategories = [];
@@ -170,7 +170,7 @@ class AddProductController with ChangeNotifier {
 
     subCategories = rawSub.map((map) => ProductCategory.fromMap({
       ...map,
-      'parent_id': map['category_id'],
+      'parent_id': map['category_id'] ?? map['parent_id'],
     })).toList();
     
     notifyListeners();
