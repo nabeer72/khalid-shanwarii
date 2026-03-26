@@ -407,7 +407,7 @@ class _SignupScreenState extends State<SignupScreen>
                                 fontWeight: FontWeight.bold)),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 100,
+                          height: 120,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: _businessTypes.length,
@@ -425,9 +425,9 @@ class _SignupScreenState extends State<SignupScreen>
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: 100,
+                                  width: 110,
                                   margin: const EdgeInsets.only(right: 12),
-                                  padding: const EdgeInsets.all(12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                   decoration: BoxDecoration(
                                     color: selected
                                         ? ThemeProvider.businessColors[bt['id']]
