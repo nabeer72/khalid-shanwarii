@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -13,9 +14,11 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final theme = ThemeProvider.instance;
   MobileScannerController controller = MobileScannerController();
   bool _isPopped = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void dispose() {
+    _audioPlayer.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -51,6 +54,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               if (barcodes.isNotEmpty) {
                 final String? code = barcodes.first.rawValue;
                 if (code != null) {
+                  _audioPlayer.play(AssetSource('beep.mpeg'));
                   _isPopped = true;
                   Navigator.pop(context, code);
                 }

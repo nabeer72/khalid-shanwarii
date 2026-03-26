@@ -56,7 +56,14 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                     mainAxisSpacing: 16,
                   ),
                   delegate: SliverChildListDelegate([
-                     _buildReportCard(
+                    _buildReportCard(
+                      title: 'Grand Summary',
+                      subtitle: 'All reports combined',
+                      icon: Icons.summarize_rounded,
+                      color: const Color(0xFF4F46E5), // Indigo 600
+                      onTap: _handlePrintGrandSummary,
+                    ),
+                    _buildReportCard(
                       title: 'Sales Report',
                       subtitle: 'Full sales overview',
                       icon: Icons.receipt_long_rounded,
@@ -843,6 +850,73 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       setState(() => _generatingReportTitle = null);
     }
   }
+  Future<void> _handlePrintGrandSummary() async {
+    final categories = await DatabaseHelper.instance.getCategories();
+    final employees = await DatabaseHelper.instance.getEmployees();
+    
+    final result = await _showUnifiedReportDialog(
+      categories: categories,
+      employees: employees,
+    );
+
+    if (result == null) return;
+
+    final start = (result['startDate'] as DateTime).toIso8601String().split('T')[0] + 'T00:00:00';
+    final end = (result['endDate'] as DateTime).toIso8601String().split('T')[0] + 'T23:59:59';
+
+    setState(() => _generatingReportTitle = 'Grand Summary');
+    try {
+      final categorySales = await DatabaseHelper.instance.getCategorySalesSummary(startTime: start, endTime: end);
+      final categoryReturns = await DatabaseHelper.instance.getCategoryReturnsSummary(startTime: start, endTime: end);
+      final employeeSales = await DatabaseHelper.instance.getEmployeeSalesSummary(startTime: start, endTime: end);
+      final paymentSummary = await DatabaseHelper.instance.getPaymentMethodSummary(startTime: start, endTime: end);
+      final expenses = await DatabaseHelper.instance.getExpenses(startTime: start, endTime: end);
+
+      final title = 'Grand Summary Report';
+      final subtitle = 'Period: ${DateFormat('dd MMM yyyy').format(result['startDate'])} to ${DateFormat('dd MMM yyyy').format(result['endDate'])}';
+
+      final pdf = await _generateSummaryPdf(title, [
+        {
+          'title': 'PAYMENT METHODS BREAKDOWN',
+          'headers': ['Method', 'Txn Count', 'Total Amount'],
+          'keys': ['payment_method', 'total_count', 'total_amount'],
+          'data': paymentSummary,
+        },
+        {
+          'title': 'SALES BY CATEGORY',
+          'headers': ['Category', 'Qty Sold', 'Gross', 'Discount', 'Net Sales'],
+          'keys': ['category_name', 'total_qty', 'total_amount', 'total_discount', 'total_net'],
+          'data': categorySales,
+        },
+        if (categoryReturns.isNotEmpty) {
+          'title': 'RETURNS BY CATEGORY',
+          'headers': ['Category', 'Qty Returned', 'Refund Amount'],
+          'keys': ['category_name', 'total_qty', 'total_net'],
+          'data': categoryReturns,
+        },
+        {
+          'title': 'STAFF PERFORMANCE SUMMARY',
+          'headers': ['Employee', 'Sales Count', 'Net Amount Sold'],
+          'keys': ['employee_name', 'total_sales_count', 'total_amount'],
+          'data': employeeSales,
+        },
+        if (expenses.isNotEmpty) {
+          'title': 'EXPENSES SUMMARY',
+          'headers': ['Expense Head', 'Description', 'Amount', 'Date'],
+          'keys': ['expense_head_name', 'description', 'amount', 'date'],
+          'data': expenses.map((e) => {
+            ...e,
+            'date': e['date']?.toString().split('T')[0] ?? '',
+          }).toList(),
+        },
+      ], subtitle: subtitle);
+
+      _showPreview(pdf, title);
+    } finally {
+      setState(() => _generatingReportTitle = null);
+    }
+  }
+
   Future<void> _handlePrintGeneralSales() async {
     final categories = await DatabaseHelper.instance.getCategories();
     final employees = await DatabaseHelper.instance.getEmployees();
@@ -1420,7 +1494,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     return pdf;
   }
 
-  Future<pw.Document> _generateSummaryPdf(String title, List<Map<String, dynamic>> sections) async {
+  Future<pw.Document> _generateSummaryPdf(String title, List<Map<String, dynamic>> sections, {String? subtitle}) async {
     await _ensureFontsLoaded();
     final font = _cachedFont!;
     final boldFont = _cachedBoldFont!;
@@ -1433,7 +1507,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        header: (context) => _buildReportHeader(context, title, business, font, boldFont),
+        header: (context) => _buildReportHeader(context, title, business, font, boldFont, subtitle: subtitle),
         footer: (context) => _buildReportFooter(context, font),
         build: (context) => sections.expand((section) {
           final headers = section['headers'] as List<String>;

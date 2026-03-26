@@ -42,7 +42,7 @@ mixin ExpensesCrud on CommonCrud {
   }
 
   // Expenses
-  Future<List<Map<String, dynamic>>> getExpenses() async {
+  Future<List<Map<String, dynamic>>> getExpenses({String? startTime, String? endTime}) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
@@ -50,14 +50,20 @@ mixin ExpensesCrud on CommonCrud {
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'e.branch_id');
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    String dateFilter = '';
+    final List<dynamic> args = [bid, aid, ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND e.date BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
 
     return await db.rawQuery(
       '''
       SELECT e.*, eh.name AS expense_head_name 
       FROM expenses e 
       LEFT JOIN expense_heads eh ON e.expense_head_id = eh.id 
-      WHERE e.status = 1 AND e.business_id = ? AND e.admin_id = ?$branchFilter 
+      WHERE e.status = 1 AND e.business_id = ? AND e.admin_id = ?$branchFilter$dateFilter 
       ORDER BY e.date DESC
       ''',
       args,

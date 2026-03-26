@@ -15,6 +15,7 @@ import 'package:mobile_app/screens/held_orders_screen.dart';
 import 'package:mobile_app/widgets/shift_dialogs.dart';
 import 'package:mobile_app/screens/sales_history_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 // Modular Widgets
 import 'package:mobile_app/widgets/pos/pos_category_selector.dart';
@@ -41,6 +42,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
+  final AudioPlayer _audioPlayer = AudioPlayer();
   
   bool _showQuickAddProduct = false;
   late AnimationController _quickAddController;
@@ -76,6 +78,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     POSScreen.isActive = false;
     _controller.removeListener(_onControllerChange);
     _controller.dispose();
+    _audioPlayer.dispose();
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
     _scannerController?.dispose();
@@ -1007,6 +1010,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       if (code != null) {
         if (_lastScanTime == null || DateTime.now().difference(_lastScanTime!).inMilliseconds > 1500) {
           _lastScanTime = DateTime.now();
+          _audioPlayer.play(AssetSource('beep.mpeg'));
           _processBarcode(code);
         }
       }
