@@ -20,7 +20,7 @@ class BusinessConfig {
   List<dynamic> activeBranchIds = [];
   List<dynamic> inactiveBranchIds = [];
   String receiptFooter = 'Thank you!';
-  double taxRate = 8.0;
+  double taxRate = 0.0;
   bool requireCustomer = false;
   bool autoReceipt = true;
   bool openCashDrawer = true;
@@ -78,7 +78,7 @@ class BusinessConfig {
     businessPhone = '';
     receiptFooter = 'Thank you!';
     currency = '\$';
-    taxRate = 8.0;
+    taxRate = 0.0;
     requireCustomer = false;
     autoReceipt = true;
     openCashDrawer = true;

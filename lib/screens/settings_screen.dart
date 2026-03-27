@@ -38,11 +38,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showEditBusinessDialog() {
+  void _showEditBusinessDialog({int focusIndex = 0}) {
     final nameCtrl = TextEditingController(text: _businessName);
     final addressCtrl = TextEditingController(text: _businessAddress);
     final phoneCtrl = TextEditingController(text: _businessPhone);
     final footerCtrl = TextEditingController(text: _receiptFooter);
+
+    final List<FocusNode> focusNodes = List.generate(4, (_) => FocusNode());
 
     InputDecoration _dialogInputDecoration(String label, IconData icon) {
       return InputDecoration(
@@ -66,9 +68,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
 
-    Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {TextInputType? keyboardType}) {
+    Widget _buildDialogField(TextEditingController ctrl, FocusNode node, String label, IconData icon, {TextInputType? keyboardType}) {
       return TextField(
         controller: ctrl,
+        focusNode: node,
         keyboardType: keyboardType,
         style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
         decoration: _dialogInputDecoration(label, icon),
@@ -77,82 +80,99 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-          ),
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Business Profile', 
-                  style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
-                const SizedBox(height: 24),
-                _buildDialogField(nameCtrl, 'Business Name', Icons.store_rounded),
-                const SizedBox(height: 16),
-                _buildDialogField(addressCtrl, 'Physical Address', Icons.location_on_rounded),
-                const SizedBox(height: 16),
-                _buildDialogField(phoneCtrl, 'Contact Phone', Icons.phone_rounded, keyboardType: TextInputType.phone),
-                const SizedBox(height: 16),
-                _buildDialogField(footerCtrl, 'Receipt Footer Message', Icons.sticky_note_2_rounded),
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: ThemeProvider.success,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+      builder: (ctx) {
+        // Delayed focus to the requested field
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (focusIndex >= 0 && focusIndex < focusNodes.length) {
+            focusNodes[focusIndex].requestFocus();
+          }
+        });
+        
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            ),
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Business Profile', 
+                    style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  const SizedBox(height: 24),
+                  _buildDialogField(nameCtrl, focusNodes[0], 'Business Name', Icons.store_rounded),
+                  const SizedBox(height: 16),
+                  _buildDialogField(addressCtrl, focusNodes[1], 'Physical Address', Icons.location_on_rounded),
+                  const SizedBox(height: 16),
+                  _buildDialogField(phoneCtrl, focusNodes[2], 'Contact Phone', Icons.phone_rounded, keyboardType: TextInputType.phone),
+                  const SizedBox(height: 16),
+                  _buildDialogField(footerCtrl, focusNodes[3], 'Receipt Footer Message', Icons.sticky_note_2_rounded),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            for (var node in focusNodes) {
+                              node.dispose();
+                            }
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
                         ),
-                        onPressed: () async {
-                          setState(() {
-                            _businessName = nameCtrl.text;
-                            _businessAddress = addressCtrl.text;
-                            _businessPhone = phoneCtrl.text;
-                            _receiptFooter = footerCtrl.text;
-                          });
-                          
-                          BusinessConfig.instance.businessName = _businessName;
-                          BusinessConfig.instance.businessAddress = _businessAddress;
-                          BusinessConfig.instance.businessPhone = _businessPhone;
-                          BusinessConfig.instance.receiptFooter = _receiptFooter;
-
-                          final db = DatabaseHelper.instance;
-                          await db.setSetting('business_name', _businessName);
-                          await db.setSetting('business_address', _businessAddress);
-                          await db.setSetting('business_phone', _businessPhone);
-                          await db.setSetting('receipt_footer', _receiptFooter);
-
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Business info updated!'), backgroundColor: ThemeProvider.success));
-                        },
-                        child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w900)),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ThemeProvider.success,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          ),
+                          onPressed: () async {
+                            setState(() {
+                              _businessName = nameCtrl.text;
+                              _businessAddress = addressCtrl.text;
+                              _businessPhone = phoneCtrl.text;
+                              _receiptFooter = footerCtrl.text;
+                            });
+                            
+                            BusinessConfig.instance.businessName = _businessName;
+                            BusinessConfig.instance.businessAddress = _businessAddress;
+                            BusinessConfig.instance.businessPhone = _businessPhone;
+                            BusinessConfig.instance.receiptFooter = _receiptFooter;
+
+                            final db = DatabaseHelper.instance;
+                            await db.setSetting('business_name', _businessName);
+                            await db.setSetting('business_address', _businessAddress);
+                            await db.setSetting('business_phone', _businessPhone);
+                            await db.setSetting('receipt_footer', _receiptFooter);
+
+                            for (var node in focusNodes) {
+                              node.dispose();
+                            }
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Business info updated!'), backgroundColor: ThemeProvider.success));
+                          },
+                          child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -197,8 +217,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                 ),
-                width: double.maxFinite,
-                height: MediaQuery.of(context).size.height * 0.7,
+                width: 360,
+                height: MediaQuery.of(context).size.height * 0.6,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,6 +366,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         surfaceTintColor: Colors.white,
         contentPadding: EdgeInsets.zero,
         content: Container(
+          width: 320, // Set specific width to fix the "too big" issue
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -509,30 +530,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
               // Business Information
-              const _SectionHeader(title: 'BUSINESS IDENTITY'),
+              _SectionHeader(
+                title: 'BUSINESS IDENTITY',
+                trailing: IconButton(
+                  icon: Icon(Icons.edit_square, color: theme.highlight, size: 20),
+                  onPressed: () => _showEditBusinessDialog(focusIndex: 0),
+                  tooltip: 'Edit Business Profile',
+                ),
+              ),
               _SettingsTile(
                 icon: Icons.store_rounded,
                 title: 'Business Name',
                 subtitle: _businessName,
-                onTap: _showEditBusinessDialog,
+                onTap: () => _showEditBusinessDialog(focusIndex: 0),
+                showTrailing: false,
               ),
               _SettingsTile(
                 icon: Icons.location_on_rounded,
                 title: 'Address',
                 subtitle: _businessAddress,
-                onTap: _showEditBusinessDialog,
+                onTap: () => _showEditBusinessDialog(focusIndex: 1),
+                showTrailing: false,
               ),
               _SettingsTile(
                 icon: Icons.phone_rounded,
                 title: 'Phone Number',
                 subtitle: _businessPhone,
-                onTap: _showEditBusinessDialog,
+                onTap: () => _showEditBusinessDialog(focusIndex: 2),
+                showTrailing: false,
               ),
               _SettingsTile(
                 icon: Icons.sticky_note_2_rounded,
                 title: 'Receipt Footer',
                 subtitle: _receiptFooter,
-                onTap: _showEditBusinessDialog,
+                onTap: () => _showEditBusinessDialog(focusIndex: 3),
+                showTrailing: false,
               ),
               _SettingsTile(
                 icon: BusinessConfig.instance.currencyIcon,
@@ -752,21 +784,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionHeader({required this.title});
+  final Widget? trailing;
+  const _SectionHeader({required this.title, this.trailing});
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
     return Padding(
       padding: const EdgeInsets.fromLTRB(4, 16, 0, 8),
-      child: Text(
-        title, 
-        style: TextStyle(
-          color: theme.highlight, 
-          fontSize: 12, 
-          fontWeight: FontWeight.w900, 
-          letterSpacing: 1.5,
-        ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title, 
+            style: TextStyle(
+              color: theme.highlight, 
+              fontSize: 12, 
+              fontWeight: FontWeight.w900, 
+              letterSpacing: 1.5,
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
       ),
     );
   }
@@ -778,8 +817,16 @@ class _SettingsTile extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   final Color? titleColor;
+  final bool showTrailing;
 
-  const _SettingsTile({required this.icon, required this.title, required this.subtitle, required this.onTap, this.titleColor});
+  const _SettingsTile({
+    required this.icon, 
+    required this.title, 
+    required this.subtitle, 
+    required this.onTap, 
+    this.titleColor,
+    this.showTrailing = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -798,7 +845,22 @@ class _SettingsTile extends StatelessWidget {
           ),
           title: Text(title, style: TextStyle(color: titleColor ?? theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
           subtitle: Text(subtitle, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-          trailing: Icon(Icons.arrow_forward_ios_rounded, color: theme.iconColor, size: 14),
+          trailing: showTrailing ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.highlight.withOpacity(0.1)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.edit_note_rounded, color: theme.highlight, size: 16),
+                const SizedBox(width: 4),
+                Text('EDIT', style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900)),
+              ],
+            ),
+          ) : null,
         ),
       ),
     );

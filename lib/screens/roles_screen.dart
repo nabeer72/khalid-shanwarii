@@ -90,7 +90,7 @@ class _RolesScreenState extends State<RolesScreen> {
             backgroundColor: theme.surface,
             title: Text(role == null ? 'Create Role' : 'Edit Role', style: TextStyle(color: theme.textPrimary)),
             content: SizedBox(
-              width: double.maxFinite,
+              width: 450,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -157,7 +157,7 @@ class _RolesScreenState extends State<RolesScreen> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      height: 400,
+                      height: 320,
                       decoration: BoxDecoration(
                         color: theme.background.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(ThemeProvider.radiusList),

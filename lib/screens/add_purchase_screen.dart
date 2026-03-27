@@ -146,16 +146,48 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                             'Items',
                             style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5),
                           ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.highlight,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                              elevation: 0,
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [theme.highlight, theme.highlight.withOpacity(0.85)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.highlight.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            onPressed: _showAddItemDialog,
-                            icon: const Icon(Icons.add_rounded, size: 20),
-                            label: const Text('ADD ITEM', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _showAddItemDialog,
+                                borderRadius: BorderRadius.circular(12),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'ADD ITEM', 
+                                        style: TextStyle(
+                                          color: Colors.white, 
+                                          fontWeight: FontWeight.w900, 
+                                          fontSize: 12, 
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -243,12 +275,12 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
               surfaceTintColor: Colors.white,
               contentPadding: EdgeInsets.zero,
               content: Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                 ),
-                width: double.maxFinite,
+                width: 400, // Constrain width instead of double.maxFinite
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -258,12 +290,12 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                         'Add Purchase Item',
                         style: TextStyle(
                           color: Color(0xFF1F2937),
-                          fontSize: 20, 
+                          fontSize: 18, 
                           fontWeight: FontWeight.w900, 
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 16),
                       // Product selector + scanner
                       Row(
                         children: [
@@ -366,7 +398,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       if (selectedProductId != null)
                         _ProductStats(
                           stock: stock,
@@ -375,7 +407,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           theme: theme,
                           isDialog: true,
                         ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: qtyCtrl, 
                         keyboardType: TextInputType.number, 
@@ -383,7 +415,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                         decoration: _dialogInputDecoration('Quantity', Icons.numbers_rounded), 
                         style: const TextStyle(color: Color(0xFF1F2937)),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: costCtrl, 
                         keyboardType: TextInputType.number, 
@@ -391,21 +423,21 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                         decoration: _dialogInputDecoration('Unit Cost', Icons.attach_money_rounded), 
                         style: const TextStyle(color: Color(0xFF1F2937)),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: wholesaleCtrl, 
                         keyboardType: TextInputType.number, 
                         decoration: _dialogInputDecoration('Wholesale Price', Icons.business_center_rounded), 
                         style: const TextStyle(color: Color(0xFF1F2937)),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       TextField(
                         controller: priceCtrl, 
                         keyboardType: TextInputType.number, 
                         decoration: _dialogInputDecoration('Selling Price', Icons.price_change_rounded), 
                         style: const TextStyle(color: Color(0xFF1F2937)),
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       Row(
                         children: [
                           Expanded(
@@ -416,32 +448,57 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: theme.highlight, 
-                                foregroundColor: Colors.white, 
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [theme.highlight, theme.highlight.withOpacity(0.85)],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: theme.highlight.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
-                              onPressed: () {
-                                final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0;
-                                if (selectedProductId == null || qty <= 0) return;
-
-                                final p = _controller.products.firstWhere((x) => x['id'] == selectedProductId);
-                                  _controller.addItem(
-                                    productId: selectedProductId!,
-                                  productName: p['name'] as String,
-                                  barcode: p['barcode'] as String?,
-                                  existingStock: stock.toDouble(),
-                                  quantity: qty,
-                                  purchasePrice: double.tryParse(costCtrl.text.trim()) ?? 0,
-                                  wholesalePrice: double.tryParse(wholesaleCtrl.text.trim()) ?? 0,
-                                  sellingPrice: double.tryParse(priceCtrl.text.trim()) ?? 0,
-                                );
-                                Navigator.pop(ctx);
-                              },
-                              child: Text(
-                                'ADD ITEM', 
-                                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0;
+                                    if (selectedProductId == null || qty <= 0) return;
+     
+                                    final p = _controller.products.firstWhere((x) => x['id'] == selectedProductId);
+                                      _controller.addItem(
+                                        productId: selectedProductId!,
+                                      productName: p['name'] as String,
+                                      barcode: p['barcode'] as String?,
+                                      existingStock: stock.toDouble(),
+                                      quantity: qty,
+                                      purchasePrice: double.tryParse(costCtrl.text.trim()) ?? 0,
+                                      wholesalePrice: double.tryParse(wholesaleCtrl.text.trim()) ?? 0,
+                                      sellingPrice: double.tryParse(priceCtrl.text.trim()) ?? 0,
+                                    );
+                                    Navigator.pop(ctx);
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    alignment: Alignment.center,
+                                    height: 44,
+                                    child: const Text(
+                                      'ADD ITEM', 
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900, 
+                                        fontSize: 13,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
                           ),

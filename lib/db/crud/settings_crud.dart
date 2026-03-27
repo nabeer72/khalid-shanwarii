@@ -44,7 +44,7 @@ mixin SettingsCrud {
     if (type != null) BusinessConfig.instance.businessType = type;
     
     final tax = await getSetting('tax_rate');
-    if (tax != null) BusinessConfig.instance.taxRate = double.tryParse(tax) ?? 8.0;
+    if (tax != null) BusinessConfig.instance.taxRate = double.tryParse(tax) ?? 0.0;
 
     final reqCust = await getSetting('require_customer');
     if (reqCust != null) BusinessConfig.instance.requireCustomer = reqCust == '1';

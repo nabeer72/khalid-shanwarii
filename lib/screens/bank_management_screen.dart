@@ -50,38 +50,36 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
           backgroundColor: theme.surface,
           title: Text(transaction == null ? 'Add Bank Entry' : 'Edit Entry',
               style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildDialogField(bankCtrl, 'Bank Name', Icons.account_balance_rounded),
-                const SizedBox(height: 12),
-                _buildDialogField(titleCtrl, 'Account Title', Icons.person_rounded),
-                const SizedBox(height: 12),
-                _buildDialogField(typeCtrl, 'Account Type', Icons.category_rounded),
-                const SizedBox(height: 12),
-                _buildDialogField(numberCtrl, 'Account Number', Icons.numbers_rounded),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  value: transType,
-                  dropdownColor: theme.surface,
-                  style: TextStyle(color: theme.textPrimary),
-                  decoration: InputDecoration(
-                    labelText: 'Transaction Type',
-                    labelStyle: TextStyle(color: theme.textSecondary),
-                    prefixIcon: Icon(Icons.swap_horiz_rounded, color: theme.iconColor),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput)),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildDialogField(bankCtrl, 'Bank Name', Icons.account_balance_rounded),
+                  const SizedBox(height: 12),
+                  _buildDialogField(titleCtrl, 'Account Title', Icons.person_rounded),
+                  const SizedBox(height: 12),
+                  _buildDialogField(typeCtrl, 'Account Type', Icons.category_rounded),
+                  const SizedBox(height: 12),
+                  _buildDialogField(numberCtrl, 'Account Number', Icons.numbers_rounded),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: transType,
+                    dropdownColor: theme.surface,
+                    style: TextStyle(color: theme.textPrimary),
+                    decoration: theme.glassInputDecoration('Transaction Type', Icons.swap_horiz_rounded),
+                    items: ['Deposit', 'Withdrawal', 'Transfer']
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                        .toList(),
+                    onChanged: (v) => setDialogState(() => transType = v!),
                   ),
-                  items: ['Deposit', 'Withdrawal', 'Transfer']
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) => setDialogState(() => transType = v!),
-                ),
-                const SizedBox(height: 12),
-                _buildDialogField(amountCtrl, 'Amount', Icons.attach_money_rounded, isNumber: true),
-                const SizedBox(height: 12),
-                _buildDialogField(remarksCtrl, 'Remarks', Icons.notes_rounded),
-              ],
+                  const SizedBox(height: 12),
+                  _buildDialogField(amountCtrl, 'Amount', Icons.attach_money_rounded, isNumber: true),
+                  const SizedBox(height: 12),
+                  _buildDialogField(remarksCtrl, 'Remarks', Icons.notes_rounded),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -123,12 +121,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
       controller: ctrl,
       keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
       style: TextStyle(color: theme.textPrimary),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(color: theme.textSecondary),
-        prefixIcon: Icon(icon, color: theme.iconColor),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusInput)),
-      ),
+      decoration: theme.glassInputDecoration(label, icon),
     );
   }
 
