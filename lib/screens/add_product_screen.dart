@@ -301,7 +301,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 Expanded(
                                   child: _buildTextField(
                                     controller: _controller.price,
-                                    label: 'Sell Price',
+                                    label: 'Sale Price',
                                     icon: Icons.monetization_on_outlined,
                                     keyboardType: TextInputType.number,
                                     validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
@@ -342,7 +342,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             const SizedBox(height: 16),
                             _buildTextField(
                               controller: _controller.price,
-                              label: 'Sell Price',
+                              label: 'Sale Price',
                               icon: Icons.monetization_on_outlined,
                               keyboardType: TextInputType.number,
                               validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,

@@ -676,10 +676,22 @@ class SyncService {
           // Bank Accounts
           if (data['bank_accounts'] != null) {
             for (var b in data['bank_accounts']) {
+              final bankId = b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? '');
+              
+              // CRITICAL: Avoid overwriting local records that have unsynced changes.
+              // If the record exists locally and is_synced = 0, we skip the pull update for this row.
+              if (bankId != null) {
+                final localRows = await txn.query('bank_accounts', columns: ['is_synced'], where: 'id = ?', whereArgs: [bankId], limit: 1);
+                if (localRows.isNotEmpty && localRows.first['is_synced'] == 0) {
+                  if (kDebugMode) print('⚠️ [SYNC] Skipping pull for bank account $bankId (local changes pending push)');
+                  continue;
+                }
+              }
+
               await txn.insert(
                 'bank_accounts',
                 {
-                  'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
+                  'id': bankId,
                   'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
                   'admin_id': b['admin_id'] is int ? b['admin_id'] : int.tryParse(b['admin_id']?.toString() ?? '') ?? fallbackAdminId,
                   'branch_id': b['branch_id'] is int ? b['branch_id'] : int.tryParse(b['branch_id']?.toString() ?? '') ?? fallbackBranchId,
@@ -1153,8 +1165,8 @@ class SyncService {
         changes['roles'] = rolesList;
       }
 
-      // TEMPORARY: Force re-sync for all bank accounts once
-      await db.update('bank_accounts', {'is_synced': 0});
+      // REMOVED: TEMPORARY hack that forced re-sync for all bank accounts
+      // await db.update('bank_accounts', {'is_synced': 0});
       
       // Unsynced Bank Accounts
       final allBanks = await db.query('bank_accounts');
