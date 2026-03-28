@@ -92,8 +92,16 @@ class _SignupScreenState extends State<SignupScreen>
       _showError('Please enter a business name');
       return;
     }
-    if (_emailCtrl.text.isEmpty) {
+    
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) {
       _showError('Please enter an email');
+      return;
+    }
+    
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      _showError('Please enter a valid email address');
       return;
     }
     if (_passCtrl.text.isEmpty) {
@@ -354,60 +362,48 @@ class _SignupScreenState extends State<SignupScreen>
           SafeArea(
             child: FadeTransition(
               opacity: _fadeAnim,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 480),
+                    constraints: const BoxConstraints(maxWidth: 400),
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 20),
-                        // Back button
-                        IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: Icon(Icons.arrow_back_rounded,
-                              color: theme.iconColor),
-                        ),
-                        const SizedBox(height: 20),
-                        // Logo
-                        Center(
-                          child: Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: theme.isDark
-                                  ? Colors.white.withOpacity(0.05)
-                                  : Colors.black.withOpacity(0.05),
-                              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                              border: Border.all(
-                                  color: theme.iconColor.withOpacity(0.1)),
+                        // Header row with back button and title
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              icon: Icon(Icons.arrow_back_rounded,
+                                  color: theme.iconColor),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
                             ),
-                            child: Icon(Icons.person_add_rounded,
-                                color: theme.iconColor, size: 48),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Center(
-                            child: Text('Create Account',
+                            const SizedBox(width: 12),
+                            Icon(Icons.person_add_rounded,
+                                color: theme.iconColor, size: 28),
+                            const SizedBox(width: 10),
+                            Text('Create Account',
                                 style: TextStyle(
-                                    fontSize: 32,
+                                    fontSize: 22,
                                     fontWeight: FontWeight.bold,
-                                    color: theme.textPrimary))),
-                        Center(
-                            child: Text('Start your business journey',
-                                style: TextStyle(color: theme.textSecondary))),
+                                    color: theme.textPrimary)),
+                          ],
+                        ),
 
-                        const SizedBox(height: 40),
+                        const SizedBox(height: 16),
 
                         // Business Type Selection
                         Text('Select Your Business Type',
                             style: TextStyle(
                                 color: theme.textPrimary,
-                                fontSize: 16,
+                                fontSize: 13,
                                 fontWeight: FontWeight.bold)),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                         SizedBox(
-                          height: 120,
+                          height: 80,
                           child: ListView.builder(
                             scrollDirection: Axis.horizontal,
                             itemCount: _businessTypes.length,
@@ -425,9 +421,9 @@ class _SignupScreenState extends State<SignupScreen>
                                 },
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
-                                  width: 110,
-                                  margin: const EdgeInsets.only(right: 12),
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                  width: 72,
+                                  margin: const EdgeInsets.only(right: 8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: selected
                                         ? ThemeProvider.businessColors[bt['id']]
@@ -453,14 +449,14 @@ class _SignupScreenState extends State<SignupScreen>
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(bt['icon'],
-                                          style: const TextStyle(fontSize: 28)),
-                                      const SizedBox(height: 4),
+                                          style: const TextStyle(fontSize: 20)),
+                                      const SizedBox(height: 2),
                                       Text(bt['name'],
                                           style: TextStyle(
                                               color: selected
                                                   ? Colors.white
                                                   : theme.textPrimary,
-                                              fontSize: 12,
+                                              fontSize: 9,
                                               fontWeight: FontWeight.w600),
                                           textAlign: TextAlign.center),
                                     ],
@@ -471,17 +467,19 @@ class _SignupScreenState extends State<SignupScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 12),
 
                         // Business Name
                         Text('Business Name',
                             style: TextStyle(
-                                color: theme.textSecondary, fontSize: 12)),
-                        const SizedBox(height: 8),
+                                color: theme.textSecondary, fontSize: 11)),
+                        const SizedBox(height: 2),
                         TextField(
                           controller: _businessNameCtrl,
                           style: TextStyle(color: theme.textPrimary),
                           decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            isDense: true,
                             hintText: 'Enter your business name',
                             hintStyle: TextStyle(color: theme.textHint),
                             prefixIcon: Icon(Icons.store_outlined,
@@ -504,18 +502,20 @@ class _SignupScreenState extends State<SignupScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         // Email
                         Text('Email',
                             style: TextStyle(
-                                color: theme.textSecondary, fontSize: 12)),
-                        const SizedBox(height: 8),
+                                color: theme.textSecondary, fontSize: 11)),
+                        const SizedBox(height: 2),
                         TextField(
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: theme.textPrimary),
                           decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            isDense: true,
                             hintText: 'admin@example.com',
                             hintStyle: TextStyle(color: theme.textHint),
                             prefixIcon: Icon(Icons.email_outlined,
@@ -538,18 +538,20 @@ class _SignupScreenState extends State<SignupScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         // Password
                         Text('Password',
                             style: TextStyle(
-                                color: theme.textSecondary, fontSize: 12)),
-                        const SizedBox(height: 8),
+                                color: theme.textSecondary, fontSize: 11)),
+                        const SizedBox(height: 2),
                         TextField(
                           controller: _passCtrl,
                           obscureText: _obscurePassword,
                           style: TextStyle(color: theme.textPrimary),
                           decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            isDense: true,
                             hintText: '••••••••',
                             hintStyle: TextStyle(color: theme.textHint),
                             prefixIcon: Icon(Icons.lock_outlined,
@@ -582,18 +584,20 @@ class _SignupScreenState extends State<SignupScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 8),
 
                         // Confirm Password
                         Text('Confirm Password',
                             style: TextStyle(
-                                color: theme.textSecondary, fontSize: 12)),
-                        const SizedBox(height: 8),
+                                color: theme.textSecondary, fontSize: 11)),
+                        const SizedBox(height: 2),
                         TextField(
                           controller: _confirmPassCtrl,
                           obscureText: _obscureConfirmPassword,
                           style: TextStyle(color: theme.textPrimary),
                           decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            isDense: true,
                             hintText: '••••••••',
                             hintStyle: TextStyle(color: theme.textHint),
                             prefixIcon: Icon(Icons.lock_outlined,
@@ -627,12 +631,12 @@ class _SignupScreenState extends State<SignupScreen>
                           ),
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 16),
 
                         // Signup Button
                         SizedBox(
                           width: double.infinity,
-                          height: 56,
+                          height: 44,
                           child: _loading
                               ? Center(
                                   child: CircularProgressIndicator(
@@ -653,16 +657,16 @@ class _SignupScreenState extends State<SignupScreen>
                                     children: const [
                                       Text('CREATE ACCOUNT',
                                           style: TextStyle(
-                                              fontSize: 16,
+                                              fontSize: 14,
                                               fontWeight: FontWeight.bold)),
                                       SizedBox(width: 8),
-                                      Icon(Icons.arrow_forward_rounded),
+                                      Icon(Icons.arrow_forward_rounded, size: 20),
                                     ],
                                   ),
                                 ),
                         ),
 
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
 
                         // Login link
                         Center(
@@ -670,7 +674,7 @@ class _SignupScreenState extends State<SignupScreen>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text('Already have an account? ',
-                                  style: TextStyle(color: theme.textSecondary)),
+                                  style: TextStyle(color: theme.textSecondary, fontSize: 13)),
                               TextButton(
                                 onPressed: () => Navigator.of(context).pop(),
                                 style: TextButton.styleFrom(
@@ -680,13 +684,14 @@ class _SignupScreenState extends State<SignupScreen>
                                     style: TextStyle(
                                         color: ThemeProvider.businessColors[
                                             _selectedBusinessType],
-                                        fontWeight: FontWeight.bold)),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13)),
                               ),
                             ],
                           ),
                         ),
 
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 4),
 
                         // Theme toggle
                         Center(
@@ -698,10 +703,10 @@ class _SignupScreenState extends State<SignupScreen>
                                     ? Icons.light_mode_rounded
                                     : Icons.dark_mode_rounded,
                                 color: theme.iconColor,
-                                size: 18),
+                                size: 16),
                             label: Text(
                                 theme.isDark ? 'Light Mode' : 'Dark Mode',
-                                style: TextStyle(color: theme.textSecondary)),
+                                style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                           ),
                         ),
                       ],

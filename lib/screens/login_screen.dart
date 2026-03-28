@@ -198,12 +198,32 @@ class _LoginScreenState extends State<LoginScreen>
       return;
     }
 
-    setState(() => _loading = true);
-    print('⏳ [LOGIN] Loading state set to true');
-
     final email = _emailCtrl.text.trim();
     final password = _passCtrl.text.trim();
     final cleanEmail = email.toLowerCase();
+
+    // Email Validation
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (email.isEmpty || !emailRegex.hasMatch(email)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Please enter a valid email address'),
+            backgroundColor: ThemeProvider.error));
+      }
+      return;
+    }
+    
+    if (password.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Please enter your password'),
+            backgroundColor: ThemeProvider.error));
+      }
+      return;
+    }
+
+    setState(() => _loading = true);
+    print('⏳ [LOGIN] Loading state set to true');
 
     try {
       // First, try local authentication (for offline signup users)
@@ -441,78 +461,72 @@ class _LoginScreenState extends State<LoginScreen>
             child: SafeArea(
               child: FadeTransition(
                 opacity: _fadeAnim,
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 480),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Logo Section
-                            Center(
-                              child: Column(
-                                children: [
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 400),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Logo Section - compact row
+                          Center(
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.store_rounded,
+                                        color: theme.iconColor, size: 32),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'SATA POS',
+                                      style: TextStyle(
+                                        fontSize: 26,
+                                        fontWeight: FontWeight.w900,
+                                        color: theme.textPrimary,
+                                        letterSpacing: 1.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Premium Point of Sale',
+                                  style: TextStyle(
+                                    color: theme.textSecondary.withOpacity(0.8),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                                if (kIsWeb)
                                   Container(
-                                    padding: const EdgeInsets.all(24),
+                                    margin: const EdgeInsets.only(top: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: theme.isDark
-                                          ? Colors.white.withOpacity(0.05)
-                                          : Colors.black.withOpacity(0.05),
-                                      borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                                      color: ThemeProvider.warning.withOpacity(0.15),
+                                      borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                       border: Border.all(
-                                          color: theme.iconColor.withOpacity(0.1)),
+                                          color: ThemeProvider.warning
+                                              .withOpacity(0.3)),
                                     ),
-                                    child: Icon(Icons.store_rounded,
-                                        color: theme.iconColor, size: 52),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  Text(
-                                    'SATA POS',
-                                    style: TextStyle(
-                                      fontSize: 36,
-                                      fontWeight: FontWeight.w900,
-                                      color: theme.textPrimary,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Premium Point of Sale',
-                                    style: TextStyle(
-                                      color: theme.textSecondary.withOpacity(0.8),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  if (kIsWeb)
-                                    Container(
-                                      margin: const EdgeInsets.only(top: 12),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 14, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: ThemeProvider.warning.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                                        border: Border.all(
-                                            color: ThemeProvider.warning
-                                                .withOpacity(0.3)),
-                                      ),
-                                      child: const Text(
-                                        'WEB DEMO MODE',
-                                        style: TextStyle(
-                                          color: ThemeProvider.warning,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
-                                          letterSpacing: 1.0,
-                                        ),
+                                    child: const Text(
+                                      'WEB DEMO MODE',
+                                      style: TextStyle(
+                                        color: ThemeProvider.warning,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
                                       ),
                                     ),
-                                ],
-                              ),
+                                  ),
+                              ],
                             ),
-                          const SizedBox(height: 32),
+                          ),
+                          const SizedBox(height: 20),
 
                         // Saved Accounts Display
                         if (_savedAccounts.isNotEmpty && !_showLoginForm) ...[
@@ -606,7 +620,7 @@ class _LoginScreenState extends State<LoginScreen>
                         // Login Card or Toggle Button
                         if (_showLoginForm) ...[
                           Container(
-                            padding: const EdgeInsets.all(24),
+                            padding: const EdgeInsets.all(16),
                             decoration: theme.glassDecoration,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -615,12 +629,12 @@ class _LoginScreenState extends State<LoginScreen>
                                 'SIGN IN',
                                 style: TextStyle(
                                   color: theme.textSecondary,
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                   letterSpacing: 2.0,
                                 ),
                               ),
-                              const SizedBox(height: 24),
+                              const SizedBox(height: 12),
 
                               if (!kIsWeb) ...[
                                 TextFormField(
@@ -631,7 +645,7 @@ class _LoginScreenState extends State<LoginScreen>
                                   decoration: theme.glassInputDecoration(
                                       'Email Address', Icons.email_outlined),
                                 ),
-                                const SizedBox(height: 20),
+                                const SizedBox(height: 12),
                                 TextFormField(
                                   controller: _passCtrl,
                                   obscureText: _obscurePassword,
@@ -656,7 +670,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         ),
                                       ),
                                 ),
-                                  const SizedBox(height: 20),
+                                  const SizedBox(height: 10),
                                   Row(
                                     children: [
                                       SizedBox(
@@ -687,11 +701,11 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                               ],
 
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
 
                               SizedBox(
                                 width: double.infinity,
-                                height: 60,
+                                height: 44,
                                 child: ElevatedButton(
                                   onPressed: _loading ? null : _login,
                                   style: ElevatedButton.styleFrom(
@@ -748,7 +762,7 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                         ],
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 12),
 
                         // Footer Section
                         if (!kIsWeb)
@@ -826,7 +840,6 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
       ),
-    ),
           if (_loading)
             Container(
               color: Colors.black.withOpacity(0.3),
