@@ -92,6 +92,7 @@ class POSProductGrid extends StatelessWidget {
     final p = products[index];
     return POSProductTile(
       product: p,
+      controller: controller,
       onTap: () => onProductTap(p),
       onLongPress: () {
         // Toggle favorite logic could move to controller

@@ -208,6 +208,12 @@ class POSController with ChangeNotifier {
     notifyListeners();
   }
 
+  double getProductQuantityInCart(dynamic productId) {
+    return _cart
+        .where((item) => item.product.id == productId)
+        .fold(0.0, (sum, item) => sum + item.quantity);
+  }
+
   void setDiscount(double value) {
     _discount = value;
     calculateTotals();

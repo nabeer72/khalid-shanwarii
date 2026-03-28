@@ -828,6 +828,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         ),
       ).then((_) {
         _controller.clearCart();
+        _controller.loadData();
         setState(() {});
       });
     }

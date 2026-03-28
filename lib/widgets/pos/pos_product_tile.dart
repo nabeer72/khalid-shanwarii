@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/controllers/pos_controller.dart';
 
 class POSProductTile extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
+  final POSController controller;
   final VoidCallback? onWeightTap;
 
   const POSProductTile({
@@ -14,6 +16,7 @@ class POSProductTile extends StatelessWidget {
     required this.product,
     required this.onTap,
     required this.onLongPress,
+    required this.controller,
     this.onWeightTap,
   });
 
@@ -80,7 +83,7 @@ class POSProductTile extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        '${product.totalStock}',
+                        '${product.totalStock - controller.getProductQuantityInCart(product.id)}',
                         style: TextStyle(
                             color: theme.highlight,
                             fontSize: 10,
