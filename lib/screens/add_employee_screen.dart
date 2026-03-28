@@ -156,6 +156,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                                     label: 'Phone Number',
                                     icon: Icons.phone_outlined,
                                     keyboardType: TextInputType.phone,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                                   ),
                                 ),
                                 const SizedBox(width: 16),

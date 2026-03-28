@@ -14,6 +14,7 @@ class AddSupplierScreen extends StatefulWidget {
 
 class _AddSupplierScreenState extends State<AddSupplierScreen> {
   late AddSupplierController _controller;
+  final _formKey = GlobalKey<FormState>();
   final theme = ThemeProvider.instance;
 
   @override
@@ -35,6 +36,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
   }
 
   Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
     await _controller.saveSupplier(context);
   }
 
@@ -179,8 +181,10 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: Column(
-            children: [
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
               Expanded(
                 child: Center(
                   child: Container(
@@ -203,7 +207,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     controller: _controller.nameCtrl,
                                     label: 'Supplier Name',
                                     icon: Icons.business_rounded,
-                                    required: true,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                                     isTablet: isTablet,
                                   ),
                                 ),
@@ -230,6 +234,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     label: 'Phone Number',
                                     icon: Icons.phone_rounded,
                                     type: TextInputType.phone,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                                     isTablet: isTablet,
                                   ),
                                 ),
@@ -240,6 +245,14 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     label: 'Email Address',
                                     icon: Icons.email_rounded,
                                     type: TextInputType.emailAddress,
+                                    validator: (v) {
+                                      if (v != null && v.isNotEmpty) {
+                                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                                          return 'Invalid email format';
+                                        }
+                                      }
+                                      return null;
+                                    },
                                     isTablet: isTablet,
                                   ),
                                 ),
@@ -250,7 +263,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               controller: _controller.nameCtrl,
                               label: 'Supplier Name',
                               icon: Icons.business_rounded,
-                              required: true,
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                               isTablet: isTablet,
                             ),
                             SizedBox(height: fieldSpacing),
@@ -268,6 +281,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               label: 'Phone Number',
                               icon: Icons.phone_rounded,
                               type: TextInputType.phone,
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                               isTablet: isTablet,
                             ),
                             SizedBox(height: fieldSpacing),
@@ -276,6 +290,14 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               label: 'Email Address',
                               icon: Icons.email_rounded,
                               type: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v != null && v.isNotEmpty) {
+                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                                    return 'Invalid email format';
+                                  }
+                                }
+                                return null;
+                              },
                               isTablet: isTablet,
                             ),
                           ],
@@ -308,7 +330,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+    ),
+    floatingActionButton: FloatingActionButton.extended(
         backgroundColor: theme.highlight,
         onPressed: _controller.isLoading ? null : _handleSave,
         icon: const Icon(Icons.person_add_rounded, color: Colors.white),
@@ -346,9 +369,9 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     required TextEditingController controller,
     required String label,
     required IconData icon,
-    bool required = false,
     TextInputType type = TextInputType.text,
     int maxLines = 1,
+    String? Function(String?)? validator,
     required bool isTablet,
   }) {
     final labelFontSize = isTablet ? 11.0 : 10.0;
@@ -362,7 +385,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          (required ? '$label *' : label).toUpperCase(),
+          label.toUpperCase(),
           style: TextStyle(
             color: theme.textHint,
             fontSize: labelFontSize,
@@ -375,6 +398,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
           controller: controller,
           keyboardType: type,
           maxLines: maxLines,
+          validator: validator,
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,

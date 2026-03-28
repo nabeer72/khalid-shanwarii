@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
@@ -97,7 +98,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   accountType: typeCtrl.text,
                   accountTitle: titleCtrl.text,
                   accountNumber: numberCtrl.text,
-                  amount: double.tryParse(amountCtrl.text) ?? 0.0,
+                  amount: int.tryParse(amountCtrl.text) ?? 0,
                   transactionType: transType,
                   remarks: remarksCtrl.text,
                   date: transaction?.date ?? DateTime.now(),
@@ -119,7 +120,8 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
   Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {bool isNumber = false}) {
     return TextField(
       controller: ctrl,
-      keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
       style: TextStyle(color: theme.textPrimary),
       decoration: theme.glassInputDecoration(label, icon),
     );
@@ -198,7 +200,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      '${isWithdrawal ? "-" : "+"}${BusinessConfig.instance.currency}. ${t.amount.toStringAsFixed(2)}',
+                                      '${isWithdrawal ? "-" : "+"}${BusinessConfig.instance.currency}. ${t.amount}',
                                       style: TextStyle(
                                         color: isWithdrawal ? ThemeProvider.error : ThemeProvider.success,
                                         fontWeight: FontWeight.w900,

@@ -178,52 +178,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: theme.surface.withOpacity(0.8),
-        ),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = ThemeProvider.isWideScreen(context);
-              final saveButton = ElevatedButton(
-                onPressed: _handleSave,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: theme.highlight,
-                  padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 32),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                  elevation: 4,
-                ),
-                child: const Text(
-                  'SAVE PRODUCT',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-              );
-
-              if (isWide) {
-                return Row(
-                  children: [
-                    SizedBox(
-                      width: 300,
-                      child: saveButton,
-                    ),
-                  ],
-                );
-              }
-
-              return SizedBox(
-                width: double.infinity,
-                child: saveButton,
-              );
-            },
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _handleSave,
+        backgroundColor: theme.highlight,
+        icon: const Icon(Icons.save_rounded, color: Colors.white),
+        label: const Text(
+          'SAVE PRODUCT',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 0.5,
           ),
         ),
+        elevation: 8,
       ),
       body: Container(
         decoration: BoxDecoration(

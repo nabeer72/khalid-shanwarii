@@ -142,6 +142,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                           label: 'MOBILE NUMBER',
                                           icon: Icons.phone_android_rounded,
                                           keyboardType: TextInputType.phone,
+                                          validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                                         ),
                                       ),
                                     ],
@@ -152,6 +153,14 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                     label: 'EMAIL ADDRESS',
                                     icon: Icons.alternate_email_rounded,
                                     keyboardType: TextInputType.emailAddress,
+                                    validator: (v) {
+                                      if (v != null && v.isNotEmpty) {
+                                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                                          return 'Invalid email format';
+                                        }
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ] else ...[
                                   _buildTextField(
@@ -166,6 +175,7 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                     label: 'MOBILE NUMBER',
                                     icon: Icons.phone_android_rounded,
                                     keyboardType: TextInputType.phone,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                                   ),
                                   const SizedBox(height: 20),
                                   _buildTextField(
@@ -173,6 +183,14 @@ class _AddCustomerScreenState extends State<AddCustomerScreen> {
                                     label: 'EMAIL ADDRESS',
                                     icon: Icons.alternate_email_rounded,
                                     keyboardType: TextInputType.emailAddress,
+                                    validator: (v) {
+                                      if (v != null && v.isNotEmpty) {
+                                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                                          return 'Invalid email format';
+                                        }
+                                      }
+                                      return null;
+                                    },
                                   ),
                                 ],
                               ],
