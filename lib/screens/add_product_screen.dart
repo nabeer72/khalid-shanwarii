@@ -283,6 +283,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   _buildCard([
                     LayoutBuilder(builder: (context, constraints) {
                       final isWide = ThemeProvider.isWideScreen(context);
+
+                      String? validateInt(String? v, bool required) {
+                        if (v == null || v.trim().isEmpty) return required ? 'Required' : null;
+                        final parsed = int.tryParse(v);
+                        if (parsed == null) return 'Must be an integer';
+                        if (parsed < 0) return 'Cannot be negative';
+                        return null;
+                      }
+
+                      String? validateStock(String? v) {
+                        if (v == null || v.trim().isEmpty) return null;
+                        final val = num.tryParse(v);
+                        if (val == null) return 'Must be a number';
+                        if (val < 0) return 'Cannot be negative';
+                        return null;
+                      }
+
                       return Column(
                         children: [
                           if (isWide) ...[
@@ -295,6 +312,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Cost Price',
                                     icon: Icons.shopping_bag_outlined,
                                     keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, false),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -304,7 +322,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Sale Price',
                                     icon: Icons.monetization_on_outlined,
                                     keyboardType: TextInputType.number,
-                                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                                    validator: (v) => validateInt(v, true),
                                   ),
                                 ),
                               ],
@@ -319,6 +337,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Wholesale Price',
                                     icon: Icons.business_center_outlined,
                                     keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, false),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -328,6 +347,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Stock Quantity',
                                     icon: Icons.warehouse_outlined,
                                     keyboardType: TextInputType.number,
+                                    validator: validateStock,
                                   ),
                                 ),
                               ],
@@ -338,6 +358,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Cost Price',
                               icon: Icons.shopping_bag_outlined,
                               keyboardType: TextInputType.number,
+                              validator: (v) => validateInt(v, false),
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -345,7 +366,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Sale Price',
                               icon: Icons.monetization_on_outlined,
                               keyboardType: TextInputType.number,
-                              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                              validator: (v) => validateInt(v, true),
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -353,6 +374,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Wholesale Price',
                               icon: Icons.business_center_outlined,
                               keyboardType: TextInputType.number,
+                              validator: (v) => validateInt(v, false),
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -360,6 +382,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Stock Quantity',
                               icon: Icons.warehouse_outlined,
                               keyboardType: TextInputType.number,
+                              validator: validateStock,
                             ),
                           ],
                         ],
