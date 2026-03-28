@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:mobile_app/controllers/expenses_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/screens/add_expense_screen.dart';
+import 'package:mobile_app/controllers/add_expense_controller.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -99,14 +99,215 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     );
   }
 
-  Future<void> _showAddExpenseDialog() async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const AddExpenseScreen()),
+  Future<void> _showAddExpenseDialog([Expense? expense]) async {
+    _showExpenseFormDialog(expense);
+  }
+
+  void _showExpenseFormDialog([Expense? expense]) {
+    final controller = AddExpenseController(initialExpense: expense);
+    final _formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          controller.addListener(() {
+            if (ctx.mounted) setDialogState(() {});
+          });
+
+          return AlertDialog(
+            backgroundColor: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  controller.isEdit ? 'Edit Expense' : 'Record Expense',
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDialogSectionHeader('Transaction Details'),
+                      _buildDialogTextField(
+                        controller: controller.amountCtrl,
+                        label: 'Amount (Cash Out)',
+                        icon: Icons.money_off_rounded,
+                        keyboardType: TextInputType.number,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Amount is required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int?>(
+                        value: controller.expenseHeads.any((h) => h.id == controller.selectedHeadId)
+                            ? controller.selectedHeadId
+                            : null,
+                        dropdownColor: theme.surface,
+                        style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                        decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded).copyWith(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                        items: controller.expenseHeads
+                            .map((h) => DropdownMenuItem<int?>(
+                                  value: h.id,
+                                  child: Text(h.name),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          controller.setCategory(val);
+                          setDialogState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () async {
+                          final date = await showDatePicker(
+                            context: ctx,
+                            initialDate: controller.selectedDate,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                            builder: (context, child) {
+                              return Theme(
+                                data: Theme.of(context).copyWith(
+                                  colorScheme: ColorScheme.dark(
+                                    primary: theme.highlight,
+                                    onPrimary: Colors.white,
+                                    surface: theme.surface,
+                                    onSurface: theme.textPrimary,
+                                  ),
+                                ),
+                                child: child!,
+                              );
+                            },
+                          );
+                          if (date != null) {
+                            controller.setDate(date);
+                            setDialogState(() {});
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: theme.background.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: theme.textHint.withOpacity(0.1)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today_rounded, size: 18, color: theme.highlight),
+                              const SizedBox(width: 12),
+                              Text(
+                                '${controller.selectedDate.day}/${controller.selectedDate.month}/${controller.selectedDate.year}',
+                                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                              const Spacer(),
+                              Text('CHANGE', style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 10)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDialogSectionHeader('Optional Description'),
+                      _buildDialogTextField(
+                        controller: controller.descCtrl,
+                        label: 'Expense Description...',
+                        icon: Icons.description_outlined,
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.highlight,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: controller.isLoading
+                    ? null
+                    : () async {
+                        if (!_formKey.currentState!.validate()) return;
+                        final success = await controller.save(ctx);
+                        if (success && ctx.mounted) {
+                          Navigator.pop(ctx);
+                          await _controller.loadData();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(controller.isEdit ? 'Expense updated!' : 'Expense recorded!'),
+                              backgroundColor: ThemeProvider.success,
+                            ),
+                          );
+                        }
+                      },
+                child: controller.isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(
+                        controller.saveButtonLabel,
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     );
-    if (result == true) {
-      await _controller.loadData();
-    }
+  }
+
+  Widget _buildDialogSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: theme.textSecondary,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+      validator: validator,
+      decoration: theme.glassInputDecoration(label, icon).copyWith(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+    );
   }
 
   Future<void> _confirmDeleteExpense(Expense expense) async {
@@ -293,15 +494,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                             decoration: theme.glassDecoration,
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                              onTap: () async {
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => AddExpenseScreen(expense: expense)),
-                                );
-                                if (result == true) {
-                                  await _controller.loadData();
-                                }
-                              },
+                                onTap: () => _showAddExpenseDialog(expense),
                               title: Row(
                                 children: [
                                   Expanded(

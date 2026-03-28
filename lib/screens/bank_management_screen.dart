@@ -49,8 +49,19 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
           backgroundColor: theme.surface,
-          title: Text(transaction == null ? 'Add Bank Entry' : 'Edit Entry',
-              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                transaction == null ? 'Add Bank Entry' : 'Edit Bank Entry',
+                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+              IconButton(
+                onPressed: () => Navigator.pop(ctx),
+                icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+              ),
+            ],
+          ),
           content: SizedBox(
             width: 400,
             child: SingleChildScrollView(

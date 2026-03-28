@@ -88,7 +88,19 @@ class _RolesScreenState extends State<RolesScreen> {
 
           return AlertDialog(
             backgroundColor: theme.surface,
-            title: Text(role == null ? 'Create Role' : 'Edit Role', style: TextStyle(color: theme.textPrimary)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  role == null ? 'Create Role' : 'Edit Role',
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                ),
+              ],
+            ),
             content: SizedBox(
               width: 450,
               child: SingleChildScrollView(

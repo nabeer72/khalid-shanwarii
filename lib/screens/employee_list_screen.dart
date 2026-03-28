@@ -4,7 +4,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/add_employee_screen.dart';
-import 'package:mobile_app/screens/add_employee_screen.dart';
+import 'package:mobile_app/controllers/add_employee_controller.dart';
 import 'dart:convert';
 
 class EmployeeListScreen extends StatefulWidget {
@@ -126,16 +126,263 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   }
 
   void _openAddEmployeeScreen([Employee? employee]) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AddEmployeeScreen(employee: employee),
+    _showEmployeeFormDialog(employee);
+  }
+
+  void _showEmployeeFormDialog([Employee? employee]) {
+    final controller = AddEmployeeController(initialEmployee: employee);
+    final _formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          controller.addListener(() {
+            if (ctx.mounted) setDialogState(() {});
+          });
+
+          return AlertDialog(
+            backgroundColor: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  controller.isEditMode ? 'Edit Staff' : 'Add Staff',
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDialogSectionHeader('Account Information'),
+                      _buildDialogTextField(
+                        controller: controller.name,
+                        label: 'Full Name',
+                        icon: Icons.person_outline,
+                        validator: controller.validateName,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: controller.email,
+                        label: 'Email Address',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: controller.validateEmail,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: controller.phone,
+                        label: 'Phone Number',
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: controller.password,
+                        label: 'Password / PIN',
+                        icon: Icons.lock_outline,
+                        keyboardType: TextInputType.visiblePassword,
+                        validator: controller.validatePassword,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDialogSectionHeader('Role & Access'),
+                      DropdownButtonFormField<int?>(
+                        value: controller.roles.any((r) => r['id'] == controller.selectedRoleId)
+                            ? controller.selectedRoleId
+                            : null,
+                        dropdownColor: theme.surface,
+                        style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                        decoration: theme.glassInputDecoration('Access Role', Icons.badge_outlined).copyWith(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            ),
+                        items: controller.roles
+                            .map((r) => DropdownMenuItem<int?>(
+                                  value: r['id'] is int ? r['id'] : int.tryParse(r['id']?.toString() ?? ''),
+                                  child: Text(r['name']?.toString() ?? 'Unknown'),
+                                ))
+                            .toList(),
+                        onChanged: (val) {
+                          controller.setRole(val);
+                          setDialogState(() {});
+                        },
+                      ),
+                      if (controller.selectedRoleId != null && controller.selectedRolePermissions.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: controller.selectedRolePermissions.map((p) {
+                            final label = _permissionLabels[p] ?? _permissionLabels[int.tryParse(p)] ?? p;
+                            return Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: theme.highlight.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: theme.highlight.withOpacity(0.15)),
+                              ),
+                              child: Text(
+                                label.toUpperCase(),
+                                style: TextStyle(color: theme.highlight, fontSize: 8, fontWeight: FontWeight.w900),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      if (controller.branches.isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        DropdownButtonFormField<int?>(
+                          value: (controller.selectedBranchId == null || controller.branches.any((b) => b.id == controller.selectedBranchId))
+                              ? controller.selectedBranchId
+                              : null,
+                          dropdownColor: theme.surface,
+                          style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                          decoration: theme.glassInputDecoration('Assign to Branch', Icons.storefront_outlined).copyWith(
+                                isDense: true,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                              ),
+                          items: [
+                            const DropdownMenuItem<int?>(
+                              value: null,
+                              child: Text('All Branches (Global)'),
+                            ),
+                            ...controller.branches.map((b) => DropdownMenuItem<int?>(
+                                  value: b.id,
+                                  child: Text(b.branchTitle),
+                                )),
+                          ],
+                          onChanged: (val) {
+                            controller.setBranch(val);
+                            setDialogState(() {});
+                          },
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: theme.background.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: theme.textHint.withOpacity(0.1)),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              controller.statusLabel,
+                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w700, fontSize: 12),
+                            ),
+                            Transform.scale(
+                              scale: 0.7,
+                              child: Switch.adaptive(
+                                value: controller.status == 1,
+                                activeColor: ThemeProvider.success,
+                                onChanged: (val) {
+                                  controller.toggleStatus(val);
+                                  setDialogState(() {});
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.highlight,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: controller.isLoading
+                    ? null
+                    : () async {
+                        if (!_formKey.currentState!.validate()) return;
+                        final success = await controller.save();
+                        if (success && ctx.mounted) {
+                          Navigator.pop(ctx);
+                          _loadEmployees();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(controller.isEditMode ? 'Staff updated successfully!' : 'Staff member registered!'),
+                              backgroundColor: ThemeProvider.success,
+                            ),
+                          );
+                        } else if (controller.errorMessage != null && ctx.mounted) {
+                          ScaffoldMessenger.of(ctx).showSnackBar(
+                            SnackBar(content: Text(controller.errorMessage!), backgroundColor: ThemeProvider.error),
+                          );
+                        }
+                      },
+                child: controller.isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(
+                        controller.isEditMode ? 'UPDATE' : 'REGISTER',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                      ),
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
 
-    if (result == true) {
-      _loadEmployees();
-    }
+  Widget _buildDialogSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: theme.textSecondary,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+      validator: validator,
+      decoration: theme.glassInputDecoration(label, icon).copyWith(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+    );
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {

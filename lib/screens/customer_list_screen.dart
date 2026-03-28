@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/screens/add_customer_screen.dart';
+import 'package:mobile_app/controllers/add_customer_controller.dart';
 
 class CustomerListScreen extends StatefulWidget {
   final bool selectMode;
@@ -44,13 +44,182 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 
   Future<void> _navigateToAddCustomer([Customer? existing]) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AddCustomerScreen(customer: existing)),
+    _showCustomerFormDialog(existing);
+  }
+
+  void _showCustomerFormDialog([Customer? existing]) {
+    final nameController = TextEditingController(text: existing?.name ?? '');
+    final phoneController = TextEditingController(text: existing?.phone ?? '');
+    final emailController = TextEditingController(text: existing?.email ?? '');
+    final discountController = TextEditingController(text: existing?.discount.toString() ?? '0');
+    final notesController = TextEditingController(text: existing?.notes ?? '');
+    final _formKey = GlobalKey<FormState>();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            backgroundColor: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  existing == null ? 'New Customer' : 'Edit Customer',
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDialogSectionHeader('Basic Details'),
+                      _buildDialogTextField(
+                        controller: nameController,
+                        label: 'Customer Name',
+                        icon: Icons.person_outline,
+                        validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: phoneController,
+                        label: 'Phone Number',
+                        icon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: emailController,
+                        label: 'Email Address',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 20),
+                      _buildDialogSectionHeader('Loyalty & Preferences'),
+                      _buildDialogTextField(
+                        controller: discountController,
+                        label: 'Standard Discount (%)',
+                        icon: Icons.percent_rounded,
+                        keyboardType: TextInputType.number,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: notesController,
+                        label: 'Additional Notes',
+                        icon: Icons.notes_rounded,
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.highlight,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        if (!_formKey.currentState!.validate()) return;
+                        
+                        setDialogState(() => isLoading = true);
+                        final result = await CustomerFormHelper.prepareAndSaveCustomer(
+                          existingCustomer: existing,
+                          name: nameController.text,
+                          phone: phoneController.text,
+                          email: emailController.text,
+                          notes: notesController.text,
+                          discountText: discountController.text,
+                          context: context,
+                        );
+                        
+                        if (result != null && result['success'] == true) {
+                          if (ctx.mounted) {
+                            Navigator.pop(ctx);
+                            _loadCustomers();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(result['message']), backgroundColor: ThemeProvider.success),
+                            );
+                          }
+                        } else {
+                          if (ctx.mounted) {
+                            setDialogState(() => isLoading = false);
+                            ScaffoldMessenger.of(ctx).showSnackBar(
+                              SnackBar(content: Text(result?['message'] ?? 'Save failed'), backgroundColor: ThemeProvider.error),
+                            );
+                          }
+                        }
+                      },
+                child: isLoading
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : Text(
+                        existing == null ? 'SAVE CUSTOMER' : 'UPDATE CHANGES',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     );
-    if (result == true) {
-      _loadCustomers();
-    }
+  }
+
+  Widget _buildDialogSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 2),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          color: theme.textSecondary,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDialogTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
+    String? Function(String?)? validator,
+    int maxLines = 1,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+      validator: validator,
+      decoration: theme.glassInputDecoration(label, icon).copyWith(
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          ),
+    );
   }
 
   @override
