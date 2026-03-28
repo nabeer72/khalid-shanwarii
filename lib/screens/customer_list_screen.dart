@@ -3,7 +3,6 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/customer.dart';
-import 'package:mobile_app/screens/add_customer_screen.dart';
 import 'package:mobile_app/controllers/add_customer_controller.dart';
 
 class CustomerListScreen extends StatefulWidget {
