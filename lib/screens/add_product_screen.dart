@@ -286,9 +286,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                       String? validateInt(String? v, bool required) {
                         if (v == null || v.trim().isEmpty) return required ? 'Required' : null;
-                        final parsed = int.tryParse(v);
-                        if (parsed == null) return 'Must be an integer';
+                        final parsed = num.tryParse(v);
+                        if (parsed == null) return 'Must be a number';
                         if (parsed < 0) return 'Cannot be negative';
+                        if (parsed != parsed.toInt()) return 'Must be a whole number';
                         return null;
                       }
 

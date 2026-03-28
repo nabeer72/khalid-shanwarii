@@ -6,7 +6,7 @@ import 'common_crud.dart';
 
 mixin ProductsCrud on CommonCrud {
   // Products
-  Future<List<Map<String, dynamic>>> getProducts({dynamic categoryId}) async {
+  Future<List<Map<String, dynamic>>> getProducts({dynamic categoryId, bool includeInactive = false}) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
@@ -14,24 +14,25 @@ mixin ProductsCrud on CommonCrud {
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
 
+    final statusFilter = includeInactive ? '' : ' AND status = 1';
     final baseArgs = [bid, aid, ...branchArgs];
 
     List<Map<String, dynamic>> productMaps;
     if (categoryId != null) {
       if (categoryId == 'cat-fav') {
         productMaps = await db.rawQuery(
-          'SELECT * FROM products WHERE is_favorite = 1 AND status = 1 AND business_id = ? AND admin_id = ?$branchFilter',
+          'SELECT * FROM products WHERE is_favorite = 1$statusFilter AND business_id = ? AND admin_id = ?$branchFilter',
           baseArgs,
         );
       } else {
         productMaps = await db.rawQuery(
-          'SELECT * FROM products WHERE category_id = ? AND status = 1 AND business_id = ? AND admin_id = ?$branchFilter',
+          'SELECT * FROM products WHERE category_id = ?$statusFilter AND business_id = ? AND admin_id = ?$branchFilter',
           [categoryId, ...baseArgs],
         );
       }
     } else {
       productMaps = await db.rawQuery(
-        'SELECT * FROM products WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter',
+        'SELECT * FROM products WHERE 1=1$statusFilter AND business_id = ? AND admin_id = ?$branchFilter',
         baseArgs,
       );
     }

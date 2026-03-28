@@ -19,6 +19,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   final theme = ThemeProvider.instance;
   List<Product> _products = [];
   List<ProductCategory> _categories = [];
+  String _searchQuery = '';
   bool _loading = true;
 
   @override
@@ -30,7 +31,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
-      final productsData = await DatabaseHelper.instance.getProducts();
+      final productsData = await DatabaseHelper.instance.getProducts(includeInactive: true);
       final categoriesData = await DatabaseHelper.instance.getCategories();
       
       if (mounted) {
@@ -116,7 +117,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                     ),
                     onChanged: (val) {
-                      // Add filter logic if needed
+                      setState(() => _searchQuery = val.trim().toLowerCase());
                     },
                   ),
                 ),
@@ -162,9 +163,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
       );
     }
 
+    // Filter by search query
+    final filtered = _searchQuery.isEmpty
+        ? _products
+        : _products.where((p) {
+            final name = p.name.toLowerCase();
+            final barcode = p.stocks.any((s) => (s.barcode ?? '').toLowerCase().contains(_searchQuery));
+            return name.contains(_searchQuery) || barcode;
+          }).toList();
+
     // Group by Name
     final Map<String, List<Product>> grouped = {};
-    for (var p in _products) {
+    for (var p in filtered) {
       grouped.putIfAbsent(p.name, () => []).add(p);
     }
 
