@@ -7,6 +7,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
 import 'package:mobile_app/screens/currency_notes_screen.dart';
+import 'package:mobile_app/services/sync_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,6 +18,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final theme = ThemeProvider.instance;
+  final SyncService _syncService = SyncService();
   
   // Settings state
   // Settings state
@@ -155,6 +157,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             await db.setSetting('business_address', _businessAddress);
                             await db.setSetting('business_phone', _businessPhone);
                             await db.setSetting('receipt_footer', _receiptFooter);
+
+                            if (BusinessConfig.instance.businessId != null) {
+                              await db.updateBusinessSyncStatus(BusinessConfig.instance.businessId, 0);
+                            }
 
                             for (var node in focusNodes) {
                               node.dispose();
@@ -655,6 +661,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: 'Last synced: 2 hours ago',
                 onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing with cloud...'), backgroundColor: ThemeProvider.info)),
               ),
+              _SettingsTile(
+                icon: Icons.storage_rounded,
+                title: 'Manage Local Storage',
+                subtitle: 'Cleanup old synced records to save space',
+                showTrailing: false,
+                onTap: _showManageStorageDialog,
+              ),
 
               const _SectionHeader(title: 'SECURITY'),
               _SettingsTile(
@@ -722,54 +735,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showClearDataDialog() {
+    // ... (existing code, keeping for reference but adding new dialog below)
+  }
+
+  void _showManageStorageDialog() {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: Colors.transparent,
         contentPadding: EdgeInsets.zero,
         content: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
+          width: 300,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: ThemeProvider.error.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.warning_rounded, color: ThemeProvider.error, size: 32),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), shape: BoxShape.circle),
+                child: Icon(Icons.cloud_done_rounded, color: theme.highlight, size: 28),
               ),
-              const SizedBox(height: 16),
-              const Text('Wipe Local Data?', style: TextStyle(color: Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.w900)),
-              const SizedBox(height: 8),
-              const Text('This will permanently delete all cached sales and configs on this device.', 
+              const SizedBox(height: 12),
+              const Text('Manage Storage', style: TextStyle(color: Color(0xFF1F2937), fontSize: 16, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              const Text('Have you synced your local data with the cloud server?', 
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF6B7280), fontSize: 13, fontWeight: FontWeight.w500)),
-              const SizedBox(height: 24),
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 20),
               Row(
                 children: [
-                   Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        side: BorderSide(color: theme.highlight.withOpacity(0.5)),
+                      ),
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        _performFullSync();
+                      },
+                      child: Text('NOT YET', style: TextStyle(color: const Color(0xFF1F2937), fontWeight: FontWeight.w900, fontSize: 11)),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: ThemeProvider.error,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: theme.highlight,
                         foregroundColor: Colors.white,
+                        elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cache has been cleared'), backgroundColor: ThemeProvider.error));
+                        _confirmCleanup();
                       },
-                      child: const Text('WIPE DATA', style: TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('YES, SYNCED', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
                     ),
                   ),
                 ],
@@ -779,6 +803,162 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _performFullSync() async {
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Starting synchronization...'), backgroundColor: ThemeProvider.info));
+    try {
+      final result = await _syncService.syncAll();
+      if (mounted) {
+        if (result.success) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sync complete! Now you can safely cleanup.'), backgroundColor: ThemeProvider.success));
+          _confirmCleanup();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync partial: ${result.pushError ?? result.pullError}'), backgroundColor: ThemeProvider.warning));
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync failed: $e'), backgroundColor: ThemeProvider.error));
+      }
+    }
+  }
+
+  void _confirmCleanup() async {
+    // Check if there's still unsynced data
+    final hasUnsynced = await _syncService.hasUnsyncedData();
+    if (hasUnsynced && mounted) {
+      final proceed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            width: 300,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: ThemeProvider.warning.withOpacity(0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.warning_amber_rounded, color: ThemeProvider.warning, size: 28),
+                ),
+                const SizedBox(height: 12),
+                const Text('Unsynced Data Detected', style: TextStyle(color: Color(0xFF1F2937), fontSize: 16, fontWeight: FontWeight.w900), textAlign: TextAlign.center),
+                const SizedBox(height: 6),
+                const Text('Some records have not been synced yet. If you cleanup now, those records will NOT be deleted. Proceed?', 
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          side: const BorderSide(color: Color(0xFF9CA3AF)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('CANCEL', style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w900, fontSize: 11)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: ThemeProvider.warning,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        ),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('PROCEED', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (proceed != true) return;
+    }
+
+    if (!mounted) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.transparent,
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          width: 300,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: ThemeProvider.error.withOpacity(0.1), shape: BoxShape.circle),
+                child: const Icon(Icons.delete_sweep_rounded, color: ThemeProvider.error, size: 28),
+              ),
+              const SizedBox(height: 12),
+              const Text('Confirm Cleanup', style: TextStyle(color: Color(0xFF1F2937), fontSize: 16, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 6),
+              const Text('This will remove synced transaction records older than one week. You can still view them online.', 
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        side: const BorderSide(color: Color(0xFF9CA3AF)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('CANCEL', style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w900, fontSize: 11)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        backgroundColor: ThemeProvider.error,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                      ),
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('CLEANUP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      final deletedCount = await DatabaseHelper.instance.cleanupSyncedRecords();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Cleanup complete! $deletedCount records removed.'),
+          backgroundColor: ThemeProvider.success,
+        ));
+      }
+    }
   }
 }
 

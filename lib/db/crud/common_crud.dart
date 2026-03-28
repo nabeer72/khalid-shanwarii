@@ -185,4 +185,42 @@ mixin CommonCrud {
     await db.update('bank_accounts', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
   }
 
+  // ========== Cleanup Operations ==========
+
+  Future<int> cleanupSyncedRecords({int daysOld = 7}) async {
+    final db = await database;
+    final dateThreshold = DateTime.now().subtract(Duration(days: daysOld)).toIso8601String();
+    
+    int totalDeleted = 0;
+    final tables = [
+      'sales', 'sale_items', 'returns', 'return_items',
+      'expenses', 'purchases', 'purchase_items',
+      'bank_accounts', 'credit_sales', 'credit_payments',
+      'supplier_paybacks', 'supplier_credit_purchases'
+    ];
+
+    await db.transaction((txn) async {
+      for (var table in tables) {
+        // Special case for tables that might not have created_at but have 'date'
+        String dateColumn = 'created_at';
+        if (table == 'bank_accounts' || table == 'credit_payments' || table == 'supplier_paybacks') {
+           dateColumn = 'date';
+        }
+
+        try {
+          final count = await txn.delete(
+            table,
+            where: 'is_synced = 1 AND $dateColumn < ?',
+            whereArgs: [dateThreshold],
+          );
+          totalDeleted += count;
+        } catch (e) {
+          print('Cleanup error for table $table: $e');
+        }
+      }
+    });
+    
+    return totalDeleted;
+  }
+
 }

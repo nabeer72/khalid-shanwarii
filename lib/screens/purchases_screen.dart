@@ -4,6 +4,7 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/add_purchase_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:mobile_app/services/sync_service.dart';
 
 class PurchasesScreen extends StatefulWidget {
   const PurchasesScreen({super.key});
@@ -16,6 +17,10 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   final theme = ThemeProvider.instance;
   List<Purchase> _purchases = [];
   bool _isLoading = true;
+  String _query = '';
+  final TextEditingController _searchCtrl = TextEditingController();
+  final SyncService _syncService = SyncService();
+  bool _isOnlineSearch = false;
 
   @override
   void initState() {
@@ -26,10 +31,32 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   Future<void> _loadPurchases() async {
     setState(() => _isLoading = true);
     try {
-      final data = await DatabaseHelper.instance.getPurchases();
+      final localData = await DatabaseHelper.instance.getPurchases();
+      List<Map<String, dynamic>> finalData = localData;
+
+      if (_query.isNotEmpty && !_isOnlineSearch) {
+        final q = _query.toLowerCase();
+        final localFiltered = localData.where((p) {
+          final supplier = (p['supplier_name'] ?? '').toString().toLowerCase();
+          final id = p['id'].toString();
+          final date = (p['purchase_date'] ?? '').toString().toLowerCase();
+          return supplier.contains(q) || id.contains(q) || date.contains(q);
+        }).toList();
+
+        if (localFiltered.isEmpty) {
+          final onlineData = await _syncService.searchOnline(_query, 'purchases');
+          if (onlineData.isNotEmpty) {
+            finalData = onlineData;
+            _isOnlineSearch = true;
+          }
+        }
+      } else if (_isOnlineSearch) {
+        finalData = await _syncService.searchOnline(_query, 'purchases');
+      }
+
       if (mounted) {
         setState(() {
-          _purchases = data.map((e) => Purchase.fromMap(e)).toList();
+          _purchases = finalData.map((e) => Purchase.fromMap(e)).toList();
           _isLoading = false;
         });
       }
@@ -112,10 +139,64 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
+        actions: [
+          if (_isOnlineSearch)
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  _isOnlineSearch = false;
+                  _query = '';
+                  _searchCtrl.clear();
+                  _loadPurchases();
+                });
+              },
+              child: const Text('LOCAL', style: TextStyle(fontWeight: FontWeight.w900)),
+            ),
+        ],
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: _isLoading
+          child: Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: Container(
+                  decoration: theme.glassDecoration,
+                  child: TextField(
+                    controller: _searchCtrl,
+                    onChanged: (v) {
+                      _query = v;
+                      if (v.isEmpty && _isOnlineSearch) {
+                        setState(() => _isOnlineSearch = false);
+                      }
+                      _loadPurchases();
+                    },
+                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      hintText: 'Search purchases...',
+                      hintStyle: TextStyle(color: theme.textHint),
+                      prefixIcon: Icon(Icons.search_rounded, color: theme.highlight),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    ),
+                  ),
+                ),
+              ),
+              if (_isOnlineSearch)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cloud_done_rounded, color: theme.highlight, size: 14),
+                      const SizedBox(width: 8),
+                      Text('SHOWING RESULTS FROM SERVER', 
+                        style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                    ],
+                  ),
+                ),
+              Expanded(
+                child: _isLoading
               ? Center(child: CircularProgressIndicator(color: theme.highlight))
               : _purchases.isEmpty
                   ? Center(
@@ -175,6 +256,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                       '${BusinessConfig.instance.currencyDisplay} ${purchase.totalAmount.toStringAsFixed(2)}',
                                       style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
                                     ),
+                                    if (_isOnlineSearch)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                        decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+                                        child: Text('ONLINE', style: TextStyle(color: theme.highlight, fontSize: 7, fontWeight: FontWeight.w900)),
+                                      ),
                                     Text(
                                       'PURCHASE',
                                       style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
@@ -194,6 +281,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         );
                       },
                     ),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: Container(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/services/sync_service.dart';
 
 class ExpensesController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -11,6 +12,9 @@ class ExpensesController with ChangeNotifier {
 
   bool _isLoading = true;
   String? _errorMessage;
+  final SyncService _syncService = SyncService();
+  bool isOnlineSearch = false;
+  String query = '';
 
   ExpensesController() {
     loadData();
@@ -33,20 +37,57 @@ class ExpensesController with ChangeNotifier {
 
     try {
       final headsData = await _db.getExpenseHeads();
-      final expensesData = await _db.getExpenses();
-
       final heads = headsData.map((h) => ExpenseHead.fromMap(h)).toList();
       final headMap = {for (var h in heads) h.id: h.name};
-
       expenseHeads = heads;
-      expenses = expensesData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
 
+      if (query.isNotEmpty && !isOnlineSearch) {
+        // Local Filter
+        final localData = await _db.getExpenses();
+        final q = query.toLowerCase();
+        final localFiltered = localData.where((e) {
+          final desc = (e['description'] ?? '').toString().toLowerCase();
+          final headName = (headMap[e['expense_head_id']] ?? '').toLowerCase();
+          final date = (e['date'] ?? '').toString().toLowerCase();
+          return desc.contains(q) || headName.contains(q) || date.contains(q);
+        }).toList();
+
+        if (localFiltered.isEmpty) {
+          final onlineData = await _syncService.searchOnline(query, 'expenses');
+          if (onlineData.isNotEmpty) {
+            expenses = onlineData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
+            isOnlineSearch = true;
+          } else {
+            expenses = [];
+          }
+        } else {
+          expenses = localFiltered.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
+        }
+      } else if (isOnlineSearch) {
+        final onlineData = await _syncService.searchOnline(query, 'expenses');
+        expenses = onlineData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
+      } else {
+        final expensesData = await _db.getExpenses();
+        expenses = expensesData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
+      }
     } catch (e) {
       _errorMessage = 'Error loading expenses: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void setSearch(String q) {
+    query = q;
+    if (q.isEmpty) isOnlineSearch = false;
+    loadData();
+  }
+
+  void clearOnlineSearch() {
+    isOnlineSearch = false;
+    query = '';
+    loadData();
   }
 
   Future<void> addExpenseHead(String name) async {

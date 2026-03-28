@@ -997,12 +997,24 @@ class SyncService {
         }).toList();
       }
 
-      // Unsynced Businesses (from signup)
+      // Unsynced Businesses (from signup or profile edit)
       unsyncedBusinesses = await _dbHelper.getUnsyncedBusinesses();
       if (unsyncedBusinesses.isNotEmpty) {
         changes['businesses'] = unsyncedBusinesses.map((b) {
           var m = Map.from(b);
           m.remove('is_synced');
+          
+          // Inject local settings into the business payload 
+          // so the backend can update the business profile correctly.
+          m['business_name'] = BusinessConfig.instance.businessName;
+          m['name'] = BusinessConfig.instance.businessName;
+          m['address'] = BusinessConfig.instance.businessAddress;
+          m['business_address'] = BusinessConfig.instance.businessAddress;
+          m['phone'] = BusinessConfig.instance.businessPhone;
+          m['business_phone'] = BusinessConfig.instance.businessPhone;
+          m['contact_number'] = BusinessConfig.instance.businessPhone;
+          m['receipt_footer'] = BusinessConfig.instance.receiptFooter;
+          
           return m;
         }).toList();
       }
@@ -1366,6 +1378,42 @@ class SyncService {
     } catch (e) {
       if (kDebugMode) print('Sync Push Error: $e');
       rethrow;
+    }
+  }
+
+  /// Check if there is any unsynced data locally
+  Future<bool> hasUnsyncedData() async {
+    final db = await _dbHelper.database;
+    final tables = [
+      'sales', 'categories', 'customers', 'products', 'stocks', 'users', 'businesses', 
+      'employees', 'credit_sales', 'credit_payments', 'suppliers', 'expense_heads', 
+      'expenses', 'purchases', 'shifts', 'branches', 'roles', 'bank_accounts',
+      'supplier_paybacks', 'supplier_credit_purchases', 'gift_cards', 'currency_notes',
+      'subcategories', 'returns'
+    ];
+
+    for (var table in tables) {
+      try {
+        final List<Map<String, dynamic>> result = await db.query(table, where: 'is_synced = 0', limit: 1);
+        if (result.isNotEmpty) return true;
+      } catch (e) {
+        // Table might not exist or doesn't have is_synced (unlikely given schema)
+      }
+    }
+    return false;
+  }
+
+  /// Search records on server (sales, purchases, expenses)
+  Future<List<Map<String, dynamic>>> searchOnline(String query, String type) async {
+    try {
+      final response = await _api.get('/sync/search', queryParameters: {'query': query, 'type': type});
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return List<Map<String, dynamic>>.from(response.data['data']);
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) print('Search $type Online Error: $e');
+      return [];
     }
   }
 

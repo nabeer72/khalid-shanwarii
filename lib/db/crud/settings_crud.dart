@@ -183,13 +183,13 @@ mixin SettingsCrud {
   Future<void> clearAllData() async {
     final db = await database;
     await db.transaction((txn) async {
-      /* 
-      // Stop deleting data on logout to ensure persistence. 
-      // Hardened query filters in fetchers now handle isolation by branch_id.
+      // Delete all data on logout to strictly prevent data leaks between businesses and branches.
       await txn.delete('sale_items');
       await txn.delete('sales');
       await txn.delete('products'); 
       await txn.delete('categories'); 
+      await txn.delete('subcategories');
+      await txn.delete('stocks');
       await txn.delete('customers'); 
       await txn.delete('gift_cards');
       await txn.delete('held_orders');
@@ -200,7 +200,19 @@ mixin SettingsCrud {
       await txn.delete('suppliers'); 
       await txn.delete('credit_sales');
       await txn.delete('credit_payments');
-      */
+      await txn.delete('shifts');
+      await txn.delete('bank_accounts');
+      await txn.delete('supplier_paybacks');
+      await txn.delete('supplier_credit_purchases');
+      await txn.delete('currency_notes');
+      await txn.delete('returns');
+      await txn.delete('return_items');
+
+      // Also wipe users and businesses to guarantee complete isolation across accounts
+      await txn.delete('users');
+      await txn.delete('employees');
+      await txn.delete('businesses');
+      await txn.delete('branches');
     });
 
     // Wipe all session context from secure storage
