@@ -79,7 +79,7 @@ mixin CommonCrud {
     'business_id': user['business_id'],
     'branch_id': user['branch_id'],
     'name': user['name'] ?? '',
-    'email': user['email']?.toString().toLowerCase(),
+    'email': user['email']?.toString().toLowerCase().trim(),
     'password': user['password'],
     'role': user['role'] ?? 'admin',
     'status': (user['status'] == true || user['status'] == 1) ? 1 : 0,

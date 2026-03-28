@@ -94,6 +94,7 @@ class _SignupScreenState extends State<SignupScreen>
     }
     
     final email = _emailCtrl.text.trim();
+    final cleanEmail = email.toLowerCase();
     if (email.isEmpty) {
       _showError('Please enter an email');
       return;
@@ -117,7 +118,7 @@ class _SignupScreenState extends State<SignupScreen>
 
     try {
       // Check if email already exists locally for immediate feedback
-      final localUser = await _dbHelper.getUserByEmail(_emailCtrl.text.trim());
+      final localUser = await _dbHelper.getUserByEmail(cleanEmail);
       if (localUser != null) {
         if (mounted) {
           showDialog(
@@ -156,7 +157,7 @@ class _SignupScreenState extends State<SignupScreen>
         try {
           final response = await _api
               .signup(
-                email: _emailCtrl.text,
+                email: cleanEmail,
                 password: _passCtrl.text,
                 businessName: _businessNameCtrl.text,
                 businessType: _selectedBusinessType,
@@ -253,7 +254,7 @@ class _SignupScreenState extends State<SignupScreen>
         if (userId != null) 'id': userId,
         'business_id': businessId,
         'name': _businessNameCtrl.text,
-        'email': _emailCtrl.text,
+        'email': cleanEmail,
         'password': _passCtrl.text,
         'role': 'admin',
         'status': 1,
@@ -266,7 +267,7 @@ class _SignupScreenState extends State<SignupScreen>
 
       // Store unit IDs and email in secure storage
       await _storage.write(key: 'user_id', value: userId.toString());
-      await _storage.write(key: 'user_email', value: _emailCtrl.text);
+      await _storage.write(key: 'user_email', value: cleanEmail);
       await _storage.write(key: 'business_id', value: businessId.toString());
 
       // Set business configuration
@@ -309,10 +310,11 @@ class _SignupScreenState extends State<SignupScreen>
   // Background sync to API
   Future<void> _syncToBackendInBackground(
       int userId, int businessId) async {
+    final email = _emailCtrl.text.trim().toLowerCase();
     try {
       print('🔄 [SIGNUP] Attempting backend sync...');
       final response = await _api.signup(
-        email: _emailCtrl.text,
+        email: email,
         password: _passCtrl.text,
         businessName: _businessNameCtrl.text,
         businessType: _selectedBusinessType,

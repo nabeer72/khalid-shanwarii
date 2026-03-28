@@ -31,11 +31,12 @@ class ApiService {
   }
 
   Future<Response?> login(String email, String password) async {
+    final cleanEmail = email.trim().toLowerCase();
     try {
       final response = await _dio.post(
         '/login',
         data: {
-          'email': email,
+          'email': cleanEmail,
           'password': password,
           'device_name': 'mobile_app',
         },
@@ -53,7 +54,10 @@ class ApiService {
       }
       return response;
     } catch (e) {
-      print('Login Error: $e'); // Simple error logging
+      if (e is DioException) {
+        final message = e.response?.data['message'] ?? e.response?.data['errors']?.toString() ?? e.message;
+        print('Login Error Details: $message');
+      }
       rethrow;
     }
   }
@@ -64,11 +68,12 @@ class ApiService {
     required String businessName,
     required String businessType,
   }) async {
+    final cleanEmail = email.trim().toLowerCase();
     try {
       final response = await _dio.post(
         '/register',
         data: {
-          'email': email,
+          'email': cleanEmail,
           'password': password,
           'password_confirmation': password,
           'name': businessName,
@@ -90,7 +95,10 @@ class ApiService {
       }
       return response;
     } catch (e) {
-      print('Signup Error: $e');
+      if (e is DioException) {
+        final message = e.response?.data['message'] ?? e.response?.data['errors']?.toString() ?? e.message;
+        print('Signup Error Details: $message');
+      }
       rethrow;
     }
   }

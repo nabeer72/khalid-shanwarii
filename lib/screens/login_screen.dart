@@ -331,7 +331,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       // If local auth fails or user not found, try API
       print('📡 [LOGIN] Calling API login...');
-      await _api.login(email, password);
+      await _api.login(cleanEmail, password);
       print('✅ [LOGIN] API call successful!');
 
       // Start initial sync to get company data and settings
@@ -393,12 +393,24 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } catch (e) {
       print('❌ [LOGIN] Error occurred: $e');
-      print('🔍 [LOGIN] Error type: ${e.runtimeType}');
+      String errorMessage = 'Invalid credentials';
+      
+      if (e is DioException) {
+        final data = e.response?.data;
+        if (data is Map) {
+          errorMessage = data['message'] ?? data['errors']?.toString() ?? errorMessage;
+        } else if (e.type == DioExceptionType.connectionTimeout) {
+          errorMessage = 'Server connection timeout';
+        } else if (e.type == DioExceptionType.connectionError) {
+          errorMessage = 'Server unreachable. Check your internet.';
+        }
+      }
+
       if (mounted) {
-        print('📱 [LOGIN] Showing error snackbar');
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Invalid credentials'),
-            backgroundColor: ThemeProvider.error));
+            content: Text(errorMessage),
+            backgroundColor: ThemeProvider.error,
+            duration: const Duration(seconds: 4)));
       }
     } finally {
       print('🏁 [LOGIN] Finally block - cleaning up');
@@ -411,7 +423,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   // Background sync to verify credentials or register with backend
   Future<void> _syncLoginToBackend() async {
-    final email = _emailCtrl.text.trim();
+    final email = _emailCtrl.text.trim().toLowerCase();
     final password = _passCtrl.text.trim();
 
     try {
