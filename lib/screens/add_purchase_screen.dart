@@ -324,9 +324,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                     currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
                                     stock = (latestStock['quantity'] as num? ?? 0).toInt();
                                   } else {
-                                    currCost = 0;
-                                    currWholesale = 0;
-                                    currPrice = 0;
+                                    // FALLBACK: Use master prices from product table if no batches exist
+                                    currCost = (p['purchase_price'] as num? ?? 0).toDouble();
+                                    currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
+                                    currPrice = (p['price'] as num? ?? 0).toDouble();
                                     stock = 0;
                                   }
 
@@ -358,9 +359,10 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                     currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
                                     stock = (latestStock['quantity'] as num? ?? 0).toInt();
                                   } else {
-                                    currCost = 0;
-                                    currWholesale = 0;
-                                    currPrice = 0;
+                                    // FALLBACK: Use master prices from product table if no batches exist
+                                    currCost = (p['purchase_price'] as num? ?? 0).toDouble();
+                                    currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
+                                    currPrice = (p['price'] as num? ?? 0).toDouble();
                                     stock = 0;
                                   }
 
@@ -469,7 +471,13 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 child: InkWell(
                                   onTap: () {
                                     final qty = double.tryParse(qtyCtrl.text.trim()) ?? 0;
-                                    if (selectedProductId == null || qty <= 0) return;
+                                    final pCost = double.tryParse(costCtrl.text.trim()) ?? 0;
+                                    if (selectedProductId == null || qty <= 0 || pCost <= 0) {
+                                      ScaffoldMessenger.of(ctx).showSnackBar(
+                                        const SnackBar(content: Text('Please enter valid quantity and cost')),
+                                      );
+                                      return;
+                                    }
      
                                     final p = _controller.products.firstWhere((x) => x['id'] == selectedProductId);
                                       _controller.addItem(

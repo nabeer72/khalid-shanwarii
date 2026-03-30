@@ -956,13 +956,19 @@ class SyncService {
             continue;
           }
 
-          // Get ALL stocks for this unsynced product (we push them all)
+          // Fetch ALL stocks for this unsynced product
           final stocks = await db.query('stocks', where: 'product_id = ?', whereArgs: [p['id']]);
+          
+          // APPEND-ONLY: Include all stocks for the new product to establish price history
           productMap['stocks'] = stocks.map((s) {
             var sMap = Map<String, dynamic>.from(s);
             sMap.remove('is_synced');
             return sMap;
           }).toList();
+          
+          if (kDebugMode && (stocks.isNotEmpty)) {
+             print('📤 [SYNC] Pushing ${stocks.length} price entries for new product: ${p['name']}');
+          }
           
           productsList.add(productMap);
         }
@@ -977,13 +983,19 @@ class SyncService {
       ''');
       
       if (unsyncedStocksForSyncedProducts.isNotEmpty) {
-        // Group these by product ID to fit the nested structure the backend now expects (or just push as separate key)
-        // Let's push as a separate 'stocks' key and handle it in backend push() too.
-        changes['stocks'] = unsyncedStocksForSyncedProducts.map((s) {
+        // APPEND-ONLY SYNC: Push ALL unsynced stock records (Batches)
+        // This ensures every purchase results in a distinct, separate entry in the live database.
+        final List<Map<String, dynamic>> stocksToPush = [];
+        for (var s in unsyncedStocksForSyncedProducts) {
           var m = Map<String, dynamic>.from(s);
           m.remove('is_synced');
-          return m;
-        }).toList();
+          stocksToPush.add(m);
+        }
+
+        if (stocksToPush.isNotEmpty) {
+          changes['stocks'] = stocksToPush;
+          if (kDebugMode) print('📤 [SYNC] Pushing ${stocksToPush.length} price entries for existing products');
+        }
       }
 
       // Unsynced Users (from signup)

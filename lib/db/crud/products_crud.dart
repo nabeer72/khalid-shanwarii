@@ -170,13 +170,13 @@ mixin ProductsCrud on CommonCrud {
       final currentCost = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
       final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
 
-      // Check if an EXACT price-matching stock entry exists for this product IN THIS BRANCH
+      // Check if an EXACT price-matching stock entry exists for this product (using rounding for precision safety)
       final matchingStocks = await txn.rawQuery(
         '''SELECT * FROM stocks 
            WHERE product_id = ? AND branch_id = ? AND status = 1 
-           AND CAST(sale_price AS REAL) = CAST(? AS REAL) 
-           AND CAST(cost_price AS REAL) = CAST(? AS REAL) 
-           AND CAST(wholesale_price AS REAL) = CAST(? AS REAL)
+           AND ROUND(sale_price, 2) = ROUND(?, 2) 
+           AND ROUND(cost_price, 2) = ROUND(?, 2) 
+           AND ROUND(wholesale_price, 2) = ROUND(?, 2)
            ORDER BY created_at DESC LIMIT 1''',
         [pid, brid, currentPrice, currentCost, currentWholesale],
       );

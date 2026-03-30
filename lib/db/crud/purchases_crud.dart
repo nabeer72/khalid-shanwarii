@@ -1,6 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
@@ -43,74 +42,66 @@ mixin PurchasesCrud on CommonCrud {
 
       final pid = purchase['id'] ?? generatedPurchaseId;
 
-      // Insert Items and Update Inventory
       for (var item in items) {
-        // 1. Insert Purchase Item
-        final itemData = Map<String, dynamic>.from(item);
-        itemData.remove('product_name'); // Remove UI-only field
-
-        await txn.insert('purchase_items', {
-          ...itemData,
-          'purchase_id': pid,
-          'branch_id': brid,
-          'is_synced': 0,
-        });
-
-        // 2. Update Product Inventory & Prices (SMART STOCK UPDATE)
-        final productId = item['product_id'];
+        // 2. Separate Product Entry for Price Changes
+        var productId = item['product_id'];
         final qtyToAdd = (item['quantity'] as num).toDouble();
         final newPurchasePrice = (item['purchase_price'] as num).toDouble();
         final newSellingPrice = (item['selling_price'] as num).toDouble();
         final newWholesalePrice = (item['wholesale_price'] as num? ?? 0).toDouble();
         final now = DateTime.now().toIso8601String();
 
-        // Check if a matching stock batch exists with the same EXACT prices IN THIS BRANCH
-        final matchingStocks = await txn.rawQuery(
-          '''SELECT * FROM stocks 
-             WHERE product_id = ? AND branch_id = ? AND status = 1 
-             AND CAST(cost_price AS REAL) = CAST(? AS REAL) 
-             AND CAST(sale_price AS REAL) = CAST(? AS REAL) 
-             AND CAST(wholesale_price AS REAL) = CAST(? AS REAL)
-             ORDER BY created_at DESC LIMIT 1''',
-          [productId, brid, newPurchasePrice, newSellingPrice, newWholesalePrice],
-        );
+        // Check if price changed compared to master record
+        final prodResult = await txn.query('products', where: 'id = ?', whereArgs: [productId]);
+        if (prodResult.isNotEmpty) {
+          final p = prodResult.first;
+          final oldCost = (p['purchase_price'] as num? ?? 0).toDouble();
+          final oldSale = (p['price'] as num? ?? 0).toDouble();
+          final oldWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
 
-        if (matchingStocks.isNotEmpty) {
-          // Prices match an existing batch → just add quantity to THAT batch
-          final matchingId = matchingStocks.first['id'];
-          await txn.rawUpdate(
-            'UPDATE stocks SET quantity = quantity + ?, is_synced = 0, updated_at = ? WHERE id = ?',
-            [qtyToAdd, now, matchingId],
-          );
-        } else {
-          // No match or prices changed → create a NEW stock batch
-          await txn.insert('stocks', {
-            'id': null,
-            'business_id': bid,
-            'branch_id': brid,
-            'product_id': productId,
-            'barcode': item['barcode'],
-            'quantity': qtyToAdd,
-            'cost_price': newPurchasePrice,
-            'sale_price': newSellingPrice,
-            'wholesale_price': newWholesalePrice,
-            'status': 1,
-            'is_synced': 0,
-            'created_at': now,
-            'updated_at': now,
-          });
+          // If ANY price has changed, create a NEW product entry in the product table
+          // This ensures the live database also shows multiple entries of the same product with different prices.
+          if (newPurchasePrice != oldCost || newSellingPrice != oldSale || newWholesalePrice != oldWholesale) {
+            final newProdMap = Map<String, dynamic>.from(p);
+            newProdMap.remove('id'); // Let it autoincrement for a separate entry
+            newProdMap['purchase_price'] = newPurchasePrice;
+            newProdMap['price'] = newSellingPrice;
+            newProdMap['wholesale_price'] = newWholesalePrice;
+            newProdMap['is_synced'] = 0;
+            newProdMap['updated_at'] = now;
+            // newProdMap['created_at'] = now; // optional if adding created_at to schema later
+            
+            productId = await txn.insert('products', newProdMap);
+          }
         }
 
-        // Update the product's updated_at timestamp
-        await txn.update(
-          'products', 
-          {
-            'updated_at': now,
-            'is_synced': 0,
-          },
-          where: 'id = ?',
-          whereArgs: [productId]
-        );
+        // 3. Insert Purchase Item (Linked to potentially new productId)
+        final itemData = Map<String, dynamic>.from(item);
+        itemData.remove('product_name');
+        await txn.insert('purchase_items', {
+          ...itemData,
+          'product_id': productId,
+          'purchase_id': pid,
+          'branch_id': brid,
+          'is_synced': 0,
+        });
+
+        // 4. Create Stock Batch entry (Always separate)
+        await txn.insert('stocks', {
+          'id': null,
+          'business_id': bid,
+          'branch_id': brid,
+          'product_id': productId,
+          'barcode': item['barcode'],
+          'quantity': qtyToAdd,
+          'cost_price': newPurchasePrice,
+          'sale_price': newSellingPrice,
+          'wholesale_price': newWholesalePrice,
+          'status': 1,
+          'is_synced': 0,
+          'created_at': now,
+          'updated_at': now,
+        });
       }
       return pid;
     });
