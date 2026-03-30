@@ -245,13 +245,19 @@ class SyncService {
                       'updated_at': productRow['updated_at'],
                     });
                   } else {
-                    // Update the first existing stock's quantity/price if we are doing a "legacy" pull
+                    // LEGACY/FLAT PULL: The server provided a total quantity but no granular batches.
+                    // To prevent duplication, we update the first batch with the server total and 
+                    // ensure we don't accidentally sum it with other remaining local batches.
                     await txn.update('stocks', {
                       'quantity': qty,
                       'sale_price': price,
                       'cost_price': _parseNum(p['purchase_price'] ?? p['cost_price']),
                       'updated_at': productRow['updated_at'],
+                      'is_synced': 1,
                     }, where: 'id = ?', whereArgs: [existingStocks.first['id']]);
+                    
+                    // If there are other batches locally for SAME product name/barcode, we might need to reset them?
+                    // But usually, separate price entries have unique IDs.
                   }
                 }
               }
@@ -956,18 +962,32 @@ class SyncService {
             continue;
           }
 
+          // PREVENT DOUBLE COUNTING ON LIVE SERVER:
+          // If this product has unsynced purchases, the live server will process those purchases 
+          // and ADD their quantity to the stock. If we send the full stock_quantity in the product payload,
+          // the server will double count it (Initial Payload + Purchase Payload).
+          final relatedPurchases = await db.rawQuery('''
+            SELECT SUM(pi.quantity) as purchased_qty 
+            FROM purchase_items pi 
+            JOIN purchases pu ON pi.purchase_id = pu.id 
+            WHERE pi.product_id = ? AND pu.is_synced = 0
+          ''', [p['id']]);
+          
+          final double purchasedQty = (relatedPurchases.first['purchased_qty'] as num? ?? 0).toDouble();
+          if (purchasedQty > 0) {
+            double currentStock = (productMap['stock_quantity'] as num? ?? 0).toDouble();
+            double initialStock = currentStock - purchasedQty;
+            productMap['stock_quantity'] = initialStock < 0 ? 0.0 : initialStock;
+            if (kDebugMode) print('📉 [SYNC] Adjusted product payload for ${p['name']} stock from $currentStock to ${productMap['stock_quantity']} to prevent purchase double-count.');
+          }
+
           // Fetch ALL stocks for this unsynced product
           final stocks = await db.query('stocks', where: 'product_id = ?', whereArgs: [p['id']]);
           
-          // APPEND-ONLY: Include all stocks for the new product to establish price history
-          productMap['stocks'] = stocks.map((s) {
-            var sMap = Map<String, dynamic>.from(s);
-            sMap.remove('is_synced');
-            return sMap;
-          }).toList();
-          
-          if (kDebugMode && (stocks.isNotEmpty)) {
-             print('📤 [SYNC] Pushing ${stocks.length} price entries for new product: ${p['name']}');
+          // STOCKS ARE PUSHED SEPARATELY: Do not attach them here to avoid double-counting on the server.
+          // Each purchase or stock batch is sent as its own independent record further down.
+          if (kDebugMode) {
+             print('📤 [SYNC] Pushing new product: ${p['name']} (ID: ${p['id']})');
           }
           
           productsList.add(productMap);

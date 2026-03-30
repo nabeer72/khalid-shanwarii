@@ -131,16 +131,19 @@ class Product {
   double get maxPrice => stocks.isEmpty ? price : stocks.map((s) => s.salePrice).reduce((a, b) => a > b ? a : b);
   
   String get priceRange {
-    if (stocks.isEmpty) return 'N/A';
     final config = BusinessConfig.instance;
+    if (stocks.isEmpty) {
+      if (price > 0) return config.formatAmount(price);
+      return config.formatAmount(0); // Show 0 instead of N/A
+    }
     if (minPrice == maxPrice) return config.formatAmount(minPrice);
     return '${config.formatAmount(minPrice)} - ${config.formatAmount(maxPrice)}';
   }
 
   // Getters for legacy/controller compatibility (prefer denormalized fields)
-  double get latestPrice => price != 0 ? price : (latestStock?.salePrice ?? 0.0);
-  double get latestPurchasePrice => purchasePrice != 0 ? purchasePrice : (latestStock?.costPrice ?? 0.0);
-  double get latestWholesalePrice => wholesalePrice != 0 ? wholesalePrice : (latestStock?.wholesalePrice ?? 0.0);
+  double get latestPrice => (stocks.isNotEmpty) ? (latestStock?.salePrice ?? price) : price;
+  double get latestPurchasePrice => (stocks.isNotEmpty) ? (latestStock?.costPrice ?? purchasePrice) : purchasePrice;
+  double get latestWholesalePrice => (stocks.isNotEmpty) ? (latestStock?.wholesalePrice ?? wholesalePrice) : wholesalePrice;
   double get latestStockQuantity => stockQuantity != 0 ? stockQuantity : totalStock;
 
   // Get the "primary" or "latest" stock (e.g. for default selection)

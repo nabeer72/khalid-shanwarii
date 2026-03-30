@@ -180,14 +180,22 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
-  void _showStockBatchDialog(Product product) {
+  void _showStockBatchDialog(List<Product> variants) {
+    if (variants.isEmpty) return;
+    final product = variants.first;
+    
+    // Flatten all stocks from all variants into a single list
+    final allStocks = variants.expand((v) => v.stocks.map((s) => {'product': v, 'stock': s})).toList();
+    // Sort by price descending or creation time descending? 
+    // Usually newest first
+    
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: Colors.transparent,
         child: Container(
-          width: 400,
+          width: 420,
           padding: const EdgeInsets.all(20),
           decoration: theme.glassDecoration.copyWith(
             borderRadius: BorderRadius.circular(16),
@@ -240,24 +248,26 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               Flexible(
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: product.stocks.length,
+                  itemCount: allStocks.length,
                   separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (ctx, i) {
-                    final stock = product.stocks[i];
-                    final bool isLowStock = stock.quantity <= product.stockLimit;
+                    final item = allStocks[i];
+                    final p = item['product'] as Product;
+                    final s = item['stock'] as Stock;
+                    final bool isLowStock = s.quantity <= p.stockLimit;
                     
                     return Material(
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
                           Navigator.pop(ctx);
-                          if (stock.quantity <= 0) {
-                            _showStockNotFoundDialog(product, stock);
-                          } else if (product.isPricePerWeight) {
-                            _showWeightDialog(product, stock);
+                          if (s.quantity <= 0) {
+                            _showStockNotFoundDialog(p, s);
+                          } else if (p.isPricePerWeight) {
+                            _showWeightDialog(p, s);
                           } else {
-                            final success = _controller.addToCart(product, stock);
-                            if (!success) _showStockNotFoundDialog(product, stock);
+                            final success = _controller.addToCart(p, s);
+                            if (!success) _showStockNotFoundDialog(p, s);
                           }
                         },
                         borderRadius: BorderRadius.circular(12),
@@ -284,13 +294,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)}',
+                                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(s.salePrice)}',
                                         style: TextStyle(
                                             color: theme.textPrimary,
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
-                                    Text('Barcode: ${stock.barcode ?? 'Default'}',
+                                    Text('Barcode: ${s.barcode ?? 'Default'}',
                                         style: TextStyle(
                                             color: theme.textSecondary,
                                             fontSize: 12)),
@@ -304,7 +314,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  '${stock.quantity} Unit',
+                                  '${s.quantity} Unit',
                                   style: TextStyle(
                                     color: isLowStock ? ThemeProvider.error : ThemeProvider.success,
                                     fontSize: 11,
@@ -1769,18 +1779,24 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           child: POSProductGrid(
             controller: _controller,
             onProductTap: (product) {
-              if (product.stocks.length > 1) {
-                _showStockBatchDialog(product);
+              final variants = _controller.getVariantsByName(product.name);
+              final bool hasMultipleBatches = variants.expand((v) => v.stocks).length > 1;
+
+              if (hasMultipleBatches) {
+                _showStockBatchDialog(variants);
               } else {
-                final stock = product.stocks.first;
+                final targetV = variants.isNotEmpty ? variants.first : product;
+                if (targetV.stocks.isEmpty) return;
+                
+                final stock = targetV.stocks.first;
                 if (stock.quantity <= 0) {
-                  _showStockNotFoundDialog(product, stock);
-                } else if (product.isPricePerWeight) {
-                  _showWeightDialog(product, stock);
+                  _showStockNotFoundDialog(targetV, stock);
+                } else if (targetV.isPricePerWeight) {
+                  _showWeightDialog(targetV, stock);
                 } else {
-                  final success = _controller.addToCart(product, stock);
+                  final success = _controller.addToCart(targetV, stock);
                   if (!success) {
-                    _showStockNotFoundDialog(product, stock);
+                    _showStockNotFoundDialog(targetV, stock);
                   }
                 }
               }

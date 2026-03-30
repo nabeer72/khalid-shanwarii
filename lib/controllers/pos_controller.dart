@@ -116,8 +116,14 @@ class POSController with ChangeNotifier {
       }
     }
     
-    // Show all products in the filtered list
-    return filtered.toList();
+    // UNIQUE BY NAME: Ensure each product name only appears once in the POS grid.
+    // This handles cases where price changes created multiple product entries.
+    final Map<String, Product> uniqueByName = {};
+    for (var p in filtered) {
+       uniqueByName[p.name.toLowerCase()] = p; // Last one wins (usually the newest)
+    }
+    
+    return uniqueByName.values.toList();
   }
 
   void setSearchQuery(String query) {
@@ -136,6 +142,12 @@ class POSController with ChangeNotifier {
     _selectedSubCategoryId = subCategoryId;
     _searchQuery = '';
     notifyListeners();
+  }
+
+  /// Finds all products (and their stocks) that share the same name.
+  /// Used for the "Batch Selection" popup in the POS.
+  List<Product> getVariantsByName(String name) {
+    return _products.where((p) => p.name.toLowerCase() == name.toLowerCase()).toList();
   }
 
   // Cart Management

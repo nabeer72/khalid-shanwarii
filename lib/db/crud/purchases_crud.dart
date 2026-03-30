@@ -59,17 +59,30 @@ mixin PurchasesCrud on CommonCrud {
           final oldSale = (p['price'] as num? ?? 0).toDouble();
           final oldWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
 
-          // If ANY price has changed, create a NEW product entry in the product table
-          // This ensures the live database also shows multiple entries of the same product with different prices.
-          if (newPurchasePrice != oldCost || newSellingPrice != oldSale || newWholesalePrice != oldWholesale) {
+          // 2a. Search for an EXISTING product variant with the SAME NAME and SAME NEW PRICES
+          // This prevents creating a brand new product entry for every purchase item.
+          final productName = p['name'];
+          final existingVariant = await txn.query('products', 
+            where: 'name = ? AND ROUND(purchase_price, 2) = ROUND(?, 2) AND ROUND(price, 2) = ROUND(?, 2) AND ROUND(wholesale_price, 2) = ROUND(?, 2) AND status = 1',
+            whereArgs: [productName, newPurchasePrice, newSellingPrice, newWholesalePrice],
+            limit: 1
+          );
+
+          if (existingVariant.isNotEmpty) {
+            // MATCH FOUND -> Use this existing product ID
+            productId = existingVariant.first['id'];
+          } else if (newPurchasePrice != oldCost || newSellingPrice != oldSale || newWholesalePrice != oldWholesale) {
+            // NO MATCH AND PRICE CHANGED -> Create a NEW product entry/variant
             final newProdMap = Map<String, dynamic>.from(p);
-            newProdMap.remove('id'); // Let it autoincrement for a separate entry
+            newProdMap.remove('id'); 
             newProdMap['purchase_price'] = newPurchasePrice;
             newProdMap['price'] = newSellingPrice;
             newProdMap['wholesale_price'] = newWholesalePrice;
+            
+            // Reset stock counters for the new isolated variant
+            newProdMap['stock_quantity'] = 0.0;
             newProdMap['is_synced'] = 0;
             newProdMap['updated_at'] = now;
-            // newProdMap['created_at'] = now; // optional if adding created_at to schema later
             
             productId = await txn.insert('products', newProdMap);
           }
@@ -86,22 +99,58 @@ mixin PurchasesCrud on CommonCrud {
           'is_synced': 0,
         });
 
-        // 4. Create Stock Batch entry (Always separate)
-        await txn.insert('stocks', {
-          'id': null,
-          'business_id': bid,
-          'branch_id': brid,
-          'product_id': productId,
-          'barcode': item['barcode'],
-          'quantity': qtyToAdd,
-          'cost_price': newPurchasePrice,
-          'sale_price': newSellingPrice,
-          'wholesale_price': newWholesalePrice,
-          'status': 1,
-          'is_synced': 0,
-          'created_at': now,
+        // 4. Manage Stock Batch
+        // Check if we already have a stock record with this product ID and SAME PRICES
+        final existingStock = await txn.query('stocks', 
+          where: 'product_id = ? AND cost_price = ? AND sale_price = ? AND wholesale_price = ? AND branch_id = ? AND status = 1',
+          whereArgs: [productId, newPurchasePrice, newSellingPrice, newWholesalePrice, brid],
+          orderBy: 'id DESC',
+          limit: 1
+        );
+
+        if (existingStock.isNotEmpty) {
+          // If price is NOT changed (or we matched the exact prices), just update quantity in existing stock entry
+          final s = existingStock.first;
+          final currentQty = (s['quantity'] as num).toDouble();
+          await txn.update('stocks', {
+            'quantity': currentQty + qtyToAdd,
+            'is_synced': 1, // DO NOT Sync absolute stock batch separately (it is handled by the purchase sync)
+            'updated_at': now,
+          }, where: 'id = ?', whereArgs: [s['id']]);
+        } else {
+          // If price IS changed (which resulted in a new productId or no matching price batch), create a NEW stock entry
+          await txn.insert('stocks', {
+            'id': null,
+            'business_id': bid,
+            'branch_id': brid,
+            'product_id': productId,
+            'barcode': item['barcode'],
+            'quantity': qtyToAdd,
+            'cost_price': newPurchasePrice,
+            'sale_price': newSellingPrice,
+            'wholesale_price': newWholesalePrice,
+            'status': 1,
+            'is_synced': 1, // DO NOT Sync absolute stock batch separately (it is handled by the purchase sync)
+            'created_at': now,
+            'updated_at': now,
+          });
+        }
+
+        // 5. Update Denormalized Product Stock Total (Local Convenience)
+        // We do NOT mark 'is_synced': 0 here because the actual inventory change 
+        // is already represented in the 'purchase_items' and 'stocks' tables.
+        // Marking the product as unsynced here causes the server to double-count 
+        // the stock update from the product's denormalized total.
+        final allStock = await txn.rawQuery(
+          'SELECT SUM(quantity) as total FROM stocks WHERE product_id = ? AND branch_id = ?',
+          [productId, brid]
+        );
+        final newTotal = (allStock.first['total'] as num? ?? 0).toDouble();
+        await txn.update('products', {
+          'stock_quantity': newTotal,
           'updated_at': now,
-        });
+          // 'is_synced': 0, // DO NOT Trigger redundant product sync for stock levels
+        }, where: 'id = ?', whereArgs: [productId]);
       }
       return pid;
     });
