@@ -28,16 +28,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   Future<void> _loadEmployees() async {
     try {
       final data = await DatabaseHelper.instance.getAllEmployees();
-      // Load ALL roles for this business (no branch filter) so roleMap is complete
-      final db = await DatabaseHelper.instance.database;
-      final rawBid = BusinessConfig.instance.businessId;
-      final rawAid = BusinessConfig.instance.adminId;
-      final bid = rawBid is int ? rawBid : int.tryParse(rawBid?.toString() ?? '');
-      final aid = rawAid is int ? rawAid : int.tryParse(rawAid?.toString() ?? '');
-      final roles = await db.rawQuery(
-        'SELECT * FROM roles WHERE status = 1 AND business_id = ? AND admin_id = ?',
-        [bid, aid],
-      );
+      // Load roles using the centralized method to ensure branch isolation
+      final roles = await DatabaseHelper.instance.getRoles();
       final roleMap = <int, Map<String, dynamic>>{};
       for (var r in roles) {
         final id = r['id'] is int ? r['id'] as int : int.tryParse(r['id']?.toString() ?? '');

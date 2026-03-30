@@ -18,18 +18,8 @@ class RolesController with ChangeNotifier {
     isLoading = true;
     notifyListeners();
     try {
-      // Load ALL roles for this business (no branch filter) so the management screen sees everything
-      final db = await DatabaseHelper.instance.database;
-      final rawBid = BusinessConfig.instance.businessId;
-      final rawAid = BusinessConfig.instance.adminId;
-      final brid = BusinessConfig.instance.branchId;
-      final bid = rawBid is int ? rawBid : int.tryParse(rawBid?.toString() ?? '');
-      final aid = rawAid is int ? rawAid : int.tryParse(rawAid?.toString() ?? '');
-
-      final rolesData = await db.rawQuery(
-        'SELECT * FROM roles WHERE status = 1 AND business_id = ? AND admin_id = ?',
-        [bid, aid],
-      );
+      // Load roles using the centralized method to ensure branch isolation
+      final rolesData = await DatabaseHelper.instance.getRoles();
       allPermissions = await DatabaseHelper.instance.getPermissions();
       
       roles = [];
@@ -39,8 +29,12 @@ class RolesController with ChangeNotifier {
         roles.add(Role.fromMap(r, permissions: perms));
       }
 
-      print('🔍 [Roles] Found ${roles.length} roles for BID: $bid, AID: $aid, BRID: $brid');
+      print('🔍 [Roles] Found ${roles.length} role(s)');
 
+      final db = await DatabaseHelper.instance.database;
+      final bid = BusinessConfig.instance.businessId;
+      final aid = BusinessConfig.instance.adminId;
+      
       branches = await db.query('branches', 
         where: 'status = 1 AND business_id = ? AND admin_id = ?', 
         whereArgs: [bid, aid]);

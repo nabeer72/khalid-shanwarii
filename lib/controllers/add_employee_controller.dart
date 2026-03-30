@@ -55,16 +55,8 @@ class AddEmployeeController with ChangeNotifier {
 
   Future<void> _loadRoles() async {
     try {
-      // Load ALL roles for this business (no branch filter) so dropdowns show everything
-      final db = await DatabaseHelper.instance.database;
-      final rawBid = BusinessConfig.instance.businessId;
-      final rawAid = BusinessConfig.instance.adminId;
-      final bid = rawBid is int ? rawBid : int.tryParse(rawBid?.toString() ?? '');
-      final aid = rawAid is int ? rawAid : int.tryParse(rawAid?.toString() ?? '');
-      roles = await db.rawQuery(
-        'SELECT * FROM roles WHERE status = 1 AND business_id = ? AND admin_id = ?',
-        [bid, aid],
-      );
+      // Load roles using the centralized method to ensure branch isolation
+      roles = await DatabaseHelper.instance.getRoles();
       
       if (selectedRoleId != null) {
         // Ensure the selected role still exists in the loaded list
