@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
 import 'package:mobile_app/screens/currency_notes_screen.dart';
 import 'package:mobile_app/services/sync_service.dart';
+import 'package:mobile_app/screens/home_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -179,6 +180,323 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _showManageBusinessesDialog() async {
+    final db = DatabaseHelper.instance;
+    final userId = BusinessConfig.instance.adminId;
+    List<Map<String, dynamic>> businesses = [];
+    
+    if (userId != null) {
+      businesses = await db.getBusinessesForUser(userId);
+    }
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            ),
+            width: 450,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Manage Businesses', 
+                      style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                    IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: businesses.length,
+                    itemBuilder: (ctx, i) {
+                      final b = businesses[i];
+                      final isCurrent = b['id'] == BusinessConfig.instance.businessId;
+                      final type = b['business_type'] ?? 'general';
+                      
+                      String icon = '🏪';
+                      if (type == 'garments') icon = '👕';
+                      else if (type == 'produce') icon = '🥬';
+                      else if (type == 'restaurant') icon = '🍽️';
+                      else if (type == 'electronics') icon = '📱';
+
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: isCurrent ? theme.highlight.withOpacity(0.05) : const Color(0xFFF9FAFB),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: isCurrent ? theme.highlight.withOpacity(0.3) : const Color(0xFFE5E7EB)),
+                          ),
+                          child: ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: isCurrent ? theme.highlight : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: Text(icon, style: const TextStyle(fontSize: 18)),
+                            ),
+                            title: Text(b['name'] ?? 'Unnamed Business', 
+                              style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 14)),
+                            subtitle: Text((b['business_type'] ?? 'General').toString().toUpperCase(), 
+                              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w600)),
+                            trailing: isCurrent 
+                              ? const Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 20)
+                              : TextButton(
+                                  onPressed: () => _switchBusiness(b),
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: theme.highlight,
+                                    textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                                  ),
+                                  child: const Text('SWITCH'),
+                                ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ThemeProvider.success,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showAddBusinessDialog();
+                    },
+                    icon: const Icon(Icons.add_business_rounded, size: 20),
+                    label: const Text('ADD NEW BUSINESS', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _switchBusiness(Map<String, dynamic> business) async {
+    final db = DatabaseHelper.instance;
+    final storage = const FlutterSecureStorage();
+    
+    // Update local config
+    BusinessConfig.instance.businessId = business['id'];
+    BusinessConfig.instance.businessName = business['name'];
+    BusinessConfig.instance.businessType = business['business_type'] ?? 'general';
+    
+    // Persist to storage
+    await storage.write(key: 'business_id', value: business['id'].toString());
+    
+    // Update settings table for persistent offline access
+    await db.setSetting('business_name', business['name']);
+    await db.setSetting('business_type', business['business_type'] ?? 'general');
+
+    // Reload settings to refresh context (branch isolation, etc.)
+    await db.loadSettings();
+    
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+        (route) => false,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Switched to ${business['name']}'),
+        backgroundColor: ThemeProvider.success,
+      ));
+    }
+  }
+
+  void _showAddBusinessDialog() {
+    final nameCtrl = TextEditingController();
+    String selectedType = 'general';
+    final List<Map<String, dynamic>> businessTypes = [
+      {'id': 'general', 'name': 'General', 'icon': '🏪'},
+      {'id': 'garments', 'name': 'Garments', 'icon': '👕'},
+      {'id': 'produce', 'name': 'Produce', 'icon': '🥬'},
+      {'id': 'restaurant', 'name': 'Restaurant', 'icon': '🍽️'},
+      {'id': 'electronics', 'name': 'Electronics', 'icon': '📱'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.white,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            ),
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Create New Business', 
+                    style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: nameCtrl,
+                    autofocus: true,
+                    style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
+                    decoration: theme.glassInputDecoration('Business Name', Icons.store_rounded),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Select Category', 
+                    style: TextStyle(color: Color(0xFF1F2937), fontSize: 13, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 70,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: businessTypes.length,
+                      itemBuilder: (ctx, i) {
+                        final type = businessTypes[i];
+                        final isSelected = selectedType == type['id'];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: () {
+                              setDialogState(() {
+                                selectedType = type['id'];
+                                nameCtrl.text = type['name'];
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isSelected ? theme.highlight : const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: isSelected ? theme.highlight : Colors.transparent),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(type['icon'], style: const TextStyle(fontSize: 18)),
+                                  const SizedBox(height: 2),
+                                  Text(type['name'], style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF4B5563), fontSize: 10, fontWeight: FontWeight.w800)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ThemeProvider.success,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          ),
+                          onPressed: () async {
+                            if (nameCtrl.text.trim().isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter business name')));
+                              return;
+                            }
+                            
+                            final db = DatabaseHelper.instance;
+                            final now = DateTime.now().toIso8601String();
+                            final userId = BusinessConfig.instance.adminId;
+
+                            // 1. Insert business
+                            final bid = await db.insertBusiness({
+                              'name': nameCtrl.text,
+                              'business_type': selectedType,
+                              'owner_user_id': userId,
+                              'status': 1,
+                              'is_synced': 0,
+                              'created_at': now,
+                              'updated_at': now,
+                            });
+
+                            // 2. Link user to business
+                            if (userId != null) {
+                              await db.addUserBusiness(userId, bid);
+                            }
+
+                            // 3. Create default branch for this business
+                            await db.insertBranch({
+                              'id': 1, // Main Branch ID for isolation
+                              'business_id': bid,
+                              'user_id': userId,
+                              'name': 'Main Branch',
+                              'branch_title': 'Main Branch',
+                              'branch_code': 'MAIN',
+                              'status': 1,
+                              'is_main_branch': '1',
+                              'is_synced': 0,
+                              'created_at': now,
+                              'updated_at': now,
+                            });
+
+                            if (mounted) {
+                              Navigator.pop(ctx);
+                              _showManageBusinessesDialog(); // Refresh list
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text('Business "${nameCtrl.text}" created!'),
+                                backgroundColor: ThemeProvider.success,
+                              ));
+                            }
+                          },
+                          child: const Text('CREATE', style: TextStyle(fontWeight: FontWeight.w900)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -577,6 +895,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Currency Unit',
                 subtitle: BusinessConfig.instance.currency,
                 onTap: _showCurrencyDialog,
+              ),
+              _SettingsTile(
+                icon: Icons.business_center_rounded,
+                title: 'Manage Businesses',
+                subtitle: 'Toggle between or add new business entities',
+                onTap: _showManageBusinessesDialog,
               ),
 
               const SizedBox(height: 24),

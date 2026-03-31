@@ -146,6 +146,32 @@ mixin CommonCrud {
     await db.update('businesses', {'is_synced': synced}, where: 'id = ?', whereArgs: [id]);
   }
 
+  Future<List<Map<String, dynamic>>> getBusinesses() async {
+    final db = await database;
+    return await db.query('businesses', where: 'status = 1');
+  }
+
+  Future<List<Map<String, dynamic>>> getBusinessesForUser(dynamic userId) async {
+    final db = await database;
+    return await db.rawQuery('''
+      SELECT b.* FROM businesses b
+      INNER JOIN user_businesses ub ON b.id = ub.business_id
+      WHERE ub.user_id = ? AND b.status = 1
+    ''', [userId]);
+  }
+
+  Future<void> addUserBusiness(dynamic userId, dynamic businessId) async {
+    final db = await database;
+    await db.insert('user_businesses', {
+      'user_id': userId,
+      'business_id': businessId,
+      'is_synced': 0,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+  }
+
+
   // ========== Bank Operations ==========
 
   Future<List<Map<String, dynamic>>> getBankTransactions() async {

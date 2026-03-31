@@ -474,7 +474,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       children: [
         Expanded(
           child: _controller.categories.isEmpty 
-            ? _buildTextField(controller: TextEditingController(text: 'Loading...'), label: 'Category', icon: Icons.category_outlined, enabled: false)
+            ? _buildTextField(controller: TextEditingController(text: 'Add Category'), label: 'Category', icon: Icons.category_outlined, enabled: false)
             : DropdownButtonFormField<dynamic>(
                 value: _controller.categories.any((c) => c.id == _controller.selectedCategory) 
                     ? _controller.selectedCategory 

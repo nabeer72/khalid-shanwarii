@@ -1009,5 +1009,31 @@ class DbMigrations {
         if (kDebugMode) print('v50 suppliers opening_amount error: $e');
       }
     }
+
+    if (oldVersion < 51) {
+      if (kDebugMode) print('Upgrading DB to v51: Creating user_businesses table...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS user_businesses (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          business_id INTEGER NOT NULL,
+          created_at TEXT,
+          updated_at TEXT,
+          FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+          FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+        )
+      ''');
+    }
+
+    if (oldVersion < 52) {
+      if (kDebugMode) print('Upgrading DB to v52: Adding is_synced to user_businesses...');
+      try {
+        await db.execute('ALTER TABLE user_businesses ADD COLUMN is_synced INTEGER DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v52 user_businesses is_synced error: $e');
+      }
+    }
   }
 }
+
+

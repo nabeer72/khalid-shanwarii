@@ -160,6 +160,7 @@ mixin ProductsCrud on CommonCrud {
         'admin_id': aid,
         'branch_id': brid,
         'is_synced': 0, // Mark as unsynced
+        'updated_at': DateTime.now().toIso8601String(),
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       // 3. Handle Stock (Batch)

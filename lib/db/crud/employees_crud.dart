@@ -126,6 +126,7 @@ mixin EmployeesCrud on CommonCrud {
       insertData['branch_id'] = int.tryParse(insertData['branch_id']);
     }
     insertData['is_synced'] = 0;
+    insertData['status'] = 1; // Ensure new roles are active and visible immediately
     insertData['created_at'] = insertData['created_at'] ?? DateTime.now().toIso8601String();
     insertData['updated_at'] = DateTime.now().toIso8601String();
 

@@ -618,6 +618,22 @@ class DbTables {
         updated_at TEXT
       )
     ''');
+    
+    // User Businesses Join Table
+    await db.execute('''
+      CREATE TABLE user_businesses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        business_id INTEGER NOT NULL,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (business_id) REFERENCES businesses(id) ON DELETE CASCADE
+      )
+    ''');
+
+
     if (kDebugMode) print('Database created with all tables including RBAC');
     await DbTables.seedPermissions(db);
   }

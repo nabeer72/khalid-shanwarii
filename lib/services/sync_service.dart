@@ -837,7 +837,7 @@ class SyncService {
             if (kDebugMode) print('Synced ${data['supplier_paybacks'].length} supplier paybacks');
           }
           
-          // Currency Notes
+        // Currency Notes
           if (data['currency_notes'] != null) {
             for (var cn in data['currency_notes']) {
               await txn.insert(
@@ -857,6 +857,47 @@ class SyncService {
             }
             if (kDebugMode) print('Synced ${data['currency_notes'].length} currency notes');
           }
+
+          // [NEW] Businesses
+          if (data['businesses'] != null) {
+            for (var b in data['businesses']) {
+              await txn.insert(
+                'businesses',
+                {
+                  'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
+                  'name': b['name'] ?? 'Unknown',
+                  'business_type': b['business_type'],
+                  'owner_user_id': b['owner_user_id'] is int ? b['owner_user_id'] : int.tryParse(b['owner_user_id']?.toString() ?? ''),
+                  'status': _parseStatus(b['status']),
+                  'is_synced': 1,
+                  'created_at': b['created_at'],
+                  'updated_at': b['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['businesses'].length} businesses');
+          }
+
+          // [NEW] User Businesses
+          if (data['user_businesses'] != null) {
+            for (var ub in data['user_businesses']) {
+              await txn.insert(
+                'user_businesses',
+                {
+                  'id': ub['id'] is int ? ub['id'] : int.tryParse(ub['id']?.toString() ?? ''),
+                  'user_id': ub['user_id'] is int ? ub['user_id'] : int.tryParse(ub['user_id']?.toString() ?? ''),
+                  'business_id': ub['business_id'] is int ? ub['business_id'] : int.tryParse(ub['business_id']?.toString() ?? ''),
+                  'is_synced': 1,
+                  'created_at': ub['created_at'],
+                  'updated_at': ub['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['user_businesses'].length} user_businesses');
+          }
+
 
         });
 
@@ -900,6 +941,8 @@ class SyncService {
       List<Map<String, dynamic>> unsyncedSupplierCreditPurchases = [];
       List<Map<String, dynamic>> unsyncedGiftCards = [];
       List<Map<String, dynamic>> unsyncedCurrencyNotes = [];
+      List<Map<String, dynamic>> unsyncedUserBusinesses = [];
+
 
       // Unsynced Sales
       unsyncedSales = await db.query('sales', where: 'is_synced = 0');
@@ -1284,6 +1327,17 @@ class SyncService {
         }).toList();
       }
 
+      // [NEW] Unsynced User Businesses
+      unsyncedUserBusinesses = await db.query('user_businesses', where: 'is_synced = 0');
+      if (unsyncedUserBusinesses.isNotEmpty) {
+        changes['user_businesses'] = unsyncedUserBusinesses.map((ub) {
+          var m = Map.from(ub);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
+
       if (changes.isEmpty) {
         if (kDebugMode) print('No changes to push');
         return;
@@ -1421,6 +1475,12 @@ class SyncService {
             if (sc['id'] == null) continue;
             await txn.update('subcategories', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [sc['id']]);
           }
+          // [NEW] Mark user businesses as synced
+          for (var ub in unsyncedUserBusinesses) {
+            if (ub['id'] == null) continue;
+            await txn.update('user_businesses', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [ub['id']]);
+          }
+
         });
         if (kDebugMode) {
           final mappingKeys = (response.data['mappings'] is Map) ? (response.data['mappings'] as Map).keys.toList() : [];
@@ -1441,7 +1501,7 @@ class SyncService {
       'employees', 'credit_sales', 'credit_payments', 'suppliers', 'expense_heads', 
       'expenses', 'purchases', 'shifts', 'branches', 'roles', 'bank_accounts',
       'supplier_paybacks', 'supplier_credit_purchases', 'gift_cards', 'currency_notes',
-      'subcategories', 'returns'
+      'subcategories', 'returns', 'user_businesses'
     ];
 
     for (var table in tables) {
@@ -1712,7 +1772,21 @@ class SyncService {
         await txn.update('supplier_paybacks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
       }
     }
+
+    // [NEW] 19. Businesses
+    if (allMappings['businesses'] != null && allMappings['businesses'] is Map) {
+      final map = allMappings['businesses'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Business: $oldId -> $newId');
+        await txn.update('businesses', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('user_businesses', {'business_id': newId}, where: 'business_id = ?', whereArgs: [oldId]);
+      }
+    }
   }
+
 
 
   /// Get last sync time

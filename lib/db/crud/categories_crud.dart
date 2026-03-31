@@ -26,14 +26,17 @@ mixin CategoriesCrud on CommonCrud {
   Future<int> insertCategory(Map<String, dynamic> category) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = BusinessConfig.instance.adminId;
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
+    final now = DateTime.now().toIso8601String();
     return await db.insert('categories', {
       ...category,
       'business_id': bid,
       'admin_id': aid,
-      'branch_id': category['branch_id'] ?? getCurrentBranchId(),
+      'branch_id': getSafeInt(category['branch_id'] ?? getCurrentBranchId()),
       'is_synced': 0,
+      'created_at': category['created_at'] ?? now,
+      'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -90,16 +93,19 @@ mixin CategoriesCrud on CommonCrud {
   Future<int> insertSubCategory(Map<String, dynamic> subcategory) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = BusinessConfig.instance.adminId;
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     if (kDebugMode) print('💾 [DB] insertSubCategory: $subcategory (bid=$bid, aid=$aid)');
     
+    final now = DateTime.now().toIso8601String();
     return await db.insert('subcategories', {
       ...subcategory,
       'business_id': bid,
       'admin_id': aid,
-      'branch_id': subcategory['branch_id'] ?? getCurrentBranchId(),
+      'branch_id': getSafeInt(subcategory['branch_id'] ?? getCurrentBranchId()),
       'is_synced': 0,
+      'created_at': subcategory['created_at'] ?? now,
+      'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 }
