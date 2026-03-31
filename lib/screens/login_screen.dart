@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -158,10 +159,213 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  Future<void> _showBusinessSelectionDialog(dynamic userId, List<Map<String, dynamic>> businesses) async {
+    if (!mounted) return;
+
+    final selected = await showGeneralDialog<Map<String, dynamic>>(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'Business Selection',
+      barrierColor: Colors.black.withOpacity(0.5),
+      transitionDuration: const Duration(milliseconds: 400),
+      pageBuilder: (ctx, anim1, anim2) => const SizedBox(),
+      transitionBuilder: (ctx, anim1, anim2, child) {
+        final curve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
+        return ScaleTransition(
+          scale: curve,
+          child: FadeTransition(
+            opacity: anim1,
+            child: PopScope(
+              canPop: false,
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: Center(
+                  child: Container(
+                    width: 320, // More compact width
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: theme.surface.withOpacity(0.85),
+                      borderRadius: BorderRadius.circular(28),
+                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Elegant Icon & Header
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: theme.highlight.withOpacity(0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.store_rounded, color: theme.highlight, size: 32),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Business Profile',
+                            style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Select a store to manage',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: theme.textSecondary,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          // List of businesses
+                          Flexible(
+                            child: Container(
+                              constraints: const BoxConstraints(maxHeight: 300),
+                              child: ListView.separated(
+                                shrinkWrap: true,
+                                itemCount: businesses.length,
+                                separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                itemBuilder: (context, index) {
+                                  final b = businesses[index];
+                                  return InkWell(
+                                    onTap: () => Navigator.pop(context, b),
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [theme.highlight, theme.highlight.withOpacity(0.7)],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                              ),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                (b['name'] ?? 'B').toString().substring(0, 1).toUpperCase(),
+                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  b['name'] ?? 'Business',
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: TextStyle(
+                                                    color: theme.textPrimary,
+                                                    fontSize: 15,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  b['business_type'] ?? 'General Store',
+                                                  style: TextStyle(
+                                                    color: theme.textSecondary.withOpacity(0.7),
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Icon(Icons.chevron_right_rounded, color: theme.textSecondary.withOpacity(0.5), size: 20),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      final storage = const FlutterSecureStorage();
+      final bid = selected['id'];
+      
+      // Update config and storage
+      BusinessConfig.instance.businessId = bid;
+      BusinessConfig.instance.businessName = selected['name'];
+      BusinessConfig.instance.businessType = selected['business_type'] ?? 'general';
+      await storage.write(key: 'business_id', value: bid.toString());
+
+      // Try background sync for this specific business
+      print('🔄 [LOGIN] Syncing data for selected business: $bid');
+      SyncService().syncPull().then((_) {
+        _dbHelper.loadSettings();
+      }).catchError((e) => print('⚠️ [LOGIN] Quick sync failed: $e'));
+    } else {
+      // If they somehow cancelled a non-cancellable dialog, we must stay on login
+      throw Exception('Business selection required');
+    }
+  }
+
   Future<void> _proceedToHome(bool isQuickLogin, String email) async {
     if (!mounted) return;
     
     print('🏠 [LOGIN] Auth successful, checking saved credentials...');
+    
+    final userId = BusinessConfig.instance.adminId;
+    if (userId != null) {
+      final businesses = await _dbHelper.getBusinessesForUser(userId);
+      print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
+      
+      if (businesses.length > 1) {
+        try {
+          await _showBusinessSelectionDialog(userId, businesses);
+        } catch (e) {
+          print('⚠️ Business selection cancelled or failed: $e');
+          return; // Stay on login screen
+        }
+      } else if (businesses.length == 1) {
+        // Auto-select the only business
+        final b = businesses.first;
+        final bid = b['id'];
+        BusinessConfig.instance.businessId = bid;
+        BusinessConfig.instance.businessName = b['name'];
+        BusinessConfig.instance.businessType = b['business_type'] ?? 'general';
+        await _storage.write(key: 'business_id', value: bid.toString());
+      }
+    }
+
     if (!isQuickLogin) {
       // Check if this account is already saved
       final bool isAlreadySaved = _savedAccounts.any((acc) => acc['email'] == email);

@@ -67,6 +67,7 @@ class SyncService {
       final queryParams = {
         'last_synced_at': lastSyncedAt,
         'branch_id': BusinessConfig.instance.branchId,
+        'business_id': BusinessConfig.instance.businessId,
       };
       if (kDebugMode) print('🔍 [SYNC] Pulling data with params: $queryParams');
 
@@ -1344,7 +1345,11 @@ class SyncService {
       }
 
       if (kDebugMode) print('📤 [SYNC] Pushing changes: ${changes.keys.toList()}');
-      final response = await _api.post('/sync/push', data: {'changes': changes});
+      final response = await _api.post(
+        '/sync/push', 
+        data: {'changes': changes},
+        queryParameters: {'business_id': BusinessConfig.instance.businessId},
+      );
 
       if (response.statusCode == 200 && response.data['success'] == true) {
         await db.transaction((txn) async {

@@ -464,7 +464,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                             // 3. Create default branch for this business
                             await db.insertBranch({
-                              'id': 1, // Main Branch ID for isolation
                               'business_id': bid,
                               'user_id': userId,
                               'name': 'Main Branch',
