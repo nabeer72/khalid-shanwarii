@@ -142,16 +142,45 @@ mixin SuppliersCrud on CommonCrud {
         'is_synced': 0,
       });
 
+      double amountLeftToApply = (payback['amount'] as num).toDouble();
+
       if (payback['supplier_credit_purchase_id'] != null) {
+        // Specific purchase targeted
         await txn.rawUpdate(
           'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?',
-          [payback['amount'], payback['supplier_credit_purchase_id']],
+          [amountLeftToApply, payback['supplier_credit_purchase_id']],
         );
+      } else {
+        // "Floating" payback: apply to oldest open credit purchases for this supplier IN THIS BRANCH
+        final supplierId = payback['supplier_id'];
+        final branchId = payback['branch_id'] ?? getCurrentBranchId();
+        
+        final List<Map<String, dynamic>> openPurchases = await txn.query(
+          'supplier_credit_purchases',
+          where: 'supplier_id = ? AND branch_id = ? AND remaining_balance > 0 AND status = 1',
+          whereArgs: [supplierId, branchId],
+          orderBy: 'created_at ASC',
+        );
+
+        for (var purchase in openPurchases) {
+          if (amountLeftToApply <= 0) break;
+
+          final purchaseId = purchase['id'];
+          final remaining = (purchase['remaining_balance'] as num).toDouble();
+          final applyAmount = amountLeftToApply > remaining ? remaining : amountLeftToApply;
+
+          await txn.rawUpdate(
+            'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?',
+            [applyAmount, purchaseId],
+          );
+          amountLeftToApply -= applyAmount;
+        }
       }
 
+      final totalPaybackAmount = (payback['amount'] as num).toDouble();
       await txn.rawUpdate(
-        'UPDATE suppliers SET credit_balance = credit_balance - ?, is_synced = 0 WHERE id = ?',
-        [payback['amount'], payback['supplier_id']],
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ?',
+        [totalPaybackAmount, payback['supplier_id']],
       );
     });
   }
@@ -159,7 +188,9 @@ mixin SuppliersCrud on CommonCrud {
   Future<void> updateSupplierCreditBalance(dynamic supplierId, double amount) async {
     final db = await database;
     await db.rawUpdate(
-      'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?',
+      // Mark is_synced = 0 so the sync-pull does not overwrite this locally-updated balance
+      // with the server's stale value before the credit purchase is pushed.
+      'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?',
       [amount, supplierId],
     );
   }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/screens/supplier_payback_form_screen.dart';
+import 'package:intl/intl.dart';
 
 class SupplierPaybackScreen extends StatefulWidget {
   const SupplierPaybackScreen({super.key});
@@ -49,14 +49,228 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
   }
 
   Future<void> _showPaybackForm(Supplier supplier) async {
-    final bool? result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SupplierPaybackFormScreen(supplier: supplier),
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final balance = await DatabaseHelper.instance.getSupplierCreditBalance(supplier.id ?? 0);
+    final employees = await DatabaseHelper.instance.getEmployees();
+    
+    if (mounted) Navigator.pop(context); // close loading
+
+    String? selectedStaff = employees.isNotEmpty ? employees.first['name'] : null;
+    DateTime selectedDate = DateTime.now();
+    final paidAmountCtrl = TextEditingController();
+    final noteCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool isSaving = false;
+
+    if (!mounted) return;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          double paidAmount = double.tryParse(paidAmountCtrl.text) ?? 0.0;
+          double remainingBalance = balance - paidAmount;
+
+          return AlertDialog(
+            backgroundColor: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Record Payback',
+                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            backgroundColor: theme.highlight.withOpacity(0.1),
+                            child: Text(supplier.name[0].toUpperCase(), style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold)),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(supplier.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800)),
+                                Text('ID: ${supplier.id}', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('CREDIT', style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.bold)),
+                              Text('${BusinessConfig.instance.currencyDisplay} ${balance.toStringAsFixed(2)}', style: const TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.bold)),
+                            ],
+                          )
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      Divider(color: theme.whiteAlpha(0.1)),
+                      const SizedBox(height: 16),
+
+                      Text('PAYBACK DATE', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: selectedDate,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime.now(),
+                          );
+                          if (picked != null) setDialogState(() => selectedDate = picked);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: theme.glassDecoration,
+                          child: Row(
+                            children: [
+                              Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 20),
+                              const SizedBox(width: 12),
+                              Text(DateFormat('MMM dd, yyyy').format(selectedDate), style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      Text('PAID BY (STAFF)', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: selectedStaff,
+                        dropdownColor: theme.surface,
+                        style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                        decoration: theme.glassInputDecoration('Select Staff', Icons.person_rounded).copyWith(isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                        items: employees.map((staff) => DropdownMenuItem<String>(value: staff['name'], child: Text(staff['name']))).toList(),
+                        onChanged: (v) => setDialogState(() => selectedStaff = v),
+                      ),
+                      const SizedBox(height: 16),
+
+                      Text('AMOUNT PAID', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: paidAmountCtrl,
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+                        decoration: theme.glassInputDecoration('Amount', Icons.payments_rounded).copyWith(isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+                        onChanged: (v) => setDialogState(() {}),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Enter amount';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      if (paidAmount > 0) ...[
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('NEW BALANCE', style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w800)),
+                            Text('${BusinessConfig.instance.currencyDisplay} ${remainingBalance.toStringAsFixed(2)}', 
+                              style: TextStyle(color: remainingBalance > 0 ? ThemeProvider.warning : ThemeProvider.success, fontWeight: FontWeight.w900, fontSize: 16)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      Text('NOTE (OPTIONAL)', style: TextStyle(color: theme.textSecondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 8),
+                      TextFormField(
+                        controller: noteCtrl,
+                        maxLines: 2,
+                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+                        decoration: theme.glassInputDecoration('Add a note', Icons.note_rounded).copyWith(isDense: true, contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w800, fontSize: 12)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: theme.highlight,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+                onPressed: isSaving ? null : () async {
+                  if (!formKey.currentState!.validate()) return;
+                  if (selectedStaff == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a staff member'), backgroundColor: ThemeProvider.error));
+                    return;
+                  }
+                  if (paidAmount <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid payment amount'), backgroundColor: ThemeProvider.error));
+                    return;
+                  }
+                  if (paidAmount > balance + 0.01) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment amount cannot exceed owed balance'), backgroundColor: ThemeProvider.error));
+                    return;
+                  }
+
+                  setDialogState(() => isSaving = true);
+
+                  final payback = {
+                    'supplier_id': supplier.id ?? 0,
+                    'amount': paidAmount,
+                    'paid_by': selectedStaff,
+                    'payment_date': selectedDate.toIso8601String(),
+                    'notes': noteCtrl.text.trim(),
+                    'created_at': DateTime.now().toIso8601String(),
+                  };
+
+                  try {
+                    await DatabaseHelper.instance.insertSupplierPayback(payback);
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx, true);
+                    }
+                  } catch (e) {
+                    if (ctx.mounted) {
+                      setDialogState(() => isSaving = false);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: ThemeProvider.error));
+                    }
+                  }
+                },
+                child: isSaving
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('RECORD PAYBACK', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 1)),
+              ),
+            ],
+          );
+        },
       ),
     );
 
     if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payback recorded successfully'), backgroundColor: ThemeProvider.success));
       _loadSuppliersWithCredit();
     }
   }

@@ -432,10 +432,30 @@ class SyncService {
           // Credit Sales
           if (data['credit_sales'] != null) {
             for (var cs in data['credit_sales']) {
+              final csId = cs['id'] is int ? cs['id'] : int.tryParse(cs['id']?.toString() ?? '');
+
+              // CRITICAL: If this credit_sale has local unsynced changes (e.g. a recovery
+              // payment reduced its remaining_balance), do NOT overwrite it with the
+              // server's stale value. Otherwise reconcileCustomerBalances() will reinflate
+              // the customer's credit balance, reversing the recovery.
+              if (csId != null) {
+                final localRows = await txn.query(
+                  'credit_sales',
+                  columns: ['is_synced'],
+                  where: 'id = ?',
+                  whereArgs: [csId],
+                  limit: 1,
+                );
+                if (localRows.isNotEmpty && localRows.first['is_synced'] == 0) {
+                  if (kDebugMode) print('⚠️ [SYNC] Skipping pull for credit_sale $csId (local payment pending push)');
+                  continue;
+                }
+              }
+
               await txn.insert(
                 'credit_sales',
                 {
-                  'id': cs['id'] is int ? cs['id'] : int.tryParse(cs['id']?.toString() ?? ''),
+                  'id': csId,
                   'business_id': cs['business_id'] is int ? cs['business_id'] : int.tryParse(cs['business_id']?.toString() ?? '') ?? fallbackBusinessId,
                   'branch_id': cs['branch_id'] is int ? cs['branch_id'] : int.tryParse(cs['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                   'admin_id': cs['admin_id'] is int ? cs['admin_id'] : int.tryParse(cs['admin_id']?.toString() ?? '') ?? fallbackAdminId,

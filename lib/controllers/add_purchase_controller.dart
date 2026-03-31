@@ -265,9 +265,11 @@ class AddPurchaseController with ChangeNotifier {
         await _db.insertSupplierCreditPurchase({
           'id': null,
           'supplier_id': selectedSupplierId,
-          'purchase_id': purchaseId, 
+          'purchase_id': purchaseId,
+          'branch_id': BusinessConfig.instance.branchId, // Ensures reconcileSupplierBalances finds this record under the correct branch filter
           'amount': totalAmount,
           'remaining_balance': credit,
+          'is_synced': 0,
           'status': 1,
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),

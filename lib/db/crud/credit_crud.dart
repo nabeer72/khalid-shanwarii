@@ -176,7 +176,7 @@ mixin CreditCrud on CommonCrud {
   Future<void> updateCustomerCreditBalance(dynamic customerId, double amount) async {
     final db = await database;
     await db.rawUpdate(
-      'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?',
+      'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?',
       [amount, customerId],
     );
   }
