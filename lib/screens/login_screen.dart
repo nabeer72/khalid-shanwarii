@@ -320,18 +320,28 @@ class _LoginScreenState extends State<LoginScreen>
     if (selected != null) {
       final storage = const FlutterSecureStorage();
       final bid = selected['id'];
+      final aid = selected['owner_user_id'] ?? selected['admin_id'];
       
-      // Update config and storage
-      BusinessConfig.instance.businessId = bid;
-      BusinessConfig.instance.businessName = selected['name'];
-      BusinessConfig.instance.businessType = selected['business_type'] ?? 'general';
-      await storage.write(key: 'business_id', value: bid.toString());
+      // Fetch branches for this business to set initial context
+      final branches = await _dbHelper.getBranchesForBusiness(bid);
+      final mainBranch = branches.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
+      
+      BusinessConfig.instance.setContext(
+        bid: bid,
+        aid: aid,
+        brid: mainBranch['id'],
+        bName: selected['name'],
+        bType: selected['business_type'],
+        activeBranches: branches.map((b) => b['id']).toList(),
+      );
 
-      // Try background sync for this specific business
-      print('🔄 [LOGIN] Syncing data for selected business: $bid');
-      SyncService().syncPull().then((_) {
-        _dbHelper.loadSettings();
-      }).catchError((e) => print('⚠️ [LOGIN] Quick sync failed: $e'));
+      // Persist to storage
+      await storage.write(key: 'business_id', value: bid.toString());
+      if (aid != null) await storage.write(key: 'user_id', value: aid.toString());
+      if (mainBranch['id'] != null) await storage.write(key: 'branch_id', value: mainBranch['id'].toString());
+
+      // Sync and load settings
+      SyncService().syncPull().then((_) => _dbHelper.loadSettings()).catchError((e) => print('⚠️ Quick sync failed: $e'));
     } else {
       // If they somehow cancelled a non-cancellable dialog, we must stay on login
       throw Exception('Business selection required');
@@ -359,10 +369,23 @@ class _LoginScreenState extends State<LoginScreen>
         // Auto-select the only business
         final b = businesses.first;
         final bid = b['id'];
-        BusinessConfig.instance.businessId = bid;
-        BusinessConfig.instance.businessName = b['name'];
-        BusinessConfig.instance.businessType = b['business_type'] ?? 'general';
+        final aid = b['owner_user_id'] ?? b['admin_id'];
+        
+        final branches = await _dbHelper.getBranchesForBusiness(bid);
+        final mainBranch = branches.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
+
+        BusinessConfig.instance.setContext(
+          bid: bid, 
+          aid: aid,
+          brid: mainBranch['id'],
+          bName: b['name'],
+          bType: b['business_type'],
+          activeBranches: branches.map((br) => br['id']).toList(),
+        );
+
         await _storage.write(key: 'business_id', value: bid.toString());
+        if (aid != null) await _storage.write(key: 'user_id', value: aid.toString());
+        if (mainBranch['id'] != null) await _storage.write(key: 'branch_id', value: mainBranch['id'].toString());
       }
     }
 
@@ -563,16 +586,21 @@ class _LoginScreenState extends State<LoginScreen>
             final aid = u['admin_id'] is int ? (u['admin_id'] as int) : int.tryParse(u['admin_id']?.toString() ?? '');
 
             if (uid != null) {
-              if (aid != null && aid != uid) {
-                BusinessConfig.instance.adminId = aid;
-                BusinessConfig.instance.staffId = uid;
-                BusinessConfig.instance.branchId = brid;
+              final isStaff = aid != null && aid != uid;
+              final effectiveAdminId = isStaff ? aid : uid;
+              final effectiveStaffId = isStaff ? uid : null;
+              
+              BusinessConfig.instance.setContext(
+                bid: bid, 
+                aid: effectiveAdminId,
+                brid: brid,
+              );
+              BusinessConfig.instance.staffId = effectiveStaffId;
+
+              if (isStaff) {
                 await storage.write(key: 'user_id', value: aid.toString());
                 await storage.write(key: 'staff_id', value: uid.toString());
               } else {
-                BusinessConfig.instance.adminId = uid;
-                BusinessConfig.instance.staffId = null;
-                BusinessConfig.instance.branchId = brid;
                 await storage.write(key: 'user_id', value: uid.toString());
                 await storage.delete(key: 'staff_id');
               }

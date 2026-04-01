@@ -86,6 +86,27 @@ class BusinessConfig {
     weightMode = false;
     weightUnit = 'kg';
   }
+
+  /// Sets the complete business and branch context
+  void setContext({
+    required dynamic bid,
+    required dynamic aid,
+    dynamic brid,
+    String? bName,
+    String? bType,
+    List<dynamic>? activeBranches,
+  }) {
+    businessId = bid;
+    adminId = aid;
+    branchId = brid;
+    if (bName != null) businessName = bName;
+    if (bType != null) businessType = bType;
+    if (activeBranches != null) {
+      activeBranchIds = activeBranches;
+    } else if (brid != null) {
+      activeBranchIds = [brid];
+    }
+  }
 }
 
 /// Mock data store for web testing (in-memory)

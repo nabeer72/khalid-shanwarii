@@ -1,6 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
@@ -88,20 +87,14 @@ mixin SettingsCrud {
       final brIdInt = int.tryParse(brIdString);
       BusinessConfig.instance.branchId = brIdInt;
       
-      if (inactiveStr == null) {
-        // Legacy fallback
-        List<int> loadedIds = [];
-        if (brIdString.contains(',')) {
-          loadedIds = brIdString.split(',').map((e) => int.tryParse(e.trim())).whereType<int>().toList();
-        } else if (brIdInt != null) {
-          loadedIds = [brIdInt];
-        }
-        BusinessConfig.instance.activeBranchIds = loadedIds.toSet().toList();
+      // If we have a branch ID but no active list yet, initialize it
+      if (BusinessConfig.instance.activeBranchIds.isEmpty && brIdInt != null) {
+        BusinessConfig.instance.activeBranchIds = [brIdInt];
       }
     }
 
     // By default, dynamically compute active branches by explicitly excluding inactive ones.
-    if (inactiveStr != null || brIdString == null || brIdString == 'NONE') {
+    if (inactiveStr == null || brIdString == null || brIdString == 'NONE') {
       try {
         final db = await database;
         final allBranches = await db.query('branches', columns: ['id']);
@@ -114,66 +107,10 @@ mixin SettingsCrud {
 
     print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, adminId: ${BusinessConfig.instance.adminId}, activeBranches: ${BusinessConfig.instance.activeBranchIds}');
 
-    // Backfill missing or inconsistent isolation IDs for local data
+    // Backfill NULL credit balances for legacy records
     if (BusinessConfig.instance.businessId != null && BusinessConfig.instance.adminId != null) {
       final db = await database;
-      final currentBid = BusinessConfig.instance.businessId;
-      final currentAid = BusinessConfig.instance.adminId;
-
-      // Backfill NULL credit balances
       await db.update('customers', {'credit_balance': 0}, where: 'credit_balance IS NULL');
-
-      final tables = [
-        'categories', 'products', 'customers', 'employees', 'sales', 
-        'credit_sales', 'credit_payments', 'suppliers', 'purchases', 
-        'expense_heads', 'expenses', 'gift_cards', 'held_orders',
-        'roles', 'branches'
-      ];
-      int totalUpdated = 0;
-      for (var table in tables) {
-        try {
-          // Update missing OR mismatched IDs
-          int count = await db.rawUpdate('''
-            UPDATE $table 
-            SET business_id = ?, admin_id = ? 
-            WHERE business_id IS NULL OR admin_id IS NULL 
-               OR business_id != ? OR admin_id != ?
-          ''', [currentBid, currentAid, currentBid, currentAid]);
-          totalUpdated += count;
-        } catch (e) {
-          if (kDebugMode) print('Backfill error for $table: $e');
-        }
-      }
-      if (totalUpdated > 0) {
-        print('🔧 [DB] Backfilled/Normalized $totalUpdated records (Business/Admin IDs)');
-      }
-
-      // 2. Backfill branch_id if current context has one
-      final currentBrid = BusinessConfig.instance.branchId;
-      if (currentBrid != null) {
-        int totalBranchUpdated = 0;
-        final isolationTables = [
-            'categories', 'products', 'customers', 'employees', 'sales', 
-            'credit_sales', 'credit_payments', 'suppliers', 'purchases', 
-            'expense_heads', 'expenses', 'roles', 'branches'
-        ];
-        
-        for (var table in isolationTables) {
-          try {
-            int count = await db.rawUpdate('''
-              UPDATE $table 
-              SET branch_id = ? 
-              WHERE branch_id IS NULL OR branch_id = 0 OR branch_id = 'null'
-            ''', [currentBrid]);
-            totalBranchUpdated += count;
-          } catch (e) {
-             if (kDebugMode) print('Branch backfill error for $table: $e');
-          }
-        }
-        if (totalBranchUpdated > 0) {
-            print('🔧 [DB] Backfilled $totalBranchUpdated records to branch: $currentBrid');
-        }
-      }
     }
 
     print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, adminId: ${BusinessConfig.instance.adminId}');
@@ -208,11 +145,15 @@ mixin SettingsCrud {
       await txn.delete('returns');
       await txn.delete('return_items');
 
-      // Also wipe users and businesses to guarantee complete isolation across accounts
+      // Also wipe users, businesses, and configuration to guarantee complete isolation across accounts
       await txn.delete('users');
       await txn.delete('employees');
       await txn.delete('businesses');
       await txn.delete('branches');
+      await txn.delete('settings');
+      await txn.delete('user_businesses');
+      await txn.delete('employee_roles');
+      await txn.delete('role_permissions');
     });
 
     // Wipe all session context from secure storage

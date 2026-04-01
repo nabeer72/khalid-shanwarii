@@ -58,30 +58,38 @@ class _SalesScreenState extends State<SalesScreen> {
       isSynced: 0,
     );
 
-    final db = await _db.database;
-    await db.transaction((txn) async {
-      final id = await txn.insert('sales', sale.toMap());
+    try {
+      final id = await _db.insertSale(sale.toMap());
       for (var item in _cart) {
-        await txn.insert('sale_details', {
+        await _db.insertSaleItem({
           'sale_id': id,
           'product_id': item['id'],
           'quantity': item['quantity'],
           'unit_price': 0,
-          'sub_total': 0,
+          'subtotal': 0, // table column name is subtotal in tables.dart
         });
       }
-    });
+      
+      SyncService().syncPush();
 
-    SyncService().syncPush();
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sale Saved!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sale Saved!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving sale: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -129,14 +137,16 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   void _processScan(String code) async {
-    final db = await _db.database;
-    final maps = await db.query('products', where: 'id = ?', whereArgs: [code]);
-    if (maps.isNotEmpty) {
-      _addToCart(Product.fromMap(maps.first));
+    // Re-use isolated getProducts logic from ProductsCrud
+    final allProducts = await _db.getProducts();
+    final productMap = allProducts.where((p) => p['id'].toString() == code.toString()).firstOrNull;
+    
+    if (productMap != null) {
+      _addToCart(Product.fromMap(productMap));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added: ${maps.first['name']}'),
+            content: Text('Added: ${productMap['name']}'),
             backgroundColor: Colors.green,
           ),
         );
@@ -154,14 +164,14 @@ class _SalesScreenState extends State<SalesScreen> {
   }
 
   void _mockScan() async {
-    final db = await _db.database;
-    final maps = await db.query('products', limit: 1);
-    if (maps.isNotEmpty) {
-      _addToCart(Product.fromMap(maps.first));
+    final allProducts = await _db.getProducts();
+    if (allProducts.isNotEmpty) {
+      final first = allProducts.first;
+      _addToCart(Product.fromMap(first));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Added: ${maps.first['name']}'),
+            content: Text('Added: ${first['name']}'),
             backgroundColor: Colors.green,
           ),
         );

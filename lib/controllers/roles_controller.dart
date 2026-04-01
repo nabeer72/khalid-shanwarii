@@ -31,13 +31,8 @@ class RolesController with ChangeNotifier {
 
       print('🔍 [Roles] Found ${roles.length} role(s)');
 
-      final db = await DatabaseHelper.instance.database;
-      final bid = BusinessConfig.instance.businessId;
-      final aid = BusinessConfig.instance.adminId;
-      
-      branches = await db.query('branches', 
-        where: 'status = 1 AND business_id = ? AND admin_id = ?', 
-        whereArgs: [bid, aid]);
+      final data = await DatabaseHelper.instance.getAllBranches();
+      branches = data.where((b) => b['status'] == 1).toList();
     } catch (e) {
       errorMessage = e.toString();
     } finally {

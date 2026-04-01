@@ -9,28 +9,22 @@ mixin EmployeesCrud on CommonCrud {
   // Employees
   Future<List<Map<String, dynamic>>> getEmployees() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM employees WHERE business_id IS ? AND admin_id IS ? $branchFilter',
+      'SELECT * FROM employees WHERE 1=1 ${getBusinessFilter()} $branchFilter',
       args,
     );
   }
 
   Future<List<Map<String, dynamic>>> getAllEmployees() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-
     return await db.rawQuery(
-      'SELECT * FROM employees WHERE business_id IS ? AND admin_id IS ?',
-      [bid, aid],
+      'SELECT * FROM employees WHERE 1=1 ${getBusinessFilter()}',
+      getBusinessArgs(),
     );
   }
 
@@ -74,8 +68,8 @@ mixin EmployeesCrud on CommonCrud {
     
     final List<Map<String, dynamic>> results = await db.query(
       'employees',
-      where: 'LOWER(email) = ? AND pin = ? AND status = 1',
-      whereArgs: [cleanEmail, pin],
+      where: 'LOWER(email) = ? AND pin = ? AND status = 1${getBusinessFilter()}',
+      whereArgs: [cleanEmail, pin, ...getBusinessArgs()],
       limit: 1,
     );
     
@@ -89,12 +83,9 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getRoles() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     return await db.rawQuery(
-      'SELECT * FROM roles WHERE status = 1 AND business_id IS ? AND admin_id IS ?',
-      [bid, aid]
+      'SELECT * FROM roles WHERE status = 1${getBusinessFilter()}',
+      getBusinessArgs()
     );
   }
 

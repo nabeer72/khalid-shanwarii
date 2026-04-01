@@ -9,49 +9,44 @@ mixin ExpensesCrud on CommonCrud {
   // Expense Heads
   Future<List<Map<String, dynamic>>> getExpenseHeads() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM expense_heads WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter ORDER BY name ASC',
+      'SELECT * FROM expense_heads WHERE status = 1${getBusinessFilter()}$branchFilter ORDER BY name ASC',
       args,
     );
   }
 
   Future<void> insertExpenseHead(Map<String, dynamic> head) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     await db.insert('expense_heads', {
       ...head,
-      'business_id': bid,
-      'admin_id': aid,
+      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': head['branch_id'] ?? getCurrentBranchId(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> deleteExpenseHead(dynamic id) async {
     final db = await database;
-    await db.update('expense_heads', {'status': 0}, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'expense_heads', 
+      {'status': 0}, 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...getBusinessArgs()]
+    );
   }
 
   // Expenses
   Future<List<Map<String, dynamic>>> getExpenses({String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'e.branch_id');
     final branchArgs = getBranchArgs();
     
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND e.date BETWEEN ? AND ?';
@@ -63,7 +58,7 @@ mixin ExpensesCrud on CommonCrud {
       SELECT e.*, eh.name AS expense_head_name 
       FROM expenses e 
       LEFT JOIN expense_heads eh ON e.expense_head_id = eh.id 
-      WHERE e.status = 1 AND e.business_id = ? AND e.admin_id = ?$branchFilter$dateFilter 
+      WHERE e.status = 1${getBusinessFilter().replaceAll('business_id', 'e.business_id').replaceAll('admin_id', 'e.admin_id')}$branchFilter$dateFilter 
       ORDER BY e.date DESC
       ''',
       args,
@@ -72,30 +67,41 @@ mixin ExpensesCrud on CommonCrud {
 
   Future<void> insertExpense(Map<String, dynamic> expense) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     await db.insert('expenses', {
       ...expense,
-      'business_id': bid,
-      'admin_id': aid,
+      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': expense['branch_id'] ?? getCurrentBranchId(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> updateExpense(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
-    await db.update('expenses', data, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'expenses', 
+      data, 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...getBusinessArgs()]
+    );
   }
 
   Future<void> updateExpenseHead(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
-    await db.update('expense_heads', data, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'expense_heads', 
+      data, 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...getBusinessArgs()]
+    );
   }
 
   Future<void> deleteExpense(dynamic id) async {
     final db = await database;
-    await db.update('expenses', {'status': 0}, where: 'id = ?', whereArgs: [id]);
+    await db.update(
+      'expenses', 
+      {'status': 0}, 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...getBusinessArgs()]
+    );
   }
 
 }

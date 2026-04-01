@@ -270,13 +270,15 @@ class _SignupScreenState extends State<SignupScreen>
       await _storage.write(key: 'user_email', value: cleanEmail);
       await _storage.write(key: 'business_id', value: businessId.toString());
 
-      // Set business configuration
-      BusinessConfig.instance.businessId = businessId;
-      BusinessConfig.instance.adminId = userId;
-      BusinessConfig.instance.branchId = branchId;
-      BusinessConfig.instance.activeBranchIds = [branchId ?? 0];
-      BusinessConfig.instance.businessType = _selectedBusinessType;
-      BusinessConfig.instance.businessName = _businessNameCtrl.text;
+      // Set business configuration using centralized setContext
+      BusinessConfig.instance.setContext(
+        bid: businessId,
+        aid: userId,
+        brid: branchId,
+        bName: _businessNameCtrl.text,
+        bType: _selectedBusinessType,
+        activeBranches: [branchId],
+      );
 
       // Persist to settings table
       await _dbHelper.setSetting('business_name', _businessNameCtrl.text);

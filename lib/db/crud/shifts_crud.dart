@@ -10,17 +10,14 @@ mixin ShiftsCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getActiveShift() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
 
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     final results = await db.query(
       'shifts',
-      where: 'status = 1 AND business_id = ? AND admin_id = ?$branchFilter',
+      where: 'status = 1${getBusinessFilter()}$branchFilter',
       whereArgs: args,
       limit: 1,
     );
@@ -31,8 +28,7 @@ mixin ShiftsCrud on CommonCrud {
     final db = await database;
     await db.insert('shifts', {
       ...shiftData,
-      'business_id': BusinessConfig.instance.businessId,
-      'admin_id': BusinessConfig.instance.adminId,
+      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': getCurrentBranchId(),
       'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -48,27 +44,25 @@ mixin ShiftsCrud on CommonCrud {
         'updated_at': DateTime.now().toIso8601String(),
         'is_synced': 0,
       },
-      where: 'id = ?',
-      whereArgs: [id],
+      where: 'id = ?${getBusinessFilter()}',
+      whereArgs: [id, ...getBusinessArgs()],
     );
   }
 
   Future<Map<String, double>> getShiftTotals(String startTime, String endTime) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
+    final businessArgs = getBusinessArgs();
     
-    final args = [startTime, endTime, bid, aid, ...branchArgs];
+    final args = [startTime, endTime, ...businessArgs, ...branchArgs];
 
     // Get sales totals grouped by payment method
     final results = await db.rawQuery('''
       SELECT payment_method, SUM(total) as total_amount
       FROM sales
       WHERE created_at BETWEEN ? AND ? 
-      AND business_id = ? AND admin_id = ? AND status = 1$branchFilter
+      ${getBusinessFilter()} AND status = 1$branchFilter
       GROUP BY payment_method
     ''', args);
 
@@ -95,7 +89,7 @@ mixin ShiftsCrud on CommonCrud {
       SELECT SUM(amount) as total_recovery
       FROM credit_payments
       WHERE payment_date BETWEEN ? AND ?
-      AND business_id = ? AND admin_id = ?$branchFilter
+      ${getBusinessFilter()}$branchFilter
     ''', args);
 
     final creditReceived = (recoveryResults.first['total_recovery'] as num?)?.toDouble() ?? 0.0;
@@ -105,7 +99,7 @@ mixin ShiftsCrud on CommonCrud {
       SELECT SUM(amount) as total_expenses
       FROM expenses
       WHERE date BETWEEN ? AND ?
-      AND business_id = ? AND admin_id = ? AND status = 1$branchFilter
+      ${getBusinessFilter()} AND status = 1$branchFilter
       ''', args);
     
     final totalExpenses = (expenseResults.first['total_expenses'] as num?)?.toDouble() ?? 0.0;
@@ -115,7 +109,7 @@ mixin ShiftsCrud on CommonCrud {
       SELECT SUM(total_amount) as total_purchases
       FROM purchases
       WHERE purchase_date BETWEEN ? AND ?
-      AND business_id = ? AND admin_id = ? AND status = 1$branchFilter
+      ${getBusinessFilter()} AND status = 1$branchFilter
       ''', args);
 
     final totalPurchases = (purchaseResults.first['total_purchases'] as num?)?.toDouble() ?? 0.0;

@@ -5,31 +5,26 @@ import 'common_crud.dart';
 mixin ReturnsCrud on CommonCrud {
   Future<List<Map<String, dynamic>>> getReturns({int? limit}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM returns WHERE business_id = ? AND admin_id = ?$branchFilter ORDER BY created_at DESC${limit != null ? ' LIMIT $limit' : ''}',
+      'SELECT * FROM returns WHERE 1=1 ${getBusinessFilter()}$branchFilter ORDER BY created_at DESC${limit != null ? ' LIMIT $limit' : ''}',
       args,
     );
   }
 
   Future<int> insertReturn(Map<String, dynamic> returnData, List<Map<String, dynamic>> items) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final businessArgs = getBusinessArgs();
     final brid = returnData['branch_id'] ?? getCurrentBranchId();
     
     return await db.transaction((txn) async {
       final returnId = await txn.insert('returns', {
         ...returnData,
-        'business_id': bid,
-        'admin_id': aid,
+        ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
         'branch_id': brid,
         'status': 1,
         'is_synced': 0,
@@ -51,8 +46,8 @@ mixin ReturnsCrud on CommonCrud {
           final List<Map<String, dynamic>> stocks = await txn.query(
             'stocks',
             columns: ['quantity'],
-            where: 'id = ?',
-            whereArgs: [stockId],
+            where: 'id = ?${getBusinessFilter()}',
+            whereArgs: [stockId, ...businessArgs],
           );
 
           if (stocks.isNotEmpty) {
@@ -66,8 +61,8 @@ mixin ReturnsCrud on CommonCrud {
                 'is_synced': 0,
                 'updated_at': DateTime.now().toIso8601String(),
               },
-              where: 'id = ?',
-              whereArgs: [stockId],
+              where: 'id = ?${getBusinessFilter()}',
+              whereArgs: [stockId, ...businessArgs],
             );
           }
         }

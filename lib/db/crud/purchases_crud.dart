@@ -8,34 +8,29 @@ mixin PurchasesCrud on CommonCrud {
   // Purchases
   Future<List<Map<String, dynamic>>> getPurchases() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'p.branch_id');
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery('''
       SELECT p.*, s.name as supplier_name 
       FROM purchases p
       LEFT JOIN suppliers s ON p.supplier_id = s.id
-      WHERE p.status = 1 AND p.business_id = ? AND p.admin_id = ?$branchFilter
+      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('admin_id', 'p.admin_id')}$branchFilter
       ORDER BY p.purchase_date DESC
     ''', args);
   }
 
   Future<int> insertPurchase(Map<String, dynamic> purchase, List<Map<String, dynamic>> items) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final businessArgs = getBusinessArgs();
     final brid = purchase['branch_id'] ?? getCurrentBranchId();
 
     return await db.transaction((txn) async {
       final generatedPurchaseId = await txn.insert('purchases', {
         ...purchase,
-        'business_id': bid,
-        'admin_id': aid,
+        ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
         'branch_id': brid,
         'is_synced': 0,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -52,7 +47,11 @@ mixin PurchasesCrud on CommonCrud {
         final now = DateTime.now().toIso8601String();
 
         // Check if price changed compared to master record
-        final prodResult = await txn.query('products', where: 'id = ?', whereArgs: [productId]);
+        final prodResult = await txn.query(
+          'products', 
+          where: 'id = ?${getBusinessFilter()}', 
+          whereArgs: [productId, ...businessArgs]
+        );
         if (prodResult.isNotEmpty) {
           final p = prodResult.first;
           final oldCost = (p['purchase_price'] as num? ?? 0).toDouble();
@@ -63,8 +62,8 @@ mixin PurchasesCrud on CommonCrud {
           // This prevents creating a brand new product entry for every purchase item.
           final productName = p['name'];
           final existingVariant = await txn.query('products', 
-            where: 'name = ? AND ROUND(purchase_price, 2) = ROUND(?, 2) AND ROUND(price, 2) = ROUND(?, 2) AND ROUND(wholesale_price, 2) = ROUND(?, 2) AND status = 1',
-            whereArgs: [productName, newPurchasePrice, newSellingPrice, newWholesalePrice],
+            where: 'name = ? AND ROUND(purchase_price, 2) = ROUND(?, 2) AND ROUND(price, 2) = ROUND(?, 2) AND ROUND(wholesale_price, 2) = ROUND(?, 2) AND status = 1${getBusinessFilter()}',
+            whereArgs: [productName, newPurchasePrice, newSellingPrice, newWholesalePrice, ...businessArgs],
             limit: 1
           );
 
@@ -102,8 +101,8 @@ mixin PurchasesCrud on CommonCrud {
         // 4. Manage Stock Batch
         // Check if we already have a stock record with this product ID and SAME PRICES
         final existingStock = await txn.query('stocks', 
-          where: 'product_id = ? AND cost_price = ? AND sale_price = ? AND wholesale_price = ? AND branch_id = ? AND status = 1',
-          whereArgs: [productId, newPurchasePrice, newSellingPrice, newWholesalePrice, brid],
+          where: 'product_id = ? AND cost_price = ? AND sale_price = ? AND wholesale_price = ? AND branch_id = ? AND status = 1${getBusinessFilter()}',
+          whereArgs: [productId, newPurchasePrice, newSellingPrice, newWholesalePrice, brid, ...businessArgs],
           orderBy: 'id DESC',
           limit: 1
         );
@@ -114,14 +113,14 @@ mixin PurchasesCrud on CommonCrud {
           final currentQty = (s['quantity'] as num).toDouble();
           await txn.update('stocks', {
             'quantity': currentQty + qtyToAdd,
-            'is_synced': 1, // DO NOT Sync absolute stock batch separately (it is handled by the purchase sync)
+            'is_synced': 1, 
             'updated_at': now,
-          }, where: 'id = ?', whereArgs: [s['id']]);
+          }, where: 'id = ?${getBusinessFilter()}', whereArgs: [s['id'], ...getBusinessArgs()]);
         } else {
           // If price IS changed (which resulted in a new productId or no matching price batch), create a NEW stock entry
           await txn.insert('stocks', {
             'id': null,
-            'business_id': bid,
+            ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
             'branch_id': brid,
             'product_id': productId,
             'barcode': item['barcode'],
@@ -142,15 +141,15 @@ mixin PurchasesCrud on CommonCrud {
         // Marking the product as unsynced here causes the server to double-count 
         // the stock update from the product's denormalized total.
         final allStock = await txn.rawQuery(
-          'SELECT SUM(quantity) as total FROM stocks WHERE product_id = ? AND branch_id = ?',
-          [productId, brid]
+          'SELECT SUM(quantity) as total FROM stocks WHERE product_id = ? AND branch_id = ?${getBusinessFilter()}',
+          [productId, brid, ...getBusinessArgs()]
         );
         final newTotal = (allStock.first['total'] as num? ?? 0).toDouble();
         await txn.update('products', {
           'stock_quantity': newTotal,
           'updated_at': now,
           // 'is_synced': 0, // DO NOT Trigger redundant product sync for stock levels
-        }, where: 'id = ?', whereArgs: [productId]);
+        }, where: 'id = ?${getBusinessFilter()}', whereArgs: [productId, ...getBusinessArgs()]);
       }
       return pid;
     });
@@ -172,7 +171,7 @@ mixin PurchasesCrud on CommonCrud {
       'status': 0,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [id]);
+    }, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
   }
 
 }

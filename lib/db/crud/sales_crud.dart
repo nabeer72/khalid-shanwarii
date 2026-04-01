@@ -9,9 +9,6 @@ mixin SalesCrud on CommonCrud {
   // Sales
   Future<List<Map<String, dynamic>>> getSales({int? limit, String? startTime, String? endTime, int? shiftId}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilterS = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchFilterR = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
@@ -29,7 +26,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     // Args for SELECT 1 (sales)
-    args.addAll([bid, aid, ...branchArgs]);
+    args.addAll([...getBusinessArgs(), ...branchArgs]);
     if (shiftId != null) {
       args.add(shiftId);
     } else if (startTime != null && endTime != null) {
@@ -37,7 +34,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     // Args for SELECT 2 (returns)
-    args.addAll([bid, aid, ...branchArgs]);
+    args.addAll([...getBusinessArgs(), ...branchArgs]);
     if (shiftId != null) {
       args.add(shiftId);
     } else if (startTime != null && endTime != null) {
@@ -54,7 +51,7 @@ mixin SalesCrud on CommonCrud {
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
       LEFT JOIN users u ON s.user_id = u.id
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilterS$extraFilterS 
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilterS$extraFilterS 
       
       UNION ALL
       
@@ -67,7 +64,7 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN sales rs ON r.sale_id = rs.id
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN users u ON r.user_id = u.id
-      WHERE r.business_id = ? AND r.admin_id = ?$branchFilterR$extraFilterR
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilterR$extraFilterR
       
       ORDER BY 16 DESC${limit != null ? ' LIMIT $limit' : ''}
       ''',
@@ -140,8 +137,8 @@ mixin SalesCrud on CommonCrud {
         final total = (sale['total'] as num).toDouble();
         
         await txn.rawUpdate(
-          'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ?',
-          [total, customerId]
+          'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ? ${getBusinessFilter()}',
+          [total, customerId, ...getBusinessArgs()]
         );
       }
       return sid;
@@ -162,28 +159,26 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getDetailedSaleItems({int? userId, int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    String userFilter = '';
+    String catFilter = '';
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
       args.addAll([startTime, endTime]);
     }
-
-    String userFilter = '';
+    
     if (userId != null) {
       userFilter = ' AND s.user_id = ?';
       args.add(userId);
     }
 
-    String catFilter = '';
     if (categoryId != null) {
-      catFilter = ' AND c.id = ?';
+      catFilter = ' AND p.category_id = ?';
       args.add(categoryId);
     }
 
@@ -201,7 +196,7 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN stocks st ON si.stock_id = st.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON s.user_id = u.id
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter$catFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter$catFilter
       ORDER BY s.created_at DESC
     ''', args);
   }
@@ -214,7 +209,7 @@ mixin SalesCrud on CommonCrud {
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
@@ -238,7 +233,7 @@ mixin SalesCrud on CommonCrud {
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$catFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
       GROUP BY c.id, c.name
       ORDER BY total_amount DESC
     ''', args);
@@ -246,13 +241,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getEmployeeSalesSummary({int? userId, String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
@@ -274,7 +267,7 @@ mixin SalesCrud on CommonCrud {
         SUM(s.total) as total_amount
       FROM sales s
       LEFT JOIN users u ON s.user_id = u.id
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
       GROUP BY u.id, u.name
       ORDER BY total_amount DESC
     ''', args);
@@ -282,13 +275,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getTopSellingItems({String? startTime, String? endTime, int limit = 20}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
@@ -303,7 +294,7 @@ mixin SalesCrud on CommonCrud {
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
       GROUP BY p.id, p.name
       ORDER BY total_qty DESC
       LIMIT $limit
@@ -312,13 +303,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getPaymentMethodSummary({String? startTime, String? endTime, int? userId, int? categoryId}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> salesArgs = [bid, aid, ...branchArgs];
+    final List<dynamic> salesArgs = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
@@ -338,7 +327,7 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT s.id) as total_count,
         SUM(s.total) as total_amount
       FROM sales s
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter$userFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
       GROUP BY s.payment_method
       ORDER BY total_amount DESC
     ''', salesArgs);
@@ -346,7 +335,7 @@ mixin SalesCrud on CommonCrud {
     // Returns total
     final branchFilterR = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     String dateFilterR = '';
-    final List<dynamic> returnArgs = [bid, aid, ...branchArgs];
+    final List<dynamic> returnArgs = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilterR = ' AND r.created_at BETWEEN ? AND ?';
@@ -358,7 +347,7 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT r.id) as total_count,
         SUM(r.total_amount) as total_amount
       FROM returns r
-      WHERE r.business_id = ? AND r.admin_id = ?$branchFilterR$dateFilterR
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilterR$dateFilterR
     ''', returnArgs);
 
     final List<Map<String, dynamic>> result = salesByMethod.map((r) => Map<String, dynamic>.from(r)).toList();
@@ -376,13 +365,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getDateWiseSalesSummary({String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
@@ -395,7 +382,7 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT s.id) as total_sales_count,
         SUM(s.total) as total_amount
       FROM sales s
-      WHERE s.business_id = ? AND s.admin_id = ?$branchFilter$dateFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
       GROUP BY DATE(s.created_at)
       ORDER BY sale_date DESC
     ''', args);
@@ -403,13 +390,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getCategoryReturnsSummary({int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND r.created_at BETWEEN ? AND ?';
@@ -433,7 +418,7 @@ mixin SalesCrud on CommonCrud {
       JOIN returns r ON ri.return_id = r.id
       LEFT JOIN products p ON ri.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE r.business_id = ? AND r.admin_id = ?$branchFilter$dateFilter$catFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
       GROUP BY c.id, c.name
       ORDER BY total_amount DESC
     ''', args);
@@ -441,13 +426,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getEmployeeReturnsSummary({int? userId, String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND r.created_at BETWEEN ? AND ?';
@@ -467,7 +450,7 @@ mixin SalesCrud on CommonCrud {
         SUM(r.total_amount) as total_amount
       FROM returns r
       LEFT JOIN users u ON r.user_id = u.id
-      WHERE r.business_id = ? AND r.admin_id = ?$branchFilter$dateFilter$userFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
       GROUP BY u.id, u.name
       ORDER BY total_amount DESC
     ''', args);
@@ -475,13 +458,11 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getDetailedReturnItems({String? startTime, String? endTime}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
-    final List<dynamic> args = [bid, aid, ...branchArgs];
+    final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
       dateFilter = ' AND r.created_at BETWEEN ? AND ?';
@@ -500,7 +481,7 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN products p ON ri.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON r.user_id = u.id
-      WHERE r.business_id = ? AND r.admin_id = ?$branchFilter$dateFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
       ORDER BY r.created_at DESC
     ''', args);
   }

@@ -1,17 +1,14 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'common_crud.dart';
 
-mixin BranchesCrud {
+mixin BranchesCrud on CommonCrud {
   Future<Database> get database;
 
   // ========== Branch Operations ==========
 
   Future<List<Map<String, dynamic>>> getBranches() async {
     final db = await database;
-    final bid = _safeInt(BusinessConfig.instance.businessId);
     final activeBranches = BusinessConfig.instance.activeBranchIds;
     final brid = BusinessConfig.instance.branchId;
     final isStaff = BusinessConfig.instance.staffId != null;
@@ -25,34 +22,40 @@ mixin BranchesCrud {
       return []; // Staff on global view has no branch, thus shouldn't see branches
     }
 
-    final aid = _safeInt(BusinessConfig.instance.adminId);
-    final args = [bid, aid, ...(activeBranches.isNotEmpty ? activeBranches : (brid != null ? [brid] : []))];
+    final args = [...getBusinessArgs(), ...(activeBranches.isNotEmpty ? activeBranches : (brid != null ? [brid] : []))];
 
-    return await db.query('branches', where: 'status = 1 AND business_id = ? AND admin_id = ?$branchFilter', whereArgs: args);
+    return await db.query('branches', where: 'status = 1${getBusinessFilter()}$branchFilter', whereArgs: args);
+  }
+
+  Future<List<Map<String, dynamic>>> getBranchesForBusiness(dynamic businessId) async {
+    final db = await database;
+    return await db.query(
+      'branches', 
+      where: 'status = 1 AND business_id = ?', 
+      whereArgs: [businessId]
+    );
   }
 
   Future<List<Map<String, dynamic>>> getAllBranches() async {
     final db = await database;
-    final bid = _safeInt(BusinessConfig.instance.businessId);
-    final aid = _safeInt(BusinessConfig.instance.adminId);
-    return await db.query('branches', where: 'status = 1 AND business_id = ? AND admin_id = ?', whereArgs: [bid, aid]);
+    return await db.query(
+      'branches', 
+      where: 'status = 1${getBusinessFilter()}', 
+      whereArgs: getBusinessArgs()
+    );
   }
 
   Future<int> insertBranch(Map<String, dynamic> branch) async {
     final db = await database;
-    final bid = _safeInt(BusinessConfig.instance.businessId);
-    final aid = _safeInt(BusinessConfig.instance.adminId);
-    
-    final insertData = Map<String, dynamic>.from(branch);
-    // Remove null id so AUTOINCREMENT works
-    if (insertData['id'] == null) {
-      insertData.remove('id');
+    final data = Map<String, dynamic>.from(branch);
+    if (data['id'] == null) {
+      data.remove('id');
     }
-    insertData['business_id'] = bid;
-    insertData['admin_id'] = aid;
+    data['business_id'] = getBusinessArgs()[0];
+    data['admin_id'] = getBusinessArgs()[1];
     
     return await db.insert('branches', {
-      ...insertData,
+      ...data,
       'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
@@ -77,7 +80,13 @@ mixin BranchesCrud {
 
   Future<void> deleteBranch(dynamic id) async {
     final db = await database;
-    await db.update('branches', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
+    final businessArgs = getBusinessArgs();
+    await db.update(
+      'branches', 
+      {'status': 0, 'is_synced': 0}, 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...businessArgs]
+    );
   }
 
 }

@@ -9,16 +9,13 @@ mixin CustomersCrud on CommonCrud {
   // Customers
   Future<List<Map<String, dynamic>>> getCustomers() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     final results = await db.rawQuery(
-      'SELECT * FROM customers WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter ORDER BY name ASC',
+      'SELECT * FROM customers WHERE status = 1${getBusinessFilter()}$branchFilter ORDER BY name ASC',
       args,
     );
     return results;
@@ -26,37 +23,39 @@ mixin CustomersCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getAllCustomers() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-
     return await db.rawQuery(
-      'SELECT * FROM customers WHERE status = 1 AND business_id = ? AND admin_id = ? ORDER BY name ASC',
-      [bid, aid],
+      'SELECT * FROM customers WHERE status = 1${getBusinessFilter()} ORDER BY name ASC',
+      getBusinessArgs(),
     );
   }
 
-  Future<void> insertCustomer(Map<String, dynamic> customer) async {
+  Future<int> insertCustomer(Map<String, dynamic> customer) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
-    await db.insert('customers', {
+    return await db.insert('customers', {
       ...customer,
-      'business_id': bid,
-      'admin_id': aid,
+      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': customer['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
-  Future<void> updateCustomer(dynamic id, Map<String, dynamic> data) async {
+  Future<int> updateCustomer(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
-    await db.update('customers', {...data, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
+    return await db.update(
+      'customers', 
+      {...data, 'is_synced': 0}, 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...getBusinessArgs()]
+    );
   }
 
   Future<Map<String, dynamic>?> getCustomer(dynamic id) async {
     final db = await database;
-    final results = await db.query('customers', where: 'id = ?', whereArgs: [id]);
+    final results = await db.query(
+      'customers', 
+      where: 'id = ?${getBusinessFilter()}', 
+      whereArgs: [id, ...getBusinessArgs()]
+    );
     return results.firstOrNull;
   }
 }

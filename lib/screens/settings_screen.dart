@@ -307,13 +307,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final db = DatabaseHelper.instance;
     final storage = const FlutterSecureStorage();
     
-    // Update local config
-    BusinessConfig.instance.businessId = business['id'];
-    BusinessConfig.instance.businessName = business['name'];
-    BusinessConfig.instance.businessType = business['business_type'] ?? 'general';
+    // Fetch branches for this business to set initial context
+    final branches = await db.getBranchesForBusiness(business['id']);
+    final mainBranch = branches.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
+
+    // Update local config using centralized setContext
+    BusinessConfig.instance.setContext(
+      bid: business['id'],
+      aid: business['owner_user_id'] ?? BusinessConfig.instance.adminId, // Fallback to current admin if missing
+      brid: mainBranch['id'],
+      bName: business['name'],
+      bType: business['business_type'],
+      activeBranches: branches.map((b) => b['id']).toList(),
+    );
     
     // Persist to storage
     await storage.write(key: 'business_id', value: business['id'].toString());
+    await storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
     
     // Update settings table for persistent offline access
     await db.setSetting('business_name', business['name']);

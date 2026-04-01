@@ -9,14 +9,11 @@ mixin CategoriesCrud on CommonCrud {
   // Categories
   Future<List<Map<String, dynamic>>> getCategories() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    String query = 'SELECT * FROM categories WHERE status = 1 AND parent_id IS NULL AND business_id = ? AND admin_id = ?$branchFilter';
-    List<dynamic> args = [bid, aid, ...branchArgs];
+    String query = 'SELECT * FROM categories WHERE status = 1 AND parent_id IS NULL${getBusinessFilter()}$branchFilter';
+    List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
     
     query += ' ORDER BY name ASC';
     
@@ -25,14 +22,10 @@ mixin CategoriesCrud on CommonCrud {
 
   Future<int> insertCategory(Map<String, dynamic> category) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final now = DateTime.now().toIso8601String();
     return await db.insert('categories', {
       ...category,
-      'business_id': bid,
-      'admin_id': aid,
+      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': getSafeInt(category['branch_id'] ?? getCurrentBranchId()),
       'is_synced': 0,
       'created_at': category['created_at'] ?? now,
@@ -42,15 +35,13 @@ mixin CategoriesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getSubCategories({dynamic categoryId}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
+    final businessArgs = getBusinessArgs();
     
     // 1. Fetch from subcategories table
-    String subQuery = 'SELECT * FROM subcategories WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter';
-    List<dynamic> subArgs = [bid, aid, ...branchArgs];
+    String subQuery = 'SELECT * FROM subcategories WHERE status = 1${getBusinessFilter()}$branchFilter';
+    List<dynamic> subArgs = [...businessArgs, ...branchArgs];
 
     if (categoryId != null) {
       subQuery += ' AND category_id = ?';
@@ -60,8 +51,8 @@ mixin CategoriesCrud on CommonCrud {
     final List<Map<String, dynamic>> subResults = await db.rawQuery(subQuery, subArgs);
     
     // 2. Fetch from categories table (where parent_id is NOT NULL)
-    String catQuery = 'SELECT * FROM categories WHERE status = 1 AND parent_id IS NOT NULL AND business_id = ? AND admin_id = ?$branchFilter';
-    List<dynamic> catArgs = [bid, aid, ...branchArgs];
+    String catQuery = 'SELECT * FROM categories WHERE status = 1 AND parent_id IS NOT NULL${getBusinessFilter()}$branchFilter';
+    List<dynamic> catArgs = [...businessArgs, ...branchArgs];
     
     if (categoryId != null) {
       catQuery += ' AND parent_id = ?';
@@ -92,16 +83,10 @@ mixin CategoriesCrud on CommonCrud {
 
   Future<int> insertSubCategory(Map<String, dynamic> subcategory) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
-    if (kDebugMode) print('💾 [DB] insertSubCategory: $subcategory (bid=$bid, aid=$aid)');
-    
     final now = DateTime.now().toIso8601String();
     return await db.insert('subcategories', {
       ...subcategory,
-      'business_id': bid,
-      'admin_id': aid,
+      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': getSafeInt(subcategory['branch_id'] ?? getCurrentBranchId()),
       'is_synced': 0,
       'created_at': subcategory['created_at'] ?? now,

@@ -8,31 +8,28 @@ mixin ProductsCrud on CommonCrud {
   // Products
   Future<List<Map<String, dynamic>>> getProducts({dynamic categoryId, bool includeInactive = false}) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
 
     final statusFilter = includeInactive ? '' : ' AND status = 1';
-    final baseArgs = [bid, aid, ...branchArgs];
+    final baseArgs = [...getBusinessArgs(), ...branchArgs];
 
     List<Map<String, dynamic>> productMaps;
     if (categoryId != null) {
       if (categoryId == 'cat-fav') {
         productMaps = await db.rawQuery(
-          'SELECT * FROM products WHERE is_favorite = 1$statusFilter AND business_id = ? AND admin_id = ?$branchFilter',
+          'SELECT * FROM products WHERE is_favorite = 1$statusFilter${getBusinessFilter()}$branchFilter',
           baseArgs,
         );
       } else {
         productMaps = await db.rawQuery(
-          'SELECT * FROM products WHERE category_id = ?$statusFilter AND business_id = ? AND admin_id = ?$branchFilter',
+          'SELECT * FROM products WHERE category_id = ?$statusFilter${getBusinessFilter()}$branchFilter',
           [categoryId, ...baseArgs],
         );
       }
     } else {
       productMaps = await db.rawQuery(
-        'SELECT * FROM products WHERE 1=1$statusFilter AND business_id = ? AND admin_id = ?$branchFilter',
+        'SELECT * FROM products WHERE 1=1$statusFilter${getBusinessFilter()}$branchFilter',
         baseArgs,
       );
     }
@@ -44,8 +41,8 @@ mixin ProductsCrud on CommonCrud {
     final idPlaceholders = List.filled(productIds.length, '?').join(', ');
     
     final stockMaps = await db.rawQuery(
-      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) AND status = 1 $branchFilter',
-      [...productIds, ...branchArgs],
+      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) AND status = 1 ${getBusinessFilter()} $branchFilter',
+      [...productIds, ...getBusinessArgs(), ...branchArgs],
     );
 
     // Group stocks by product_id
@@ -71,27 +68,24 @@ mixin ProductsCrud on CommonCrud {
     final branchArgs = getBranchArgs();
     
     return await db.rawQuery(
-      'SELECT * FROM stocks WHERE product_id = ? AND status = 1 $branchFilter',
-      [productId?.toString(), ...branchArgs]
+      'SELECT * FROM stocks WHERE product_id = ? AND status = 1 ${getBusinessFilter()} $branchFilter',
+      [productId?.toString(), ...getBusinessArgs(), ...branchArgs]
     );
   }
 
   Future<List<Map<String, dynamic>>> searchProducts(String query) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final args = [bid, aid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
 
     // Search by product name or stock barcode
     final productMaps = await db.rawQuery(
       '''
       SELECT DISTINCT p.* FROM products p
       LEFT JOIN stocks s ON p.id = s.product_id
-      WHERE p.status = 1 AND p.business_id = ? AND p.admin_id = ? $branchFilter 
+      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('admin_id', 'p.admin_id')} $branchFilter 
       AND (p.name LIKE ? OR s.barcode LIKE ?)
       ''',
       [...args, '%$query%', '%$query%'],
@@ -104,8 +98,8 @@ mixin ProductsCrud on CommonCrud {
     final idPlaceholders = List.filled(productIds.length, '?').join(', ');
     
     final stockMaps = await db.rawQuery(
-      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) AND status = 1 $branchFilter',
-      [...productIds, ...branchArgs],
+      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) AND status = 1 ${getBusinessFilter()} $branchFilter',
+      [...productIds, ...getBusinessArgs(), ...branchArgs],
     );
 
     Map<String, List<Map<String, dynamic>>> stocksByProduct = {};
@@ -125,16 +119,13 @@ mixin ProductsCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getProductByBarcode(String barcode) async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final args = [barcode, bid, aid, ...branchArgs];
+    final args = [barcode, ...getBusinessArgs(), ...branchArgs];
 
     final results = await db.rawQuery(
-      'SELECT * FROM products WHERE barcode = ? AND business_id = ? AND admin_id = ?$branchFilter LIMIT 1',
+      'SELECT * FROM products WHERE barcode = ?${getBusinessFilter()}$branchFilter LIMIT 1',
       args,
     );
     return results.isNotEmpty ? results.first : null;
@@ -217,8 +208,8 @@ mixin ProductsCrud on CommonCrud {
     await db.update(
       'products',
       {'is_favorite': currentStatus ? 0 : 1},
-      where: 'id = ?',
-      whereArgs: [productId],
+      where: 'id = ?${getBusinessFilter().replaceAll('business_id', 'business_id').replaceAll('admin_id', 'admin_id')}',
+      whereArgs: [productId, ...getBusinessArgs()],
     );
   }
 }

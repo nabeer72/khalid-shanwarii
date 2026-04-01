@@ -230,7 +230,10 @@ class SyncService {
                 
                 // Only create a batch if there is price or quantity
                 if (price > 0 || qty > 0) {
-                  final existingStocks = await txn.query('stocks', where: 'product_id = ?', whereArgs: [productId]);
+                  final existingStocks = await txn.query('stocks', 
+                    where: 'product_id = ? AND business_id = ? AND admin_id = ?', 
+                    whereArgs: [productId, productRow['business_id'], productRow['admin_id']]
+                  );
                   if (existingStocks.isEmpty) {
                     await txn.insert('stocks', {
                       'business_id': productRow['business_id'],
@@ -255,7 +258,7 @@ class SyncService {
                       'cost_price': _parseNum(p['purchase_price'] ?? p['cost_price']),
                       'updated_at': productRow['updated_at'],
                       'is_synced': 1,
-                    }, where: 'id = ?', whereArgs: [existingStocks.first['id']]);
+                    }, where: 'id = ? AND business_id = ? AND admin_id = ?', whereArgs: [existingStocks.first['id'], productRow['business_id'], productRow['admin_id']]);
                     
                     // If there are other batches locally for SAME product name/barcode, we might need to reset them?
                     // But usually, separate price entries have unique IDs.
@@ -1131,8 +1134,13 @@ class SyncService {
         }).toList();
       }
 
+      final bid = BusinessConfig.instance.businessId;
+      final aid = BusinessConfig.instance.adminId;
+      final businessFilter = 'business_id = ? AND admin_id = ?';
+      final businessArgs = [bid, aid];
+
       // Unsynced Employees
-      unsyncedEmployees = await db.query('employees', where: 'is_synced = 0');
+      unsyncedEmployees = await db.query('employees', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedEmployees.isNotEmpty) {
         List<Map<String, dynamic>> employeesList = [];
         for (var e in unsyncedEmployees) {
@@ -1147,7 +1155,7 @@ class SyncService {
             } catch (_) {}
           }
 
-          // Process Multi-Roles
+          // Process Multi-Roles - ensure we only get roles for this business context
           final roleRows = await db.query('employee_roles', where: 'employee_id = ?', whereArgs: [m['id']]);
           final roleIds = roleRows.map((r) => r['role_id'] as int).toList();
           m['roles'] = roleIds;
@@ -1174,7 +1182,7 @@ class SyncService {
       }
 
       // Unsynced Credit Sales
-      unsyncedCreditSales = await db.query('credit_sales', where: 'is_synced = 0');
+      unsyncedCreditSales = await db.query('credit_sales', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedCreditSales.isNotEmpty) {
         changes['credit_sales'] = unsyncedCreditSales.map((cs) {
           var m = Map.from(cs);
@@ -1184,7 +1192,7 @@ class SyncService {
       }
 
       // Unsynced Credit Payments
-      unsyncedCreditPayments = await db.query('credit_payments', where: 'is_synced = 0');
+      unsyncedCreditPayments = await db.query('credit_payments', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedCreditPayments.isNotEmpty) {
         changes['credit_payments'] = unsyncedCreditPayments.map((cp) {
           var m = Map.from(cp);
@@ -1194,7 +1202,7 @@ class SyncService {
       }
 
       // Unsynced Suppliers
-      unsyncedSuppliers = await db.query('suppliers', where: 'is_synced = 0');
+      unsyncedSuppliers = await db.query('suppliers', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedSuppliers.isNotEmpty) {
         changes['suppliers'] = unsyncedSuppliers.map((s) {
           var m = Map<String, dynamic>.from(s);
@@ -1206,7 +1214,7 @@ class SyncService {
       }
 
       // Unsynced Expense Heads
-      unsyncedExpenseHeads = await db.query('expense_heads', where: 'is_synced = 0');
+      unsyncedExpenseHeads = await db.query('expense_heads', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedExpenseHeads.isNotEmpty) {
         changes['expense_heads'] = unsyncedExpenseHeads.map((eh) {
           var m = Map.from(eh);
@@ -1216,7 +1224,7 @@ class SyncService {
       }
 
       // Unsynced Expenses
-      unsyncedExpenses = await db.query('expenses', where: 'is_synced = 0');
+      unsyncedExpenses = await db.query('expenses', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedExpenses.isNotEmpty) {
         changes['expenses'] = unsyncedExpenses.map((e) {
           var m = Map.from(e);
@@ -1226,14 +1234,14 @@ class SyncService {
       }
 
       // Unsynced Purchases
-      unsyncedPurchases = await db.query('purchases', where: 'is_synced = 0');
+      unsyncedPurchases = await db.query('purchases', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedPurchases.isNotEmpty) {
         List<Map<String, dynamic>> purchasesList = [];
         for (var p in unsyncedPurchases) {
           var m = Map<String, dynamic>.from(p);
           m.remove('is_synced');
           
-          // Get items for this purchase
+          // Get items for this purchase - strictly isolated by purchase ID
           final items = await db.query('purchase_items', where: 'purchase_id = ?', whereArgs: [p['id']]);
           m['items'] = items.map((item) {
             var itemMap = Map<String, dynamic>.from(item);
@@ -1247,7 +1255,7 @@ class SyncService {
       }
 
       // Unsynced Shifts
-      unsyncedShifts = await db.query('shifts', where: 'is_synced = 0');
+      unsyncedShifts = await db.query('shifts', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedShifts.isNotEmpty) {
         changes['shifts'] = unsyncedShifts.map((s) {
           var m = Map<String, dynamic>.from(s);
@@ -1264,7 +1272,7 @@ class SyncService {
       }
 
       // Unsynced Branches
-      unsyncedBranches = await db.query('branches', where: 'is_synced = 0');
+      unsyncedBranches = await db.query('branches', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedBranches.isNotEmpty) {
         changes['branches'] = unsyncedBranches.map((b) {
           var m = Map<String, dynamic>.from(b);
@@ -1274,7 +1282,7 @@ class SyncService {
       }
 
       // Unsynced Roles
-      unsyncedRoles = await db.query('roles', where: 'is_synced = 0');
+      unsyncedRoles = await db.query('roles', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedRoles.isNotEmpty) {
         List<Map<String, dynamic>> rolesList = [];
         for (var r in unsyncedRoles) {
@@ -1298,9 +1306,8 @@ class SyncService {
       // await db.update('bank_accounts', {'is_synced': 0});
       
       // Unsynced Bank Accounts
-      final allBanks = await db.query('bank_accounts');
-      unsyncedBankAccounts = await db.query('bank_accounts', where: 'is_synced = 0');
-      if (kDebugMode) print('🔍 [SYNC] Bank account total: ${allBanks.length}, Unsynced: ${unsyncedBankAccounts.length}');
+      unsyncedBankAccounts = await db.query('bank_accounts', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
+      if (kDebugMode) print('🔍 [SYNC] Unsynced Bank accounts: ${unsyncedBankAccounts.length}');
       if (unsyncedBankAccounts.isNotEmpty) {
         changes['bank_accounts'] = unsyncedBankAccounts.map((b) {
           var m = Map<String, dynamic>.from(b);
@@ -1310,7 +1317,7 @@ class SyncService {
       }
 
       // Unsynced Supplier Credit Purchases
-      unsyncedSupplierCreditPurchases = await db.query('supplier_credit_purchases', where: 'is_synced = 0');
+      unsyncedSupplierCreditPurchases = await db.query('supplier_credit_purchases', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedSupplierCreditPurchases.isNotEmpty) {
         changes['supplier_credit_purchases'] = unsyncedSupplierCreditPurchases.map((s) {
           var m = Map<String, dynamic>.from(s);
@@ -1320,7 +1327,7 @@ class SyncService {
       }
 
       // Unsynced Supplier Paybacks
-      unsyncedSupplierPaybacks = await db.query('supplier_paybacks', where: 'is_synced = 0');
+      unsyncedSupplierPaybacks = await db.query('supplier_paybacks', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedSupplierPaybacks.isNotEmpty) {
         changes['supplier_paybacks'] = unsyncedSupplierPaybacks.map((s) {
           var m = Map<String, dynamic>.from(s);
@@ -1330,7 +1337,7 @@ class SyncService {
       }
 
       // Unsynced Gift Cards
-      unsyncedGiftCards = await db.query('gift_cards', where: 'is_synced = 0');
+      unsyncedGiftCards = await db.query('gift_cards', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedGiftCards.isNotEmpty) {
         changes['gift_cards'] = unsyncedGiftCards.map((g) {
           var m = Map<String, dynamic>.from(g);
@@ -1340,7 +1347,7 @@ class SyncService {
       }
 
       // Unsynced Currency Notes
-      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0');
+      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0'); // [TODO] Global table, but should be isolated if possible
       if (unsyncedCurrencyNotes.isNotEmpty) {
         changes['currency_notes'] = unsyncedCurrencyNotes.map((cn) {
           var m = Map.from(cn);
@@ -1350,7 +1357,7 @@ class SyncService {
       }
 
       // [NEW] Unsynced User Businesses
-      unsyncedUserBusinesses = await db.query('user_businesses', where: 'is_synced = 0');
+      unsyncedUserBusinesses = await db.query('user_businesses', where: 'is_synced = 0'); // User global, but linked to current user
       if (unsyncedUserBusinesses.isNotEmpty) {
         changes['user_businesses'] = unsyncedUserBusinesses.map((ub) {
           var m = Map.from(ub);
@@ -1532,7 +1539,19 @@ class SyncService {
 
     for (var table in tables) {
       try {
-        final List<Map<String, dynamic>> result = await db.query(table, where: 'is_synced = 0', limit: 1);
+        final bid = BusinessConfig.instance.businessId;
+        final aid = BusinessConfig.instance.adminId;
+        
+        String whereClause = 'is_synced = 0';
+        List<dynamic> args = [];
+        
+        // Skip business isolation for tables that don't have these columns
+        if (!['users', 'currency_notes', 'user_businesses', 'permissions'].contains(table)) {
+           whereClause += ' AND business_id = ? AND admin_id = ?';
+           args.addAll([bid, aid]);
+        }
+
+        final List<Map<String, dynamic>> result = await db.query(table, where: whereClause, whereArgs: args, limit: 1);
         if (result.isNotEmpty) return true;
       } catch (e) {
         // Table might not exist or doesn't have is_synced (unlikely given schema)

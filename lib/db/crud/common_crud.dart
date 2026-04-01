@@ -46,6 +46,24 @@ mixin CommonCrud {
     return [];
   }
 
+  // Business Isolation Helpers
+  String getBusinessFilter() {
+    return ' AND business_id = ? AND admin_id = ?';
+  }
+
+  List<dynamic> getBusinessArgs() {
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    return [bid, aid];
+  }
+
+  Map<String, dynamic> getBusinessArgsMap() {
+    return {
+      'business_id': getSafeInt(BusinessConfig.instance.businessId),
+      'admin_id': getSafeInt(BusinessConfig.instance.adminId),
+    };
+  }
+
   dynamic getCurrentBranchId() {
     // Priority: 
     // 1. Specific branchId set in context (e.g. for assignment)
