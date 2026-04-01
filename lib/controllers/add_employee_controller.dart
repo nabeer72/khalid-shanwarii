@@ -21,7 +21,7 @@ class AddEmployeeController with ChangeNotifier {
   late TextEditingController search;
 
   // State
-  int? selectedRoleId;
+  List<int> selectedRoleIds = [];
   List<Map<String, dynamic>> roles = [];
   int status = 1; // 1 = active, 0 = inactive
   int? selectedBranchId;
@@ -42,7 +42,7 @@ class AddEmployeeController with ChangeNotifier {
     if (emp != null) {
       status = emp.isActive ? 1 : 0;
       selectedBranchId = emp.branchId;
-      selectedRoleId = emp.roleId;
+      selectedRoleIds = List<int>.from(emp.roleIds);
     }
 
     _loadInitialData();
@@ -55,30 +55,26 @@ class AddEmployeeController with ChangeNotifier {
 
   Future<void> _loadRoles() async {
     try {
-      // Load roles using the centralized method to ensure branch isolation
       roles = await DatabaseHelper.instance.getRoles();
       
-      if (selectedRoleId != null) {
-        // Ensure the selected role still exists in the loaded list
-        if (!roles.any((r) => r['id'] == selectedRoleId)) {
-          selectedRoleId = null;
-          selectedRolePermissions = [];
-        } else {
-          final perms = await DatabaseHelper.instance.getRolePermissions(selectedRoleId!);
-          selectedRolePermissions = perms.map((p) => p.toString()).toList();
-        }
-      } else if (initialEmployee?.roleId != null) {
-          final targetId = initialEmployee!.roleId!;
-          if (roles.any((r) => r['id'] == targetId)) {
-            selectedRoleId = targetId;
-            final perms = await DatabaseHelper.instance.getRolePermissions(targetId);
-            selectedRolePermissions = perms.map((p) => p.toString()).toList();
-          }
+      if (isEditMode && initialEmployee?.id != null) {
+        selectedRoleIds = await DatabaseHelper.instance.getEmployeeRoleIds(initialEmployee!.id!);
       }
+
+      await _updateRolePermissions();
       notifyListeners();
     } catch (e) {
       print('Error loading roles: $e');
     }
+  }
+
+  Future<void> _updateRolePermissions() async {
+    final Set<String> allPerms = {};
+    for (var rid in selectedRoleIds) {
+      final perms = await DatabaseHelper.instance.getRolePermissions(rid);
+      allPerms.addAll(perms.map((p) => p.toString()));
+    }
+    selectedRolePermissions = allPerms.toList();
   }
 
   Future<void> _loadBranches() async {
@@ -139,14 +135,14 @@ class AddEmployeeController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setRole(int? newRoleId) async {
-    selectedRoleId = newRoleId;
-    if (newRoleId != null) {
-      final perms = await DatabaseHelper.instance.getRolePermissions(newRoleId);
-      selectedRolePermissions = perms.map((p) => p.toString()).toList();
+  void toggleRole(int? roleId) async {
+    if (roleId == null) return;
+    if (selectedRoleIds.contains(roleId)) {
+      selectedRoleIds.remove(roleId);
     } else {
-      selectedRolePermissions = [];
+      selectedRoleIds.add(roleId);
     }
+    await _updateRolePermissions();
     notifyListeners();
   }
 
@@ -168,10 +164,11 @@ class AddEmployeeController with ChangeNotifier {
     }
 
     try {
-      // Get role name for the 'role' column (backward compatibility/simplicity)
+      // Backward compatibility: use the first selected role name
       String roleName = 'cashier';
-      if (selectedRoleId != null) {
-        final roleObj = roles.firstWhere((r) => r['id'] == selectedRoleId, orElse: () => {});
+      if (selectedRoleIds.isNotEmpty) {
+        final firstRoleId = selectedRoleIds.first;
+        final roleObj = roles.firstWhere((r) => r['id'] == firstRoleId || r['id'].toString() == firstRoleId.toString(), orElse: () => {});
         if (roleObj.isNotEmpty) {
           roleName = roleObj['name']?.toString().toLowerCase() ?? 'cashier';
         }
@@ -185,7 +182,7 @@ class AddEmployeeController with ChangeNotifier {
         'email': email.text.trim().toLowerCase(), 
         'phone': phone.text.trim().isEmpty ? null : phone.text.trim(),
         'status': status,
-        'role_id': selectedRoleId,
+        'role_id': selectedRoleIds.isNotEmpty ? selectedRoleIds.first : null,
         'branch_id': selectedBranchId,
         'permissions': jsonEncode(initialEmployee?.permissions ?? []), // Keep existing or empty if new
         'updated_at': DateTime.now().toIso8601String(),
@@ -207,7 +204,13 @@ class AddEmployeeController with ChangeNotifier {
         return false;
       }
 
-      await DatabaseHelper.instance.insertEmployee(empMap);
+      final insertedId = await DatabaseHelper.instance.insertEmployee(empMap);
+      
+      // Update employee_roles pivot table
+      final idToUse = initialEmployee?.id ?? insertedId;
+      if (idToUse != null) {
+        await DatabaseHelper.instance.updateEmployeeRoles(idToUse, selectedRoleIds);
+      }
 
       return true;
     } catch (e) {

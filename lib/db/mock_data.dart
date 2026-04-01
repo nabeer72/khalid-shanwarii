@@ -146,7 +146,8 @@ class Employee {
   final bool isActive;
   final List<String> permissions;
   final int? branchId;
-  final int? roleId;
+  final int? roleId; // Legacy/Primary role
+  final List<int> roleIds;
 
   Employee({
     this.id,
@@ -159,6 +160,7 @@ class Employee {
     this.permissions = const [],
     this.branchId,
     this.roleId,
+    this.roleIds = const [],
   });
 }
 

@@ -57,12 +57,21 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
           }
         }
         
-        // 2. Role-based permissions
-        final roleIdInt = e['role_id'] is int ? e['role_id'] as int : int.tryParse(e['role_id']?.toString() ?? '');
-        if (roleIdInt != null) {
-          final rolePermissions = await DatabaseHelper.instance.getRolePermissions(roleIdInt);
+        // 2. Role-based permissions & Role IDs (Multi-Role Support)
+        final roleIds = await DatabaseHelper.instance.getEmployeeRoleIds(e['id']);
+        final Set<String> roleNames = {};
+        for (var rid in roleIds) {
+          final rolePermissions = await DatabaseHelper.instance.getRolePermissions(rid);
           perms.addAll(rolePermissions.map((p) => p.toString()));
+          
+          final r = roleMap[rid];
+          if (r != null) {
+            roleNames.add(r['name']?.toString().toLowerCase() ?? 'staff');
+          }
         }
+        
+        // Backward compatibility for display
+        final displayRole = roleNames.isNotEmpty ? roleNames.first : (e['role'] ?? 'cashier');
 
         // DEBUG: Log merged permissions
         if (kDebugMode) {
@@ -72,14 +81,15 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
         tempEmployees.add(Employee(
           id: e['id'],
           name: e['name'],
-          role: e['role'] ?? 'cashier',
+          role: displayRole,
           pin: e['pin'],
           email: e['email'],
           phone: e['phone'],
           isActive: e['status'] == 1,
           permissions: perms.toList(),
           branchId: e['branch_id'],
-          roleId: e['role_id'],
+          roleId: roleIds.isNotEmpty ? roleIds.first : null,
+          roleIds: roleIds,
         ));
       }
 
@@ -190,29 +200,41 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         validator: controller.validatePassword,
                       ),
                       const SizedBox(height: 20),
-                      _buildDialogSectionHeader('Role & Access'),
-                      DropdownButtonFormField<int?>(
-                        value: controller.roles.any((r) => r['id'] == controller.selectedRoleId)
-                            ? controller.selectedRoleId
-                            : null,
-                        dropdownColor: theme.surface,
-                        style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                        decoration: theme.glassInputDecoration('Access Role', Icons.badge_outlined).copyWith(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                            ),
-                        items: controller.roles
-                            .map((r) => DropdownMenuItem<int?>(
-                                  value: r['id'] is int ? r['id'] : int.tryParse(r['id']?.toString() ?? ''),
-                                  child: Text(r['name']?.toString() ?? 'Unknown'),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          controller.setRole(val);
-                          setDialogState(() {});
-                        },
+                      _buildDialogSectionHeader('Access Roles (Select Multiple)'),
+                      Container(
+                        constraints: const BoxConstraints(maxHeight: 200),
+                        decoration: BoxDecoration(
+                          color: theme.background.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: theme.divider),
+                        ),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          shrinkWrap: true,
+                          itemCount: controller.roles.length,
+                          separatorBuilder: (_, __) => Divider(height: 1, color: theme.divider.withOpacity(0.5)),
+                          itemBuilder: (ctx, i) {
+                            final r = controller.roles[i];
+                            final rid = r['id'] is int ? r['id'] : int.tryParse(r['id']?.toString() ?? '');
+                            final isSelected = controller.selectedRoleIds.contains(rid);
+                            
+                            return CheckboxListTile(
+                              value: isSelected,
+                              title: Text(r['name']?.toString() ?? 'Unknown', 
+                                style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+                              subtitle: Text(r['description']?.toString() ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+                              activeColor: theme.highlight,
+                              onChanged: (_) {
+                                controller.toggleRole(rid);
+                                setDialogState(() {});
+                              },
+                              dense: true,
+                              controlAffinity: ListTileControlAffinity.trailing,
+                            );
+                          },
+                        ),
                       ),
-                      if (controller.selectedRoleId != null && controller.selectedRolePermissions.isNotEmpty) ...[
+                      if (controller.selectedRoleIds.isNotEmpty && controller.selectedRolePermissions.isNotEmpty) ...[
                         const SizedBox(height: 10),
                         Wrap(
                           spacing: 4,
@@ -477,7 +499,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                           final emp = _employees[index];
                           final roleColor = _getRoleColor(emp.role);
                           return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
+                                margin: const EdgeInsets.only(bottom: 8),
                             decoration: theme.glassDecoration,
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -488,15 +510,22 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                     child: Text(emp.name, 
                                         style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: _getRoleColor(emp.role).withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: _getRoleColor(emp.role).withOpacity(0.2)),
-                                    ),
-                                    child: Text(emp.role.toUpperCase(), 
-                                        style: TextStyle(color: _getRoleColor(emp.role), fontSize: 7, fontWeight: FontWeight.w900)),
+                                  Wrap(
+                                    spacing: 4,
+                                    children: emp.roleIds.map((rid) {
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: _getRoleColor(emp.role).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: _getRoleColor(emp.role).withOpacity(0.2)),
+                                        ),
+                                        child: Text(
+                                          (rid.toString()).toUpperCase(),
+                                          style: TextStyle(color: _getRoleColor(emp.role), fontSize: 7, fontWeight: FontWeight.w900),
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
                                 ],
                               ),

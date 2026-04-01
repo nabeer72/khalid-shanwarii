@@ -18,7 +18,7 @@ mixin EmployeesCrud on CommonCrud {
     final args = [bid, aid, ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM employees WHERE business_id = ? AND admin_id = ? $branchFilter',
+      'SELECT * FROM employees WHERE business_id IS ? AND admin_id IS ? $branchFilter',
       args,
     );
   }
@@ -29,12 +29,12 @@ mixin EmployeesCrud on CommonCrud {
     final aid = getSafeInt(BusinessConfig.instance.adminId);
 
     return await db.rawQuery(
-      'SELECT * FROM employees WHERE business_id = ? AND admin_id = ?',
+      'SELECT * FROM employees WHERE business_id IS ? AND admin_id IS ?',
       [bid, aid],
     );
   }
 
-  Future<void> insertEmployee(Map<String, dynamic> employee) async {
+  Future<int> insertEmployee(Map<String, dynamic> employee) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
@@ -60,7 +60,7 @@ mixin EmployeesCrud on CommonCrud {
       data['branch_id'] = int.tryParse(data['branch_id']);
     }
 
-    await db.insert('employees', {
+    return await db.insert('employees', {
       ...data,
       'business_id': bIdToUse,
       'admin_id': aIdToUse,
@@ -92,14 +92,9 @@ mixin EmployeesCrud on CommonCrud {
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     
-    final branchFilter = getBranchFilter();
-    final branchArgs = getBranchArgs();
-
-    final args = [bid, aid, ...branchArgs];
-
     return await db.rawQuery(
-      'SELECT * FROM roles WHERE status = 1 AND business_id = ? AND admin_id = ? $branchFilter',
-      args
+      'SELECT * FROM roles WHERE status = 1 AND business_id IS ? AND admin_id IS ?',
+      [bid, aid]
     );
   }
 
@@ -192,6 +187,38 @@ mixin EmployeesCrud on CommonCrud {
           ...p,
           'updated_at': DateTime.now().toIso8601String(),
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    });
+  }
+
+  Future<List<String>> getEmployeePermissions(dynamic employeeId) async {
+    final db = await database;
+    final List<Map<String, dynamic>> res = await db.rawQuery('''
+      SELECT DISTINCT p.name 
+      FROM employee_roles er
+      JOIN role_permissions rp ON er.role_id = rp.role_id
+      JOIN permissions p ON rp.permission_id = p.id
+      WHERE er.employee_id = ?
+    ''', [employeeId]);
+    
+    return res.map((r) => r['name'].toString()).toList();
+  }
+
+  Future<List<int>> getEmployeeRoleIds(dynamic employeeId) async {
+    final db = await database;
+    final res = await db.query('employee_roles', columns: ['role_id'], where: 'employee_id = ?', whereArgs: [employeeId]);
+    return res.map((r) => int.tryParse(r['role_id'].toString()) ?? 0).where((id) => id > 0).toList();
+  }
+
+  Future<void> updateEmployeeRoles(dynamic employeeId, List<int> roleIds) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('employee_roles', where: 'employee_id = ?', whereArgs: [employeeId]);
+      for (var rid in roleIds) {
+        await txn.insert('employee_roles', {
+          'employee_id': employeeId,
+          'role_id': rid,
+        });
       }
     });
   }

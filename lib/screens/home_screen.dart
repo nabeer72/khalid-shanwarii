@@ -85,22 +85,12 @@ class _HomeScreenState extends State<HomeScreen> {
           } catch (e) {}
         }
 
-        // 2. Load RBAC permissions if role_id is present
-        final roleId = staffData['role_id'];
-        if (roleId != null) {
-          final db = await DatabaseHelper.instance.database;
-          final rolePerms = await db.rawQuery('''
-            SELECT p.name 
-            FROM role_permissions rp
-            JOIN permissions p ON rp.permission_id = p.id
-            WHERE rp.role_id = ?
-          ''', [roleId]);
-          
-          final rbacPerms = rolePerms.map((p) => p['name'].toString()).toList();
-          // Union of legacy and RBAC for safety during transition
-          for (var p in rbacPerms) {
-            if (!perms.contains(p)) perms.add(p);
-          }
+        // 2. Load RBAC permissions from all assigned roles
+        final rbacPerms = await DatabaseHelper.instance.getEmployeePermissions(sid);
+        
+        // Union of legacy and RBAC for safety during transition
+        for (var p in rbacPerms) {
+          if (!perms.contains(p)) perms.add(p);
         }
 
         setState(() {

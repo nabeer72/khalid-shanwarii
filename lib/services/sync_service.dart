@@ -298,10 +298,11 @@ class SyncService {
           // Employees
           if (data['employees'] != null) {
             for (var e in data['employees']) {
+              final employeeId = e['id'] is int ? e['id'] : int.tryParse(e['id']?.toString() ?? '');
               await txn.insert(
                 'employees',
                 {
-                  'id': e['id'] is int ? e['id'] : int.tryParse(e['id']?.toString() ?? ''),
+                  'id': employeeId,
                   'business_id': e['business_id'] is int ? e['business_id'] : int.tryParse(e['business_id']?.toString() ?? '') ?? fallbackBusinessId,
                   'branch_id': e['branch_id'] is int ? e['branch_id'] : int.tryParse(e['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                   'admin_id': e['admin_id'] is int ? e['admin_id'] : int.tryParse(e['admin_id']?.toString() ?? '') ?? fallbackAdminId,
@@ -318,6 +319,21 @@ class SyncService {
                 },
                 conflictAlgorithm: ConflictAlgorithm.replace,
               );
+
+              // Sync Employee Roles (Multi-Role Support)
+              if (e['roles'] != null && e['roles'] is List) {
+                // Clear existing roles for this employee to avoid duplicates
+                await txn.delete('employee_roles', where: 'employee_id = ?', whereArgs: [employeeId]);
+                for (var role in e['roles']) {
+                  final rid = role['id'] is int ? role['id'] : int.tryParse(role['id']?.toString() ?? '');
+                  if (rid != null) {
+                    await txn.insert('employee_roles', {
+                      'employee_id': employeeId,
+                      'role_id': rid,
+                    });
+                  }
+                }
+              }
             }
             if (kDebugMode) print('Synced ${data['employees'].length} employees');
           }
@@ -1131,14 +1147,19 @@ class SyncService {
             } catch (_) {}
           }
 
-          // Merge role permissions (FETCH NAMES INSTEAD OF IDS)
-          final roleId = m['role_id'] is int ? m['role_id'] as int : int.tryParse(m['role_id']?.toString() ?? '');
-          if (roleId != null) {
+          // Process Multi-Roles
+          final roleRows = await db.query('employee_roles', where: 'employee_id = ?', whereArgs: [m['id']]);
+          final roleIds = roleRows.map((r) => r['role_id'] as int).toList();
+          m['roles'] = roleIds;
+
+          // Merge role permissions (FETCH NAMES INSTEAD OF IDS) for all assigned roles
+          if (roleIds.isNotEmpty) {
+            final placeholders = List.filled(roleIds.length, '?').join(',');
             final rolePerms = await db.rawQuery('''
               SELECT p.name FROM permissions p
               JOIN role_permissions rp ON p.id = rp.permission_id
-              WHERE rp.role_id = ?
-            ''', [roleId]);
+              WHERE rp.role_id IN ($placeholders)
+            ''', roleIds);
             for (var rp in rolePerms) {
               final name = rp['name'];
               if (name != null && !perms.contains(name)) perms.add(name);

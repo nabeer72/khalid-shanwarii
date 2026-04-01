@@ -185,7 +185,7 @@ mixin CommonCrud {
     final args = [bid, aid, ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM bank_accounts WHERE status = 1 AND business_id = ? AND admin_id = ?$branchFilter ORDER BY date DESC',
+      'SELECT * FROM bank_accounts WHERE status = 1 AND business_id IS ? AND admin_id IS ?$branchFilter ORDER BY date DESC',
       args,
     );
   }

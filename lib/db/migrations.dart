@@ -1033,6 +1033,19 @@ class DbMigrations {
         if (kDebugMode) print('v52 user_businesses is_synced error: $e');
       }
     }
+
+    if (oldVersion < 53) {
+      if (kDebugMode) print('Upgrading DB to v53: Creating employee_roles table...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS employee_roles (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          employee_id INTEGER NOT NULL,
+          role_id INTEGER NOT NULL,
+          FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE,
+          FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+        )
+      ''');
+    }
   }
 }
 
