@@ -251,7 +251,7 @@ class _SignupScreenState extends State<SignupScreen>
       }
 
       // Create a default Main Branch for the business
-      branchId = 1; // Force Branch 1 for the main branch
+      branchId ??= 1; // Use API branch ID if available, else fallback to 1
       final branchData = {
         'id': branchId,
         'business_id': businessId,
@@ -316,10 +316,8 @@ class _SignupScreenState extends State<SignupScreen>
           content: Text(apiSuccess
               ? 'Account created and synced!'
               : 'Account created locally (will sync later)'),
-          backgroundColor: ThemeProvider.businessColors[_selectedBusinessType],
         ));
-        Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => const HomeScreen()));
+        Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {

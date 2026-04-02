@@ -483,64 +483,12 @@ class _LoginScreenState extends State<LoginScreen>
     print('⏳ [LOGIN] Loading state set to true');
 
     try {
-      // First, try local authentication (for offline signup users)
-      print('🔍 [LOGIN] Checking local database for User...');
-      final localUser = await _dbHelper.getUserByEmail(cleanEmail);
-
-      if (localUser != null) {
-        print('👤 [LOGIN] Found user in local database');
-        // Check password (in production, use proper hashing)
-        if (localUser['password'] == password) {
-          print('✅ [LOGIN] Local authentication successful!');
-
-          // Store user session
-          await _storage.write(key: 'user_id', value: localUser['id'].toString());
-          await _storage.write(key: 'user_email', value: localUser['email']);
-          await _storage.write(
-              key: 'business_id', value: localUser['business_id'].toString());
-
-          // Load business info
-          if (localUser['business_id'] != null) {
-            final business =
-                await _dbHelper.getBusiness(localUser['business_id']);
-            if (business != null) {
-              BusinessConfig.instance.businessType =
-                  business['business_type'] ?? 'general';
-              BusinessConfig.instance.businessName =
-                  business['name'] ?? 'My Business';
-            }
-          }
-
-          BusinessConfig.instance.adminId = localUser['id'];
-          BusinessConfig.instance.businessId = localUser['business_id']; // [FIX] Ensure businessId is set locally
-          BusinessConfig.instance.staffId = null; // Admin login
-          await _storage.delete(key: 'staff_id');
-
-          if (localUser['branch_id'] != null) {
-            BusinessConfig.instance.branchId = localUser['branch_id'];
-            final String bid = localUser['branch_id'].toString();
-            await _storage.write(key: 'branch_id', value: bid);
-          }
-
-          // Load user settings (currency, etc.)
-          await _dbHelper.loadSettings();
-
-          // Background Sync: Verify credentials or push/pull data in background
-          _syncLoginToBackend();
-          SyncService().syncPull().then((_) => _dbHelper.loadSettings()).catchError((e) {
-            print('⚠️ [LOGIN] Background sync failed (offline?): $e');
-          });
-
-          await _proceedToHome(isQuickLogin, email);
-          return;
-        } else {
-          print('❌ [LOGIN] Local password mismatch');
-        }
-      } else {
-        print('💡 [LOGIN] User not found locally, checking for Staff...');
-        // Try Staff Login (Email + PIN/Password)
-        final staff =
-            await _dbHelper.getEmployeeByEmailAndPin(cleanEmail, password);
+      // PROMPT CHANGE: Bypassing local user login to force API (Live Database) authentication
+      // Final fallback to staff member login remains locally for offline employee use.
+      print('💡 [LOGIN] Checking for local Staff login fallback...');
+      // Try Staff Login (Email + PIN/Password)
+      final staff =
+          await _dbHelper.getEmployeeByEmailAndPin(cleanEmail, password);
         if (staff != null) {
           print('👤 [LOGIN] Staff member found!');
 
@@ -585,7 +533,6 @@ class _LoginScreenState extends State<LoginScreen>
           return;
         }
         print('💡 [LOGIN] No staff found locally, trying API...');
-      }
 
       // If local auth fails or user not found, try API
       print('📡 [LOGIN] Calling API login...');

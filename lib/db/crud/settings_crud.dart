@@ -155,9 +155,14 @@ mixin SettingsCrud {
       await txn.delete('role_permissions');
     });
 
-    // Wipe all session context from secure storage
+    // Wipe all session context from secure storage EXCEPT saved_accounts
     const storage = FlutterSecureStorage();
-    await storage.deleteAll(); // Force full wipe for clean slate
+    final allKeys = await storage.readAll();
+    for (String key in allKeys.keys) {
+      if (key != 'saved_accounts') {
+        await storage.delete(key: key);
+      }
+    }
     
     BusinessConfig.instance.reset(keepContext: false);
   }
