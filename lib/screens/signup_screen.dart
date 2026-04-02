@@ -7,6 +7,7 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile_app/services/sync_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -216,6 +217,7 @@ class _SignupScreenState extends State<SignupScreen>
       // Save business to local database
       final businessData = {
         if (businessId != null) 'id': businessId,
+        if (userId != null) 'owner_user_id': userId,
         'name': _businessNameCtrl.text,
         'business_type': _selectedBusinessType,
         'status': 1,
@@ -226,11 +228,34 @@ class _SignupScreenState extends State<SignupScreen>
       final insertedBusinessId = await _dbHelper.insertBusiness(businessData, isSynced: isSynced);
       businessId ??= insertedBusinessId;
 
+      // Save user to local database (must be done before branch to get userId for admin_id)
+      final userData = {
+        if (userId != null) 'id': userId,
+        'business_id': businessId,
+        'name': _businessNameCtrl.text,
+        'email': cleanEmail,
+        'password': _passCtrl.text,
+        'role': 'admin',
+        'status': 1,
+        'created_at': now,
+        'updated_at': now,
+      };
+
+      final insertedUserId = await _dbHelper.insertUser(userData, isSynced: isSynced);
+      userId ??= insertedUserId;
+
+      // If we just generated the userId locally, we should update the business's owner
+      if (insertedUserId != null) {
+        final db = await _dbHelper.database;
+        await db.update('businesses', {'owner_user_id': userId}, where: 'id = ?', whereArgs: [businessId]);
+      }
+
       // Create a default Main Branch for the business
       branchId = 1; // Force Branch 1 for the main branch
       final branchData = {
         'id': branchId,
         'business_id': businessId,
+        'admin_id': userId, // Crucial for data isolation
         'user_id': userId,
         'name': 'Main Branch',
         'branch_title': 'Main Branch',
@@ -249,21 +274,10 @@ class _SignupScreenState extends State<SignupScreen>
           await db.update('branches', {'is_synced': 1}, where: 'id = ?', whereArgs: [branchId]);
       }
 
-      // Save user to local database
-      final userData = {
-        if (userId != null) 'id': userId,
-        'business_id': businessId,
-        'name': _businessNameCtrl.text,
-        'email': cleanEmail,
-        'password': _passCtrl.text,
-        'role': 'admin',
-        'status': 1,
-        'created_at': now,
-        'updated_at': now,
-      };
-
-      final insertedUserId = await _dbHelper.insertUser(userData, isSynced: isSynced);
-      userId ??= insertedUserId;
+      // [FIX] Establish user-business link if missing
+      if (userId != null && businessId != null) {
+        await _dbHelper.addUserBusiness(userId, businessId);
+      }
 
       // Store unit IDs and email in secure storage
       await _storage.write(key: 'user_id', value: userId.toString());
@@ -287,6 +301,13 @@ class _SignupScreenState extends State<SignupScreen>
       // If not synced yet (offline/slow/failed API), trigger background sync
       if (!apiSuccess && userId != null && businessId != null) {
         _syncToBackendInBackground(userId, businessId);
+      } else if (apiSuccess) {
+        try {
+          print('🔄 [SIGNUP] Pulling initial data from backend...');
+          await SyncService().syncPull();
+        } catch (e) {
+          print('⚠️ [SIGNUP] Initial pull failed: $e');
+        }
       }
 
       // Navigate to home screen

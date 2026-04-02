@@ -164,9 +164,7 @@ mixin SettingsCrud {
     // KEEP business_id and branch_id to preserve store environment context after logout
     // await storage.delete(key: 'business_id');
     // await storage.delete(key: 'branch_id');
-    // KEEP last_synced_at so that next login does incremental sync instead of 
-    // full re-sync which would wipe local unsynced records via ConflictAlgorithm.replace
-    // await storage.delete(key: 'last_synced_at');
+    await storage.delete(key: 'last_synced_at');
 
     BusinessConfig.instance.reset(keepContext: false);
   }

@@ -143,12 +143,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final now = DateTime.now();
 
         for (var s in sales) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '');
-          if (ts != null &&
-              ts.day == now.day &&
-              ts.month == now.month &&
-              ts.year == now.year) {
-            todayTotal += (s['total'] as num? ?? 0).toDouble();
+          final parsedDate = DateTime.tryParse(s['created_at'] ?? '');
+          if (parsedDate != null) {
+            final ts = parsedDate.toLocal(); // Convert to local timezone before checking day
+            if (ts.day == now.day &&
+                ts.month == now.month &&
+                ts.year == now.year) {
+              todayTotal += (s['total'] as num? ?? 0).toDouble();
+            }
           }
         }
 
@@ -167,12 +169,14 @@ class _HomeScreenState extends State<HomeScreen> {
         final now = DateTime.now();
         final payments = await db.getCreditPayments();
         for (var p in payments) {
-          final ts = DateTime.tryParse(p['payment_date'] ?? '');
-          if (ts != null &&
-              ts.day == now.day &&
-              ts.month == now.month &&
-              ts.year == now.year) {
-            recoveryTotal += (p['amount'] as num? ?? 0).toDouble();
+          final parsedDate = DateTime.tryParse(p['payment_date'] ?? '');
+          if (parsedDate != null) {
+            final ts = parsedDate.toLocal(); // Convert to local timezone
+            if (ts.day == now.day &&
+                ts.month == now.month &&
+                ts.year == now.year) {
+              recoveryTotal += (p['amount'] as num? ?? 0).toDouble();
+            }
           }
         }
         if (mounted) {

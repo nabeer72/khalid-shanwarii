@@ -51,15 +51,17 @@ class SyncService {
     return result;
   }
 
-  Future<Map<String, dynamic>?> syncPull({bool forceFull = false}) async {
+  Future<Map<String, dynamic>?> syncPull({bool forceFull = false, bool saveTimestamp = true}) async {
     try {
       String? lastSyncedAt = await _storage.read(key: 'last_synced_at');
 
       // CRITICAL: If the local database is empty (no users or businesses), 
       // we must ignore last_synced_at even if it was restored from a backup.
       final db = await _dbHelper.database;
-      final localCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users'));
-      if (localCount == 0 || forceFull) {
+      final userCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) ?? 0;
+      final bizCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM businesses')) ?? 0;
+      
+      if (userCount == 0 || bizCount == 0 || forceFull) {
         lastSyncedAt = null;
         if (kDebugMode) print('🔄 [SYNC] Forcing full sync (local database is empty)');
       }
@@ -76,6 +78,9 @@ class SyncService {
       if (response.statusCode == 200) {
         final data = response.data['changes'];
         final serverTime = response.data['timestamp'];
+        if (saveTimestamp && serverTime != null) {
+          await _storage.write(key: 'last_synced_at', value: serverTime);
+        }
         final db = await _dbHelper.database;
         
         // Use user/business info from response if available (for initial sync)

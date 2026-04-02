@@ -94,9 +94,9 @@ class ExpensesController with ChangeNotifier {
     if (name.trim().isEmpty) return;
 
     final head = {
-      'id': null,
       'name': name.trim(),
       'status': 1,
+      'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
@@ -117,12 +117,12 @@ class ExpensesController with ChangeNotifier {
     required DateTime date,
   }) async {
     final expense = {
-      'id': null,
       'expense_head_id': headId,
       'amount': amount,
       'description': description?.trim().isNotEmpty == true ? description!.trim() : null,
       'date': date.toIso8601String(),
       'status': 1,
+      'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };

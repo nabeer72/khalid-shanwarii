@@ -22,10 +22,14 @@ mixin ExpensesCrud on CommonCrud {
 
   Future<void> insertExpenseHead(Map<String, dynamic> head) async {
     final db = await database;
+    final now = DateTime.now().toIso8601String();
     await db.insert('expense_heads', {
       ...head,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
-      'branch_id': head['branch_id'] ?? getCurrentBranchId(),
+      'branch_id': getSafeInt(head['branch_id'] ?? getCurrentBranchId()),
+      'is_synced': 0,
+      'created_at': head['created_at'] ?? now,
+      'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
@@ -67,10 +71,14 @@ mixin ExpensesCrud on CommonCrud {
 
   Future<void> insertExpense(Map<String, dynamic> expense) async {
     final db = await database;
+    final now = DateTime.now().toIso8601String();
     await db.insert('expenses', {
       ...expense,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
-      'branch_id': expense['branch_id'] ?? getCurrentBranchId(),
+      'branch_id': getSafeInt(expense['branch_id'] ?? getCurrentBranchId()),
+      'is_synced': 0,
+      'created_at': expense['created_at'] ?? now,
+      'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 

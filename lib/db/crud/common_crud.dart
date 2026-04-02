@@ -172,7 +172,7 @@ mixin CommonCrud {
   Future<List<Map<String, dynamic>>> getBusinessesForUser(dynamic userId) async {
     final db = await database;
     return await db.rawQuery('''
-      SELECT b.* FROM businesses b
+      SELECT DISTINCT b.* FROM businesses b
       INNER JOIN user_businesses ub ON b.id = ub.business_id
       WHERE ub.user_id = ? AND b.status = 1
     ''', [userId]);
@@ -180,13 +180,23 @@ mixin CommonCrud {
 
   Future<void> addUserBusiness(dynamic userId, dynamic businessId) async {
     final db = await database;
-    await db.insert('user_businesses', {
-      'user_id': userId,
-      'business_id': businessId,
-      'is_synced': 0,
-      'created_at': DateTime.now().toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    
+    // [FIX] Check for existing link to prevent duplicates
+    final existing = await db.query('user_businesses', 
+      where: 'user_id = ? AND business_id = ?', 
+      whereArgs: [userId, businessId],
+      limit: 1
+    );
+    
+    if (existing.isEmpty) {
+      await db.insert('user_businesses', {
+        'user_id': userId,
+        'business_id': businessId,
+        'is_synced': 0,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    }
   }
 
 

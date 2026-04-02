@@ -340,8 +340,10 @@ class _LoginScreenState extends State<LoginScreen>
       if (aid != null) await storage.write(key: 'user_id', value: aid.toString());
       if (mainBranch['id'] != null) await storage.write(key: 'branch_id', value: mainBranch['id'].toString());
 
-      // Sync and load settings
-      SyncService().syncPull().then((_) => _dbHelper.loadSettings()).catchError((e) => print('⚠️ Quick sync failed: $e'));
+      // Sync and load settings - CRITICAL: await this so products are loaded before home
+      print('🔄 [LOGIN] Performing full sync for business $bid...');
+      await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Quick sync failed: $e'));
+      await _dbHelper.loadSettings();
     } else {
       // If they somehow cancelled a non-cancellable dialog, we must stay on login
       throw Exception('Business selection required');
@@ -383,9 +385,32 @@ class _LoginScreenState extends State<LoginScreen>
           activeBranches: branches.map((br) => br['id']).toList(),
         );
 
-        await _storage.write(key: 'business_id', value: bid.toString());
-        if (aid != null) await _storage.write(key: 'user_id', value: aid.toString());
-        if (mainBranch['id'] != null) await _storage.write(key: 'branch_id', value: mainBranch['id'].toString());
+        await _storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
+
+        // CRITICAL: Pull all data (including products) for this business before proceeding
+        print('🔄 [LOGIN] Pulling business data for ${b['name']}...');
+        await SyncService().syncPull(forceFull: true);
+        await _dbHelper.loadSettings();
+      } else {
+        // [FALLBACK] If no businesses found in join table, use the one from BusinessConfig
+        final bid = BusinessConfig.instance.businessId;
+        if (bid != null) {
+          print('🏢 [LOGIN] Fallback: Using direct business ID $bid');
+          final b = await _dbHelper.getBusiness(bid);
+          if (b != null) {
+            final branches = await _dbHelper.getBranchesForBusiness(bid);
+            final mainBranch = branches.firstWhere((br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
+            
+            BusinessConfig.instance.setContext(
+              bid: bid, 
+              aid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
+              brid: mainBranch['id'],
+              bName: b['name'],
+              bType: b['business_type'],
+              activeBranches: branches.map((br) => br['id']).toList(),
+            );
+          }
+        }
       }
     }
 
@@ -482,6 +507,7 @@ class _LoginScreenState extends State<LoginScreen>
           }
 
           BusinessConfig.instance.adminId = localUser['id'];
+          BusinessConfig.instance.businessId = localUser['business_id']; // [FIX] Ensure businessId is set locally
           BusinessConfig.instance.staffId = null; // Admin login
           await _storage.delete(key: 'staff_id');
 
@@ -561,9 +587,9 @@ class _LoginScreenState extends State<LoginScreen>
       await _api.login(cleanEmail, password);
       print('✅ [LOGIN] API call successful!');
 
-      // Start initial sync to get company data and settings
+      // Start initial sync to get company data (businesses) but don't commit the timestamp yet
       print('🔄 [LOGIN] Running initial sync...');
-      final pullData = await SyncService().syncPull();
+      final pullData = await SyncService().syncPull(saveTimestamp: false);
 
         if (pullData != null) {
           final storage = const FlutterSecureStorage();
@@ -610,6 +636,11 @@ class _LoginScreenState extends State<LoginScreen>
             if (bid != null) {
               BusinessConfig.instance.businessId = bid;
               await storage.write(key: 'business_id', value: bid.toString());
+              
+              // [FIX] Ensure user-business link exists locally after sync
+              if (uid != null) {
+                await _dbHelper.addUserBusiness(uid, bid);
+              }
             }
             await storage.write(key: 'user_email', value: u['email']);
           }
