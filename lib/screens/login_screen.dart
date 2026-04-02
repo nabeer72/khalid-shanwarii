@@ -409,6 +409,11 @@ class _LoginScreenState extends State<LoginScreen>
               bType: b['business_type'],
               activeBranches: branches.map((br) => br['id']).toList(),
             );
+            
+            // CRITICAL: Pull all data for this fallback business
+            print('🔄 [LOGIN] Fallback: Pulling business data for ${b['name']}...');
+            await SyncService().syncPull(forceFull: true);
+            await _dbHelper.loadSettings();
           }
         }
       }

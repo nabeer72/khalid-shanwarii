@@ -145,7 +145,6 @@ mixin SettingsCrud {
       await txn.delete('returns');
       await txn.delete('return_items');
 
-      // Also wipe users, businesses, and configuration to guarantee complete isolation across accounts
       await txn.delete('users');
       await txn.delete('employees');
       await txn.delete('businesses');
@@ -158,14 +157,8 @@ mixin SettingsCrud {
 
     // Wipe all session context from secure storage
     const storage = FlutterSecureStorage();
-    await storage.delete(key: 'auth_token');
-    await storage.delete(key: 'user_id');
-    await storage.delete(key: 'staff_id');
-    // KEEP business_id and branch_id to preserve store environment context after logout
-    // await storage.delete(key: 'business_id');
-    // await storage.delete(key: 'branch_id');
-    await storage.delete(key: 'last_synced_at');
-
+    await storage.deleteAll(); // Force full wipe for clean slate
+    
     BusinessConfig.instance.reset(keepContext: false);
   }
 
