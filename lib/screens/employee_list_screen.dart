@@ -234,28 +234,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                           },
                         ),
                       ),
-                      if (controller.selectedRoleIds.isNotEmpty && controller.selectedRolePermissions.isNotEmpty) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: controller.selectedRolePermissions.map((p) {
-                            final label = _permissionLabels[p] ?? _permissionLabels[int.tryParse(p)] ?? p;
-                            return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: theme.highlight.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: theme.highlight.withOpacity(0.15)),
-                              ),
-                              child: Text(
-                                label.toUpperCase(),
-                                style: TextStyle(color: theme.highlight, fontSize: 8, fontWeight: FontWeight.w900),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                      // Permissions display removed as per user request
                       if (controller.branches.isNotEmpty) ...[
                         const SizedBox(height: 16),
                         DropdownButtonFormField<int?>(
@@ -538,42 +517,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                       '${emp.phone ?? 'No Phone'} | Branch: ${_branchNames[emp.branchId] ?? 'Global'}',
                                       style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
                                     ),
-                                  ),
-                                  if (emp.permissions.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    Wrap(
-                                      spacing: 4,
-                                      runSpacing: 4,
-                                      children: emp.permissions.take(4).map((p) {
-                                        final label = _permissionLabels[p] ?? _permissionLabels[int.tryParse(p.toString())] ?? p.toString();
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: theme.highlight.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: theme.highlight.withOpacity(0.15)),
-                                          ),
-                                          child: Text(
-                                            label.toUpperCase(),
-                                            style: TextStyle(color: theme.highlight, fontSize: 8, fontWeight: FontWeight.w800),
-                                          ),
-                                        );
-                                      }).toList()..addAll([
-                                        if (emp.permissions.length > 4)
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                            decoration: BoxDecoration(
-                                              color: theme.whiteAlpha(0.05),
-                                              borderRadius: BorderRadius.circular(4),
-                                            ),
-                                            child: Text(
-                                              '+${emp.permissions.length - 4} MORE',
-                                              style: TextStyle(color: theme.textSecondary, fontSize: 8, fontWeight: FontWeight.w800),
-                                            ),
-                                          ),
-                                      ]),
-                                    ),
-                                  ],
+                                  )                                  // Permissions display removed as per user request
+,
                                 ],
                               ),
                               trailing: Transform.scale(
