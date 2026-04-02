@@ -8,7 +8,7 @@ mixin CurrencyNotesCrud on CommonCrud {
     final db = await database;
     return await db.query(
       'currency_notes', 
-      where: 'status = 1 AND ${getBusinessFilter()}', 
+      where: 'status = 1${getBusinessFilter()}', 
       whereArgs: getBusinessArgs(),
       orderBy: 'value ASC'
     );
@@ -35,7 +35,7 @@ mixin CurrencyNotesCrud on CommonCrud {
         'is_synced': 0,
         'updated_at': DateTime.now().toIso8601String(),
       },
-      where: 'id = ? AND ${getBusinessFilter()}',
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()],
     );
   }
@@ -49,7 +49,7 @@ mixin CurrencyNotesCrud on CommonCrud {
         'is_synced': 0,
         'updated_at': DateTime.now().toIso8601String(),
       },
-      where: 'id = ? AND ${getBusinessFilter()}',
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()],
     );
   }

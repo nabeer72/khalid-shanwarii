@@ -130,6 +130,7 @@ class DbTables {
         created_at TEXT,
         updated_at TEXT,
         deleted_at TEXT,
+        admin_id INTEGER,
         FOREIGN KEY (product_id) REFERENCES products(id)
       )
     ''');
@@ -210,6 +211,8 @@ class DbTables {
         sale_id INTEGER NOT NULL,
         product_id INTEGER,
         stock_id INTEGER,
+        business_id INTEGER,
+        admin_id INTEGER,
         quantity REAL DEFAULT 1,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
@@ -260,6 +263,8 @@ class DbTables {
         held_order_id INTEGER NOT NULL,
         product_id INTEGER,
         stock_id INTEGER,
+        business_id INTEGER,
+        admin_id INTEGER,
         quantity REAL DEFAULT 1,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
@@ -301,6 +306,8 @@ class DbTables {
         sale_item_id INTEGER,
         product_id INTEGER,
         stock_id INTEGER,
+        business_id INTEGER,
+        admin_id INTEGER,
         quantity REAL DEFAULT 0,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
@@ -403,6 +410,8 @@ class DbTables {
         purchase_id INTEGER,
         product_id INTEGER,
         barcode TEXT,
+        business_id INTEGER,
+        admin_id INTEGER,
         existing_stock REAL DEFAULT 0,
         quantity REAL DEFAULT 0,
         purchase_price REAL DEFAULT 0,
@@ -610,6 +619,8 @@ class DbTables {
       CREATE TABLE currency_notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
+        admin_id INTEGER,
+        branch_id INTEGER,
         value REAL NOT NULL,
         label TEXT,
         status INTEGER DEFAULT 1,

@@ -101,6 +101,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   void _onProductQuickAdded() {
     _toggleQuickAddProduct();
+    // Force switch to 'all' items so the new product is visible immediately
+    _controller.setCategory('all');
     _controller.loadData();
   }
 

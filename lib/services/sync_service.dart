@@ -963,9 +963,13 @@ class SyncService {
       List<Map<String, dynamic>> unsyncedCurrencyNotes = [];
       List<Map<String, dynamic>> unsyncedUserBusinesses = [];
 
+      final bid = BusinessConfig.instance.businessId;
+      final aid = BusinessConfig.instance.adminId;
+      final businessFilter = 'business_id = ? AND admin_id = ?';
+      final businessArgs = [bid, aid];
 
       // Unsynced Sales
-      unsyncedSales = await db.query('sales', where: 'is_synced = 0');
+      unsyncedSales = await db.query('sales', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedSales.isNotEmpty) {
         changes['sales'] = [];
         for (var sale in unsyncedSales) {
@@ -982,7 +986,7 @@ class SyncService {
       }
 
       // Unsynced Returns
-      List<Map<String, dynamic>> unsyncedReturns = await db.query('returns', where: 'is_synced = 0');
+      List<Map<String, dynamic>> unsyncedReturns = await db.query('returns', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedReturns.isNotEmpty) {
         changes['returns'] = [];
         for (var ret in unsyncedReturns) {
@@ -998,7 +1002,7 @@ class SyncService {
       }
 
       // Unsynced Categories
-      unsyncedCategories = await db.query('categories', where: 'is_synced = 0');
+      unsyncedCategories = await db.query('categories', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedCategories.isNotEmpty) {
         changes['categories'] = unsyncedCategories.map((c) {
           var m = Map.from(c);
@@ -1008,7 +1012,7 @@ class SyncService {
       }
 
       // Unsynced Subcategories
-      final unsyncedSubCategories = await db.query('subcategories', where: 'is_synced = 0');
+      final unsyncedSubCategories = await db.query('subcategories', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedSubCategories.isNotEmpty) {
         changes['sub_categories'] = unsyncedSubCategories.map((sc) {
           var m = Map.from(sc);
@@ -1018,7 +1022,7 @@ class SyncService {
       }
 
       // Unsynced Customers
-      unsyncedCustomers = await db.query('customers', where: 'is_synced = 0');
+      unsyncedCustomers = await db.query('customers', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedCustomers.isNotEmpty) {
         changes['customers'] = unsyncedCustomers.map((c) {
           var m = Map.from(c);
@@ -1033,7 +1037,7 @@ class SyncService {
       }
 
       // Unsynced Products & their Stocks
-      unsyncedProducts = await db.query('products', where: 'is_synced = 0');
+      unsyncedProducts = await db.query('products', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedProducts.isNotEmpty) {
         List<Map<String, dynamic>> productsList = [];
         for (var p in unsyncedProducts) {
@@ -1064,41 +1068,27 @@ class SyncService {
             if (kDebugMode) print('📉 [SYNC] Adjusted product payload for ${p['name']} stock from $currentStock to ${productMap['stock_quantity']} to prevent purchase double-count.');
           }
 
-          // Fetch ALL stocks for this unsynced product
-          final stocks = await db.query('stocks', where: 'product_id = ?', whereArgs: [p['id']]);
-          
-          // STOCKS ARE PUSHED SEPARATELY: Do not attach them here to avoid double-counting on the server.
-          // Each purchase or stock batch is sent as its own independent record further down.
-          if (kDebugMode) {
-             print('📤 [SYNC] Pushing new product: ${p['name']} (ID: ${p['id']})');
-          }
-          
+          if (kDebugMode) print('📤 [SYNC] Pushing new product: ${p['name']} (ID: ${p['id']})');
           productsList.add(productMap);
         }
         changes['products'] = productsList;
       }
 
-      // Unsynced Stocks for ALREADY SYNCED products
-      unsyncedStocksForSyncedProducts = await db.rawQuery('''
-        SELECT s.* FROM stocks s
-        JOIN products p ON s.product_id = p.id
-        WHERE s.is_synced = 0 AND p.is_synced = 1
-      ''');
+      // Unsynced Stocks (All - including new and existing products)
+      // We look for any stocks where is_synced = 0 that belong to THIS business context.
+      final List<Map<String, dynamic>> unsyncedStocks = await db.query(
+        'stocks', 
+        where: 'is_synced = 0 AND $businessFilter', 
+        whereArgs: businessArgs
+      );
       
-      if (unsyncedStocksForSyncedProducts.isNotEmpty) {
-        // APPEND-ONLY SYNC: Push ALL unsynced stock records (Batches)
-        // This ensures every purchase results in a distinct, separate entry in the live database.
-        final List<Map<String, dynamic>> stocksToPush = [];
-        for (var s in unsyncedStocksForSyncedProducts) {
+      if (unsyncedStocks.isNotEmpty) {
+        changes['stocks'] = unsyncedStocks.map((s) {
           var m = Map<String, dynamic>.from(s);
           m.remove('is_synced');
-          stocksToPush.add(m);
-        }
-
-        if (stocksToPush.isNotEmpty) {
-          changes['stocks'] = stocksToPush;
-          if (kDebugMode) print('📤 [SYNC] Pushing ${stocksToPush.length} price entries for existing products');
-        }
+          return m;
+        }).toList();
+        if (kDebugMode) print('📤 [SYNC] Pushing ${unsyncedStocks.length} total price/stock entries');
       }
 
       // Unsynced Users (from signup)
@@ -1133,11 +1123,6 @@ class SyncService {
           return m;
         }).toList();
       }
-
-      final bid = BusinessConfig.instance.businessId;
-      final aid = BusinessConfig.instance.adminId;
-      final businessFilter = 'business_id = ? AND admin_id = ?';
-      final businessArgs = [bid, aid];
 
       // Unsynced Employees
       unsyncedEmployees = await db.query('employees', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
@@ -1347,7 +1332,7 @@ class SyncService {
       }
 
       // Unsynced Currency Notes
-      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0'); // [TODO] Global table, but should be isolated if possible
+      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedCurrencyNotes.isNotEmpty) {
         changes['currency_notes'] = unsyncedCurrencyNotes.map((cn) {
           var m = Map.from(cn);

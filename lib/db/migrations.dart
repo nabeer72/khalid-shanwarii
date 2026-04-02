@@ -1046,6 +1046,28 @@ class DbMigrations {
         )
       ''');
     }
+    if (oldVersion < 54) {
+      if (kDebugMode) print('Upgrading DB to v54: Adding isolation columns to various tables...');
+      final tablesAndCols = {
+        'stocks': ['admin_id INTEGER'],
+        'currency_notes': ['admin_id INTEGER', 'branch_id INTEGER'],
+        'sale_items': ['admin_id INTEGER', 'business_id INTEGER'],
+        'purchase_items': ['admin_id INTEGER', 'business_id INTEGER'],
+        'return_items': ['admin_id INTEGER', 'business_id INTEGER'],
+        'held_order_items': ['admin_id INTEGER', 'business_id INTEGER'],
+      };
+
+      for (var entry in tablesAndCols.entries) {
+        final table = entry.key;
+        for (var colDef in entry.value) {
+          try {
+            await db.execute('ALTER TABLE $table ADD COLUMN $colDef');
+          } catch (e) {
+            if (kDebugMode) print('v54 $table $colDef error: $e');
+          }
+        }
+      }
+    }
   }
 }
 

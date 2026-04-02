@@ -13,7 +13,7 @@ class POSController with ChangeNotifier {
   List<Product> _products = [];
   List<POSCartItem> _cart = [];
   
-  String _selectedCategory = 'favorites';
+  String _selectedCategory = 'all';
   dynamic _selectedSubCategoryId;
   bool _isLoading = true;
   

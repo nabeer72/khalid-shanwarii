@@ -14,6 +14,11 @@ mixin ProductsCrud on CommonCrud {
     final statusFilter = includeInactive ? '' : ' AND status = 1';
     final baseArgs = [...getBusinessArgs(), ...branchArgs];
 
+    // Immediate Self-Healing: Repair orphaned stocks created without an admin_id
+    await db.update('stocks', {'admin_id': baseArgs[1]}, 
+      where: 'business_id = ? AND admin_id IS NULL', 
+      whereArgs: [baseArgs[0]]);
+
     List<Map<String, dynamic>> productMaps;
     if (categoryId != null) {
       if (categoryId == 'cat-fav') {
@@ -137,11 +142,13 @@ mixin ProductsCrud on CommonCrud {
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     final brid = product['branch_id'] ?? getCurrentBranchId();
 
+    // Self-healing: Repair any orphaned stocks that were created without an admin_id
+    await db.update('stocks', {'admin_id': aid}, 
+      where: 'business_id = ? AND admin_id IS NULL', 
+      whereArgs: [bid]);
+
     // 1. Separate Metadata
     final metadata = Map<String, dynamic>.from(product);
-    // Keep pricing/stock in metadata for denormalization in the products table
-    // final stockFields = ['stock_quantity', 'price', 'purchase_price', 'wholesale_price', 'barcode', 'manufacture_date', 'expire_date'];
-    // metadata.removeWhere((key, value) => stockFields.contains(key) && key != 'barcode');
 
     await db.transaction((txn) async {
       // 2. Insert/Update Product Metadata
@@ -162,7 +169,7 @@ mixin ProductsCrud on CommonCrud {
       final currentCost = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
       final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
 
-      // Check if an EXACT price-matching stock entry exists for this product (using rounding for precision safety)
+      // Check if an EXACT price-matching stock entry exists for this product
       final matchingStocks = await txn.rawQuery(
         '''SELECT * FROM stocks 
            WHERE product_id = ? AND branch_id = ? AND status = 1 
@@ -179,6 +186,7 @@ mixin ProductsCrud on CommonCrud {
         await txn.update('stocks', {
           'barcode': barcode ?? matchingStocks.first['barcode'],
           'quantity': product['stock_quantity'] ?? matchingStocks.first['quantity'],
+          'admin_id': aid, // Ensure admin_id is set
           'updated_at': DateTime.now().toIso8601String(),
           'is_synced': 0,
         }, where: 'id = ?', whereArgs: [matchingId]);
@@ -187,6 +195,7 @@ mixin ProductsCrud on CommonCrud {
         await txn.insert('stocks', {
           'id': null,
           'business_id': bid,
+          'admin_id': aid, // [FIX] Added missing admin_id
           'branch_id': brid,
           'product_id': pid,
           'barcode': barcode,
