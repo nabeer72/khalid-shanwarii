@@ -71,17 +71,33 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadCurrentStaff() async {
-    final sid = BusinessConfig.instance.staffId;
+    dynamic sid = BusinessConfig.instance.staffId;
     if (sid != null) {
-      final dbData = await DatabaseHelper.instance.getEmployees();
-      final staffData = dbData.where((e) => e['id'] == sid).firstOrNull;
-      if (staffData != null) {
+      // [FIX] Staff identity resolution. We favor loading by ID but fallback to email 
+      // if the session ID doesn't match an Employee record (e.g. if it was a User.id).
+      final db = DatabaseHelper.instance;
+      final dbData = await db.getEmployees();
+      var staffData = dbData.where((e) => e['id'] == sid).firstOrNull;
+      
+      if (staffData == null) {
+        final String? userEmail = await (const FlutterSecureStorage()).read(key: 'user_email');
+        if (userEmail != null) {
+          staffData = await db.getEmployeeByEmail(userEmail.toLowerCase());
+          if (staffData != null) {
+            BusinessConfig.instance.staffId = staffData['id'];
+            sid = staffData['id'];
+          }
+        }
+      }
+
+      final finalStaff = staffData;
+      if (finalStaff != null) {
         List<String> perms = [];
         
         // 1. Load legacy permissions if present
-        if (staffData['permissions'] != null) {
+        if (finalStaff['permissions'] != null) {
           try {
-            perms = List<String>.from(jsonDecode(staffData['permissions']));
+            perms = List<String>.from(jsonDecode(finalStaff['permissions']));
           } catch (e) {}
         }
 
@@ -95,23 +111,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
         setState(() {
           _currentStaff = Employee(
-            id: staffData['id'],
-            name: staffData['name'],
-            role: staffData['role'] ?? 'cashier',
-            email: staffData['email'],
-            phone: staffData['phone'],
-            pin: staffData['pin'],
-            isActive: staffData['status'] == 1,
+            id: finalStaff['id'],
+            name: finalStaff['name'],
+            role: finalStaff['role'] ?? 'cashier',
+            email: finalStaff['email'],
+            phone: finalStaff['phone'],
+            pin: finalStaff['pin'],
+            isActive: finalStaff['status'] == 1,
             permissions: perms,
           );
         });
-        BusinessConfig.instance.staffName = staffData['name'] ?? '';
+        BusinessConfig.instance.staffName = finalStaff['name'] ?? '';
       }
     }
   }
 
   bool _hasPerm(String perm) {
-    if (BusinessConfig.instance.staffId == null) return true; // Admin has all
+    // Admin has ALL, Staff has ONLY assigned
+    final isStaff = BusinessConfig.instance.staffId != null;
+    if (!isStaff) return true; // Admin case
+    
+    // Staff case: explicitly check list of assigned permissions
     return _currentStaff?.permissions.contains(perm) ?? false;
   }
 

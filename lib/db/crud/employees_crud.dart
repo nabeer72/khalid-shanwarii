@@ -62,6 +62,12 @@ mixin EmployeesCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  Future<Map<String, dynamic>?> getEmployeeByEmail(String email) async {
+    final db = await database;
+    final results = await db.query('employees', where: 'email = ?', whereArgs: [email], limit: 1);
+    return results.isNotEmpty ? results.first : null;
+  }
+
   Future<Map<String, dynamic>?> getEmployeeByEmailAndPin(String email, String pin) async {
     final db = await database;
     final cleanEmail = email.toLowerCase().trim();

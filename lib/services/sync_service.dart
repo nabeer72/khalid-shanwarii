@@ -129,6 +129,37 @@ class SyncService {
         }
 
         await db.transaction((txn) async {
+          // Businesses 
+          if (data['businesses'] != null) {
+            for (var b in data['businesses']) {
+              await txn.insert('businesses', {
+                'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
+                'name': b['name'] ?? 'Unknown',
+                'business_type': b['business_type'],
+                'owner_user_id': b['owner_user_id'] ?? b['admin_id'],
+                'status': _parseStatus(b['status']),
+                'is_synced': 1,
+                'created_at': b['created_at'],
+                'updated_at': b['updated_at'],
+              }, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
+            if (kDebugMode) print('Synced ${data['businesses'].length} businesses');
+          }
+
+          // User-Business Mapping
+          if (data['user_businesses'] != null) {
+            for (var ub in data['user_businesses']) {
+              await txn.insert('user_businesses', {
+                'user_id': ub['user_id'] is int ? ub['user_id'] : int.tryParse(ub['user_id']?.toString() ?? ''),
+                'business_id': ub['business_id'] is int ? ub['business_id'] : int.tryParse(ub['business_id']?.toString() ?? ''),
+                'is_synced': 1,
+                'created_at': ub['created_at'] ?? DateTime.now().toIso8601String(),
+                'updated_at': ub['updated_at'] ?? DateTime.now().toIso8601String(),
+              }, conflictAlgorithm: ConflictAlgorithm.replace);
+            }
+            if (kDebugMode) print('Synced ${data['user_businesses'].length} user-business mappings');
+          }
+
           // Categories
           if (data['categories'] != null) {
             for (var c in data['categories']) {
@@ -1128,6 +1159,26 @@ class SyncService {
           return m;
         }).toList();
       }
+      // [NEW] Unsynced Roles - MOVE BEFORE EMPLOYEES for backend dependency resolution
+      unsyncedRoles = await db.query('roles', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
+      if (unsyncedRoles.isNotEmpty) {
+        List<Map<String, dynamic>> rolesList = [];
+        for (var r in unsyncedRoles) {
+          var m = Map<String, dynamic>.from(r);
+          m.remove('is_synced');
+          
+          // Get permissions for this role (FETCH NAMES INSTEAD OF IDS)
+          final perms = await db.rawQuery('''
+            SELECT p.name FROM permissions p
+            JOIN role_permissions rp ON p.id = rp.permission_id
+            WHERE rp.role_id = ?
+          ''', [r['id']]);
+          
+          m['permissions'] = perms.map((p) => p['name']).toList();
+          rolesList.add(m);
+        }
+        changes['roles'] = rolesList;
+      }
 
       // Unsynced Employees
       unsyncedEmployees = await db.query('employees', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
@@ -1145,10 +1196,19 @@ class SyncService {
             } catch (_) {}
           }
 
-          // Process Multi-Roles - ensure we only get roles for this business context
-          final roleRows = await db.query('employee_roles', where: 'employee_id = ?', whereArgs: [m['id']]);
-          final roleIds = roleRows.map((r) => r['role_id'] as int).toList();
-          m['roles'] = roleIds;
+          // Process Multi-Roles - [FIX] Use role names instead of IDs for sync, 
+          // because local IDs won't match server IDs during batch sync of new records.
+          final roleData = await db.rawQuery('''
+            SELECT r.id, r.name FROM roles r
+            JOIN employee_roles er ON r.id = er.role_id
+            WHERE er.employee_id = ?
+          ''', [m['id']]);
+          
+          final roleIds = roleData.map((r) => r['id'] as int).toList();
+          final roleNames = roleData.map((r) => r['name']?.toString()).whereType<String>().toList();
+          
+          m['roles'] = roleNames; // [CRITICAL] Send names to the server for batch sync stability
+          m.remove('role_id'); // [FIX] Remove local role_id which doesn't exist on server yet
 
           // Merge role permissions (FETCH NAMES INSTEAD OF IDS) for all assigned roles
           if (roleIds.isNotEmpty) {
@@ -1271,26 +1331,7 @@ class SyncService {
         }).toList();
       }
 
-      // Unsynced Roles
-      unsyncedRoles = await db.query('roles', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
-      if (unsyncedRoles.isNotEmpty) {
-        List<Map<String, dynamic>> rolesList = [];
-        for (var r in unsyncedRoles) {
-          var m = Map<String, dynamic>.from(r);
-          m.remove('is_synced');
-          
-          // Get permissions for this role (FETCH NAMES INSTEAD OF IDS)
-          final perms = await db.rawQuery('''
-            SELECT p.name FROM permissions p
-            JOIN role_permissions rp ON p.id = rp.permission_id
-            WHERE rp.role_id = ?
-          ''', [r['id']]);
-          
-          m['permissions'] = perms.map((p) => p['name']).toList();
-          rolesList.add(m);
-        }
-        changes['roles'] = rolesList;
-      }
+      // [MOVED UP] Unsynced Roles collection
 
       // REMOVED: TEMPORARY hack that forced re-sync for all bank accounts
       // await db.update('bank_accounts', {'is_synced': 0});

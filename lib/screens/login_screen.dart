@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
@@ -356,64 +356,82 @@ class _LoginScreenState extends State<LoginScreen>
     print('🏠 [LOGIN] Auth successful, checking saved credentials...');
     
     final userId = BusinessConfig.instance.adminId;
+    final staffId = BusinessConfig.instance.staffId;
+    
     if (userId != null) {
-      final businesses = await _dbHelper.getBusinessesForUser(userId);
-      print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
-      
-      if (businesses.length > 1) {
-        try {
-          await _showBusinessSelectionDialog(userId, businesses);
-        } catch (e) {
-          print('⚠️ Business selection cancelled or failed: $e');
-          return; // Stay on login screen
-        }
-      } else if (businesses.length == 1) {
-        // Auto-select the only business
-        final b = businesses.first;
-        final bid = b['id'];
-        final aid = b['owner_user_id'] ?? b['admin_id'];
-        
-        final branches = await _dbHelper.getBranchesForBusiness(bid);
-        final mainBranch = branches.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
-
-        BusinessConfig.instance.setContext(
-          bid: bid, 
-          aid: aid,
-          brid: mainBranch['id'],
-          bName: b['name'],
-          bType: b['business_type'],
-          activeBranches: branches.map((br) => br['id']).toList(),
-        );
-
-        await _storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
-
-        // CRITICAL: Pull all data (including products) for this business before proceeding
-        print('🔄 [LOGIN] Pulling business data for ${b['name']}...');
-        await SyncService().syncPull(forceFull: true);
-        await _dbHelper.loadSettings();
-      } else {
-        // [FALLBACK] If no businesses found in join table, use the one from BusinessConfig
+      if (staffId != null) {
+        // Staff members skip business selection and go to their pre-set business
+        print('🏢 [LOGIN] Staff login - skipping business selection');
         final bid = BusinessConfig.instance.businessId;
         if (bid != null) {
-          print('🏢 [LOGIN] Fallback: Using direct business ID $bid');
-          final b = await _dbHelper.getBusiness(bid);
-          if (b != null) {
-            final branches = await _dbHelper.getBranchesForBusiness(bid);
-            final mainBranch = branches.firstWhere((br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
-            
-            BusinessConfig.instance.setContext(
-              bid: bid, 
-              aid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
-              brid: mainBranch['id'],
-              bName: b['name'],
-              bType: b['business_type'],
-              activeBranches: branches.map((br) => br['id']).toList(),
-            );
-            
-            // CRITICAL: Pull all data for this fallback business
-            print('🔄 [LOGIN] Fallback: Pulling business data for ${b['name']}...');
-            await SyncService().syncPull(forceFull: true);
-            await _dbHelper.loadSettings();
+          print('🔄 [LOGIN] Pulling business data for staff context...');
+          await SyncService().syncPull(forceFull: true);
+          await _dbHelper.loadSettings();
+        }
+      } else {
+        // Admin login logic
+        final businesses = await _dbHelper.getBusinessesForUser(userId);
+        print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
+        
+        if (businesses.length > 1) {
+          try {
+            await _showBusinessSelectionDialog(userId, businesses);
+          } catch (e) {
+            print('⚠️ Business selection cancelled or failed: $e');
+            return; // Stay on login screen
+          }
+        } else if (businesses.length == 1) {
+          // Auto-select the only business
+          final b = businesses.first;
+          final bid = b['id'];
+          final aid = b['owner_user_id'] ?? b['admin_id'];
+          
+          final branches = await _dbHelper.getBranchesForBusiness(bid);
+          final mainBranch = branches.firstWhere(
+            (b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', 
+            orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
+          );
+
+          BusinessConfig.instance.setContext(
+            bid: bid, 
+            aid: aid,
+            brid: mainBranch['id'],
+            bName: b['name'],
+            bType: b['business_type'],
+            activeBranches: branches.map((br) => br['id']).toList(),
+          );
+
+          await _storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
+
+          print('🔄 [LOGIN] Pulling business data for ${b['name']}...');
+          await SyncService().syncPull(forceFull: true);
+          await _dbHelper.loadSettings();
+        } else {
+          // Fallback if no businesses found
+          final bid = BusinessConfig.instance.businessId;
+          if (bid != null) {
+            print('🏢 [LOGIN] Fallback: Using direct business ID $bid');
+            final b = await _dbHelper.getBusiness(bid);
+            if (b != null) {
+              final branches = await _dbHelper.getBranchesForBusiness(bid);
+              final mainBranch = branches.firstWhere(
+                (br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', 
+                orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
+              );
+              
+              BusinessConfig.instance.setContext(
+                bid: bid, 
+                aid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
+                brid: mainBranch['id'],
+                bName: b['name'],
+                bType: b['business_type'],
+                activeBranches: branches.map((br) => br['id']).toList(),
+              );
+              
+              print('🔄 [LOGIN] Fallback: Pulling business data for ${b['name']}...');
+              await SyncService().syncPull(forceFull: true);
+              await _dbHelper.loadSettings();
+            }
           }
         }
       }
@@ -563,21 +581,37 @@ class _LoginScreenState extends State<LoginScreen>
             final brid = u['branch_id'] is int ? (u['branch_id'] as int) : int.tryParse(u['branch_id']?.toString() ?? '');
             final aid = u['admin_id'] is int ? (u['admin_id'] as int) : int.tryParse(u['admin_id']?.toString() ?? '');
 
+            // [FIX] Ensure current user-business link exists locally
+            if (uid != null && bid != null) {
+              await _dbHelper.addUserBusiness(uid, bid);
+            }
+
             if (uid != null) {
-              final isStaff = aid != null && aid != uid;
-              final effectiveAdminId = isStaff ? aid : uid;
-              final effectiveStaffId = isStaff ? uid : null;
+              // [FIX] Robust staff detection using roles AND admin_id from server
+              final String role = u['role']?.toString().toLowerCase() ?? '';
+              final isStaff = role == 'staff' || role == 'employee' || (aid != null && aid != uid);
               
+              final effectiveAdminId = isStaff ? (aid ?? uid) : uid;
+              
+              // [CRITICAL] staffId MUST be the ID from the employees table to match RBAC permissions.
+              // The User.id (uid) might not match Employee.id on the server.
+              int? resolvedStaffId;
+              if (isStaff) {
+                final staffRecord = await _dbHelper.getEmployeeByEmail(u['email']?.toString().toLowerCase() ?? '');
+                resolvedStaffId = staffRecord?['id'];
+                if (kDebugMode) print('👤 [LOGIN] Resolved Staff ID: $resolvedStaffId for email: ${u['email']}');
+              }
+
               BusinessConfig.instance.setContext(
                 bid: bid, 
                 aid: effectiveAdminId,
                 brid: brid,
               );
-              BusinessConfig.instance.staffId = effectiveStaffId;
+              BusinessConfig.instance.staffId = resolvedStaffId;
 
               if (isStaff) {
-                await storage.write(key: 'user_id', value: aid.toString());
-                await storage.write(key: 'staff_id', value: uid.toString());
+                await storage.write(key: 'user_id', value: effectiveAdminId.toString());
+                await storage.write(key: 'staff_id', value: resolvedStaffId?.toString() ?? uid.toString());
               } else {
                 await storage.write(key: 'user_id', value: uid.toString());
                 await storage.delete(key: 'staff_id');
