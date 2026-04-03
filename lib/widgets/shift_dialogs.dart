@@ -635,6 +635,7 @@ class _SummaryRow extends StatelessWidget {
     required this.value,
     required this.color,
     this.isBold = false,
+    // ignore: unused_element_parameter
     this.fontSize = 14,
   });
 

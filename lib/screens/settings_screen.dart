@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -1337,6 +1339,7 @@ class _SettingsTile extends StatelessWidget {
     required this.title, 
     required this.subtitle, 
     required this.onTap, 
+    // ignore: unused_element_parameter
     this.titleColor,
     this.showTrailing = true,
   });

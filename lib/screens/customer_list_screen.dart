@@ -370,6 +370,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 }
 
+// ignore: unused_element
 class _CustomerTile extends StatelessWidget {
   final Customer customer;
   final VoidCallback onTap;

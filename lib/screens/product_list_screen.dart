@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -18,6 +18,7 @@ class ProductListScreen extends StatefulWidget {
 class _ProductListScreenState extends State<ProductListScreen> {
   final theme = ThemeProvider.instance;
   List<Product> _products = [];
+  // ignore: unused_field
   List<ProductCategory> _categories = [];
   String _searchQuery = '';
   bool _loading = true;
@@ -70,6 +71,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
+  // ignore: unused_element
   void _addToPOS(Product product) {
     // This could navigate to POS and auto-add or just provide feedback
     // For now, let's show a snackbar or navigate to POS

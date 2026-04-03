@@ -342,6 +342,7 @@ class _LoginScreenState extends State<LoginScreen>
 
       // Sync and load settings - CRITICAL: await this so products are loaded before home
       print('🔄 [LOGIN] Performing full sync for business $bid...');
+      // ignore: invalid_return_type_for_catch_error
       await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Quick sync failed: $e'));
       await _dbHelper.loadSettings();
     } else {
@@ -697,7 +698,9 @@ class _LoginScreenState extends State<LoginScreen>
               email: email,
               password: password,
               businessName:
+                  // ignore: dead_null_aware_expression
                   BusinessConfig.instance.businessName ?? 'My Business',
+              // ignore: dead_null_aware_expression
               businessType: BusinessConfig.instance.businessType ?? 'general',
             );
             print('✅ [LOGIN] Backend signup successful');

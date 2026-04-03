@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:mobile_app/services/connectivity_service.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/services/api_service.dart';
-import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
@@ -245,6 +244,7 @@ class _SignupScreenState extends State<SignupScreen>
       userId ??= insertedUserId;
 
       // If we just generated the userId locally, we should update the business's owner
+      // ignore: unnecessary_null_comparison
       if (insertedUserId != null) {
         final db = await _dbHelper.database;
         await db.update('businesses', {'owner_user_id': userId}, where: 'id = ?', whereArgs: [businessId]);
@@ -269,12 +269,14 @@ class _SignupScreenState extends State<SignupScreen>
       await _dbHelper.insertBranch(branchData);
 
       // Ensure branch insertion is synced if API was successful
+      // ignore: unnecessary_null_comparison
       if (isSynced == 1 && branchId != null) {
           final db = await _dbHelper.database;
           await db.update('branches', {'is_synced': 1}, where: 'id = ?', whereArgs: [branchId]);
       }
 
       // [FIX] Establish user-business link if missing
+      // ignore: unnecessary_null_comparison
       if (userId != null && businessId != null) {
         await _dbHelper.addUserBusiness(userId, businessId);
       }
@@ -299,6 +301,7 @@ class _SignupScreenState extends State<SignupScreen>
       await _dbHelper.setSetting('business_type', _selectedBusinessType);
 
       // If not synced yet (offline/slow/failed API), trigger background sync
+      // ignore: unnecessary_null_comparison
       if (!apiSuccess && userId != null && businessId != null) {
         _syncToBackendInBackground(userId, businessId);
       } else if (apiSuccess) {

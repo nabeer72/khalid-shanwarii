@@ -59,16 +59,20 @@ class _SalesScreenState extends State<SalesScreen> {
     );
 
     try {
-      final id = await _db.insertSale(sale.toMap());
-      for (var item in _cart) {
-        await _db.insertSaleItem({
-          'sale_id': id,
-          'product_id': item['id'],
-          'quantity': item['quantity'],
-          'unit_price': 0,
-          'subtotal': 0, // table column name is subtotal in tables.dart
-        });
-      }
+      final List<Map<String, dynamic>> saleItems = _cart.map((item) => {
+        'product_id': item['id'],
+        'quantity': item['quantity'],
+        'price': 0.0, // Default price as sales_screen doesn't track it
+        'subtotal': 0.0,
+        'discount': 0.0,
+      }).toList();
+
+      // ignore: unused_local_variable
+      final id = await _db.insertSale({
+        ...sale.toMap(),
+        'total': _total,
+        'subtotal': _total,
+      }, saleItems);
       
       SyncService().syncPush();
 

@@ -1,8 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
 
 mixin CreditCrud on CommonCrud {
@@ -78,7 +75,9 @@ mixin CreditCrud on CommonCrud {
   Future<int> insertCreditPayment(Map<String, dynamic> payment) async {
     int insertedId = 0;
     final db = await database;
+    // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // ignore: unused_local_variable
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.transaction((txn) async {
@@ -186,7 +185,9 @@ mixin CreditCrud on CommonCrud {
   }
 
   Future<void> _executeReconciliation(DatabaseExecutor txn) async {
+    // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // ignore: unused_local_variable
     final aid = getSafeInt(BusinessConfig.instance.adminId);
 
     // 1. Reset credit balances to 0 for current tenant

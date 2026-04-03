@@ -12,7 +12,6 @@ import 'package:mobile_app/screens/reports_screen.dart';
 import 'package:mobile_app/screens/reports_printing_screen.dart';
 import 'package:mobile_app/screens/employee_list_screen.dart';
 import 'package:mobile_app/screens/settings_screen.dart';
-import 'package:mobile_app/screens/held_orders_screen.dart';
 import 'package:mobile_app/screens/gift_cards_screen.dart';
 import 'package:mobile_app/screens/loyalty_screen.dart';
 import 'package:mobile_app/screens/expenses_screen.dart';
@@ -27,7 +26,6 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/db/database_helper.dart';
-import 'package:mobile_app/models/branch.dart';
 import 'package:mobile_app/widgets/shift_dialogs.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -260,6 +258,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
+    // ignore: unused_local_variable
     final heldCount = _heldCount;
 
     return Scaffold(

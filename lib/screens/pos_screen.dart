@@ -11,7 +11,6 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/customer_list_screen.dart';
 import 'package:mobile_app/screens/payment_screen.dart';
 import 'package:mobile_app/models/held_order.dart';
-import 'package:mobile_app/screens/held_orders_screen.dart';
 import 'package:mobile_app/widgets/shift_dialogs.dart';
 import 'package:mobile_app/screens/sales_history_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -120,7 +119,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       return;
     }
     
+    // ignore: unused_local_variable
     final startTime = shift['start_time'];
+    // ignore: unused_local_variable
     final now = DateTime.now().toIso8601String();
     
     if (mounted) {
@@ -979,6 +980,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
+  // ignore: unused_element
   void _toggleFavorite(Product product) async {
     // Update Database first (persistence)
     await DatabaseHelper.instance
@@ -1361,6 +1363,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                 } else {
                                   final success = _controller.addToCart(v, stock!);
                                   if (!success) {
+                                    // ignore: unnecessary_non_null_assertion
                                     _showStockNotFoundDialog(v, stock!);
                                   }
                                 }

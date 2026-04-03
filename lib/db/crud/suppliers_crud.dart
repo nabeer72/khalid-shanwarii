@@ -1,8 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
 
 mixin SuppliersCrud on CommonCrud {
@@ -115,7 +112,9 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<void> insertSupplierPayback(Map<String, dynamic> payback) async {
     final db = await database;
+    // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // ignore: unused_local_variable
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     
     await db.transaction((txn) async {

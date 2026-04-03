@@ -62,6 +62,7 @@ mixin BranchesCrud on CommonCrud {
     }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
+  // ignore: unused_element
   int? _safeInt(dynamic value) {
     if (value == null) return null;
     if (value is int) return value;

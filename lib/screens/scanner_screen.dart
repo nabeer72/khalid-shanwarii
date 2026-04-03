@@ -186,6 +186,7 @@ class _Corner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ignore: unused_local_variable
     final theme = ThemeProvider.instance;
     return Positioned(
       top: top ? -2 : null,

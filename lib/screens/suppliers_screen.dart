@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/suppliers_controller.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/screens/add_supplier_screen.dart';
 import 'package:mobile_app/controllers/add_supplier_controller.dart';
 
 class SuppliersScreen extends StatefulWidget {

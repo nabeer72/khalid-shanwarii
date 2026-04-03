@@ -35,6 +35,7 @@ class AddPurchaseController with ChangeNotifier {
   String? _errorMessage;
   String? _successMessage;
   bool _shouldShowAddItemDialog = false;
+  // ignore: unused_field
   Map<String, dynamic>? _lastAddedItem; // for potential undo or logging
 
   AddPurchaseController() {

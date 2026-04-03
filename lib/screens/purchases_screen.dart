@@ -2,12 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/screens/add_purchase_screen.dart';
 import 'package:mobile_app/controllers/add_purchase_controller.dart';
 import 'package:mobile_app/services/sync_service.dart';
-import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/screens/add_supplier_screen.dart';
-import 'package:mobile_app/screens/add_product_screen.dart';
 import 'package:intl/intl.dart';
 
 class PurchasesScreen extends StatefulWidget {

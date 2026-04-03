@@ -4,10 +4,6 @@ import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
-import 'package:mobile_app/db/database_helper.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/models/branch.dart';
-
 class AddProductScreen extends StatefulWidget {
   final Product? product;
 

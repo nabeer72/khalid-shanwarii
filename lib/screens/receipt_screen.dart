@@ -132,9 +132,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Widget build(BuildContext context) {
     final sale = widget.sale;
     final timestamp = DateTime.tryParse(sale['created_at'] ?? sale['timestamp'] ?? '');
+    // ignore: unused_local_variable
     final isReturn = sale['is_return'] == 1 || sale['isReturn'] == true;
     final total = (sale['total'] as num? ?? 0).toDouble();
     final discount = (sale['discount'] as num? ?? 0).toDouble();
+    // ignore: unused_local_variable
     final paymentMethod = (sale['payment_method'] ?? sale['paymentMethod'] ?? 'Cash').toString();
     final customer = sale['customer_name'] ?? sale['customerName'];
     

@@ -15,6 +15,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   String _period = 'today';
 
   List<Map<String, dynamic>> _sales = [];
+  // ignore: unused_field
   bool _isLoading = true;
 
   @override
@@ -84,6 +85,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return result;
   }
 
+  // ignore: unused_element
   Map<String, int> get _topProducts {
     final Map<String, int> result = {};
     for (var sale in _salesForPeriod) {
@@ -426,6 +428,7 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
+    // ignore: unused_local_variable
     final currency = BusinessConfig.instance.currency;
     return Container(
       padding: const EdgeInsets.all(18),

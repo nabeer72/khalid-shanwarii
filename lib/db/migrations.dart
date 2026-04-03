@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
-import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'tables.dart';
 
 class DbMigrations {

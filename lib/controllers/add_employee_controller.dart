@@ -210,6 +210,7 @@ class AddEmployeeController with ChangeNotifier {
       
       // Update employee_roles pivot table
       final idToUse = initialEmployee?.id ?? insertedId;
+      // ignore: unnecessary_null_comparison
       if (idToUse != null) {
         await DatabaseHelper.instance.updateEmployeeRoles(idToUse, selectedRoleIds);
       }

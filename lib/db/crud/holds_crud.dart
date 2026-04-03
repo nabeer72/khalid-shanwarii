@@ -1,5 +1,4 @@
-import 'package:sqflite_sqlcipher/sqflite.dart';
-import 'package:mobile_app/db/mock_data.dart';
+
 import 'common_crud.dart';
 
 mixin HoldsCrud on CommonCrud {

@@ -1,7 +1,4 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
 
 mixin PurchasesCrud on CommonCrud {

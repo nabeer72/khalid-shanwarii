@@ -1,4 +1,4 @@
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/db/database_helper.dart';
@@ -1133,6 +1133,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   }
 
   // PDF Generation Helpers
+  // ignore: unused_element
   Future<pw.TextStyle> _getStyle({bool bold = false, double fontSize = 10, PdfColor? color}) async {
     await _ensureFontsLoaded();
     final font = bold ? _cachedBoldFont! : _cachedFont!;
@@ -1221,8 +1222,11 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     final pdf = pw.Document();
     final business = BusinessConfig.instance;
 
+    // ignore: unused_local_variable
     double grandTotalAmount = 0;
+    // ignore: unused_local_variable
     double grandTotalDiscount = 0;
+    // ignore: unused_local_variable
     double grandTotalProfit = 0;
 
     pdf.addPage(

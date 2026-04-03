@@ -198,6 +198,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
   }
 
   Widget _buildSummaryCard(String title, double value, IconData icon, Color color, {bool isCurrency = true}) {
+    // ignore: unused_local_variable
     final currency = BusinessConfig.instance.currency;
     return Container(
       padding: const EdgeInsets.all(18),

@@ -16,6 +16,7 @@ class EmployeeListScreen extends StatefulWidget {
 class _EmployeeListScreenState extends State<EmployeeListScreen> {
   final theme = ThemeProvider.instance;
   List<Employee> _employees = [];
+  // ignore: unused_field
   Map<dynamic, String> _permissionLabels = {};
   Map<dynamic, String> _branchNames = {};
 
@@ -37,6 +38,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
       }
       
       final List<Employee> tempEmployees = [];
+      // ignore: unused_local_variable
       final currentAdminId = BusinessConfig.instance.adminId;
 
       for (var e in data) {
@@ -121,6 +123,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     }
   }
 
+  // ignore: unused_element
   Future<Map<String, dynamic>?> _getRole(int? roleId) async {
     if (roleId == null) return null;
     return await DatabaseHelper.instance.getRoleById(roleId);
@@ -377,6 +380,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     );
   }
 
+  // ignore: unused_element
   InputDecoration _inputDecoration(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
@@ -476,6 +480,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         itemCount: _employees.length,
                         itemBuilder: (context, index) {
                           final emp = _employees[index];
+                          // ignore: unused_local_variable
                           final roleColor = _getRoleColor(emp.role);
                           return Container(
                                 margin: const EdgeInsets.only(bottom: 8),

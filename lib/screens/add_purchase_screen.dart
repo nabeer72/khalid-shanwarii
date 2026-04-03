@@ -701,6 +701,7 @@ class _PurchaseInfoCard extends StatelessWidget {
               color: controller.paymentType == 'Credit' ? theme.textPrimary : theme.textSecondary, 
               fontWeight: FontWeight.w600
             ),
+            // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
             onChanged: (v) => controller.notifyListeners(),
             decoration: theme.glassInputDecoration('Paid Amount', Icons.payments_rounded),
           ),

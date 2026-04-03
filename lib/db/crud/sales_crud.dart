@@ -1,8 +1,5 @@
-import 'package:sqflite_sqlcipher/sqflite.dart';
+
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'common_crud.dart';
 
 mixin SalesCrud on CommonCrud {
@@ -203,7 +200,9 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getCategorySalesSummary({int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
+    // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // ignore: unused_local_variable
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();

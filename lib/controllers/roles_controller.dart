@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
-import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/role.dart';
 
 class RolesController with ChangeNotifier {
