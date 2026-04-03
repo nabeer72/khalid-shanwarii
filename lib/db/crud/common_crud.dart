@@ -18,11 +18,15 @@ mixin CommonCrud {
       return ' AND (branch_id = ?)';
     }
 
+    // [FIX] Prioritize current branch ID over the list of all active branches.
+    // This prevents sub-branch data from leaking into the main branch view for admins.
+    if (brid != null && brid != 'NONE' && brid != 0) {
+      return ' AND (branch_id = ?)';
+    }
+
     if (activeBranches.isNotEmpty) {
       final placeholders = List.filled(activeBranches.length, '?').join(', ');
       return ' AND (branch_id IN ($placeholders))';
-    } else if (brid != null) {
-      return ' AND (branch_id = ?)';
     }
     // No branch context = show all data
     return '';
@@ -38,10 +42,13 @@ mixin CommonCrud {
       return [getSafeInt(brid)];
     }
 
+    // [FIX] Prioritize current branch ID over the list of all active branches.
+    if (brid != null && brid != 'NONE' && brid != 0) {
+      return [getSafeInt(brid)];
+    }
+
     if (activeBranches.isNotEmpty) {
       return activeBranches.map((b) => getSafeInt(b)).toList();
-    } else if (brid != null) {
-      return [getSafeInt(brid)];
     }
     return [];
   }
