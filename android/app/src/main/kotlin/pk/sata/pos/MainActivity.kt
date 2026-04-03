@@ -1,4 +1,4 @@
-package com.satapos.app.mobile_app
+package pk.sata.pos
 
 import io.flutter.embedding.android.FlutterActivity
 

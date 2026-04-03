@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 
 enum ConnectionStatus { online, offline, slow }
@@ -6,26 +7,17 @@ enum ConnectionStatus { online, offline, slow }
 class ConnectivityService {
   static final ConnectivityService instance = ConnectivityService._init();
   final InternetConnectionChecker _checker = InternetConnectionChecker.createInstance(
-    checkInterval: const Duration(seconds: 5),
-    checkTimeout: const Duration(seconds: 3),
+    checkInterval: const Duration(seconds: 20),
+    checkTimeout: const Duration(seconds: 20),
   );
 
   ConnectivityService._init();
 
   Future<ConnectionStatus> getConnectionStatus() async {
     try {
-      bool hasConnection = await _checker.hasConnection;
+      // Direct reachability check with 20s timeout
+      bool hasConnection = await _checker.hasConnection.timeout(const Duration(seconds: 20));
       if (!hasConnection) return ConnectionStatus.offline;
-
-      // Check for "slow" connection by measuring latency to a reliable endpoint
-      // If it takes more than 2 seconds, we consider it slow for the purpose of signup
-      final stopwatch = Stopwatch()..start();
-      await _checker.connectionStatus; // Ping-like check
-      stopwatch.stop();
-
-      if (stopwatch.elapsedMilliseconds > 2000) {
-        return ConnectionStatus.slow;
-      }
 
       return ConnectionStatus.online;
     } catch (_) {

@@ -5,9 +5,8 @@ plugins {
 }
 
 android {
-    namespace = "com.satapos.app.mobile_app"
+    namespace = "pk.sata.pos"
     compileSdk = 36
-    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -19,7 +18,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.satapos.app.mobile_app"
+        applicationId = "pk.sata.pos"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

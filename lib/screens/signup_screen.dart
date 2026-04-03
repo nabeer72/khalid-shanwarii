@@ -18,7 +18,7 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen>
     with SingleTickerProviderStateMixin {
   final theme = ThemeProvider.instance;
-  final _businessNameCtrl = TextEditingController(text: 'My Store');
+  final _businessNameCtrl = TextEditingController(text: 'General Store');
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
