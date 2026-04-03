@@ -1159,6 +1159,16 @@ class SyncService {
           return m;
         }).toList();
       }
+      // [NEW] Unsynced Branches - MOVE BEFORE ROLES/EMPLOYEES so server can map branch IDs
+      unsyncedBranches = await db.query('branches', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
+      if (unsyncedBranches.isNotEmpty) {
+        changes['branches'] = unsyncedBranches.map((b) {
+          var m = Map<String, dynamic>.from(b);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
       // [NEW] Unsynced Roles - MOVE BEFORE EMPLOYEES for backend dependency resolution
       unsyncedRoles = await db.query('roles', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedRoles.isNotEmpty) {
@@ -1321,15 +1331,6 @@ class SyncService {
         }).toList();
       }
 
-      // Unsynced Branches
-      unsyncedBranches = await db.query('branches', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
-      if (unsyncedBranches.isNotEmpty) {
-        changes['branches'] = unsyncedBranches.map((b) {
-          var m = Map<String, dynamic>.from(b);
-          m.remove('is_synced');
-          return m;
-        }).toList();
-      }
 
       // [MOVED UP] Unsynced Roles collection
 
@@ -1703,8 +1704,11 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Role: $oldId -> $newId');
         await txn.update('roles', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('employees', {'role_id': newId}, where: 'role_id = ?', whereArgs: [oldId]);
+        // [FIX] Update role_permissions pivot table
+        await txn.update('role_permissions', {'role_id': newId}, where: 'role_id = ?', whereArgs: [oldId]);
       }
     }
 
@@ -1714,7 +1718,11 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Employee: $oldId -> $newId');
         await txn.update('employees', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        // [FIX] Update employee pivot tables
+        // Note: employee_permissions doesn't exist on mobile (stored in 'permissions' column of employees)
+        await txn.update('employee_roles', {'employee_id': newId}, where: 'employee_id = ?', whereArgs: [oldId]);
       }
     }
 
