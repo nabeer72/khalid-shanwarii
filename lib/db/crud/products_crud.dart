@@ -1,5 +1,6 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin ProductsCrud on CommonCrud {
@@ -208,6 +209,8 @@ mixin ProductsCrud on CommonCrud {
         });
       }
     });
+
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> toggleProductFavorite(dynamic productId, bool currentStatus) async {

@@ -1,5 +1,6 @@
 
 import 'package:mobile_app/db/mock_data.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin SalesCrud on CommonCrud {
@@ -75,7 +76,7 @@ mixin SalesCrud on CommonCrud {
     final aid = getSafeInt(BusinessConfig.instance.adminId);
     final brid = sale['branch_id'] ?? getCurrentBranchId();
     
-    return await db.transaction((txn) async {
+    final result = await db.transaction((txn) async {
       final generatedSaleId = await txn.insert('sales', {
         ...sale,
         'business_id': bid,
@@ -140,6 +141,9 @@ mixin SalesCrud on CommonCrud {
       }
       return sid;
     });
+
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getSaleItems(dynamic saleId) async {

@@ -1,4 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin CategoriesCrud on CommonCrud {
@@ -19,7 +20,7 @@ mixin CategoriesCrud on CommonCrud {
   Future<int> insertCategory(Map<String, dynamic> category) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
-    return await db.insert('categories', {
+    final result = await db.insert('categories', {
       ...category,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': getSafeInt(category['branch_id'] ?? getCurrentBranchId()),
@@ -27,6 +28,9 @@ mixin CategoriesCrud on CommonCrud {
       'created_at': category['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getSubCategories({dynamic categoryId}) async {
@@ -80,7 +84,7 @@ mixin CategoriesCrud on CommonCrud {
   Future<int> insertSubCategory(Map<String, dynamic> subcategory) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
-    return await db.insert('subcategories', {
+    final result = await db.insert('subcategories', {
       ...subcategory,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': getSafeInt(subcategory['branch_id'] ?? getCurrentBranchId()),
@@ -88,5 +92,8 @@ mixin CategoriesCrud on CommonCrud {
       'created_at': subcategory['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 }

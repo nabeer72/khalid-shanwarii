@@ -1,4 +1,5 @@
 
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin ReturnsCrud on CommonCrud {
@@ -20,7 +21,7 @@ mixin ReturnsCrud on CommonCrud {
     final businessArgs = getBusinessArgs();
     final brid = returnData['branch_id'] ?? getCurrentBranchId();
     
-    return await db.transaction((txn) async {
+    final result = await db.transaction((txn) async {
       final returnId = await txn.insert('returns', {
         ...returnData,
         ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
@@ -68,6 +69,9 @@ mixin ReturnsCrud on CommonCrud {
       }
       return returnId;
     });
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getReturnItems(dynamic returnId) async {

@@ -1,4 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin ExpensesCrud on CommonCrud {
@@ -27,16 +28,20 @@ mixin ExpensesCrud on CommonCrud {
       'created_at': head['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> deleteExpenseHead(dynamic id) async {
     final db = await database;
     await db.update(
       'expense_heads', 
-      {'status': 0}, 
+      {'status': 0, 'is_synced': 0}, 
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...getBusinessArgs()]
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   // Expenses
@@ -76,36 +81,44 @@ mixin ExpensesCrud on CommonCrud {
       'created_at': expense['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> updateExpense(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     await db.update(
       'expenses', 
-      data, 
+      {...data, 'is_synced': 0}, 
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...getBusinessArgs()]
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> updateExpenseHead(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     await db.update(
       'expense_heads', 
-      data, 
+      {...data, 'is_synced': 0}, 
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...getBusinessArgs()]
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> deleteExpense(dynamic id) async {
     final db = await database;
     await db.update(
       'expenses', 
-      {'status': 0}, 
+      {'status': 0, 'is_synced': 0}, 
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...getBusinessArgs()]
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
 }

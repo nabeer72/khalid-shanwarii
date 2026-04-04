@@ -1,4 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 mixin ShiftsCrud on CommonCrud {
   // ========== Shift Operations ==========
@@ -27,6 +28,8 @@ mixin ShiftsCrud on CommonCrud {
       'branch_id': getCurrentBranchId(),
       'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> endShift(dynamic id, Map<String, dynamic> closingData) async {
@@ -42,6 +45,8 @@ mixin ShiftsCrud on CommonCrud {
       where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()],
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<Map<String, double>> getShiftTotals(String startTime, String endTime) async {

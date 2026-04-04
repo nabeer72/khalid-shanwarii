@@ -303,12 +303,24 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   void _showGroupPopup(String name, List<Product> group) {
     final theme = ThemeProvider.instance;
-    final List<MapEntry<Product, Stock>> flattened = [];
+    final Map<double, MapEntry<Product, Stock>> grouped = {};
     for (var p in group) {
       for (var s in p.stocks) {
-        flattened.add(MapEntry(p, s));
+        final price = s.salePrice;
+        if (grouped.containsKey(price)) {
+          final existingStock = grouped[price]!.value;
+          grouped[price] = MapEntry(
+            p, 
+            existingStock.copyWith(quantity: existingStock.quantity + s.quantity),
+          );
+        } else {
+          grouped[price] = MapEntry(p, s);
+        }
       }
     }
+    final flattened = grouped.values.toList();
+    // Sort by price descending
+    flattened.sort((a, b) => b.value.salePrice.compareTo(a.value.salePrice));
 
     showDialog(
       context: context,

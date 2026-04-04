@@ -37,11 +37,21 @@ class DatabaseHelper
         CurrencyNotesCrud {
           
   static final DatabaseHelper instance = DatabaseHelper._init();
+  
+  // Callback for top-level data changes (to trigger immediate sync)
+  static Future<void> Function()? onDataChanged;
 
   DatabaseHelper._init();
 
   @override
   Future<Database> get database async {
     return await DbInitializer.getDatabase();
+  }
+
+  /// Notify that data has changed (should be called by CRUD mixins)
+  static void notifyDataChanged() {
+    if (onDataChanged != null) {
+      onDataChanged!();
+    }
   }
 }

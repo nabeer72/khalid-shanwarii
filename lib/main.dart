@@ -10,6 +10,7 @@ import 'package:shake/shake.dart';
 import 'package:mobile_app/db/db_init.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/services/sync_service.dart';
 
 // Global navigator key to allow navigation from anywhere (like a shake event)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -21,6 +22,12 @@ void main() async {
   if (!kIsWeb) {
     await initializeDatabase();
     await DatabaseHelper.instance.loadSettings();
+
+    // Data Change listener for immediate sync (Online-First)
+    DatabaseHelper.onDataChanged = () async {
+      print('🔄 Data changed! Triggering background sync push...');
+      SyncService().syncPush();
+    };
   }
 
   runApp(const MyApp());

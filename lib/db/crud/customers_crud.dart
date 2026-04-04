@@ -1,4 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin CustomersCrud on CommonCrud {
@@ -27,22 +28,28 @@ mixin CustomersCrud on CommonCrud {
 
   Future<int> insertCustomer(Map<String, dynamic> customer) async {
     final db = await database;
-    return await db.insert('customers', {
+    final result = await db.insert('customers', {
       ...customer,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': customer['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<int> updateCustomer(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
-    return await db.update(
+    final result = await db.update(
       'customers', 
       {...data, 'is_synced': 0}, 
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...getBusinessArgs()]
     );
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<Map<String, dynamic>?> getCustomer(dynamic id) async {

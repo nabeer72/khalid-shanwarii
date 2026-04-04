@@ -108,4 +108,35 @@ class Stock {
       'deleted_at': deletedAt,
     };
   }
+
+  Stock copyWith({
+    double? quantity,
+  }) {
+    return Stock(
+      id: id,
+      businessId: businessId,
+      productId: productId,
+      barcode: barcode,
+      manufactureDate: manufactureDate,
+      expireDate: expireDate,
+      quantity: quantity ?? this.quantity,
+      packing: packing,
+      piecesPerPack: piecesPerPack,
+      costPrice: costPrice,
+      salePrice: salePrice,
+      wholesalePrice: wholesalePrice,
+      alertQuantity: alertQuantity,
+      alertStatus: alertStatus,
+      discount: discount,
+      discountLimit: discountLimit,
+      tax: tax,
+      tradeOff: tradeOff,
+      carryExpense: carryExpense,
+      status: status,
+      isSynced: isSynced,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      deletedAt: deletedAt,
+    );
+  }
 }

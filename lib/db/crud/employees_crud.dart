@@ -1,6 +1,7 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'dart:convert';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin EmployeesCrud on CommonCrud {
@@ -52,12 +53,15 @@ mixin EmployeesCrud on CommonCrud {
       data['branch_id'] = int.tryParse(data['branch_id']);
     }
 
-    return await db.insert('employees', {
+    final result = await db.insert('employees', {
       ...data,
       'business_id': bIdToUse,
       'admin_id': aIdToUse,
       'is_synced': 0
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<Map<String, dynamic>?> getEmployeeByEmail(String email) async {
@@ -83,6 +87,8 @@ mixin EmployeesCrud on CommonCrud {
   Future<void> deleteEmployee(dynamic id) async {
     final db = await database;
     await db.delete('employees', where: 'id = ?', whereArgs: [id]);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<List<Map<String, dynamic>>> getRoles() async {
@@ -120,8 +126,10 @@ mixin EmployeesCrud on CommonCrud {
     insertData['created_at'] = insertData['created_at'] ?? DateTime.now().toIso8601String();
     insertData['updated_at'] = DateTime.now().toIso8601String();
 
-    print('💾 [insertRole] Final data to insert: $insertData');
-    return await db.insert('roles', insertData, conflictAlgorithm: ConflictAlgorithm.replace);
+    final result = await db.insert('roles', insertData, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<void> insertRolePermissions(dynamic roleId, List<dynamic> permissionIds) async {
@@ -135,6 +143,7 @@ mixin EmployeesCrud on CommonCrud {
         });
       }
     });
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<List<dynamic>> getRolePermissions(dynamic roleId) async {
@@ -184,6 +193,7 @@ mixin EmployeesCrud on CommonCrud {
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
       }
     });
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<List<String>> getEmployeePermissions(dynamic employeeId) async {
@@ -216,5 +226,6 @@ mixin EmployeesCrud on CommonCrud {
         });
       }
     });
+    DatabaseHelper.notifyDataChanged();
   }
 }

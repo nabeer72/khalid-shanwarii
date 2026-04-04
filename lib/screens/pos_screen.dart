@@ -187,10 +187,29 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     if (variants.isEmpty) return;
     final product = variants.first;
     
-    // Flatten all stocks from all variants into a single list
-    final allStocks = variants.expand((v) => v.stocks.map((s) => {'product': v, 'stock': s})).toList();
-    // Sort by price descending or creation time descending? 
-    // Usually newest first
+    // Group all stocks from all variants by their salePrice to avoid duplicates with the same price.
+    final Map<double, Map<String, dynamic>> groupedStocks = {};
+    for (var v in variants) {
+      for (var s in v.stocks) {
+        final price = s.salePrice;
+        if (groupedStocks.containsKey(price)) {
+          // SAME PRICE -> Update existing entry with combined quantity
+          final existingStock = groupedStocks[price]!['stock'] as Stock;
+          groupedStocks[price]!['stock'] = existingStock.copyWith(
+            quantity: existingStock.quantity + s.quantity,
+          );
+        } else {
+          // NEW PRICE -> Create new entry (using a clone to avoid side effects)
+          groupedStocks[price] = {
+            'product': v, 
+            'stock': Stock.fromMap(s.toMap()),
+          };
+        }
+      }
+    }
+    final allStocks = groupedStocks.values.toList();
+    // Sort by price descending (newest/highest usually preferred)
+    allStocks.sort((a, b) => b['stock'].salePrice.compareTo(a['stock'].salePrice));
     
     showDialog(
       context: context,

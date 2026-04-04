@@ -1,4 +1,5 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin PurchasesCrud on CommonCrud {
@@ -24,7 +25,7 @@ mixin PurchasesCrud on CommonCrud {
     final businessArgs = getBusinessArgs();
     final brid = purchase['branch_id'] ?? getCurrentBranchId();
 
-    return await db.transaction((txn) async {
+    final result = await db.transaction((txn) async {
       final generatedPurchaseId = await txn.insert('purchases', {
         ...purchase,
         ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
@@ -96,12 +97,15 @@ mixin PurchasesCrud on CommonCrud {
         });
 
         // 4. Manage Stock Batch
-        // Check if we already have a stock record with this product ID and SAME PRICES
-        final existingStock = await txn.query('stocks', 
-          where: 'product_id = ? AND cost_price = ? AND sale_price = ? AND wholesale_price = ? AND branch_id = ? AND status = 1${getBusinessFilter()}',
-          whereArgs: [productId, newPurchasePrice, newSellingPrice, newWholesalePrice, brid, ...businessArgs],
-          orderBy: 'id DESC',
-          limit: 1
+        final existingStock = await txn.rawQuery(
+          '''SELECT * FROM stocks 
+             WHERE product_id = ? AND branch_id = ? AND status = 1 
+             AND ROUND(cost_price, 2) = ROUND(?, 2) 
+             AND ROUND(sale_price, 2) = ROUND(?, 2) 
+             AND ROUND(wholesale_price, 2) = ROUND(?, 2)
+             ${getBusinessFilter()}
+             ORDER BY id DESC LIMIT 1''',
+          [productId, brid, newPurchasePrice, newSellingPrice, newWholesalePrice, ...businessArgs],
         );
 
         if (existingStock.isNotEmpty) {
@@ -150,6 +154,9 @@ mixin PurchasesCrud on CommonCrud {
       }
       return pid;
     });
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<List<Map<String, dynamic>>> getPurchaseItems(dynamic purchaseId) async {
@@ -169,6 +176,8 @@ mixin PurchasesCrud on CommonCrud {
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     }, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
 }

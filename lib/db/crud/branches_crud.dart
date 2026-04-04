@@ -1,5 +1,6 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin BranchesCrud on CommonCrud {
@@ -54,12 +55,15 @@ mixin BranchesCrud on CommonCrud {
     data['business_id'] = data['business_id'] ?? getBusinessArgs()[0];
     data['admin_id'] = data['admin_id'] ?? getBusinessArgs()[1];
     
-    return await db.insert('branches', {
+    final result = await db.insert('branches', {
       ...data,
       'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   // ignore: unused_element
@@ -77,6 +81,8 @@ mixin BranchesCrud on CommonCrud {
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     }, where: 'id = ?', whereArgs: [id]);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> deleteBranch(dynamic id) async {
@@ -88,6 +94,8 @@ mixin BranchesCrud on CommonCrud {
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...businessArgs]
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
 }

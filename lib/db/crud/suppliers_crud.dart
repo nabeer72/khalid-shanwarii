@@ -1,5 +1,6 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin SuppliersCrud on CommonCrud {
@@ -23,17 +24,22 @@ mixin SuppliersCrud on CommonCrud {
       ...supplier,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': supplier['branch_id'] ?? getCurrentBranchId(),
+      'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> deleteSupplier(dynamic id) async {
     final db = await database;
     await db.update(
       'suppliers', 
-      {'status': 0}, 
+      {'status': 0, 'is_synced': 0}, 
       where: 'id = ?${getBusinessFilter()}', 
       whereArgs: [id, ...getBusinessArgs()]
     );
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   // ========== Supplier Payback Operations ==========
@@ -82,7 +88,10 @@ mixin SuppliersCrud on CommonCrud {
       ...creditPurchase,
       ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
       'branch_id': creditPurchase['branch_id'] ?? getCurrentBranchId(),
+      'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<List<Map<String, dynamic>>> getSupplierPaybacks({dynamic supplierId, dynamic creditPurchaseId}) async {
@@ -166,6 +175,8 @@ mixin SuppliersCrud on CommonCrud {
         [totalPaybackAmount, payback['supplier_id'], ...getBusinessArgs()],
       );
     });
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> updateSupplierCreditBalance(dynamic supplierId, double amount) async {

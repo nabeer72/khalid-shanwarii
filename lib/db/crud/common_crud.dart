@@ -1,5 +1,6 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import '../database_helper.dart';
 mixin CommonCrud {
   Future<Database> get database;
   
@@ -108,7 +109,10 @@ mixin CommonCrud {
     'created_at': user['created_at'],
     'updated_at': user['updated_at'],
   };
-    return await db.insert('users', sanitized, conflictAlgorithm: ConflictAlgorithm.replace);
+    final result = await db.insert('users', sanitized, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<Map<String, dynamic>?> getUser(dynamic id) async {
@@ -148,7 +152,10 @@ mixin CommonCrud {
       'created_at': business['created_at'],
       'updated_at': business['updated_at'],
     };
-    return await db.insert('businesses', sanitized, conflictAlgorithm: ConflictAlgorithm.replace);
+    final result = await db.insert('businesses', sanitized, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<Map<String, dynamic>?> getBusiness(dynamic id) async {
@@ -235,11 +242,15 @@ mixin CommonCrud {
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> deleteBankTransaction(dynamic id) async {
     final db = await database;
     await db.update('bank_accounts', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
+    
+    DatabaseHelper.notifyDataChanged();
   }
 
   // ========== Cleanup Operations ==========
