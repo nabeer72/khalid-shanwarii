@@ -4,7 +4,7 @@ class BankAccount {
   final String? accountType;
   final String? accountTitle;
   final String? accountNumber;
-  final int amount;
+  final double amount;
   final String? transactionType;
   final String? remarks;
   final DateTime? date;
@@ -17,7 +17,7 @@ class BankAccount {
     this.accountType,
     this.accountTitle,
     this.accountNumber,
-    this.amount = 0,
+    this.amount = 0.0,
     this.transactionType,
     this.remarks,
     this.date,
@@ -32,7 +32,7 @@ class BankAccount {
       accountType: map['account_type']?.toString(),
       accountTitle: map['account_title']?.toString(),
       accountNumber: map['account_number']?.toString(),
-      amount: (map['amount'] as num?)?.toInt() ?? 0,
+      amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       transactionType: map['transaction_type']?.toString(),
       remarks: map['remarks']?.toString(),
       date: map['date'] != null ? DateTime.tryParse(map['date'].toString()) : null,

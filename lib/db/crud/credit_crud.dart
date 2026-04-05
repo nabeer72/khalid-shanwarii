@@ -164,7 +164,7 @@ mixin CreditCrud on CommonCrud {
     final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM customers WHERE credit_balance > 0${getBusinessFilter()} AND status = 1$branchFilter ORDER BY credit_balance DESC',
+      'SELECT * FROM customers WHERE COALESCE(credit_balance, 0) > 0${getBusinessFilter()} AND status = 1$branchFilter ORDER BY credit_balance DESC',
       args,
     );
   }

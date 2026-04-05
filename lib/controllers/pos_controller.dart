@@ -25,6 +25,7 @@ class POSController with ChangeNotifier {
   int? _originalSaleId;
   Customer? _selectedCustomer;
   String _searchQuery = '';
+  bool _isManualDiscount = false;
 
   // Getters
   List<ProductCategory> get categories => _categories;
@@ -215,6 +216,12 @@ class POSController with ChangeNotifier {
   void calculateTotals() {
     _subtotal = _cart.fold(0, (sum, item) => sum + item.subtotal);
     _tax = _subtotal * (BusinessConfig.instance.taxRate / 100);
+
+    // Auto-calculate discount if a customer is selected AND NO MANUAL DISCOUNT entered
+    if (!_isManualDiscount && _selectedCustomer != null && _selectedCustomer!.discount > 0) {
+       _discount = _subtotal * (_selectedCustomer!.discount / 100);
+    }
+
     _total = _subtotal + _tax - _discount;
     if (_total < 0) _total = 0;
     notifyListeners();
@@ -228,12 +235,14 @@ class POSController with ChangeNotifier {
 
   void setDiscount(double value) {
     _discount = value;
+    _isManualDiscount = true;
     calculateTotals();
   }
 
   void clearCart() {
     _cart.clear();
     _discount = 0;
+    _isManualDiscount = false;
     _isReturn = false;
     _originalSaleId = null;
     _selectedCustomer = null;
@@ -250,7 +259,11 @@ class POSController with ChangeNotifier {
 
   void setSelectedCustomer(Customer? customer) {
     _selectedCustomer = customer;
-    notifyListeners();
+    _isManualDiscount = false;
+    if (customer == null) {
+      _discount = 0;
+    }
+    calculateTotals();
   }
 
   void toggleReturn(bool value) {

@@ -4,6 +4,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:intl/intl.dart';
+import 'customer_credit_sales_screen.dart';
 
 class RecoveryScreen extends StatefulWidget {
   const RecoveryScreen({super.key});
@@ -430,9 +431,38 @@ class _CustomerCreditCard extends StatelessWidget {
         ),
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 2),
-          child: Text(
-            'Remaining balance to be recovered',
-            style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Remaining balance to be recovered',
+                  style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => CustomerCreditSalesScreen(customer: customer),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.highlight.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: theme.highlight.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    'VIEW SALES',
+                    style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.w900),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         trailing: Column(

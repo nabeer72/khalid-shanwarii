@@ -219,7 +219,23 @@ mixin ProductsCrud on CommonCrud {
       'products',
       {'is_favorite': currentStatus ? 0 : 1},
       where: 'id = ?${getBusinessFilter().replaceAll('business_id', 'business_id').replaceAll('admin_id', 'admin_id')}',
-      whereArgs: [productId, ...getBusinessArgs()],
     );
+  }
+
+  Future<bool> checkBarcodeExists(String barcode) async {
+    final db = await database;
+    final results = await db.query(
+      'products',
+      where: 'barcode = ?',
+      whereArgs: [barcode],
+    );
+    if (results.isNotEmpty) return true;
+
+    final stockResults = await db.query(
+      'stocks',
+      where: 'barcode = ?',
+      whereArgs: [barcode],
+    );
+    return stockResults.isNotEmpty;
   }
 }

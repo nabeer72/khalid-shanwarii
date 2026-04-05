@@ -502,56 +502,74 @@ class _LoginScreenState extends State<LoginScreen>
     print('⏳ [LOGIN] Loading state set to true');
 
     try {
-      // PROMPT CHANGE: Bypassing local user login to force API (Live Database) authentication
-      // Final fallback to staff member login remains locally for offline employee use.
-      print('💡 [LOGIN] Checking for local Staff login fallback...');
-      // Try Staff Login (Email + PIN/Password)
-      final staff =
-          await _dbHelper.getEmployeeByEmailAndPin(cleanEmail, password);
-        if (staff != null) {
-          print('👤 [LOGIN] Staff member found!');
+      // PROMPT CHANGE: checking local users/staff first for offline support and speed
+      print('💡 [LOGIN] Checking local database for credentials...');
+      
+      // 1. Try Local User (Admin) Login
+      final user = await _dbHelper.getUserByEmailAndPassword(cleanEmail, password);
+      if (user != null) {
+        print('👤 [LOGIN] Local Admin found!');
+        
+        final uid = user['id'];
+        final bid = user['business_id'];
+        final aid = user['admin_id'] ?? uid; // Admin is their own admin
+        
+        BusinessConfig.instance.setContext(
+          bid: bid, 
+          aid: aid,
+          brid: user['branch_id'],
+        );
+        
+        await _storage.write(key: 'user_id', value: uid.toString());
+        await _storage.write(key: 'business_id', value: bid?.toString());
+        await _storage.write(key: 'user_email', value: user['email']);
+        
+        await _dbHelper.loadSettings();
+        
+        // Background sync to verify/update
+        _syncLoginToBackend();
+        SyncService().syncPull().catchError((e) => print('⚠️ Background sync failed: $e'));
+        
+        await _proceedToHome(isQuickLogin, email);
+        return;
+      }
 
-          // Store staff session
-          await _storage.write(
-              key: 'user_id', value: staff['admin_id']?.toString()); // Context is admin
-          await _storage.write(key: 'staff_id', value: staff['id']?.toString());
-          await _storage.write(key: 'user_email', value: staff['email']);
-          await _storage.write(key: 'business_id', value: staff['business_id']?.toString());
+      // 2. Try Staff Login (Email + PIN/Password)
+      final staff = await _dbHelper.getEmployeeByEmailAndPin(cleanEmail, password);
+      if (staff != null) {
+        print('👤 [LOGIN] Local Staff member found!');
+        
+        // Store staff session
+        await _storage.write(key: 'user_id', value: staff['admin_id']?.toString());
+        await _storage.write(key: 'staff_id', value: staff['id']?.toString());
+        await _storage.write(key: 'user_email', value: staff['email']);
+        await _storage.write(key: 'business_id', value: staff['business_id']?.toString());
 
-          // Initialize BusinessConfig for Staff
-          BusinessConfig.instance.adminId = staff['admin_id']; // For data isolation
-          BusinessConfig.instance.staffId = staff['id']; // For identity
+        BusinessConfig.instance.adminId = staff['admin_id'];
+        BusinessConfig.instance.staffId = staff['id'];
 
-          if (staff['branch_id'] != null) {
-            BusinessConfig.instance.branchId = staff['branch_id'];
-            final String bid = staff['branch_id'].toString();
-            await _storage.write(key: 'branch_id', value: bid);
-          }
-
-          // Load business info for staff context
-          if (staff['business_id'] != null) {
-            final business = await _dbHelper.getBusiness(staff['business_id']);
-            if (business != null) {
-              BusinessConfig.instance.businessType =
-                  business['business_type'] ?? 'general';
-              BusinessConfig.instance.businessName =
-                  business['name'] ?? 'My Business';
-            }
-          }
-
-          // Load settings (currency, etc.)
-          await _dbHelper.loadSettings();
-
-          // Background Sync: Verify credentials or push/pull data in background
-          _syncLoginToBackend();
-          SyncService().syncPull().then((_) => _dbHelper.loadSettings()).catchError((e) {
-            print('⚠️ [LOGIN] Background sync failed (offline?): $e');
-          });
-
-          await _proceedToHome(isQuickLogin, email);
-          return;
+        if (staff['branch_id'] != null) {
+          BusinessConfig.instance.branchId = staff['branch_id'];
+          await _storage.write(key: 'branch_id', value: staff['branch_id'].toString());
         }
-        print('💡 [LOGIN] No staff found locally, trying API...');
+
+        if (staff['business_id'] != null) {
+          final business = await _dbHelper.getBusiness(staff['business_id']);
+          if (business != null) {
+            BusinessConfig.instance.businessType = business['business_type'] ?? 'general';
+            BusinessConfig.instance.businessName = business['name'] ?? 'My Business';
+          }
+        }
+
+        await _dbHelper.loadSettings();
+        _syncLoginToBackend();
+        SyncService().syncPull().catchError((e) => print('⚠️ Background sync failed: $e'));
+
+        await _proceedToHome(isQuickLogin, email);
+        return;
+      }
+      
+      print('💡 [LOGIN] No local record found, attempting server-side (API) login...');
 
       // If local auth fails or user not found, try API
       print('📡 [LOGIN] Calling API login...');

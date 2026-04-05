@@ -50,7 +50,8 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     final nameController = TextEditingController(text: existing?.name ?? '');
     final phoneController = TextEditingController(text: existing?.phone ?? '');
     final emailController = TextEditingController(text: existing?.email ?? '');
-    final discountController = TextEditingController(text: existing?.discount.toString() ?? '0');
+    final discountController = TextEditingController(text: (existing?.discount ?? 0).toString());
+    final creditLimitController = TextEditingController(text: (existing?.creditLimit ?? 0).toString());
     final notesController = TextEditingController(text: existing?.notes ?? '');
     final _formKey = GlobalKey<FormState>();
     bool isLoading = false;
@@ -98,6 +99,14 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         label: 'Phone Number',
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            if (!RegExp(r'^[0-9+ ]+$').hasMatch(v.trim())) {
+                              return 'Invalid phone number';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       _buildDialogTextField(
@@ -105,6 +114,14 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         label: 'Email Address',
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
+                        validator: (v) {
+                          if (v != null && v.trim().isNotEmpty) {
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
+                              return 'Invalid email format';
+                            }
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 20),
                       _buildDialogSectionHeader('Loyalty & Preferences'),
@@ -112,7 +129,28 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         controller: discountController,
                         label: 'Standard Discount (%)',
                         icon: Icons.percent_rounded,
-                        keyboardType: TextInputType.number,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final d = double.tryParse(v);
+                          if (d == null) return 'Must be a number';
+                          if (d < 0 || d > 100) return 'Must be 0-100%';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      _buildDialogTextField(
+                        controller: creditLimitController,
+                        label: 'Credit Limit (Amount)',
+                        icon: Icons.money_off_rounded,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          final d = double.tryParse(v);
+                          if (d == null) return 'Must be a number';
+                          if (d < 0) return 'Cannot be negative';
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 12),
                       _buildDialogTextField(
@@ -151,6 +189,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           email: emailController.text,
                           notes: notesController.text,
                           discountText: discountController.text,
+                          creditLimitText: creditLimitController.text,
                           context: context,
                         );
                         

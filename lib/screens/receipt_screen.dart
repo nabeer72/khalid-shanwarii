@@ -366,7 +366,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       if (discount > 0)
                         _SummaryRow(
                           label: 'Disc:', 
-                          value: BusinessConfig.instance.formatAmount(discount),
+                          value: '-${BusinessConfig.instance.formatAmount(discount)}',
                           alignment: MainAxisAlignment.start,
                           labelWidth: 55,
                         ),

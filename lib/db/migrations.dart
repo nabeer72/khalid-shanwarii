@@ -1,9 +1,32 @@
 import 'package:flutter/foundation.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'tables.dart';
 
 class DbMigrations {
   static Future<void> upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 61) {
+      if (kDebugMode) print('Upgrading DB to version 61: Repairing customer data (admin_id/business_id)...');
+      try {
+        final bid = BusinessConfig.instance.businessId;
+        final aid = BusinessConfig.instance.adminId;
+        if (bid != null && aid != null) {
+          await db.rawUpdate('UPDATE customers SET business_id = ?, admin_id = ? WHERE business_id IS NULL OR admin_id IS NULL', [bid, aid]);
+        }
+      } catch (e) {
+        if (kDebugMode) print('Repair failed for customers: $e');
+      }
+    }
+
+    if (oldVersion < 60) {
+      if (kDebugMode) print('Upgrading DB to version 60: Adding credit_limit to customers...');
+      try {
+        await db.execute('ALTER TABLE customers ADD COLUMN credit_limit REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('credit_limit column already exists in customers: $e');
+      }
+    }
+
     if (oldVersion < 29) {
       if (kDebugMode) print('Upgrading DB to version 29: Adding branch_id to isolated tables...');
       final tables = [
@@ -1045,26 +1068,91 @@ class DbMigrations {
         )
       ''');
     }
-    if (oldVersion < 54) {
-      if (kDebugMode) print('Upgrading DB to v54: Adding isolation columns to various tables...');
-      final tablesAndCols = {
-        'stocks': ['admin_id INTEGER'],
-        'currency_notes': ['admin_id INTEGER', 'branch_id INTEGER'],
-        'sale_items': ['admin_id INTEGER', 'business_id INTEGER'],
-        'purchase_items': ['admin_id INTEGER', 'business_id INTEGER'],
-        'return_items': ['admin_id INTEGER', 'business_id INTEGER'],
-        'held_order_items': ['admin_id INTEGER', 'business_id INTEGER'],
-      };
+    if (oldVersion < 55) {
+      if (kDebugMode) print('Upgrading DB to v55: Creating units and payment_types tables...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS units (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          business_id INTEGER,
+          branch_id INTEGER,
+          user_id INTEGER,
+          name TEXT NOT NULL,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS payment_types (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          business_id INTEGER,
+          name TEXT NOT NULL,
+          code TEXT,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+    }
 
-      for (var entry in tablesAndCols.entries) {
-        final table = entry.key;
-        for (var colDef in entry.value) {
-          try {
-            await db.execute('ALTER TABLE $table ADD COLUMN $colDef');
-          } catch (e) {
-            if (kDebugMode) print('v54 $table $colDef error: $e');
-          }
+    if (oldVersion < 56) {
+      if (kDebugMode) print('Upgrading DB to v56: Creating brands table and adding unit_id to products...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS brands (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          business_id INTEGER,
+          branch_id INTEGER,
+          admin_id INTEGER,
+          name TEXT NOT NULL,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN unit_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v56 products unit_id error: $e');
+      }
+    }
+    if (oldVersion < 57) {
+      if (kDebugMode) print('Upgrading DB to v57: Adding unit_id to purchase_items...');
+      try {
+        await db.execute('ALTER TABLE purchase_items ADD COLUMN unit_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v57 purchase_items unit_id error: $e');
+      }
+    }
+    if (oldVersion < 58) {
+      if (kDebugMode) print('Upgrading DB to v58: Adding admin_id and branch_id to currency_notes...');
+      try {
+        await db.execute('ALTER TABLE currency_notes ADD COLUMN admin_id INTEGER');
+        await db.execute('ALTER TABLE currency_notes ADD COLUMN branch_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v58 currency_notes error: $e');
+      }
+    }
+
+    if (oldVersion < 59) {
+      if (kDebugMode) print('Upgrading DB to v59: Repairing currency_notes metadata...');
+      try {
+        final bid = BusinessConfig.instance.businessId;
+        final aid = BusinessConfig.instance.adminId;
+        final brid = BusinessConfig.instance.branchId;
+        
+        if (bid != null && aid != null) {
+           await db.update('currency_notes', {
+             'business_id': bid,
+             'admin_id': aid,
+             'branch_id': (brid == 'NONE' || brid == 0) ? null : brid,
+             'is_synced': 0, // Force re-sync with valid data
+           }, where: 'business_id IS NULL OR admin_id IS NULL');
         }
+      } catch (e) {
+        if (kDebugMode) print('v59 currency_notes repair error: $e');
       }
     }
   }

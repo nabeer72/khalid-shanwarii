@@ -98,6 +98,7 @@ class DbTables {
         is_synced INTEGER DEFAULT 0,
         updated_at TEXT,
         deleted_at TEXT,
+        unit_id INTEGER,
         FOREIGN KEY (category_id) REFERENCES categories(id)
       )
     ''');
@@ -151,6 +152,7 @@ class DbTables {
         loyalty_points INTEGER DEFAULT 0,
         discount REAL DEFAULT 0,
         credit_balance REAL DEFAULT 0,
+        credit_limit REAL DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
@@ -418,6 +420,7 @@ class DbTables {
         wholesale_price REAL DEFAULT 0,
         selling_price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
+        unit_id INTEGER,
         branch_id INTEGER,
         is_synced INTEGER DEFAULT 0,
         FOREIGN KEY (purchase_id) REFERENCES purchases(id),
@@ -655,8 +658,51 @@ class DbTables {
       )
     ''');
 
+    // Units
+    await db.execute('''
+      CREATE TABLE units (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        user_id INTEGER,
+        name TEXT NOT NULL,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
 
-    if (kDebugMode) print('Database created with all tables including RBAC');
+    // Payment Types (Local copy of live table)
+    await db.execute('''
+      CREATE TABLE payment_types (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        name TEXT NOT NULL,
+        code TEXT,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    // Brands
+    await db.execute('''
+      CREATE TABLE brands (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        branch_id INTEGER,
+        admin_id INTEGER,
+        name TEXT NOT NULL,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    if (kDebugMode) print('Database created with all tables including RBAC, Units, Brands, and Payment Types');
     await DbTables.seedPermissions(db);
   }
   static Future<void> seedPermissions(Database db) async {

@@ -8,6 +8,9 @@ This is the offline-first mobile Point of Sale (POS) application for SATA POS.
 -   **Scanning**: Built-in camera scanner for barcodes.
 -   **Multi-Tenancy**: Supports login for different businesses using the same app.
 
+## Documentation
+- [Stock Management Process](STOCK_MANAGEMENT.md): Detailed overview of how inventory, batches, and price variants are handled.
+
 ## Project Structure
 -   `lib/db`: Database helpers and schema definitions (`sqflite`).
 -   `lib/models`: Dart data models matching the database schema.
@@ -15,6 +18,7 @@ This is the offline-first mobile Point of Sale (POS) application for SATA POS.
 -   `lib/services`:
     -   `api_service.dart`: HTTP client (Dio) with Authentication.
     -   `sync_service.dart`: Logic to Push/Pull data from backend.
+
 
 ## Configuration
 

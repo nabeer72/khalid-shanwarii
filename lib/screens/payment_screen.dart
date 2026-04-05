@@ -50,6 +50,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   List<Map<String, dynamic>> _currencyNotes = [];
 
+  List<PaymentMethod> _dynamicPaymentMethods = [];
+
   @override
   void initState() {
     super.initState();
@@ -58,6 +60,49 @@ class _PaymentScreenState extends State<PaymentScreen> {
     _partialController.text = BusinessConfig.instance.formatAmount(widget.total);
     _selectedCustomer = widget.customer;
     _loadCurrencyNotes();
+    _loadPaymentMethods();
+  }
+
+  Future<void> _loadPaymentMethods() async {
+    final pts = await DatabaseHelper.instance.getPaymentTypes();
+    List<PaymentMethod> list = [];
+    bool hasCredit = false;
+
+    for (var i = 0; i < pts.length; i++) {
+        var pt = pts[i];
+        String name = pt['name'].toString();
+        String iconName = 'payments';
+        if (name.toLowerCase() == 'cash') iconName = 'payments';
+        else if (name.toLowerCase().contains('bank')) iconName = 'account_balance';
+        else if (name.toLowerCase().contains('cheque')) iconName = 'receipt_long';
+        else if (name.toLowerCase().contains('card')) iconName = 'credit_card';
+        else if (name.toLowerCase().contains('mobile')) iconName = 'phone_android';
+        else if (name.toLowerCase() == 'credit') {
+            iconName = 'account_balance_wallet';
+            hasCredit = true;
+        }
+
+        list.add(PaymentMethod(id: (pt['id'] ?? (i + 1)) as int, name: name, icon: iconName));
+    }
+
+    // Explicitly preserve 'Credit' per user request
+    if (!hasCredit) {
+        list.add(PaymentMethod(id: 999, name: 'Credit', icon: 'account_balance_wallet'));
+    }
+
+    if (list.isEmpty) {
+        list.add(PaymentMethod(id: 1, name: 'Cash', icon: 'payments'));
+        list.add(PaymentMethod(id: 2, name: 'Credit', icon: 'account_balance_wallet'));
+    }
+
+    if (mounted) {
+        setState(() {
+            _dynamicPaymentMethods = list;
+            if (!_dynamicPaymentMethods.any((pm) => pm.name == _selectedPayment)) {
+                _selectedPayment = _dynamicPaymentMethods.first.name;
+            }
+        });
+    }
   }
 
   Future<void> _loadCurrencyNotes() async {
@@ -90,6 +135,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
       setState(() {
         _selectedCustomer = customer;
       });
+    }
+
+    // Credit Limit Check
+    if (!widget.isReturn && (_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
+      if (_selectedCustomer!.creditLimit > 0) {
+        final currentBalance = _selectedCustomer!.creditBalance ?? 0.0;
+        final newCredit = unpaidAmount;
+        if (currentBalance + newCredit > _selectedCustomer!.creditLimit) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Credit limit exceeded! Limit: ${BusinessConfig.instance.formatAmount(_selectedCustomer!.creditLimit)}, Current Balance: ${BusinessConfig.instance.formatAmount(currentBalance)}, New Credit: ${BusinessConfig.instance.formatAmount(newCredit)}'),
+                backgroundColor: ThemeProvider.error,
+                duration: const Duration(seconds: 5),
+                action: SnackBarAction(
+                  label: 'OK',
+                  textColor: Colors.white,
+                  onPressed: () {},
+                ),
+              ),
+            );
+          }
+          return;
+        }
+      }
     }
 
     setState(() => _processing = true);
@@ -383,7 +453,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: MockDataStore.instance.paymentMethods
+                    children: _dynamicPaymentMethods
                         .map(
                           (pm) => _PaymentMethodButton(
                             name: pm.name,
@@ -917,9 +987,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _setCash(double amount) {
+    final finalAmount = amount > _grandTotal ? _grandTotal : amount;
     setState(() {
-      _amountTendered = amount;
-      _activeController.text = amount.toStringAsFixed(2);
+      _amountTendered = finalAmount;
+      _activeController.text = finalAmount.toStringAsFixed(2);
     });
   }
 
@@ -962,8 +1033,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
     
     setState(() {
+      double val = double.tryParse(current) ?? 0;
+      if (val > _grandTotal) {
+        val = _grandTotal;
+        current = val.toStringAsFixed(2);
+      }
       _activeController.text = current;
-      _amountTendered = double.tryParse(current) ?? 0;
+      _amountTendered = val;
     });
   }
 }

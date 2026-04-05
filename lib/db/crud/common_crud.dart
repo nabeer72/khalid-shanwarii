@@ -128,6 +128,18 @@ mixin CommonCrud {
     return results.isNotEmpty ? results.first : null;
   }
 
+  Future<Map<String, dynamic>?> getUserByEmailAndPassword(String email, String password) async {
+    final db = await database;
+    final cleanEmail = email.toLowerCase().trim();
+    final results = await db.query(
+      'users', 
+      where: 'LOWER(email) = ? AND password = ? AND status = 1', 
+      whereArgs: [cleanEmail, password], 
+      limit: 1
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
   Future<List<Map<String, dynamic>>> getUnsyncedUsers() async {
     final db = await database;
     return await db.query('users', where: 'is_synced = 0');

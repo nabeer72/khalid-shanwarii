@@ -36,54 +36,52 @@ mixin PurchasesCrud on CommonCrud {
       final pid = purchase['id'] ?? generatedPurchaseId;
 
       for (var item in items) {
-        // 2. Separate Product Entry for Price Changes
+        // 2. [ALWAYS CREATE NEW PRODUCT ENTRY] as per user request
         var productId = item['product_id'];
+        final productName = item['product_name'] ?? 'Unknown Item';
         final qtyToAdd = (item['quantity'] as num).toDouble();
         final newPurchasePrice = (item['purchase_price'] as num).toDouble();
         final newSellingPrice = (item['selling_price'] as num).toDouble();
         final newWholesalePrice = (item['wholesale_price'] as num? ?? 0).toDouble();
+        final barcode = item['barcode'];
         final now = DateTime.now().toIso8601String();
 
-        // Check if price changed compared to master record
-        final prodResult = await txn.query(
+        // 2a. Fetch template data if it's an existing product, or use defaults
+        final prodResult = productId != null ? await txn.query(
           'products', 
           where: 'id = ?${getBusinessFilter()}', 
           whereArgs: [productId, ...businessArgs]
-        );
+        ) : [];
+
+        Map<String, dynamic> newProdMap;
         if (prodResult.isNotEmpty) {
-          final p = prodResult.first;
-          final oldCost = (p['purchase_price'] as num? ?? 0).toDouble();
-          final oldSale = (p['price'] as num? ?? 0).toDouble();
-          final oldWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
-
-          // 2a. Search for an EXISTING product variant with the SAME NAME and SAME NEW PRICES
-          // This prevents creating a brand new product entry for every purchase item.
-          final productName = p['name'];
-          final existingVariant = await txn.query('products', 
-            where: 'name = ? AND ROUND(purchase_price, 2) = ROUND(?, 2) AND ROUND(price, 2) = ROUND(?, 2) AND ROUND(wholesale_price, 2) = ROUND(?, 2) AND status = 1${getBusinessFilter()}',
-            whereArgs: [productName, newPurchasePrice, newSellingPrice, newWholesalePrice, ...businessArgs],
-            limit: 1
-          );
-
-          if (existingVariant.isNotEmpty) {
-            // MATCH FOUND -> Use this existing product ID
-            productId = existingVariant.first['id'];
-          } else if (newPurchasePrice != oldCost || newSellingPrice != oldSale || newWholesalePrice != oldWholesale) {
-            // NO MATCH AND PRICE CHANGED -> Create a NEW product entry/variant
-            final newProdMap = Map<String, dynamic>.from(p);
-            newProdMap.remove('id'); 
-            newProdMap['purchase_price'] = newPurchasePrice;
-            newProdMap['price'] = newSellingPrice;
-            newProdMap['wholesale_price'] = newWholesalePrice;
-            
-            // Reset stock counters for the new isolated variant
-            newProdMap['stock_quantity'] = 0.0;
-            newProdMap['is_synced'] = 0;
-            newProdMap['updated_at'] = now;
-            
-            productId = await txn.insert('products', newProdMap);
-          }
+          // CLONE existing product metadata but refresh prices and reset stock
+          newProdMap = Map<String, dynamic>.from(prodResult.first);
+          newProdMap.remove('id');
+        } else {
+          // BRAND NEW PRODUCT - Setup basic metadata
+          newProdMap = {
+            ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
+            'branch_id': brid,
+            'name': productName,
+            'barcode': barcode,
+            'category_id': item['category_id'] ?? 1, // Fallback to category 1
+            'sku': barcode ?? productName.toLowerCase().replaceAll(' ', '_'),
+            'status': 1,
+            'created_at': now,
+          };
         }
+
+        // Apply purchase pricing to this specific new product entry
+        newProdMap['purchase_price'] = newPurchasePrice;
+        newProdMap['price'] = newSellingPrice;
+        newProdMap['wholesale_price'] = newWholesalePrice;
+        newProdMap['stock_quantity'] = 0.0; // Initial stock is 0, will be updated by batch logic below
+        newProdMap['is_synced'] = 0;
+        newProdMap['updated_at'] = now;
+        
+        // INSERT as a fresh product entry (Every purchase = new entry)
+        productId = await txn.insert('products', newProdMap);
 
         // 3. Insert Purchase Item (Linked to potentially new productId)
         final itemData = Map<String, dynamic>.from(item);
@@ -178,6 +176,17 @@ mixin PurchasesCrud on CommonCrud {
     }, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     
     DatabaseHelper.notifyDataChanged();
+  }
+
+  Future<bool> checkInvoiceNumberExists(String invoiceNumber) async {
+    final db = await database;
+    final result = await db.query(
+      'purchases',
+      where: 'invoice_number = ? AND status = 1${getBusinessFilter()}',
+      whereArgs: [invoiceNumber, ...getBusinessArgs()],
+      limit: 1,
+    );
+    return result.isNotEmpty;
   }
 
 }

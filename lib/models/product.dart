@@ -21,6 +21,7 @@ class Product {
   final double? discountLimit;
   final String? updatedAt;
   final String? deletedAt;
+  final dynamic unitId;
   
   // Denormalized fields for immediate UI visibility
   final double price;
@@ -55,6 +56,7 @@ class Product {
     this.discountLimit,
     this.updatedAt,
     this.deletedAt,
+    this.unitId,
     this.isPricePerWeight = false,
     this.weightUnit,
     this.price = 0,
@@ -87,6 +89,7 @@ class Product {
       discountLimit: (map['discount_limit'] as num?)?.toDouble(),
       updatedAt: map['updated_at'],
       deletedAt: map['deleted_at'],
+      unitId: map['unit_id'],
       price: (map['price'] ?? 0).toDouble(),
       purchasePrice: (map['purchase_price'] ?? 0).toDouble(),
       wholesalePrice: (map['wholesale_price'] ?? 0).toDouble(),
@@ -117,6 +120,7 @@ class Product {
       'discount_limit': discountLimit,
       'updated_at': updatedAt,
       'deleted_at': deletedAt,
+      'unit_id': unitId,
       'price': price,
       'purchase_price': purchasePrice,
       'wholesale_price': wholesalePrice,

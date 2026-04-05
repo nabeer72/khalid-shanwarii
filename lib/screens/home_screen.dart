@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
@@ -48,7 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
   int _favoritesCount = 0;
   double _todaySalesAmount = 0.0;
   double _todayRecoveryAmount = 0.0;
+  double _todayReturnsAmount = 0.0;
   int _heldCount = 0;
+
+  StreamSubscription<void>? _dataSubscription;
 
   @override
   void initState() {
@@ -56,10 +60,22 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadLastSync();
     _loadStats();
     _loadCurrentStaff();
+    
+    // Listen for real-time data changes across the app
+    _dataSubscription = DatabaseHelper.dataStream.listen((_) {
+      if (mounted) _loadStats();
+    });
+
     if (!kIsWeb) {
       WidgetsBinding.instance
           .addPostFrameCallback((_) => _performSync(silent: true));
     }
+  }
+
+  @override
+  void dispose() {
+    _dataSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadLastSync() async {
@@ -136,19 +152,20 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadStats() async {
     try {
       final db = DatabaseHelper.instance;
+      // [FIX] Consistently use async/await for all db calls to prevent UI lag or missing stats
       final products = await db.getProducts();
       final customers = await db.getCustomers();
       final heldOrders = await db.getHeldOrders();
 
       if (mounted) {
         setState(() {
-          final uniqueProductNames = products.map((p) => p['name'] as String).toSet();
+          final uniqueProductNames = products.map((p) => (p['name'] ?? '').toString()).toSet();
           _productCount = uniqueProductNames.length;
           _customerCount = customers.length;
           _heldCount = heldOrders.length;
           _favoritesCount = products
               .where((p) => (p['is_favorite'] ?? 0) == 1)
-              .map((p) => p['name'] as String)
+              .map((p) => (p['name'] ?? '').toString())
               .toSet()
               .length;
         });
@@ -157,13 +174,19 @@ class _HomeScreenState extends State<HomeScreen> {
       // Sales query is isolated so a failure doesn't zero out product/customer counts
       try {
         final sales = await db.getSales();
+        final returns = await db.getReturns();
+        
         double todayTotal = 0;
         final now = DateTime.now();
 
         for (var s in sales) {
-          final parsedDate = DateTime.tryParse(s['created_at'] ?? '');
+          final String dateStr = (s['created_at'] ?? s['date'] ?? '').toString();
+          if (dateStr.isEmpty) continue;
+
+          final parsedDate = DateTime.tryParse(dateStr);
           if (parsedDate != null) {
-            final ts = parsedDate.toLocal(); // Convert to local timezone before checking day
+            // [FIX] Robust date comparison for today's stats
+            final ts = parsedDate.toLocal();
             if (ts.day == now.day &&
                 ts.month == now.month &&
                 ts.year == now.year) {
@@ -172,14 +195,34 @@ class _HomeScreenState extends State<HomeScreen> {
           }
         }
 
+        // [FIX] Subtract today's returns from today's sales total
+        double returnTotal = 0;
+        for (var r in returns) {
+          final String dateStr = (r['created_at'] ?? r['date'] ?? '').toString();
+          if (dateStr.isEmpty) continue;
+
+          final parsedDate = DateTime.tryParse(dateStr);
+          if (parsedDate != null) {
+            final ts = parsedDate.toLocal();
+            if (ts.day == now.day &&
+                ts.month == now.month &&
+                ts.year == now.year) {
+              final amt = (r['total_amount'] as num? ?? 0).toDouble();
+              todayTotal -= amt;
+              returnTotal += amt;
+            }
+          }
+        }
+
         if (mounted) {
           setState(() {
             _saleCount = sales.length;
             _todaySalesAmount = todayTotal;
+            _todayReturnsAmount = returnTotal;
           });
         }
       } catch (e) {
-        print('Error loading sales stats: $e');
+        debugPrint('Error loading sales stats: $e');
       }
 
       try {
@@ -187,9 +230,13 @@ class _HomeScreenState extends State<HomeScreen> {
         final now = DateTime.now();
         final payments = await db.getCreditPayments();
         for (var p in payments) {
-          final parsedDate = DateTime.tryParse(p['payment_date'] ?? '');
+          final String dateStr = (p['payment_date'] ?? p['date'] ?? '').toString();
+          if (dateStr.isEmpty) continue;
+
+          final parsedDate = DateTime.tryParse(dateStr);
           if (parsedDate != null) {
-            final ts = parsedDate.toLocal(); // Convert to local timezone
+            // [FIX] Use toLocal() to ensure comparison is in the current timezone
+            final ts = parsedDate.toLocal(); 
             if (ts.day == now.day &&
                 ts.month == now.month &&
                 ts.year == now.year) {
@@ -203,10 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
       } catch (e) {
-        print('Error loading recovery stats: $e');
+        debugPrint('Error loading recovery stats: $e');
       }
     } catch (e) {
-      print('Error loading stats: $e');
+      debugPrint('Error loading stats: $e');
     }
   }
 
@@ -452,6 +499,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                     value:
                                         '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
                                     label: 'RECOVERY',
+                                  ),
+                                  _QuickStat(
+                                    icon: Icons.assignment_return_rounded,
+                                    value:
+                                        '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
+                                    label: 'RETURNS',
                                   ),
                                   _QuickStat(
                                     icon: BusinessConfig.instance.currencyIcon,

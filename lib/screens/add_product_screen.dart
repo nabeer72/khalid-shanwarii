@@ -221,11 +221,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(child: _buildBrandSelector()),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildUnitSelector()),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
                             _buildBarcodeScanner(),
                           ] else ...[
                             _buildCategorySelector(),
                             const SizedBox(height: 16),
                             _buildSubCategorySelector(),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(child: _buildBrandSelector()),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildUnitSelector()),
+                              ],
+                            ),
                             const SizedBox(height: 16),
                             _buildBarcodeScanner(),
                           ],
@@ -266,7 +282,115 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
                       return Column(
                         children: [
-                          if (isWide) ...[
+                          if (_controller.isBoxUnit) ...[
+                            // Box Pricing Row
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.boxPurchasePrice,
+                                    label: 'Cost per Box',
+                                    icon: Icons.inventory_2_outlined,
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, false),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.purchasePrice,
+                                    label: 'Cost per Piece',
+                                    icon: Icons.shopping_bag_outlined,
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, false),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.boxPrice,
+                                    label: 'Sale Price per Box',
+                                    icon: Icons.account_balance_wallet_outlined,
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, false),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.price,
+                                    label: 'Sale Price per Piece',
+                                    icon: Icons.monetization_on_outlined,
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, false), // Made optional as requested
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            // Box Stock Row
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.stock,
+                                    label: 'Initial Boxes',
+                                    icon: Icons.warehouse_outlined,
+                                    keyboardType: TextInputType.number,
+                                    validator: validateStock,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.piecesPerBox,
+                                    label: 'Qty per Box',
+                                    icon: Icons.grid_view_rounded,
+                                    keyboardType: TextInputType.number,
+                                    validator: (v) => validateInt(v, true),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Calculation Result Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: theme.highlight.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: theme.highlight.withOpacity(0.2)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Total Pieces Result:',
+                                    style: TextStyle(
+                                      color: theme.textSecondary,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${(double.tryParse(_controller.stock.text) ?? 0) * (double.tryParse(_controller.piecesPerBox.text) ?? 1)} Pieces',
+                                    style: TextStyle(
+                                      color: theme.highlight,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else if (isWide) ...[
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -453,6 +577,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     String? Function(String?)? validator,
     int maxLines = 1,
     bool enabled = true,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
@@ -461,7 +586,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       enabled: enabled,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon),
+      decoration: theme.glassInputDecoration(label, icon).copyWith(suffixIcon: suffixIcon),
     );
   }
 
@@ -510,6 +635,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
             controller: _controller.barcode,
             label: 'Barcode',
             icon: Icons.qr_code,
+            suffixIcon: IconButton(
+              icon: Icon(Icons.auto_fix_high_rounded, color: theme.highlight, size: 20),
+              onPressed: _controller.generateUniqueBarcode,
+              tooltip: 'Generate Unique Barcode',
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -574,6 +704,89 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBrandSelector() {
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.brands.any((b) => b.id == _controller.selectedBrandId) 
+                ? _controller.selectedBrandId 
+                : null,
+            dropdownColor: theme.surface,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Brand', Icons.branding_watermark_outlined),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Brand')),
+              ..._controller.brands
+                .map((b) => DropdownMenuItem(value: b.id, child: Text(b.name)))
+                .toList(),
+            ],
+            onChanged: _controller.setBrand,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: _showAddBrandDialog,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+            ),
+            child: Icon(Icons.add, color: theme.highlight, size: 20),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnitSelector() {
+    return DropdownButtonFormField<dynamic>(
+      value: _controller.units.any((u) => u['id'] == _controller.selectedUnitId) 
+          ? _controller.selectedUnitId 
+          : null,
+      dropdownColor: theme.surface,
+      style: TextStyle(color: theme.textPrimary),
+      decoration: theme.glassInputDecoration('Unit', Icons.straighten_outlined),
+      items: [
+        const DropdownMenuItem(value: null, child: Text('No Unit')),
+        ..._controller.units
+          .map((u) => DropdownMenuItem(value: u['id'], child: Text(u['name'] ?? '')))
+          .toList(),
+      ],
+      onChanged: _controller.setUnit,
+    );
+  }
+
+  void _showAddBrandDialog() {
+    final nameCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: theme.surface,
+        title: Text('Add New Brand', style: TextStyle(color: theme.textPrimary)),
+        content: TextField(
+          controller: nameCtrl,
+          autofocus: true,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: theme.glassInputDecoration('Brand Name', Icons.branding_watermark_outlined),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (nameCtrl.text.trim().isNotEmpty) {
+                final success = await _controller.addBrand(nameCtrl.text.trim());
+                if (success && mounted) Navigator.pop(ctx);
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
+      ),
     );
   }
 }

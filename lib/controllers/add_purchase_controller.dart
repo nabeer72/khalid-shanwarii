@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/models/product.dart';
 
 class AddPurchaseController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -9,6 +10,8 @@ class AddPurchaseController with ChangeNotifier {
   // ── Loaded data ────────────────────────────────────────────────────────────
   List<Supplier> suppliers = [];
   List<Map<String, dynamic>> products = [];
+  List<ProductCategory> categories = [];
+  List<Map<String, dynamic>> units = [];
 
   // ── Form state ─────────────────────────────────────────────────────────────
   int? selectedSupplierId;
@@ -18,7 +21,7 @@ class AddPurchaseController with ChangeNotifier {
   final notesCtrl = TextEditingController();
   final paidAmountCtrl = TextEditingController();
   String paymentType = 'Cash';
-  final List<String> paymentTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit'];
+  List<String> paymentTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit'];
 
   // Conditional payment controllers
   final chequeNoCtrl = TextEditingController();
@@ -26,6 +29,11 @@ class AddPurchaseController with ChangeNotifier {
   final transRefCtrl = TextEditingController();
   final cardAuthCtrl = TextEditingController();
   DateTime? creditDueDate;
+
+  // ── Main Screen Selection ──────────────────────────────────────────────────
+  int? mainCategoryId;
+  int? mainProductId;
+  Function(int)? onProductSelected;
 
   // ── Items ──────────────────────────────────────────────────────────────────
   final List<Map<String, dynamic>> items = [];
@@ -35,11 +43,26 @@ class AddPurchaseController with ChangeNotifier {
   String? _errorMessage;
   String? _successMessage;
   bool _shouldShowAddItemDialog = false;
+  bool _isInvoiceDuplicate = false;
   // ignore: unused_field
   Map<String, dynamic>? _lastAddedItem; // for potential undo or logging
 
   AddPurchaseController() {
     _loadData();
+    paidAmountCtrl.addListener(_enforcePaidAmountLimit);
+  }
+
+  void _enforcePaidAmountLimit() {
+    if (paymentType == 'Credit') {
+      final val = double.tryParse(paidAmountCtrl.text) ?? 0.0;
+      if (val > totalAmount) {
+        paidAmountCtrl.text = totalAmount.toStringAsFixed(2);
+        paidAmountCtrl.selection = TextSelection.fromPosition(
+          TextPosition(offset: paidAmountCtrl.text.length),
+        );
+        notifyListeners();
+      }
+    }
   }
 
 
@@ -47,6 +70,7 @@ class AddPurchaseController with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get successMessage => _successMessage;
   bool get showAddItemDialog => _shouldShowAddItemDialog;
+  bool get isInvoiceDuplicate => _isInvoiceDuplicate;
   double get totalAmount => items.fold(0.0, (sum, item) => sum + (item['subtotal'] as double));
   double get paidAmount {
     if (paymentType == 'Credit') {
@@ -84,9 +108,22 @@ class AddPurchaseController with ChangeNotifier {
     try {
       final supData = await _db.getSuppliers();
       final prodData = await _db.getProducts();
+      final ptData = await _db.getPaymentTypes();
+      final catData = await _db.getCategories();
+      final unitData = await _db.getUnits();
 
       suppliers = supData.map((e) => Supplier.fromMap(e)).toList();
       products = prodData;
+      categories = catData.map((e) => ProductCategory.fromMap(e)).toList();
+      units = unitData;
+
+      paymentTypes = ptData.map((e) => e['name'].toString()).toList();
+      if (!paymentTypes.contains('Credit')) paymentTypes.add('Credit'); // Required for existing partial payment logic
+      if (paymentTypes.isEmpty) paymentTypes = ['Cash', 'Credit'];
+      
+      if (!paymentTypes.contains(paymentType) && paymentTypes.isNotEmpty) {
+        paymentType = paymentTypes.first;
+      }
     } catch (e) {
       _errorMessage = 'Failed to load data: $e';
     } finally {
@@ -104,6 +141,20 @@ class AddPurchaseController with ChangeNotifier {
       selectedSupplier = suppliers.cast<Supplier?>().firstWhere((s) => s?.id == id, orElse: () => null);
     }
     clearFeedback();
+    notifyListeners();
+  }
+
+  void setMainCategory(int? id) {
+    mainCategoryId = id;
+    mainProductId = null; // Reset product when category changes
+    notifyListeners();
+  }
+
+  void setMainProduct(int? id) {
+    mainProductId = id;
+    if (id != null && onProductSelected != null) {
+      onProductSelected!(id);
+    }
     notifyListeners();
   }
 
@@ -173,32 +224,35 @@ class AddPurchaseController with ChangeNotifier {
     _shouldShowAddItemDialog = false;
     notifyListeners();
   }
-
   void addItem({
     required int productId,
     required String productName,
-    required String? barcode,
+    String? barcode,
     required double existingStock,
     required double quantity,
     required double purchasePrice,
     required double wholesalePrice,
     required double sellingPrice,
+    int? unitId,
+    double piecesPerBox = 1,
   }) {
     if (quantity <= 0) return;
 
-    final subtotal = quantity * purchasePrice;
+    final effectiveQty = quantity * piecesPerBox;
+    final subtotal = effectiveQty * purchasePrice;
 
     items.add({
       'id': null,
-    'product_id': productId,
+      'product_id': productId,
       'product_name': productName,
       'barcode': barcode,
       'existing_stock': existingStock,
-      'quantity': quantity,
+      'quantity': effectiveQty,
       'purchase_price': purchasePrice,
       'wholesale_price': wholesalePrice,
       'selling_price': sellingPrice,
       'subtotal': subtotal,
+      'unit_id': unitId,
     });
 
     clearFeedback();
@@ -258,6 +312,15 @@ class AddPurchaseController with ChangeNotifier {
     };
 
     try {
+      final isDup = await _db.checkInvoiceNumberExists(invoiceCtrl.text.trim());
+      if (isDup) {
+        _isInvoiceDuplicate = true;
+        _errorMessage = 'Invoice number already exists!';
+        notifyListeners();
+        return;
+      }
+      _isInvoiceDuplicate = false;
+
       final purchaseId = await _db.insertPurchase(purchase, items);
 
       // Handle Supplier Credit/Payback logic
@@ -290,6 +353,19 @@ class AddPurchaseController with ChangeNotifier {
   void clearFeedback() {
     _errorMessage = null;
     _successMessage = null;
+    _isInvoiceDuplicate = false;
+    notifyListeners();
+  }
+
+  Future<void> checkInvoiceDuplicate() async {
+    final invoice = invoiceCtrl.text.trim();
+    if (invoice.isEmpty) {
+      _isInvoiceDuplicate = false;
+      notifyListeners();
+      return;
+    }
+    
+    _isInvoiceDuplicate = await _db.checkInvoiceNumberExists(invoice);
     notifyListeners();
   }
 

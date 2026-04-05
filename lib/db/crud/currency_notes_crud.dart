@@ -1,5 +1,6 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/crud/common_crud.dart';
+import '../database_helper.dart';
 
 mixin CurrencyNotesCrud on CommonCrud {
   Future<Database> get database;
@@ -17,18 +18,21 @@ mixin CurrencyNotesCrud on CommonCrud {
   Future<int> insertCurrencyNote(Map<String, dynamic> note) async {
     final db = await database;
     final now = DateTime.now().toIso8601String();
-    return await db.insert('currency_notes', {
+    final result = await db.insert('currency_notes', {
       ...note,
       ...getBusinessArgsMap(),
+      'branch_id': note['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0,
       'created_at': now,
       'updated_at': now,
     });
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<int> updateCurrencyNote(int id, Map<String, dynamic> note) async {
     final db = await database;
-    return await db.update(
+    final result = await db.update(
       'currency_notes',
       {
         ...note,
@@ -38,11 +42,13 @@ mixin CurrencyNotesCrud on CommonCrud {
       where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()],
     );
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<int> deleteCurrencyNote(int id) async {
     final db = await database;
-    return await db.update(
+    final result = await db.update(
       'currency_notes',
       {
         'status': 0,
@@ -52,6 +58,8 @@ mixin CurrencyNotesCrud on CommonCrud {
       where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()],
     );
+    DatabaseHelper.notifyDataChanged();
+    return result;
   }
 
   Future<void> batchInsertCurrencyNotes(List<Map<String, dynamic>> notes) async {

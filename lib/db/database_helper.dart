@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'db_initializer.dart';
 import 'crud/categories_crud.dart';
@@ -16,7 +17,9 @@ import 'crud/branches_crud.dart';
 import 'crud/holds_crud.dart';
 import 'crud/returns_crud.dart';
 import 'crud/currency_notes_crud.dart';
-
+import 'crud/units_crud.dart';
+import 'crud/payment_types_crud.dart';
+import 'crud/brands_crud.dart';
 class DatabaseHelper
     with
         CommonCrud,
@@ -34,10 +37,17 @@ class DatabaseHelper
         BranchesCrud,
         HoldsCrud,
         ReturnsCrud,
-        CurrencyNotesCrud {
+        CurrencyNotesCrud,
+        UnitsCrud,
+        PaymentTypesCrud,
+        BrandsCrud {
           
   static final DatabaseHelper instance = DatabaseHelper._init();
   
+  // Stream for data changes (to trigger immediate UI refreshes)
+  static final _dataChangeController = StreamController<void>.broadcast();
+  static Stream<void> get dataStream => _dataChangeController.stream;
+
   // Callback for top-level data changes (to trigger immediate sync)
   static Future<void> Function()? onDataChanged;
 
@@ -50,8 +60,14 @@ class DatabaseHelper
 
   /// Notify that data has changed (should be called by CRUD mixins)
   static void notifyDataChanged() {
+    _dataChangeController.add(null); // Notify UI listeners
     if (onDataChanged != null) {
       onDataChanged!();
     }
+  }
+
+  // Ensure stream is closed if helper is ever destroyed (singleton, so unlikely)
+  static void dispose() {
+    _dataChangeController.close();
   }
 }

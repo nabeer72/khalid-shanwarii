@@ -324,6 +324,7 @@ class SyncService {
                   'visit_count': c['visit_count'] ?? 0,
                   'discount': _parseNum(c['discount'] ?? c['discount_percent'] ?? c['discount_limit']),
                   'credit_balance': _parseNum(c['credit_balance'] ?? c['balance']),
+                  'credit_limit': _parseNum(c['credit_limit']),
                   'status': _parseStatus(c['status']),
                   'is_synced': 1,
                   'updated_at': c['updated_at'],
@@ -901,6 +902,8 @@ class SyncService {
                 {
                   'id': cn['id'] is int ? cn['id'] : int.tryParse(cn['id']?.toString() ?? ''),
                   'business_id': cn['business_id'] is int ? cn['business_id'] : int.tryParse(cn['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'admin_id': cn['admin_id'] is int ? cn['admin_id'] : int.tryParse(cn['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'branch_id': cn['branch_id'] is int ? cn['branch_id'] : int.tryParse(cn['branch_id']?.toString() ?? '') ?? fallbackBranchId,
                   'value': _parseNum(cn['value']),
                   'label': cn['label'],
                   'status': cn['status'] ?? 1,
@@ -912,6 +915,72 @@ class SyncService {
               );
             }
             if (kDebugMode) print('Synced ${data['currency_notes'].length} currency notes');
+          }
+
+          // Brands
+          if (data['brands'] != null) {
+            for (var b in data['brands']) {
+              await txn.insert(
+                'brands',
+                {
+                  'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
+                  'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': b['branch_id'] is int ? b['branch_id'] : int.tryParse(b['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'admin_id': b['admin_id'] is int ? b['admin_id'] : int.tryParse(b['admin_id']?.toString() ?? '') ?? fallbackAdminId,
+                  'name': b['name'] ?? 'Unknown',
+                  'code': b['code'],
+                  'status': b['status'] ?? 1,
+                  'is_synced': 1,
+                  'created_at': b['created_at'],
+                  'updated_at': b['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['brands'].length} brands');
+          }
+
+          // Units
+          if (data['units'] != null) {
+            for (var u in data['units']) {
+              await txn.insert(
+                'units',
+                {
+                  'id': u['id'] is int ? u['id'] : int.tryParse(u['id']?.toString() ?? ''),
+                  'business_id': u['business_id'] is int ? u['business_id'] : int.tryParse(u['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'branch_id': u['branch_id'] is int ? u['branch_id'] : int.tryParse(u['branch_id']?.toString() ?? '') ?? fallbackBranchId,
+                  'user_id': u['user_id'] is int ? u['user_id'] : int.tryParse(u['user_id']?.toString() ?? ''),
+                  'name': u['name'] ?? 'Unknown',
+                  'status': _parseStatus(u['status']),
+                  'is_synced': 1,
+                  'created_at': u['created_at'],
+                  'updated_at': u['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['units'].length} units');
+          }
+
+          // Payment Types
+          if (data['payment_types'] != null) {
+            for (var pt in data['payment_types']) {
+              await txn.insert(
+                'payment_types',
+                {
+                  'id': pt['id'] is int ? pt['id'] : int.tryParse(pt['id']?.toString() ?? ''),
+                  'business_id': pt['business_id'] is int ? pt['business_id'] : int.tryParse(pt['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'name': pt['name'] ?? 'Unknown',
+                  'code': pt['code'],
+                  'status': _parseStatus(pt['status']),
+                  'is_synced': 1,
+                  'created_at': pt['created_at'],
+                  'updated_at': pt['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['payment_types'].length} payment_types');
           }
 
           // [NEW] Businesses
@@ -998,9 +1067,10 @@ class SyncService {
       List<Map<String, dynamic>> unsyncedGiftCards = [];
       List<Map<String, dynamic>> unsyncedCurrencyNotes = [];
       List<Map<String, dynamic>> unsyncedUserBusinesses = [];
+      List<Map<String, dynamic>> unsyncedBrands = [];
 
-      final bid = BusinessConfig.instance.businessId;
-      final aid = BusinessConfig.instance.adminId;
+      final bid = _parseNum(BusinessConfig.instance.businessId).toInt();
+      final aid = _parseNum(BusinessConfig.instance.adminId).toInt();
       final businessFilter = 'business_id = ? AND admin_id = ?';
       final businessArgs = [bid, aid];
 
@@ -1057,6 +1127,16 @@ class SyncService {
         }).toList();
       }
 
+      // Unsynced Brands
+      unsyncedBrands = await db.query('brands', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
+      if (unsyncedBrands.isNotEmpty) {
+        changes['brands'] = unsyncedBrands.map((b) {
+          var m = Map.from(b);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
       // Unsynced Customers
       unsyncedCustomers = await db.query('customers', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (unsyncedCustomers.isNotEmpty) {
@@ -1068,6 +1148,7 @@ class SyncService {
           m['discount_percent'] = c['discount'];
           m['discount_limit'] = c['discount'];
           m['balance'] = c['credit_balance'];
+          m['credit_limit'] = c['credit_limit'];
           return m;
         }).toList();
       }
@@ -1378,12 +1459,16 @@ class SyncService {
         }).toList();
       }
 
-      // Unsynced Currency Notes
-      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
+      // Unsynced Currency Notes - Pushing all for this business/admin
+      unsyncedCurrencyNotes = await db.query('currency_notes', where: 'is_synced = 0 AND (business_id = ? OR business_id IS NULL)', whereArgs: [bid]);
       if (unsyncedCurrencyNotes.isNotEmpty) {
         changes['currency_notes'] = unsyncedCurrencyNotes.map((cn) {
           var m = Map.from(cn);
           m.remove('is_synced');
+          // [FIX] Ensure server gets non-null business/admin/branch IDs if missing locally
+          m['business_id'] ??= bid;
+          m['admin_id'] ??= aid;
+          m['branch_id'] ??= (BusinessConfig.instance.branchId == 'NONE' || BusinessConfig.instance.branchId == 0) ? null : BusinessConfig.instance.branchId;
           return m;
         }).toList();
       }
@@ -1393,6 +1478,26 @@ class SyncService {
       if (unsyncedUserBusinesses.isNotEmpty) {
         changes['user_businesses'] = unsyncedUserBusinesses.map((ub) {
           var m = Map.from(ub);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
+      // Unsynced Units (units table only uses business_id)
+      final unsyncedUnits = await db.query('units', where: 'is_synced = 0 AND business_id = ?', whereArgs: [bid]);
+      if (unsyncedUnits.isNotEmpty) {
+        changes['units'] = unsyncedUnits.map((u) {
+          var m = Map.from(u);
+          m.remove('is_synced');
+          return m;
+        }).toList();
+      }
+
+      // Unsynced Payment Types
+      final unsyncedPaymentTypes = await db.query('payment_types', where: 'is_synced = 0 AND business_id = ?', whereArgs: [bid]);
+      if (unsyncedPaymentTypes.isNotEmpty) {
+        changes['payment_types'] = unsyncedPaymentTypes.map((pt) {
+          var m = Map.from(pt);
           m.remove('is_synced');
           return m;
         }).toList();
@@ -1545,6 +1650,25 @@ class SyncService {
             if (ub['id'] == null) continue;
             await txn.update('user_businesses', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [ub['id']]);
           }
+          // Mark brands as synced
+          for (var b in unsyncedBrands) {
+            if (b['id'] == null) continue;
+            await txn.update('brands', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [b['id']]);
+          }
+          // Mark units as synced
+          if (changes['units'] != null) {
+             for (var u in changes['units']!) {
+               if (u['id'] == null) continue;
+               await txn.update('units', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [u['id']]);
+             }
+          }
+          // Mark payment_types as synced
+          if (changes['payment_types'] != null) {
+             for (var pt in changes['payment_types']!) {
+               if (pt['id'] == null) continue;
+               await txn.update('payment_types', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [pt['id']]);
+             }
+          }
 
         });
         if (kDebugMode) {
@@ -1566,7 +1690,7 @@ class SyncService {
       'employees', 'credit_sales', 'credit_payments', 'suppliers', 'expense_heads', 
       'expenses', 'purchases', 'shifts', 'branches', 'roles', 'bank_accounts',
       'supplier_paybacks', 'supplier_credit_purchases', 'gift_cards', 'currency_notes',
-      'subcategories', 'returns', 'user_businesses'
+      'subcategories', 'returns', 'user_businesses', 'units', 'payment_types', 'brands'
     ];
 
     for (var table in tables) {
@@ -1578,9 +1702,12 @@ class SyncService {
         List<dynamic> args = [];
         
         // Skip business isolation for tables that don't have these columns
-        if (!['users', 'currency_notes', 'user_businesses', 'permissions'].contains(table)) {
+        if (!['users', 'currency_notes', 'user_businesses', 'permissions', 'payment_types', 'units'].contains(table)) {
            whereClause += ' AND business_id = ? AND admin_id = ?';
            args.addAll([bid, aid]);
+        } else if (table == 'payment_types' || table == 'units') {
+           whereClause += ' AND business_id = ?';
+           args.addAll([bid]);
         }
 
         final List<Map<String, dynamic>> result = await db.query(table, where: whereClause, whereArgs: args, limit: 1);
@@ -1633,6 +1760,18 @@ class SyncService {
         if (kDebugMode) print('🔄 [MAPPING] SubCategory: $oldId -> $newId');
         await txn.update('subcategories', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('products', {'sub_category_id': newId}, where: 'sub_category_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // [NEW] 1c. Brands Table
+    if (allMappings['brands'] != null && allMappings['brands'] is Map) {
+      final map = allMappings['brands'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.parse(entry.key);
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Brand: $oldId -> $newId');
+        await txn.update('brands', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('products', {'brand_id': newId}, where: 'brand_id = ?', whereArgs: [oldId]);
       }
     }
 
@@ -1867,6 +2006,40 @@ class SyncService {
         if (kDebugMode) print('🔄 [MAPPING] Business: $oldId -> $newId');
         await txn.update('businesses', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('user_businesses', {'business_id': newId}, where: 'business_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 20. Units
+    if (allMappings['units'] != null && allMappings['units'] is Map) {
+      final map = allMappings['units'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        await txn.update('units', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // 21. Payment Types
+    if (allMappings['payment_types'] != null && allMappings['payment_types'] is Map) {
+      final map = allMappings['payment_types'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        await txn.update('payment_types', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // [NEW] 22. Currency Notes
+    if (allMappings['currency_notes'] != null && allMappings['currency_notes'] is Map) {
+      final map = allMappings['currency_notes'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Currency Note: $oldId -> $newId');
+        await txn.update('currency_notes', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
       }
     }
   }

@@ -43,6 +43,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     final amountCtrl = TextEditingController(text: transaction?.amount.toString() ?? '');
     final remarksCtrl = TextEditingController(text: transaction?.remarks ?? '');
     String transType = transaction?.transactionType ?? 'Deposit';
+    final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
@@ -65,16 +66,28 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
           content: SizedBox(
             width: 400,
             child: SingleChildScrollView(
+            child: Form(
+              key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildDialogField(bankCtrl, 'Bank Name', Icons.account_balance_rounded),
+                  _buildDialogField(
+                    ctrl: bankCtrl, 
+                    label: 'Bank Name', 
+                    icon: Icons.account_balance_rounded,
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                  ),
                   const SizedBox(height: 12),
-                  _buildDialogField(titleCtrl, 'Account Title', Icons.person_rounded),
+                  _buildDialogField(
+                    ctrl: titleCtrl, 
+                    label: 'Account Title', 
+                    icon: Icons.person_rounded,
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                  ),
                   const SizedBox(height: 12),
-                  _buildDialogField(typeCtrl, 'Account Type', Icons.category_rounded),
+                  _buildDialogField(ctrl: typeCtrl, label: 'Account Type', icon: Icons.category_rounded),
                   const SizedBox(height: 12),
-                  _buildDialogField(numberCtrl, 'Account Number', Icons.numbers_rounded),
+                  _buildDialogField(ctrl: numberCtrl, label: 'Account Number', icon: Icons.numbers_rounded),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: transType,
@@ -87,11 +100,22 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     onChanged: (v) => setDialogState(() => transType = v!),
                   ),
                   const SizedBox(height: 12),
-                  _buildDialogField(amountCtrl, 'Amount', Icons.attach_money_rounded, isNumber: true),
+                  _buildDialogField(
+                    ctrl: amountCtrl, 
+                    label: 'Amount', 
+                    icon: Icons.attach_money_rounded, 
+                    isNumber: true,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Required';
+                      if (double.tryParse(v.trim()) == null) return 'Must be a number';
+                      return null;
+                    },
+                  ),
                   const SizedBox(height: 12),
-                  _buildDialogField(remarksCtrl, 'Remarks', Icons.notes_rounded),
+                  _buildDialogField(ctrl: remarksCtrl, label: 'Remarks', icon: Icons.notes_rounded),
                 ],
               ),
+            ),
             ),
           ),
           actions: [
@@ -101,7 +125,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (bankCtrl.text.isEmpty || amountCtrl.text.isEmpty) return;
+                if (!formKey.currentState!.validate()) return;
                 
                 final newEntry = BankAccount(
                   id: transaction?.id,
@@ -109,7 +133,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   accountType: typeCtrl.text,
                   accountTitle: titleCtrl.text,
                   accountNumber: numberCtrl.text,
-                  amount: int.tryParse(amountCtrl.text) ?? 0,
+                  amount: double.tryParse(amountCtrl.text.trim()) ?? 0.0,
                   transactionType: transType,
                   remarks: remarksCtrl.text,
                   date: transaction?.date ?? DateTime.now(),
@@ -128,12 +152,19 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     );
   }
 
-  Widget _buildDialogField(TextEditingController ctrl, String label, IconData icon, {bool isNumber = false}) {
-    return TextField(
+  Widget _buildDialogField({
+    required TextEditingController ctrl, 
+    required String label, 
+    required IconData icon, 
+    bool isNumber = false, 
+    String? Function(String?)? validator
+  }) {
+    return TextFormField(
       controller: ctrl,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
       style: TextStyle(color: theme.textPrimary),
+      validator: validator,
       decoration: theme.glassInputDecoration(label, icon),
     );
   }

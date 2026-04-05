@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_app/controllers/add_supplier_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -233,8 +234,13 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     controller: _controller.phoneCtrl,
                                     label: 'Phone Number',
                                     icon: Icons.phone_rounded,
-                                    type: TextInputType.phone,
-                                    validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
+                                    type: TextInputType.number,
+                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                    validator: (v) {
+                                      if (v == null || v.trim().isEmpty) return 'Phone is required';
+                                      if (!RegExp(r'^[0-9]+$').hasMatch(v.trim())) return 'Must be an integer';
+                                      return null;
+                                    },
                                     isTablet: isTablet,
                                   ),
                                 ),
@@ -246,8 +252,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     icon: Icons.email_rounded,
                                     type: TextInputType.emailAddress,
                                     validator: (v) {
-                                      if (v != null && v.isNotEmpty) {
-                                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                                      if (v != null && v.trim().isNotEmpty) {
+                                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
                                           return 'Invalid email format';
                                         }
                                       }
@@ -280,8 +286,13 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               controller: _controller.phoneCtrl,
                               label: 'Phone Number',
                               icon: Icons.phone_rounded,
-                              type: TextInputType.phone,
-                              validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
+                              type: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              validator: (v) {
+                                if (v == null || v.trim().isEmpty) return 'Phone is required';
+                                if (!RegExp(r'^[0-9]+$').hasMatch(v.trim())) return 'Must be an integer';
+                                return null;
+                              },
                               isTablet: isTablet,
                             ),
                             SizedBox(height: fieldSpacing),
@@ -291,8 +302,8 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               icon: Icons.email_rounded,
                               type: TextInputType.emailAddress,
                               validator: (v) {
-                                if (v != null && v.isNotEmpty) {
-                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v)) {
+                                if (v != null && v.trim().isNotEmpty) {
+                                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
                                     return 'Invalid email format';
                                   }
                                 }
@@ -316,7 +327,15 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                             controller: _controller.balanceCtrl,
                             label: 'Running Balance (Owed)',
                             icon: Icons.account_balance_wallet_rounded,
-                            type: TextInputType.number,
+                            type: const TextInputType.numberWithOptions(decimal: true),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[0-9.-]'))
+                            ],
+                            validator: (v) {
+                              if (v == null || v.trim().isEmpty) return null;
+                              if (double.tryParse(v.trim()) == null) return 'Must be a valid number';
+                              return null;
+                            },
                             isTablet: isTablet,
                           ),
                           SizedBox(height: verticalPadding),
@@ -373,6 +392,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     int maxLines = 1,
     String? Function(String?)? validator,
     required bool isTablet,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     final labelFontSize = isTablet ? 11.0 : 10.0;
     final textFontSize = isTablet ? 16.0 : 14.0;
@@ -399,6 +419,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
           keyboardType: type,
           maxLines: maxLines,
           validator: validator,
+          inputFormatters: inputFormatters,
           style: TextStyle(
             color: theme.textPrimary,
             fontWeight: FontWeight.w600,

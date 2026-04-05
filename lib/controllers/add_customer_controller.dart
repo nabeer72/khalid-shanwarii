@@ -11,29 +11,40 @@ class CustomerFormHelper {
     String? email,
     required String notes,
     required String discountText,
+    required String creditLimitText,
     int? branchId,
     required BuildContext context,
   }) async {
-    // Very basic validation (you can expand later)
+    // Enhanced Validation
     if (name.trim().isEmpty) {
       return {'success': false, 'message': 'Name is required'};
     }
 
-    final discount = double.tryParse(discountText) ?? 0.0;
-    if (discount < 0) {
-      return {'success': false, 'message': 'Discount cannot be negative'};
+    if (email != null && email.trim().isNotEmpty) {
+      if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email.trim())) {
+        return {'success': false, 'message': 'Invalid email format'};
+      }
     }
+
+    final discount = double.tryParse(discountText) ?? 0.0;
+    if (discount < 0 || discount > 100) {
+      return {'success': false, 'message': 'Discount must be between 0 and 100'};
+    }
+
+    final creditLimit = double.tryParse(creditLimitText) ?? 0.0;
 
     final isEdit = existingCustomer != null;
 
     final customer = Customer(
       id: isEdit ? existingCustomer.id : null,
       businessId: BusinessConfig.instance.businessId!,
+      adminId: BusinessConfig.instance.adminId,
       name: name.trim(),
       phone: phone.trim().isNotEmpty ? phone.trim() : null,
       email: email != null && email.trim().isNotEmpty ? email.trim() : null,
       notes: notes.trim().isNotEmpty ? notes.trim() : null,
       discount: discount,
+      creditLimit: creditLimit,
       totalSpent: isEdit ? existingCustomer.totalSpent : 0,
       visitCount: isEdit ? existingCustomer.visitCount : 0,
       status: 1,
