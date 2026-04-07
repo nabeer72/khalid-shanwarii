@@ -26,6 +26,7 @@ class DbTables {
         name TEXT NOT NULL,
         email TEXT UNIQUE,
         password TEXT,
+        pin TEXT,
         role TEXT DEFAULT 'admin',
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
@@ -41,7 +42,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         icon TEXT,
         parent_id INTEGER,
@@ -59,7 +60,7 @@ class DbTables {
         category_id INTEGER,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         code TEXT,
         status INTEGER DEFAULT 1,
@@ -75,24 +76,16 @@ class DbTables {
       CREATE TABLE products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
         user_id INTEGER,
+        staff_id INTEGER,
         branch_id INTEGER,
         category_id INTEGER,
         sub_category_id INTEGER,
         brand_id INTEGER,
         name TEXT NOT NULL,
-        stock_type TEXT,
         image TEXT,
         description TEXT,
-        barcode TEXT,
-        price REAL DEFAULT 0,
-        purchase_price REAL DEFAULT 0,
-        wholesale_price REAL DEFAULT 0,
-        stock_quantity REAL DEFAULT 0,
         stock_limit INTEGER DEFAULT 5,
-        discount_limit REAL,
-        is_price_per_weight INTEGER DEFAULT 0,
         is_favorite INTEGER DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
@@ -123,6 +116,7 @@ class DbTables {
         alert_status TEXT,
         discount REAL DEFAULT 0,
         discount_limit REAL DEFAULT 0,
+        percentage REAL DEFAULT 0,
         tax REAL DEFAULT 0,
         trade_off TEXT,
         carry_expense REAL DEFAULT 0,
@@ -131,7 +125,7 @@ class DbTables {
         created_at TEXT,
         updated_at TEXT,
         deleted_at TEXT,
-        admin_id INTEGER,
+        user_id INTEGER,
         FOREIGN KEY (product_id) REFERENCES products(id)
       )
     ''');
@@ -142,14 +136,11 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         phone TEXT,
         email TEXT,
         notes TEXT,
-        total_spent REAL DEFAULT 0,
-        visit_count INTEGER DEFAULT 0,
-        loyalty_points INTEGER DEFAULT 0,
         discount REAL DEFAULT 0,
         credit_balance REAL DEFAULT 0,
         credit_limit REAL DEFAULT 0,
@@ -165,7 +156,7 @@ class DbTables {
       CREATE TABLE employees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         branch_id INTEGER,
         name TEXT NOT NULL,
         email TEXT UNIQUE,
@@ -187,16 +178,16 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
-        customer_id INTEGER,
         user_id INTEGER,
-        subtotal REAL DEFAULT 0,
+        customer_id INTEGER,
+        staff_id INTEGER,
+        sub_total REAL DEFAULT 0,
         tax REAL DEFAULT 0,
         discount REAL DEFAULT 0,
         total REAL DEFAULT 0,
         payment_method TEXT DEFAULT 'cash',
         is_return INTEGER DEFAULT 0,
-        tip REAL DEFAULT 0,
+        total_tip REAL DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         shift_id INTEGER,
@@ -214,10 +205,10 @@ class DbTables {
         product_id INTEGER,
         stock_id INTEGER,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         quantity REAL DEFAULT 1,
         price REAL DEFAULT 0,
-        subtotal REAL DEFAULT 0,
+        sub_total REAL DEFAULT 0,
         discount REAL DEFAULT 0,
         branch_id INTEGER,
         is_synced INTEGER DEFAULT 0,
@@ -233,7 +224,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         code TEXT UNIQUE,
         initial_balance REAL DEFAULT 0,
         current_balance REAL DEFAULT 0,
@@ -250,7 +241,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT,
         customer_id INTEGER,
         total REAL DEFAULT 0,
@@ -266,7 +257,7 @@ class DbTables {
         product_id INTEGER,
         stock_id INTEGER,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         quantity REAL DEFAULT 1,
         price REAL DEFAULT 0,
         subtotal REAL DEFAULT 0,
@@ -285,11 +276,17 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         sale_id INTEGER,
         customer_id INTEGER,
-        user_id INTEGER,
-        total_amount REAL DEFAULT 0,
+        staff_id INTEGER,
+        sub_total REAL DEFAULT 0,
+        tax REAL DEFAULT 0,
+        discount REAL DEFAULT 0,
+        total REAL DEFAULT 0,
+        payment_method TEXT DEFAULT 'cash',
+        is_return INTEGER DEFAULT 1,
+        total_tip REAL DEFAULT 0,
         reason TEXT,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
@@ -309,10 +306,10 @@ class DbTables {
         product_id INTEGER,
         stock_id INTEGER,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         quantity REAL DEFAULT 0,
         price REAL DEFAULT 0,
-        subtotal REAL DEFAULT 0,
+        sub_total REAL DEFAULT 0,
         discount REAL DEFAULT 0,
         FOREIGN KEY (return_id) REFERENCES returns(id),
         FOREIGN KEY (product_id) REFERENCES products(id),
@@ -334,7 +331,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
@@ -349,7 +346,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         expense_head_id INTEGER,
         amount REAL DEFAULT 0,
         description TEXT,
@@ -368,7 +365,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         contact_person TEXT,
         phone TEXT,
@@ -389,7 +386,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         supplier_id INTEGER,
         invoice_number TEXT,
         purchase_date TEXT,
@@ -413,7 +410,7 @@ class DbTables {
         product_id INTEGER,
         barcode TEXT,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         existing_stock REAL DEFAULT 0,
         quantity REAL DEFAULT 0,
         purchase_price REAL DEFAULT 0,
@@ -434,7 +431,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         customer_id INTEGER NOT NULL,
         sale_id INTEGER NOT NULL,
         amount REAL NOT NULL,
@@ -454,7 +451,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         credit_sale_id INTEGER,
         customer_id INTEGER NOT NULL,
         amount REAL NOT NULL,
@@ -474,7 +471,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         supplier_id INTEGER NOT NULL,
         purchase_id INTEGER NOT NULL,
         amount REAL NOT NULL,
@@ -494,7 +491,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         supplier_credit_purchase_id INTEGER,
         supplier_id INTEGER NOT NULL,
         amount REAL NOT NULL,
@@ -513,9 +510,8 @@ class DbTables {
       CREATE TABLE shifts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
-        branch_id INTEGER,
         user_id INTEGER,
+        branch_id INTEGER,
         staff_id INTEGER,
         start_time TEXT,
         end_time TEXT,
@@ -539,9 +535,9 @@ class DbTables {
       CREATE TABLE branches (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
-        branch_id INTEGER,
         user_id INTEGER,
+        branch_id INTEGER,
+        staff_id INTEGER,
         name TEXT,
         address TEXT,
         cell_number TEXT,
@@ -564,7 +560,7 @@ class DbTables {
       CREATE TABLE bank_accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         branch_id INTEGER,
         bank_name TEXT NOT NULL,
         account_type TEXT,
@@ -586,7 +582,7 @@ class DbTables {
       CREATE TABLE roles (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         branch_id INTEGER,
         name TEXT NOT NULL,
         description TEXT,
@@ -622,7 +618,7 @@ class DbTables {
       CREATE TABLE currency_notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         branch_id INTEGER,
         value REAL NOT NULL,
         label TEXT,
@@ -663,9 +659,11 @@ class DbTables {
       CREATE TABLE units (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
-        branch_id INTEGER,
         user_id INTEGER,
+        branch_id INTEGER,
+        staff_id INTEGER,
         name TEXT NOT NULL,
+        short_name TEXT,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
@@ -678,6 +676,7 @@ class DbTables {
       CREATE TABLE payment_types (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         code TEXT,
         status INTEGER DEFAULT 1,
@@ -693,7 +692,7 @@ class DbTables {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         business_id INTEGER,
         branch_id INTEGER,
-        admin_id INTEGER,
+        user_id INTEGER,
         name TEXT NOT NULL,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
@@ -702,8 +701,33 @@ class DbTables {
       )
     ''');
 
+    // Stock Audits
+    await db.execute('''
+      CREATE TABLE stock_audits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        user_id INTEGER,
+        branch_id INTEGER,
+        stock_id INTEGER,
+        product_id INTEGER,
+        staff_id INTEGER,
+        old_quantity REAL DEFAULT 0,
+        new_quantity REAL DEFAULT 0,
+        old_purchase_price REAL DEFAULT 0,
+        new_purchase_price REAL DEFAULT 0,
+        old_sale_price REAL DEFAULT 0,
+        new_sale_price REAL DEFAULT 0,
+        remarks TEXT,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
     if (kDebugMode) print('Database created with all tables including RBAC, Units, Brands, and Payment Types');
     await DbTables.seedPermissions(db);
+    await DbTables.seedPaymentTypes(db);
+    await DbTables.seedBusinessUnits(db);
   }
   static Future<void> seedPermissions(Database db) async {
     final perms = [
@@ -734,6 +758,76 @@ class DbTables {
           ...p,
           'updated_at': DateTime.now().toIso8601String(),
         }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      }
+    });
+  }
+
+  static Future<void> seedPaymentTypes(Database db) async {
+    final businesses = await db.query('businesses');
+    final types = [
+      {'name': 'Cash', 'code': 'cash'},
+      {'name': 'Bank Transfer', 'code': 'bank_transfer'},
+      {'name': 'Cheque', 'code': 'cheque'},
+      {'name': 'Credit Card', 'code': 'credit_card'},
+      {'name': 'Online Transfer', 'code': 'online_transfer'},
+      {'name': 'Mobile Payment', 'code': 'mobile_payment'},
+    ];
+
+    await db.transaction((txn) async {
+      for (var business in businesses) {
+        final bId = business['id'];
+        final aId = business['owner_user_id'] ?? business['user_id'];
+        
+        for (var type in types) {
+          await txn.insert('payment_types', {
+            ...type,
+            'business_id': bId,
+            'user_id': aId,
+            'status': 1,
+            'is_synced': 0,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+      }
+    });
+  }
+
+  static Future<void> seedBusinessUnits(Database db) async {
+    final businesses = await db.query('businesses');
+    
+    await db.transaction((txn) async {
+      for (var business in businesses) {
+        final bId = business['id'];
+        
+        final List<Map<String, String>> units = [
+          {'name': 'Piece', 'short_name': 'pc'},
+          {'name': 'Pack', 'short_name': 'pk'},
+          {'name': 'Box', 'short_name': 'bx'},
+          {'name': 'Kilogram', 'short_name': 'kg'},
+          {'name': 'Gram', 'short_name': 'g'},
+          {'name': 'Liter', 'short_name': 'L'},
+          {'name': 'Carton', 'short_name': 'ctn'},
+          {'name': 'Dozen', 'short_name': 'doz'},
+          {'name': 'Foot', 'short_name': 'ft'},
+          {'name': 'Meter', 'short_name': 'm'},
+          {'name': 'Yard', 'short_name': 'yd'},
+          {'name': 'Bag', 'short_name': 'bag'},
+          {'name': 'Bottle', 'short_name': 'btl'},
+        ];
+
+        for (var unit in units) {
+          await txn.insert('units', {
+            'business_id': bId,
+            'user_id': business['owner_user_id'] ?? business['admin_id'] ?? business['user_id'],
+            'name': unit['name'],
+            'short_name': unit['short_name'],
+            'status': 1,
+            'is_synced': 0,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+          }, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
       }
     });
   }

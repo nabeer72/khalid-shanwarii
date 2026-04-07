@@ -2,7 +2,7 @@ class CreditSale {
   final int? id;
   final int businessId;
   final int branchId;
-  final int? adminId;
+  final int? userId;
   final int customerId;
   final int saleId;
   final double amount;
@@ -16,7 +16,7 @@ class CreditSale {
     this.id,
     required this.businessId,
     required this.branchId,
-    this.adminId,
+    this.userId,
     required this.customerId,
     required this.saleId,
     required this.amount,
@@ -32,7 +32,7 @@ class CreditSale {
       id: map['id'],
       businessId: map['business_id'] ?? 0,
       branchId: map['branch_id'] ?? 0,
-      adminId: map['admin_id'],
+      userId: map['user_id'],
       customerId: map['customer_id'] ?? 0,
       saleId: map['sale_id'] ?? 0,
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
@@ -49,7 +49,7 @@ class CreditSale {
       if (id != null) 'id': id,
       'business_id': businessId,
       'branch_id': branchId,
-      'admin_id': adminId,
+      'user_id': userId,
       'customer_id': customerId,
       'sale_id': saleId,
       'amount': amount,

@@ -13,9 +13,9 @@ mixin ProductsCrud on CommonCrud {
     final statusFilter = includeInactive ? '' : ' AND status = 1';
     final baseArgs = [...getBusinessArgs(), ...branchArgs];
 
-    // Immediate Self-Healing: Repair orphaned stocks created without an admin_id
-    await db.update('stocks', {'admin_id': baseArgs[1]}, 
-      where: 'business_id = ? AND admin_id IS NULL', 
+    // Immediate Self-Healing: Repair orphaned stocks created without a user_id
+    await db.update('stocks', {'user_id': baseArgs[1]}, 
+      where: 'business_id = ? AND user_id IS NULL', 
       whereArgs: [baseArgs[0]]);
 
     List<Map<String, dynamic>> productMaps;
@@ -89,7 +89,7 @@ mixin ProductsCrud on CommonCrud {
       '''
       SELECT DISTINCT p.* FROM products p
       LEFT JOIN stocks s ON p.id = s.product_id
-      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('admin_id', 'p.admin_id')} $branchFilter 
+      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('user_id', 'p.user_id')} $branchFilter 
       AND (p.name LIKE ? OR s.barcode LIKE ?)
       ''',
       [...args, '%$query%', '%$query%'],
@@ -129,7 +129,7 @@ mixin ProductsCrud on CommonCrud {
     final args = [barcode, ...getBusinessArgs(), ...branchArgs];
 
     final results = await db.rawQuery(
-      'SELECT * FROM products WHERE barcode = ?${getBusinessFilter()}$branchFilter LIMIT 1',
+      'SELECT p.* FROM products p JOIN stocks s ON p.id = s.product_id WHERE s.barcode = ?${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('user_id', 'p.user_id')}$branchFilter LIMIT 1',
       args,
     );
     return results.isNotEmpty ? results.first : null;
@@ -138,31 +138,53 @@ mixin ProductsCrud on CommonCrud {
   Future<void> insertProduct(Map<String, dynamic> product) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     final brid = product['branch_id'] ?? getCurrentBranchId();
 
-    // Self-healing: Repair any orphaned stocks that were created without an admin_id
-    await db.update('stocks', {'admin_id': aid}, 
-      where: 'business_id = ? AND admin_id IS NULL', 
+    // Self-healing: Repair any orphaned stocks that were created without a user_id
+    await db.update('stocks', {'user_id': uid}, 
+      where: 'business_id = ? AND user_id IS NULL', 
       whereArgs: [bid]);
 
     // 1. Separate Metadata
     final metadata = Map<String, dynamic>.from(product);
 
     await db.transaction((txn) async {
-      // 2. Insert/Update Product Metadata
-      final generatedProductId = await txn.insert('products', {
-        ...metadata,
+      final productId = metadata['id'];
+      final isEdit = productId != null;
+
+      // 2. Insert/Update Product Metadata (Filter out redundant stock/price fields)
+      final productFields = {
         'business_id': bid,
-        'admin_id': aid,
+        'user_id': uid,
         'branch_id': brid,
-        'is_synced': 0, // Mark as unsynced
+        'category_id': metadata['category_id'],
+        'sub_category_id': metadata['sub_category_id'],
+        'brand_id': metadata['brand_id'],
+        'name': metadata['name'],
+        'image': metadata['image'],
+        'description': metadata['description'],
+        'status': metadata['status'] ?? 1,
+        'is_favorite': metadata['is_favorite'] ?? 0,
+        'unit_id': metadata['unit_id'],
+        'is_synced': 0,
         'updated_at': DateTime.now().toIso8601String(),
-      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      };
+
+      int generatedProductId;
+      if (isEdit) {
+        // Make sure we just UPDATE the product table if it is an edit
+        await txn.update('products', productFields, where: 'id = ?', whereArgs: [productId]);
+        generatedProductId = productId; // Product ID stays the same
+      } else {
+        // If it's a new product, we must INSERT into the products table
+        productFields['id'] = null; // Auto-increment safely
+        generatedProductId = await txn.insert('products', productFields);
+      }
 
       // 3. Handle Stock (Batch)
       final barcode = product['barcode']?.toString();
-      final pid = product['id'] ?? generatedProductId;
+      final pid = isEdit ? productId : generatedProductId;
       
       final currentPrice = (product['price'] as num?)?.toDouble() ?? 0.0;
       final currentCost = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
@@ -179,26 +201,34 @@ mixin ProductsCrud on CommonCrud {
         [pid, brid, currentPrice, currentCost, currentWholesale],
       );
 
+      int finalStockId;
+      double oldQty = 0;
+      double newQty = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
+      bool priceChanged = matchingStocks.isEmpty && isEdit; // Exists but no price match
+
       if (matchingStocks.isNotEmpty) {
         // EXACT PRICE MATCH -> Update existing batch
         final matchingId = matchingStocks.first['id'];
+        finalStockId = getSafeInt(matchingId) ?? 0;
+        oldQty = (matchingStocks.first['quantity'] as num?)?.toDouble() ?? 0;
+
         await txn.update('stocks', {
           'barcode': barcode ?? matchingStocks.first['barcode'],
-          'quantity': product['stock_quantity'] ?? matchingStocks.first['quantity'],
-          'admin_id': aid, // Ensure admin_id is set
+          'quantity': newQty,
+          'user_id': uid,
           'updated_at': DateTime.now().toIso8601String(),
           'is_synced': 0,
         }, where: 'id = ?', whereArgs: [matchingId]);
       } else {
         // PRICE CHANGED or NO BATCH -> Create new batch
-        await txn.insert('stocks', {
+        finalStockId = await txn.insert('stocks', {
           'id': null,
           'business_id': bid,
-          'admin_id': aid, // [FIX] Added missing admin_id
+          'user_id': uid,
           'branch_id': brid,
           'product_id': pid,
           'barcode': barcode,
-          'quantity': product['stock_quantity'] ?? 0,
+          'quantity': newQty,
           'sale_price': currentPrice,
           'cost_price': currentCost,
           'wholesale_price': currentWholesale,
@@ -208,6 +238,25 @@ mixin ProductsCrud on CommonCrud {
           'updated_at': DateTime.now().toIso8601String(),
         });
       }
+
+      // 4. Create Audit Log
+      await txn.insert('stock_audits', {
+        'business_id': bid,
+        'user_id': uid,
+        'branch_id': brid,
+        'stock_id': finalStockId,
+        'product_id': pid,
+        'old_quantity': oldQty,
+        'new_quantity': newQty,
+        'old_purchase_price': priceChanged ? 0 : currentCost, // Assuming old wasn't fetched explicitly
+        'new_purchase_price': currentCost,
+        'old_sale_price': priceChanged ? 0 : currentPrice, // Assuming old wasn't fetched explicitly
+        'new_sale_price': currentPrice,
+        'remarks': priceChanged ? 'New price batch created' : (matchingStocks.isNotEmpty ? 'Product updated' : 'Initial product creation'),
+        'is_synced': 0,
+        'created_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      });
     });
 
     DatabaseHelper.notifyDataChanged();
@@ -218,19 +267,13 @@ mixin ProductsCrud on CommonCrud {
     await db.update(
       'products',
       {'is_favorite': currentStatus ? 0 : 1},
-      where: 'id = ?${getBusinessFilter().replaceAll('business_id', 'business_id').replaceAll('admin_id', 'admin_id')}',
+      where: 'id = ?${getBusinessFilter().replaceAll('business_id', 'business_id').replaceAll('user_id', 'user_id')}',
     );
   }
 
   Future<bool> checkBarcodeExists(String barcode) async {
     final db = await database;
-    final results = await db.query(
-      'products',
-      where: 'barcode = ?',
-      whereArgs: [barcode],
-    );
-    if (results.isNotEmpty) return true;
-
+    // Barcode is now only in stocks table
     final stockResults = await db.query(
       'stocks',
       where: 'barcode = ?',

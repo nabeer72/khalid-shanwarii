@@ -5,11 +5,17 @@ class Return {
   final int? id;
   final int? businessId;
   final int? branchId;
-  final int? adminId;
+  final int? userId;
   final int? saleId;
   final int? customerId;
-  final int? userId;
-  final double totalAmount;
+  final int? staffId;
+  final double subTotal;
+  final double tax;
+  final double discount;
+  final double total;
+  final String paymentMethod;
+  final int isReturn;
+  final double totalTip;
   final String? reason;
   final int status;
   final int isSynced;
@@ -23,11 +29,17 @@ class Return {
     this.id,
     this.businessId,
     this.branchId,
-    this.adminId,
+    this.userId,
     this.saleId,
     this.customerId,
-    this.userId,
-    required this.totalAmount,
+    this.staffId,
+    required this.subTotal,
+    this.tax = 0,
+    this.discount = 0,
+    required this.total,
+    this.paymentMethod = 'cash',
+    this.isReturn = 1,
+    this.totalTip = 0,
     this.reason,
     this.status = 1,
     this.isSynced = 0,
@@ -43,11 +55,17 @@ class Return {
       'id': id,
       'business_id': businessId,
       'branch_id': branchId,
-      'admin_id': adminId,
+      'user_id': userId,
       'sale_id': saleId,
       'customer_id': customerId ?? customer?.id,
-      'user_id': userId,
-      'total_amount': totalAmount,
+      'staff_id': staffId,
+      'sub_total': subTotal,
+      'tax': tax,
+      'discount': discount,
+      'total': total,
+      'payment_method': paymentMethod,
+      'is_return': isReturn,
+      'total_tip': totalTip,
       'reason': reason,
       'status': status,
       'is_synced': isSynced,
@@ -61,11 +79,17 @@ class Return {
       id: map['id'],
       businessId: map['business_id'],
       branchId: map['branch_id'],
-      adminId: map['admin_id'],
+      userId: map['user_id'],
       saleId: map['sale_id'],
       customerId: map['customer_id'],
-      userId: map['user_id'],
-      totalAmount: (map['total_amount'] as num).toDouble(),
+      staffId: map['staff_id'],
+      subTotal: (map['sub_total'] as num?)?.toDouble() ?? 0,
+      tax: (map['tax'] as num?)?.toDouble() ?? 0,
+      discount: (map['discount'] as num?)?.toDouble() ?? 0,
+      total: (map['total'] as num?)?.toDouble() ?? 0,
+      paymentMethod: map['payment_method'] ?? 'cash',
+      isReturn: map['is_return'] ?? 1,
+      totalTip: (map['total_tip'] as num?)?.toDouble() ?? 0,
       reason: map['reason'],
       status: map['status'] ?? 1,
       isSynced: map['is_synced'] ?? 0,
@@ -108,7 +132,7 @@ class ReturnItem {
       'stock_id': stockId,
       'quantity': quantity,
       'price': price,
-      'subtotal': subtotal,
+      'sub_total': subtotal,
     };
   }
 
@@ -121,7 +145,7 @@ class ReturnItem {
       stockId: map['stock_id'],
       quantity: (map['quantity'] as num).toDouble(),
       price: (map['price'] as num).toDouble(),
-      subtotal: (map['subtotal'] as num).toDouble(),
+      subtotal: (map['sub_total'] as num).toDouble(),
     );
   }
 }

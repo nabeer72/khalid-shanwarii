@@ -222,6 +222,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             ),
                             const SizedBox(height: 16),
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(child: _buildBrandSelector()),
                                 const SizedBox(width: 16),
@@ -229,13 +230,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            _buildBarcodeScanner(),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.name,
+                                    label: 'Product Name',
+                                    icon: Icons.inventory_2_outlined,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildBarcodeScanner()),
+                              ],
+                            ),
                           ] else ...[
                             _buildCategorySelector(),
                             const SizedBox(height: 16),
                             _buildSubCategorySelector(),
                             const SizedBox(height: 16),
                             Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(child: _buildBrandSelector()),
                                 const SizedBox(width: 16),
@@ -243,15 +259,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ],
                             ),
                             const SizedBox(height: 16),
-                            _buildBarcodeScanner(),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: _buildTextField(
+                                    controller: _controller.name,
+                                    label: 'Product Name',
+                                    icon: Icons.inventory_2_outlined,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildBarcodeScanner()),
+                              ],
+                            ),
                           ],
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _controller.name,
-                            label: 'Product Name',
-                            icon: Icons.inventory_2_outlined,
-                            validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
-                          ),
                         ],
                       );
                     }),
@@ -283,81 +306,83 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       return Column(
                         children: [
                           if (_controller.isBoxUnit) ...[
-                            // Box Pricing Row
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.boxPurchasePrice,
-                                    label: 'Cost per Box',
-                                    icon: Icons.inventory_2_outlined,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, false),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.purchasePrice,
-                                    label: 'Cost per Piece',
-                                    icon: Icons.shopping_bag_outlined,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, false),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.boxPrice,
-                                    label: 'Sale Price per Box',
-                                    icon: Icons.account_balance_wallet_outlined,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, false),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.price,
-                                    label: 'Sale Price per Piece',
-                                    icon: Icons.monetization_on_outlined,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, false), // Made optional as requested
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            // Box Stock Row
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.stock,
-                                    label: 'Initial Boxes',
-                                    icon: Icons.warehouse_outlined,
-                                    keyboardType: TextInputType.number,
-                                    validator: validateStock,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.piecesPerBox,
-                                    label: 'Qty per Box',
-                                    icon: Icons.grid_view_rounded,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, true),
-                                  ),
-                                ),
-                              ],
+                            Builder(
+                              builder: (context) {
+                                final unitName = _controller.getSelectedUnitName();
+                                return Column(
+                                  children: [
+                                    // Pricing Row 1
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: _buildTextField(
+                                            controller: _controller.boxPurchasePrice,
+                                            label: 'Purchase $unitName Price',
+                                            icon: Icons.inventory_2_outlined,
+                                            keyboardType: TextInputType.number,
+                                            validator: (v) => validateInt(v, true),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: _buildTextField(
+                                            controller: _controller.boxWholesalePrice,
+                                            label: '$unitName Wholesale Price',
+                                            icon: Icons.local_offer_outlined,
+                                            keyboardType: TextInputType.number,
+                                            validator: (v) => validateInt(v, true),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // Pricing Row 2
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: _buildTextField(
+                                            controller: _controller.boxPrice,
+                                            label: '$unitName Sale Price',
+                                            icon: Icons.account_balance_wallet_outlined,
+                                            keyboardType: TextInputType.number,
+                                            validator: (v) => validateInt(v, true),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: _buildTextField(
+                                            controller: _controller.piecesPerBox,
+                                            label: '$unitName Quantity',
+                                            icon: Icons.grid_view_rounded,
+                                            keyboardType: TextInputType.number,
+                                            validator: (v) => validateInt(v, true),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    // Stock Row
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(
+                                          child: _buildTextField(
+                                            controller: _controller.stock,
+                                            label: 'Initial ${unitName}s',
+                                            icon: Icons.warehouse_outlined,
+                                            keyboardType: TextInputType.number,
+                                            validator: validateStock,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        const Expanded(child: SizedBox()),
+                                      ],
+                                    ),
+                                  ],
+                                );
+                              }
                             ),
                             const SizedBox(height: 12),
                             // Calculation Result Badge
@@ -744,20 +769,264 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Widget _buildUnitSelector() {
-    return DropdownButtonFormField<dynamic>(
-      value: _controller.units.any((u) => u['id'] == _controller.selectedUnitId) 
-          ? _controller.selectedUnitId 
-          : null,
-      dropdownColor: theme.surface,
-      style: TextStyle(color: theme.textPrimary),
-      decoration: theme.glassInputDecoration('Unit', Icons.straighten_outlined),
-      items: [
-        const DropdownMenuItem(value: null, child: Text('No Unit')),
-        ..._controller.units
-          .map((u) => DropdownMenuItem(value: u['id'], child: Text(u['name'] ?? '')))
-          .toList(),
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.units.any((u) => u['id'] == _controller.selectedUnitId) 
+                ? _controller.selectedUnitId 
+                : null,
+            dropdownColor: theme.surface,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Unit', Icons.straighten_outlined),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Unit')),
+              ..._controller.units
+                .where((u) => _controller.selectedUnitIds.contains(u['id']))
+                .map((u) => DropdownMenuItem(value: u['id'], child: Text(u['name'] ?? '')))
+                .toList(),
+            ],
+            onChanged: _controller.setUnit,
+          ),
+        ),
+        const SizedBox(width: 8),
+        IconButton(
+          onPressed: _showUnitSelectionPopup,
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+            ),
+            child: Icon(Icons.add, color: theme.highlight, size: 20),
+          ),
+        ),
       ],
-      onChanged: _controller.setUnit,
+    );
+  }
+
+  void _showUnitSelectionPopup() {
+    final searchController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: Colors.transparent,
+          contentPadding: EdgeInsets.zero,
+          content: Container(
+            width: MediaQuery.of(context).size.width > 500 ? 400 : double.infinity,
+            constraints: const BoxConstraints(maxHeight: 550),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 30, offset: const Offset(0, 15)),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  // Premium Header
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      border: Border(bottom: BorderSide(color: Colors.grey[200]!)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: theme.highlight.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(Icons.scale_rounded, color: theme.highlight, size: 20),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Measurement Units', 
+                                style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: -0.5)
+                              ),
+                              Text(
+                                'Choose a unit for this product', 
+                                style: TextStyle(color: Colors.grey[600], fontSize: 12, fontWeight: FontWeight.w500)
+                              ),
+                            ],
+                          ),
+                        ),
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () => Navigator.pop(context),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.close, color: Colors.black54, size: 18),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                    child: TextField(
+                      controller: searchController,
+                      onChanged: (v) => setDialogState(() {}),
+                      style: const TextStyle(color: Colors.black, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'Search units...',
+                        hintStyle: TextStyle(color: Colors.grey[400]),
+                        prefixIcon: Icon(Icons.search_rounded, color: Colors.grey[600]),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+
+                  // Hierarchical List (Refactored to Flat)
+                  Expanded(
+                    child: _controller.units.isEmpty 
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.info_outline_rounded, color: Colors.grey[400], size: 48),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No units available',
+                                style: TextStyle(color: Colors.grey[600], fontSize: 15, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 40),
+                                child: Text(
+                                  'Try syncing or adding a new unit from the settings.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          children: [
+                            ListTile(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              leading: Icon(Icons.block_flipped, color: Colors.grey[600], size: 20),
+                              title: const Text('No Specific Unit', style: TextStyle(color: Colors.black87, fontSize: 14, fontWeight: FontWeight.w600)),
+                              onTap: () {
+                                _controller.setUnit(null);
+                                Navigator.pop(context);
+                              },
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: Divider(height: 1, color: Colors.black12),
+                            ),
+                            ..._controller.units.where((u) {
+                              if (searchController.text.isEmpty) return true;
+                              final q = searchController.text.toLowerCase();
+                              return u['name'].toString().toLowerCase().contains(q) || (u['short_name']?.toString().toLowerCase().contains(q) ?? false);
+                            }).map((unit) {
+                              final isSelected = _controller.selectedUnitId == unit['id'];
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 4),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                                  dense: true,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  tileColor: isSelected ? theme.highlight.withOpacity(0.08) : null,
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: (isSelected ? theme.highlight : Colors.grey[400]!).withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      (unit['short_name'] ?? unit['name']?.toString().substring(0, 1) ?? '?').toString().toUpperCase(),
+                                      style: TextStyle(
+                                        color: isSelected ? theme.highlight : Colors.grey[600],
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  ),
+                                  title: Text(
+                                    unit['name'] ?? '', 
+                                    style: TextStyle(
+                                      color: isSelected ? theme.highlight : Colors.black87, 
+                                      fontSize: 14,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500
+                                    )
+                                  ),
+                                  subtitle: unit['short_name'] != null ? Text(
+                                    unit['short_name'],
+                                    style: TextStyle(color: Colors.grey[600], fontSize: 11)
+                                  ) : null,
+                                  trailing: Icon(
+                                    _controller.selectedUnitIds.contains(unit['id']) 
+                                      ? Icons.check_circle_rounded 
+                                      : Icons.radio_button_unchecked_rounded,
+                                    color: _controller.selectedUnitIds.contains(unit['id']) 
+                                      ? theme.highlight 
+                                      : Colors.grey[300],
+                                    size: 20,
+                                  ),
+                                  onTap: () {
+                                    setDialogState(() {
+                                      _controller.toggleUnit(unit['id']);
+                                    });
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          ],
+                        ),
+                  ),
+
+                  // Confirmation Button
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        setState(() {}); // Refresh main screen to show new dropdown items
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
+                      ),
+                      child: const Text('Confirm Selection', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 

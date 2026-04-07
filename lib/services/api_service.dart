@@ -5,7 +5,7 @@ class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
   // or your machine's LAN IP if running on physical device (e.g., 192.168.1.X).
   // Current IP: 192.168.137.202 (from ipconfig - Wi-Fi adapter)
-  static const String baseUrl = 'http://192.168.137.185:8080/api';
+  static const String baseUrl = 'http://192.168.100.53:8080/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
@@ -67,6 +67,7 @@ class ApiService {
     required String password,
     required String businessName,
     required String businessType,
+    String? pin,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
     try {
@@ -80,6 +81,7 @@ class ApiService {
           'business_name': businessName,
           'business_type': businessType,
           'device_name': 'mobile_app',
+          if (pin != null) 'pin': pin,
         },
       );
 
@@ -108,6 +110,15 @@ class ApiService {
     await _storage.delete(key: 'user');
     _dio.options.headers.remove('Authorization');
     print('🔑 [API] Token and user data removed from storage and headers');
+  }
+
+  Future<Response?> updatePin(String pin) async {
+    try {
+      return await _dio.post('/user/update-pin', data: {'pin': pin});
+    } catch (e) {
+      print('❌ [API] Failed to update PIN: $e');
+      rethrow;
+    }
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) {

@@ -201,8 +201,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
             for (var s in p.stocks) {
               uniquePrices.add(s.salePrice);
             }
-          } else if (p.price != 0) {
-            uniquePrices.add(p.price);
+          } else if (p.stocks.isEmpty) {
+            // no stocks at all — skip
           }
         }
         

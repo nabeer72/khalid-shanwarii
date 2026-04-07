@@ -119,7 +119,7 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
               final newBranch = Branch(
                 id: branch?.id,
                 businessId: BusinessConfig.instance.businessId,
-                userId: BusinessConfig.instance.adminId,
+                userId: BusinessConfig.instance.userId,
                 branchTitle: titleCtrl.text,
                 branchCode: codeCtrl.text.isEmpty ? null : codeCtrl.text,
                 branchAddress: addressCtrl.text.isEmpty ? null : addressCtrl.text,

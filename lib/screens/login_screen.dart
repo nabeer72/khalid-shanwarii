@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
@@ -91,10 +92,19 @@ class _LoginScreenState extends State<LoginScreen>
       ),
     );
     if (confirm == true) {
+      final email = account['email'].toString().toLowerCase().trim();
       setState(() {
-        _savedAccounts.removeWhere((acc) => acc['email'] == account['email']);
+        _savedAccounts.removeWhere((acc) => acc['email'].toString().toLowerCase().trim() == email);
       });
       await _saveAllAccounts();
+      
+      // [FIX] Also wipe this specific user/employee from the local database to keep it clean
+      await _dbHelper.database.then((db) async {
+        await db.delete('users', where: 'LOWER(email) = ?', whereArgs: [email]);
+        await db.delete('employees', where: 'LOWER(email) = ?', whereArgs: [email]);
+        print('🧹 [CLEANUP] Removed user/employee $email from local database');
+      }).catchError((e) => print('⚠️ Failed to cleanup local user record: $e'));
+
       if (_savedAccounts.isEmpty) {
         setState(() => _showLoginForm = true);
       }
@@ -111,23 +121,38 @@ class _LoginScreenState extends State<LoginScreen>
       final localUser = await _dbHelper.getUserByEmail(email);
       if (localUser != null) {
         name = localUser['name'] ?? 'User';
+        // [FIX] Update PIN in local users table
+        await _dbHelper.updateUserPin(localUser['id'], pin);
       } else {
         final staff = await _dbHelper.getEmployeeByEmailAndPin(email, password);
-        if (staff != null) name = staff['name'] ?? 'Staff';
+        if (staff != null) {
+           name = staff['name'] ?? 'Staff';
+           // [FIX] Update PIN in local employees table
+           await _dbHelper.updateEmployeePin(staff['id'], pin);
+        }
       }
+
+      // [FIX] Store business and branch IDs to allow skipping re-selection during Quick Login
+      final bid = BusinessConfig.instance.businessId;
+      final brid = BusinessConfig.instance.branchId;
 
       final account = {
         'email': email,
         'password': password,
         'name': name,
         'pin': pin,
+        'business_id': bid,
+        'branch_id': brid,
       };
 
       // Remove existing account with same email if exists
-      _savedAccounts.removeWhere((acc) => acc['email'] == email);
+      _savedAccounts.removeWhere((acc) => acc['email'].toString().toLowerCase() == email);
       _savedAccounts.add(account);
 
       await _storage.write(key: 'saved_accounts', value: jsonEncode(_savedAccounts));
+      
+      // [FIX] Sync PIN to remote DB in background
+      _api.updatePin(pin).catchError((e) => print('⚠️ Failed to sync PIN to server: $e'));
     } catch (e) {
       print('Failed to save account: $e');
     }
@@ -136,17 +161,26 @@ class _LoginScreenState extends State<LoginScreen>
   void _handleQuickLogin(Map<String, dynamic> account) async {
     final enteredPin = await PinDialogs.showEnterPinDialog(context, account['name']);
     if (enteredPin == null) return;
+    
+    if (enteredPin == 'SWITCH_TO_PASSWORD') {
+      setState(() {
+        _emailCtrl.text = account['email'];
+        _showLoginForm = true;
+      });
+      return;
+    }
 
     if (enteredPin == account['pin']) {
       setState(() {
         _emailCtrl.text = account['email'];
         _passCtrl.text = account['password'];
       });
-      _login(isQuickLogin: true);
+      // [FIX] Pass the specific account info to login to allow updating the name later
+      _login(isQuickLogin: true, existingPin: account['pin']);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Incorrect PIN'),
+            content: const Text('Incorrect PIN'),
             backgroundColor: ThemeProvider.error));
       }
     }
@@ -328,7 +362,7 @@ class _LoginScreenState extends State<LoginScreen>
       
       BusinessConfig.instance.setContext(
         bid: bid,
-        aid: aid,
+        uid: aid,
         brid: mainBranch['id'],
         bName: selected['name'],
         bType: selected['business_type'],
@@ -356,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen>
     
     print('🏠 [LOGIN] Auth successful, checking saved credentials...');
     
-    final userId = BusinessConfig.instance.adminId;
+    final userId = BusinessConfig.instance.userId;
     final staffId = BusinessConfig.instance.staffId;
     
     if (userId != null) {
@@ -374,64 +408,100 @@ class _LoginScreenState extends State<LoginScreen>
         final businesses = await _dbHelper.getBusinessesForUser(userId);
         print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
         
-        if (businesses.length > 1) {
-          try {
-            await _showBusinessSelectionDialog(userId, businesses);
-          } catch (e) {
-            print('⚠️ Business selection cancelled or failed: $e');
-            return; // Stay on login screen
-          }
-        } else if (businesses.length == 1) {
-          // Auto-select the only business
-          final b = businesses.first;
-          final bid = b['id'];
-          final aid = b['owner_user_id'] ?? b['admin_id'];
-          
-          final branches = await _dbHelper.getBranchesForBusiness(bid);
-          final mainBranch = branches.firstWhere(
-            (b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', 
-            orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
+        // [FIX] For Quick Login, try to restore the last used business and branch automatically
+        if (isQuickLogin) {
+          final savedAcc = _savedAccounts.firstWhere(
+            (acc) => acc['email'].toString().toLowerCase() == email.toLowerCase(),
+            orElse: () => {},
           );
+          final savedBid = savedAcc['business_id'];
+          final savedBrid = savedAcc['branch_id'];
 
-          BusinessConfig.instance.setContext(
-            bid: bid, 
-            aid: aid,
-            brid: mainBranch['id'],
-            bName: b['name'],
-            bType: b['business_type'],
-            activeBranches: branches.map((br) => br['id']).toList(),
-          );
-
-          await _storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
-
-          print('🔄 [LOGIN] Pulling business data for ${b['name']}...');
-          await SyncService().syncPull(forceFull: true);
-          await _dbHelper.loadSettings();
-        } else {
-          // Fallback if no businesses found
-          final bid = BusinessConfig.instance.businessId;
-          if (bid != null) {
-            print('🏢 [LOGIN] Fallback: Using direct business ID $bid');
-            final b = await _dbHelper.getBusiness(bid);
-            if (b != null) {
-              final branches = await _dbHelper.getBranchesForBusiness(bid);
-              final mainBranch = branches.firstWhere(
-                (br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', 
-                orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
-              );
+          if (savedBid != null) {
+            print('🚀 [LOGIN] Quick Login: Restoring saved business $savedBid and branch $savedBrid');
+            final b = businesses.firstWhere((eb) => eb['id'] == savedBid, orElse: () => {});
+            if (b.isNotEmpty) {
+              final branches = await _dbHelper.getBranchesForBusiness(savedBid);
+              final aid = b['owner_user_id'] ?? b['admin_id'] ?? userId;
               
               BusinessConfig.instance.setContext(
-                bid: bid, 
-                aid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
-                brid: mainBranch['id'],
+                bid: savedBid, 
+                uid: aid,
+                brid: savedBrid,
                 bName: b['name'],
                 bType: b['business_type'],
                 activeBranches: branches.map((br) => br['id']).toList(),
               );
               
-              print('🔄 [LOGIN] Fallback: Pulling business data for ${b['name']}...');
-              await SyncService().syncPull(forceFull: true);
+              await _storage.write(key: 'branch_id', value: savedBrid?.toString() ?? '');
               await _dbHelper.loadSettings();
+
+              // Quick sync pull in background instead of blocking
+              SyncService().syncPull().catchError((e) => print('⚠️ Quick sync failed: $e'));
+            }
+          }
+        }
+
+        // If context was not restored (or not Quick Login), proceed with standard selection
+        if (BusinessConfig.instance.businessId == null) {
+          if (businesses.length > 1) {
+            try {
+              await _showBusinessSelectionDialog(userId, businesses);
+            } catch (e) {
+              print('⚠️ Business selection cancelled or failed: $e');
+              return; // Stay on login screen
+            }
+          } else if (businesses.length == 1) {
+            // Auto-select the only business
+            final b = businesses.first;
+            final bid = b['id'];
+            final aid = b['owner_user_id'] ?? b['admin_id'];
+            
+            final branches = await _dbHelper.getBranchesForBusiness(bid);
+            final mainBranch = branches.firstWhere(
+              (br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', 
+              orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
+            );
+
+            BusinessConfig.instance.setContext(
+              bid: bid, 
+              uid: aid,
+              brid: mainBranch['id'],
+              bName: b['name'],
+              bType: b['business_type'],
+              activeBranches: branches.map((br) => br['id']).toList(),
+            );
+
+            await _storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
+
+            print('🔄 [LOGIN] Pulling business data for ${b['name']}...');
+            await SyncService().syncPull(forceFull: true);
+            await _dbHelper.loadSettings();
+          } else {
+            // Fallback if no businesses found
+            final bidFromConfig = BusinessConfig.instance.businessId;
+            if (bidFromConfig != null) {
+              final b = await _dbHelper.getBusiness(bidFromConfig);
+              if (b != null) {
+                final branches = await _dbHelper.getBranchesForBusiness(bidFromConfig);
+                final mainBranch = branches.firstWhere(
+                  (br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', 
+                  orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
+                );
+                
+                BusinessConfig.instance.setContext(
+                  bid: bidFromConfig, 
+                  uid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
+                  brid: mainBranch['id'],
+                  bName: b['name'],
+                  bType: b['business_type'],
+                  activeBranches: branches.map((br) => br['id']).toList(),
+                );
+                
+                print('🔄 [LOGIN] Fallback: Pulling business data for ${b['name']}...');
+                await SyncService().syncPull(forceFull: true);
+                await _dbHelper.loadSettings();
+              }
             }
           }
         }
@@ -439,19 +509,24 @@ class _LoginScreenState extends State<LoginScreen>
     }
 
     if (!isQuickLogin) {
-      // Check if this account is already saved
-      final bool isAlreadySaved = _savedAccounts.any((acc) => acc['email'] == email);
+      // [FIX] Normalize email comparison to avoid duplicate prompts
+      final bool isAlreadySaved = _savedAccounts.any((acc) => acc['email'].toString().toLowerCase() == email.toLowerCase());
       if (!isAlreadySaved && _rememberMe) {
-        // If Remember Me is checked, we go straight to PIN setup
         if (mounted) {
           final pin = await PinDialogs.showSetupPinDialog(context);
           if (pin != null) {
             await _saveCurrentAccount(pin);
           }
         }
-      } else if (!isAlreadySaved && !_rememberMe) {
-        // Optional: We could still ask if they want to save even if they didn't check it, 
-        // but usually unchecking means "don't ask me".
+      }
+    } else {
+      // [FIX] Update the saved name in case it changed on the server, while keeping the pin
+      // We pass null for pin to indicate we want to KEEP the existing one
+      final pin = (isQuickLogin && _savedAccounts.isNotEmpty) 
+          ? _savedAccounts.firstWhere((acc) => acc['email'].toString().toLowerCase() == email.toLowerCase())['pin']
+          : null;
+      if (pin != null) {
+        await _saveCurrentAccount(pin);
       }
     }
 
@@ -462,7 +537,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  void _login({bool isQuickLogin = false}) async {
+  void _login({bool isQuickLogin = false, String? existingPin}) async {
     print('🔐 [LOGIN] Starting login process...');
     print('📧 [LOGIN] Email: ${_emailCtrl.text}');
     print('🌐 [LOGIN] Is Web: $kIsWeb');
@@ -502,11 +577,13 @@ class _LoginScreenState extends State<LoginScreen>
     print('⏳ [LOGIN] Loading state set to true');
 
     try {
-      // PROMPT CHANGE: checking local users/staff first for offline support and speed
-      print('💡 [LOGIN] Checking local database for credentials...');
-      
-      // 1. Try Local User (Admin) Login
-      final user = await _dbHelper.getUserByEmailAndPassword(cleanEmail, password);
+      // [FIX] Re-enable local authentication for ALL login types including Quick Login.
+      // This allows PIN login to work offline and feel "instant".
+      if (true) { 
+        print('💡 [LOGIN] Checking local database for credentials...');
+        
+        // 1. Try Local User (Admin) Login
+        final user = await _dbHelper.getUserByEmailAndPassword(cleanEmail, password);
       if (user != null) {
         print('👤 [LOGIN] Local Admin found!');
         
@@ -516,7 +593,7 @@ class _LoginScreenState extends State<LoginScreen>
         
         BusinessConfig.instance.setContext(
           bid: bid, 
-          aid: aid,
+          uid: aid,
           brid: user['branch_id'],
         );
         
@@ -545,7 +622,7 @@ class _LoginScreenState extends State<LoginScreen>
         await _storage.write(key: 'user_email', value: staff['email']);
         await _storage.write(key: 'business_id', value: staff['business_id']?.toString());
 
-        BusinessConfig.instance.adminId = staff['admin_id'];
+        BusinessConfig.instance.userId = staff['admin_id'];
         BusinessConfig.instance.staffId = staff['id'];
 
         if (staff['branch_id'] != null) {
@@ -567,6 +644,7 @@ class _LoginScreenState extends State<LoginScreen>
 
         await _proceedToHome(isQuickLogin, email);
         return;
+      }
       }
       
       print('💡 [LOGIN] No local record found, attempting server-side (API) login...');
@@ -610,7 +688,7 @@ class _LoginScreenState extends State<LoginScreen>
               final String role = u['role']?.toString().toLowerCase() ?? '';
               final isStaff = role == 'staff' || role == 'employee' || (aid != null && aid != uid);
               
-              final effectiveAdminId = isStaff ? (aid ?? uid) : uid;
+              final effectiveUserId = isStaff ? (aid ?? uid) : uid;
               
               // [CRITICAL] staffId MUST be the ID from the employees table to match RBAC permissions.
               // The User.id (uid) might not match Employee.id on the server.
@@ -621,15 +699,15 @@ class _LoginScreenState extends State<LoginScreen>
                 if (kDebugMode) print('👤 [LOGIN] Resolved Staff ID: $resolvedStaffId for email: ${u['email']}');
               }
 
-              BusinessConfig.instance.setContext(
+               BusinessConfig.instance.setContext(
                 bid: bid, 
-                aid: effectiveAdminId,
+                uid: effectiveUserId,
                 brid: brid,
               );
               BusinessConfig.instance.staffId = resolvedStaffId;
 
               if (isStaff) {
-                await storage.write(key: 'user_id', value: effectiveAdminId.toString());
+                await storage.write(key: 'user_id', value: effectiveUserId.toString());
                 await storage.write(key: 'staff_id', value: resolvedStaffId?.toString() ?? uid.toString());
               } else {
                 await storage.write(key: 'user_id', value: uid.toString());
@@ -898,6 +976,30 @@ class _LoginScreenState extends State<LoginScreen>
                               }).toList(),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          Center(
+                            child: SizedBox(
+                              width: 200,
+                              height: 40,
+                              child: OutlinedButton.icon(
+                                onPressed: () => setState(() => _showLoginForm = true),
+                                icon: Icon(Icons.email_outlined, color: theme.highlight, size: 18),
+                                label: Text(
+                                  'LOGIN WITH EMAIL',
+                                  style: TextStyle(
+                                    color: theme.highlight,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: theme.highlight.withOpacity(0.5), width: 1.5),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                ),
+                              ),
+                            ),
+                          ),
                           const SizedBox(height: 32),
                         ],
 
@@ -1021,29 +1123,28 @@ class _LoginScreenState extends State<LoginScreen>
                                   ),
                                 ),
                               ),
+                              if (_savedAccounts.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Center(
+                                    child: TextButton.icon(
+                                      onPressed: () => setState(() => _showLoginForm = false),
+                                      icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                                      label: const Text('BACK TO QUICK LOGIN',
+                                          style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 1.0)),
+                                      style: TextButton.styleFrom(
+                                          foregroundColor: theme.textSecondary),
+                                    ),
+                                  ),
+                                ),
                             ],
                           ),
                         ),
                       ] else ...[
-                          Center(
-                            child: TextButton.icon(
-                              onPressed: () => setState(() => _showLoginForm = true),
-                              icon: Icon(Icons.add_circle_outline_rounded, color: theme.highlight),
-                              label: Text(
-                                'Login with another account',
-                                style: TextStyle(
-                                  color: theme.highlight,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.0,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                                backgroundColor: theme.surface.withOpacity(0.5),
-                              ),
-                            ),
-                          ),
+                          const SizedBox.shrink(),
                         ],
 
                         const SizedBox(height: 12),

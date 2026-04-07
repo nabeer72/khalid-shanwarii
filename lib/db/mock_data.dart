@@ -12,10 +12,10 @@ class BusinessConfig {
   String businessName = 'My Business';
   String businessAddress = '';
   String businessPhone = '';
-  dynamic businessId;
-  dynamic branchId;
-  dynamic adminId;
-  dynamic staffId;
+   dynamic businessId;
+   dynamic branchId;
+   dynamic userId;
+   dynamic staffId;
   String staffName = '';
   List<dynamic> activeBranchIds = [];
   List<dynamic> inactiveBranchIds = [];
@@ -64,10 +64,10 @@ class BusinessConfig {
 
   void reset({bool keepContext = false}) {
     if (!keepContext) {
-      businessId = null;
-      branchId = null;
-      adminId = null;
-      staffId = null;
+       businessId = null;
+       branchId = null;
+       userId = null;
+       staffId = null;
       staffName = '';
       activeBranchIds = [];
       inactiveBranchIds = [];
@@ -88,17 +88,17 @@ class BusinessConfig {
   }
 
   /// Sets the complete business and branch context
-  void setContext({
-    required dynamic bid,
-    required dynamic aid,
-    dynamic brid,
-    String? bName,
-    String? bType,
-    List<dynamic>? activeBranches,
-  }) {
-    businessId = bid;
-    adminId = aid;
-    branchId = brid;
+   void setContext({
+     required dynamic bid,
+     required dynamic uid,
+     dynamic brid,
+     String? bName,
+     String? bType,
+     List<dynamic>? activeBranches,
+   }) {
+     businessId = bid;
+     userId = uid;
+     branchId = brid;
     if (bName != null) businessName = bName;
     if (bType != null) businessType = bType;
     if (activeBranches != null) {

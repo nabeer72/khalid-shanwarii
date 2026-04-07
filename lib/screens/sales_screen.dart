@@ -52,7 +52,7 @@ class _SalesScreenState extends State<SalesScreen> {
 
     final sale = Sale(
       businessId: BusinessConfig.instance.businessId,
-      userId: BusinessConfig.instance.adminId,
+      userId: BusinessConfig.instance.userId,
       grandTotal: _total,
       status: 1,
       isSynced: 0,

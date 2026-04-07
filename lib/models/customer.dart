@@ -1,14 +1,12 @@
 class Customer {
   final int? id;
   final int businessId;
-  final int? adminId;
+  final int? userId;
   final String name;
   final String? phone;
   final String? email;
   final String? notes;
   final double discount;
-  final double totalSpent;
-  final int visitCount;
   final double? creditBalance;
   final double creditLimit;
   final int status;
@@ -18,14 +16,12 @@ class Customer {
   Customer({
     this.id,
     required this.businessId,
-    this.adminId,
+    this.userId,
     required this.name,
     this.phone,
     this.email,
     this.notes,
     this.discount = 0.0,
-    this.totalSpent = 0.0,
-    this.visitCount = 0,
     this.creditBalance = 0.0,
     this.creditLimit = 0.0,
     this.status = 1,
@@ -37,14 +33,12 @@ class Customer {
     return Customer(
       id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? '') ?? 0,
-      adminId: map['admin_id'] is int ? map['admin_id'] : int.tryParse(map['admin_id']?.toString() ?? ''),
+      userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? ''),
       name: map['name']?.toString() ?? '',
       phone: map['phone']?.toString(),
       email: map['email']?.toString(),
       notes: map['notes']?.toString(),
       discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
-      totalSpent: (map['total_spent'] as num?)?.toDouble() ?? 0.0,
-      visitCount: (map['visit_count'] as num?)?.toInt() ?? 0,
       creditBalance: (map['credit_balance'] as num?)?.toDouble() ?? 0.0,
       creditLimit: (map['credit_limit'] as num?)?.toDouble() ?? 0.0,
       status: (map['status'] as num?)?.toInt() ?? 1,
@@ -57,14 +51,12 @@ class Customer {
     return {
       'id': id,
       'business_id': businessId,
-      'admin_id': adminId,
+      'user_id': userId,
       'name': name,
       'phone': phone,
       'email': email,
       'notes': notes,
       'discount': discount,
-      'total_spent': totalSpent,
-      'visit_count': visitCount,
       'credit_balance': creditBalance,
       'credit_limit': creditLimit,
       'status': status,
@@ -72,4 +64,8 @@ class Customer {
       'branch_id': branchId,
     };
   }
+
+  // Computed convenience getters (placeholder until real tracking is wired)
+  int get visitCount => 0;
+  double get totalSpent => 0.0;
 }

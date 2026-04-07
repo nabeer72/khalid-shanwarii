@@ -5,11 +5,48 @@ import 'tables.dart';
 
 class DbMigrations {
   static Future<void> upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 64) {
+      if (kDebugMode) print('Upgrading DB to version 64: Renaming admin_id to user_id...');
+      await db.transaction((txn) async {
+        final tablesToRenameOnlyAdmin = [
+          'categories', 'subcategories', 'stocks', 'customers', 'employees',
+          'sale_items', 'gift_cards', 'held_orders', 'held_order_items',
+          'return_items', 'expense_heads', 'expenses', 'suppliers', 'purchases',
+          'purchase_items', 'credit_sales', 'credit_payments',
+          'supplier_credit_purchases', 'supplier_paybacks', 'bank_accounts',
+          'roles', 'currency_notes', 'payment_types', 'brands'
+        ];
+
+        final tablesWithCollisions = [
+          'products', 'sales', 'returns', 'shifts', 'branches', 'units'
+        ];
+
+        // 1. Handle tables with collisions (Rename existing user_id to staff_id first)
+        for (var table in tablesWithCollisions) {
+          try {
+            await txn.execute('ALTER TABLE $table RENAME COLUMN user_id TO staff_id');
+            await txn.execute('ALTER TABLE $table RENAME COLUMN admin_id TO user_id');
+          } catch (e) {
+            if (kDebugMode) print('Migration v64 partial fail for table $table: $e');
+          }
+        }
+
+        // 2. Handle tables with only admin_id
+        for (var table in tablesToRenameOnlyAdmin) {
+          try {
+            await txn.execute('ALTER TABLE $table RENAME COLUMN admin_id TO user_id');
+          } catch (e) {
+            if (kDebugMode) print('Migration v64 partial fail for table $table: $e');
+          }
+        }
+      });
+    }
+
     if (oldVersion < 61) {
       if (kDebugMode) print('Upgrading DB to version 61: Repairing customer data (admin_id/business_id)...');
       try {
         final bid = BusinessConfig.instance.businessId;
-        final aid = BusinessConfig.instance.adminId;
+        final aid = BusinessConfig.instance.userId;
         if (bid != null && aid != null) {
           await db.rawUpdate('UPDATE customers SET business_id = ?, admin_id = ? WHERE business_id IS NULL OR admin_id IS NULL', [bid, aid]);
         }
@@ -967,7 +1004,7 @@ class DbMigrations {
                   'category_id': sc['parent_id'],
                   'business_id': sc['business_id'],
                   'branch_id': sc['branch_id'],
-                  'admin_id': sc['admin_id'],
+                  'user_id': sc['admin_id'] ?? sc['user_id'],
                   'name': sc['name'],
                   'status': sc['status'],
                   'is_synced': sc['is_synced'],
@@ -1140,19 +1177,27 @@ class DbMigrations {
       if (kDebugMode) print('Upgrading DB to v59: Repairing currency_notes metadata...');
       try {
         final bid = BusinessConfig.instance.businessId;
-        final aid = BusinessConfig.instance.adminId;
+        final aid = BusinessConfig.instance.userId;
         final brid = BusinessConfig.instance.branchId;
         
         if (bid != null && aid != null) {
            await db.update('currency_notes', {
              'business_id': bid,
-             'admin_id': aid,
+             'user_id': aid,
              'branch_id': (brid == 'NONE' || brid == 0) ? null : brid,
              'is_synced': 0, // Force re-sync with valid data
-           }, where: 'business_id IS NULL OR admin_id IS NULL');
+           }, where: 'business_id IS NULL OR user_id IS NULL OR admin_id IS NULL');
         }
       } catch (e) {
         if (kDebugMode) print('v59 currency_notes repair error: $e');
+      }
+    }
+    if (oldVersion < 65) {
+      if (kDebugMode) print('Upgrading DB to v65: Adding staff_id to stock_audits...');
+      try {
+        await db.execute('ALTER TABLE stock_audits ADD COLUMN staff_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v65 stock_audits staff_id error: $e');
       }
     }
   }

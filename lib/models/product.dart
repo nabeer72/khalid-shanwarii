@@ -6,33 +6,19 @@ class Product {
   final dynamic businessId;
   final dynamic userId;
   final dynamic branchId;
-  final dynamic category_id; 
   final dynamic categoryId;
   final dynamic subCategoryId;
   final dynamic brandId;
   final String name;
-  final String? stockType;
   final String? image;
   final String? description;
   final int status;
   bool isFavorite;
-  final String? barcode;
   final int stockLimit;
-  final double? discountLimit;
   final String? updatedAt;
   final String? deletedAt;
   final dynamic unitId;
   
-  // Denormalized fields for immediate UI visibility
-  final double price;
-  final double purchasePrice;
-  final double wholesalePrice;
-  final double stockQuantity;
-
-  // Weights (if applicable)
-  final bool isPricePerWeight;
-  final String? weightUnit;
-
   // Batches/Stocks
   final List<Stock> stocks;
 
@@ -42,27 +28,17 @@ class Product {
     this.userId,
     this.branchId,
     this.categoryId,
-    this.category_id,
     this.subCategoryId,
     this.brandId,
     required this.name,
-    this.stockType,
     this.image,
     this.description,
     this.status = 1,
     this.isFavorite = false,
-    this.barcode,
     this.stockLimit = 5,
-    this.discountLimit,
     this.updatedAt,
     this.deletedAt,
     this.unitId,
-    this.isPricePerWeight = false,
-    this.weightUnit,
-    this.price = 0,
-    this.purchasePrice = 0,
-    this.wholesalePrice = 0,
-    this.stockQuantity = 0,
     this.stocks = const [],
   });
 
@@ -72,28 +48,18 @@ class Product {
       businessId: map['business_id'],
       userId: map['user_id'],
       branchId: map['branch_id'],
-      categoryId: map['category_id'],
-      category_id: map['category_id'],
+      categoryId: map['category_id'] ?? map['categoryId'],
       subCategoryId: map['sub_category_id'],
       brandId: map['brand_id'],
       name: map['name'] ?? '',
-      stockType: map['stock_type'],
       image: map['image'],
       description: map['description'],
       status: map['status'] ?? 1,
       isFavorite: (map['is_favorite'] ?? 0) == 1,
-      isPricePerWeight: (map['is_price_per_weight'] ?? 0) == 1,
-      weightUnit: map['weight_unit'],
-      barcode: map['barcode'],
       stockLimit: map['stock_limit'] ?? 5,
-      discountLimit: (map['discount_limit'] as num?)?.toDouble(),
       updatedAt: map['updated_at'],
       deletedAt: map['deleted_at'],
       unitId: map['unit_id'],
-      price: (map['price'] ?? 0).toDouble(),
-      purchasePrice: (map['purchase_price'] ?? 0).toDouble(),
-      wholesalePrice: (map['wholesale_price'] ?? 0).toDouble(),
-      stockQuantity: (map['stock_quantity'] ?? 0).toDouble(),
       stocks: stocks,
     );
   }
@@ -108,47 +74,36 @@ class Product {
       'sub_category_id': subCategoryId,
       'brand_id': brandId,
       'name': name,
-      'stock_type': stockType,
       'image': image,
       'description': description,
       'status': status,
       'is_favorite': isFavorite ? 1 : 0,
-      'is_price_per_weight': isPricePerWeight ? 1 : 0,
-      'weight_unit': weightUnit,
-      'barcode': barcode,
       'stock_limit': stockLimit,
-      'discount_limit': discountLimit,
       'updated_at': updatedAt,
       'deleted_at': deletedAt,
       'unit_id': unitId,
-      'price': price,
-      'purchase_price': purchasePrice,
-      'wholesale_price': wholesalePrice,
-      'stock_quantity': stockQuantity,
     };
   }
 
   // Computed properties for UI convenience
-  double get totalStock => stocks.isNotEmpty ? stocks.fold(0.0, (sum, s) => sum + s.quantity) : stockQuantity;
+  double get totalStock => stocks.fold(0.0, (sum, s) => sum + s.quantity);
   
-  double get minPrice => stocks.isEmpty ? price : stocks.map((s) => s.salePrice).reduce((a, b) => a < b ? a : b);
-  double get maxPrice => stocks.isEmpty ? price : stocks.map((s) => s.salePrice).reduce((a, b) => a > b ? a : b);
+  double get minPrice => stocks.isEmpty ? 0.0 : stocks.map((s) => s.salePrice).reduce((a, b) => a < b ? a : b);
+  double get maxPrice => stocks.isEmpty ? 0.0 : stocks.map((s) => s.salePrice).reduce((a, b) => a > b ? a : b);
   
   String get priceRange {
     final config = BusinessConfig.instance;
-    if (stocks.isEmpty) {
-      if (price > 0) return config.formatAmount(price);
-      return config.formatAmount(0); // Show 0 instead of N/A
-    }
+    if (stocks.isEmpty) return config.formatAmount(0);
     if (minPrice == maxPrice) return config.formatAmount(minPrice);
     return '${config.formatAmount(minPrice)} - ${config.formatAmount(maxPrice)}';
   }
 
-  // Getters for legacy/controller compatibility (prefer denormalized fields)
-  double get latestPrice => (stocks.isNotEmpty) ? (latestStock?.salePrice ?? price) : price;
-  double get latestPurchasePrice => (stocks.isNotEmpty) ? (latestStock?.costPrice ?? purchasePrice) : purchasePrice;
-  double get latestWholesalePrice => (stocks.isNotEmpty) ? (latestStock?.wholesalePrice ?? wholesalePrice) : wholesalePrice;
-  double get latestStockQuantity => stockQuantity != 0 ? stockQuantity : totalStock;
+  String? get latestBarcode => (stocks.isNotEmpty) ? (latestStock?.barcode) : null;
+
+  double get latestPrice => (stocks.isNotEmpty) ? (latestStock?.salePrice ?? 0.0) : 0.0;
+  double get latestPurchasePrice => (stocks.isNotEmpty) ? (latestStock?.costPrice ?? 0.0) : 0.0;
+  double get latestWholesalePrice => (stocks.isNotEmpty) ? (latestStock?.wholesalePrice ?? 0.0) : 0.0;
+  double get latestStockQuantity => totalStock;
 
   // Get the "primary" or "latest" stock (e.g. for default selection)
   Stock? get latestStock => stocks.isNotEmpty ? stocks.last : null;
@@ -157,6 +112,7 @@ class Product {
 class ProductCategory {
   final dynamic id;
   final dynamic businessId;
+  final dynamic userId;
   final String name;
   final String? icon;
   final dynamic parentId;
@@ -166,6 +122,7 @@ class ProductCategory {
   ProductCategory({
     this.id,
     required this.businessId,
+    this.userId,
     required this.name,
     this.icon,
     this.parentId,
@@ -177,6 +134,7 @@ class ProductCategory {
     return ProductCategory(
       id: map['id'],
       businessId: map['business_id'],
+      userId: map['user_id'],
       name: map['name'] ?? '',
       icon: map['icon'],
       parentId: map['parent_id'],
@@ -189,6 +147,7 @@ class ProductCategory {
     return {
       'id': id,
       'business_id': businessId,
+      'user_id': userId,
       'name': name,
       'icon': icon,
       'parent_id': parentId,

@@ -3,9 +3,8 @@ import 'dart:convert';
 class Shift {
   final int? id;
   final int businessId;
-  final int adminId;
   final int userId;
-  final int? staffId;
+  final int staffId;
   final String startTime;
   final String? endTime;
   final double openingCash;
@@ -23,9 +22,8 @@ class Shift {
   Shift({
     this.id,
     required this.businessId,
-    required this.adminId,
     required this.userId,
-    this.staffId,
+    required this.staffId,
     required this.startTime,
     this.endTime,
     required this.openingCash,
@@ -45,7 +43,6 @@ class Shift {
     return {
       'id': id,
       'business_id': businessId,
-      'admin_id': adminId,
       'user_id': userId,
       'staff_id': staffId,
       'start_time': startTime,
@@ -68,9 +65,8 @@ class Shift {
     return Shift(
       id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? '') ?? 0,
-      adminId: map['admin_id'] is int ? map['admin_id'] : int.tryParse(map['admin_id']?.toString() ?? '') ?? 0,
       userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? '') ?? 0,
-      staffId: map['staff_id'] is int ? map['staff_id'] : int.tryParse(map['staff_id']?.toString() ?? ''),
+      staffId: map['staff_id'] is int ? map['staff_id'] : int.tryParse(map['staff_id']?.toString() ?? '') ?? 0,
       startTime: map['start_time']?.toString() ?? '',
       endTime: map['end_time']?.toString(),
       openingCash: (map['opening_cash'] as num? ?? 0).toDouble(),

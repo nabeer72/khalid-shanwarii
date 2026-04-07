@@ -22,7 +22,7 @@ mixin SuppliersCrud on CommonCrud {
     final db = await database;
     await db.insert('suppliers', {
       ...supplier,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': supplier['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -86,7 +86,7 @@ mixin SuppliersCrud on CommonCrud {
     final db = await database;
     await db.insert('supplier_credit_purchases', {
       ...creditPurchase,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': creditPurchase['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -124,12 +124,12 @@ mixin SuppliersCrud on CommonCrud {
     // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     // ignore: unused_local_variable
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     await db.transaction((txn) async {
       await txn.insert('supplier_paybacks', {
         ...payback,
-        ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+        ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
         'branch_id': payback['branch_id'] ?? getCurrentBranchId(),
         'is_synced': 0,
       });
@@ -215,15 +215,15 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<void> _executeSupplierReconciliation(DatabaseExecutor txn) async {
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
 
     // 1. Reset credit balances to 0 for current tenant
-    if (bid != null && aid != null) {
+    if (bid != null && uid != null) {
       await txn.update(
         'suppliers', 
         {'credit_balance': 0}, 
-        where: 'business_id = ? AND admin_id = ?', 
-        whereArgs: [bid, aid]
+        where: 'business_id = ? AND user_id = ?', 
+        whereArgs: [bid, uid]
       );
     } else {
       await txn.update('suppliers', {'credit_balance': 0});
@@ -241,7 +241,7 @@ mixin SuppliersCrud on CommonCrud {
         SELECT s.id as supplier_id, (SUM(IFNULL(scp.remaining_balance, 0)) + IFNULL(s.opening_amount, 0)) as calculated_balance
         FROM suppliers s
         LEFT JOIN supplier_credit_purchases scp ON s.id = scp.supplier_id AND scp.status = 1
-        WHERE s.status = 1${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id')} $branchFilter
+        WHERE s.status = 1${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id')} $branchFilter
         GROUP BY s.id
       ''', [...businessArgs, ...branchArgs]);
     } catch (_) {

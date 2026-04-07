@@ -24,7 +24,7 @@ mixin ReturnsCrud on CommonCrud {
     final result = await db.transaction((txn) async {
       final returnId = await txn.insert('returns', {
         ...returnData,
-        ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
+        ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
         'branch_id': brid,
         'status': 1,
         'is_synced': 0,

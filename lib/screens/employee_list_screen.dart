@@ -39,7 +39,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
       
       final List<Employee> tempEmployees = [];
       // ignore: unused_local_variable
-      final currentAdminId = BusinessConfig.instance.adminId;
+      final currentUserId = BusinessConfig.instance.userId;
 
       for (var e in data) {
         // Removed: if (e['id'] == currentAdminId) continue;

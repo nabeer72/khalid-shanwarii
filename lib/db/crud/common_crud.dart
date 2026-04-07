@@ -52,19 +52,19 @@ mixin CommonCrud {
 
   // Business Isolation Helpers
   String getBusinessFilter() {
-    return ' AND business_id = ? AND admin_id = ?';
+    return ' AND business_id = ? AND user_id = ?';
   }
 
   List<dynamic> getBusinessArgs() {
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
-    return [bid, aid];
+    final uid = getSafeInt(BusinessConfig.instance.userId);
+    return [bid, uid];
   }
 
   Map<String, dynamic> getBusinessArgsMap() {
     return {
       'business_id': getSafeInt(BusinessConfig.instance.businessId),
-      'admin_id': getSafeInt(BusinessConfig.instance.adminId),
+      'user_id': getSafeInt(BusinessConfig.instance.userId),
     };
   }
 
@@ -143,6 +143,15 @@ mixin CommonCrud {
   Future<List<Map<String, dynamic>>> getUnsyncedUsers() async {
     final db = await database;
     return await db.query('users', where: 'is_synced = 0');
+  }
+
+  Future<void> updateUserPin(dynamic id, String pin) async {
+    final db = await database;
+    await db.update('users', {
+      'pin': pin,
+      'is_synced': 0,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> updateUserSyncStatus(dynamic id, int synced) async {
@@ -227,15 +236,15 @@ mixin CommonCrud {
   Future<List<Map<String, dynamic>>> getBankTransactions() async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
 
-    final args = [bid, aid, ...branchArgs];
+    final args = [bid, uid, ...branchArgs];
 
     return await db.rawQuery(
-      'SELECT * FROM bank_accounts WHERE status = 1 AND business_id IS ? AND admin_id IS ?$branchFilter ORDER BY date DESC',
+      'SELECT * FROM bank_accounts WHERE status = 1 AND business_id IS ? AND user_id IS ?$branchFilter ORDER BY date DESC',
       args,
     );
   }
@@ -243,12 +252,12 @@ mixin CommonCrud {
   Future<void> insertBankTransaction(Map<String, dynamic> transaction) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     await db.insert('bank_accounts', {
       ...transaction,
       'business_id': bid,
-      'admin_id': aid,
+      'user_id': uid,
       'branch_id': transaction['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),

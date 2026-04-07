@@ -24,7 +24,7 @@ mixin ShiftsCrud on CommonCrud {
     final db = await database;
     await db.insert('shifts', {
       ...shiftData,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': getCurrentBranchId(),
       'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);

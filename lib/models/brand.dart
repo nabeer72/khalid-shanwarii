@@ -2,7 +2,7 @@ class Brand {
   final dynamic id;
   final dynamic businessId;
   final dynamic branchId;
-  final dynamic adminId;
+  final dynamic userId;
   final String name;
   final int status;
   final int isSynced;
@@ -13,7 +13,7 @@ class Brand {
     this.id,
     required this.businessId,
     this.branchId,
-    this.adminId,
+    this.userId,
     required this.name,
     this.status = 1,
     this.isSynced = 0,
@@ -26,7 +26,7 @@ class Brand {
       id: map['id'],
       businessId: map['business_id'],
       branchId: map['branch_id'],
-      adminId: map['admin_id'],
+      userId: map['user_id'],
       name: map['name'] ?? '',
       status: map['status'] ?? 1,
       isSynced: map['is_synced'] ?? 0,
@@ -40,7 +40,7 @@ class Brand {
       'id': id,
       'business_id': businessId,
       'branch_id': branchId,
-      'admin_id': adminId,
+      'user_id': userId,
       'name': name,
       'status': status,
       'is_synced': isSynced,

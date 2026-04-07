@@ -289,7 +289,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
         if (p['unit_id'] != null) {
           selectedUnitId = p['unit_id'];
           final unit = _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-          isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+          isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
         }
       }
     }
@@ -301,7 +301,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
           builder: (context, setDialogState) {
             final filteredProducts = selectedCategoryId == null 
               ? _controller.products 
-              : _controller.products.where((p) => p['category_id'] == selectedCategoryId).toList();
+              : _controller.products.where((p) => p['category_id']?.toString() == selectedCategoryId?.toString()).toList();
 
             return AlertDialog(
               backgroundColor: Colors.white,
@@ -407,7 +407,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                     if (p['unit_id'] != null) {
                                       selectedUnitId = p['unit_id'];
                                       final unit = _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-                                      isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+                                      isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
                                     }
                                   });
                                 },
@@ -447,7 +447,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                     if (p['unit_id'] != null) {
                                       selectedUnitId = p['unit_id'];
                                       final unit = _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-                                      isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+                                      isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
                                     }
                                   });
                                 } else {
@@ -481,91 +481,168 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           setDialogState(() {
                             selectedUnitId = v;
                             final unit = _controller.units.firstWhere((u) => u['id'] == v, orElse: () => {});
-                            isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+                            isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
                             if (!isBoxUnit) piecesCtrl.text = '1';
                           });
                         },
                       ),
                       const SizedBox(height: 12),
                       if (isBoxUnit) ...[
-                        TextField(
-                          controller: piecesCtrl,
-                          keyboardType: TextInputType.number,
-                          onChanged: (_) => setDialogState(() {}),
-                          decoration: _dialogInputDecoration('Qty per Box', Icons.grid_view_rounded),
-                          style: const TextStyle(color: Color(0xFF1F2937)),
+                        Builder(
+                          builder: (context) {
+                            final unitMap = selectedUnitId != null ? _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {}) : {};
+                            final unitName = unitMap['name']?.toString() ?? 'Box';
+                            return Column(
+                              children: [
+                                // Row 1: Cost per Unit + Wholesale per Unit
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: costCtrl,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => setDialogState(() {}),
+                                        decoration: _dialogInputDecoration('Purchase $unitName Price', Icons.inventory_2_outlined),
+                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: wholesaleCtrl,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => setDialogState(() {}),
+                                        decoration: _dialogInputDecoration('$unitName Wholesale Price', Icons.local_offer_outlined),
+                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Row 2: Sale Price per Unit + Qty per Unit
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: priceCtrl,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => setDialogState(() {}),
+                                        decoration: _dialogInputDecoration('$unitName Sale Price', Icons.account_balance_wallet_outlined),
+                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: piecesCtrl,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => setDialogState(() {}),
+                                        decoration: _dialogInputDecoration('$unitName Quantity', Icons.grid_view_rounded),
+                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Row 3: Initial Units
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: TextField(
+                                        controller: qtyCtrl,
+                                        keyboardType: TextInputType.number,
+                                        onChanged: (_) => setDialogState(() {}),
+                                        decoration: _dialogInputDecoration('Initial ${unitName}s', Icons.warehouse_outlined),
+                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    const Expanded(child: SizedBox()),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                // Total Pieces Badge
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: theme.highlight.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: theme.highlight.withOpacity(0.2)),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text('Total Pieces Result:', style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                                      Text(
+                                        '${(double.tryParse(qtyCtrl.text) ?? 0) * (double.tryParse(piecesCtrl.text) ?? 1)} Pieces',
+                                        style: TextStyle(color: theme.highlight, fontSize: 13, fontWeight: FontWeight.w900),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
                         ),
+                      ] else ...[
+                        // Non-box: show regular fields
+                        if (selectedProductId != null)
+                          _ProductStats(
+                            stock: stock,
+                            cost: currCost,
+                            currency: BusinessConfig.instance.currency,
+                            theme: theme,
+                            isDialog: true,
+                          ),
                         const SizedBox(height: 12),
-                      ],
-
-                      if (selectedProductId != null)
-                        _ProductStats(
-                          stock: stock,
-                          cost: currCost,
-                          currency: BusinessConfig.instance.currency,
-                          theme: theme,
-                          isDialog: true,
-                        ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              controller: qtyCtrl, 
-                              keyboardType: TextInputType.number, 
-                              onChanged: (_) => setDialogState(() {}),
-                              decoration: _dialogInputDecoration(isBoxUnit ? 'Total Boxes' : 'Quantity', Icons.numbers_rounded), 
-                              style: const TextStyle(color: Color(0xFF1F2937)),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: TextField(
-                              controller: costCtrl, 
-                              keyboardType: TextInputType.number, 
-                              decoration: _dialogInputDecoration('Unit Cost', Icons.attach_money_rounded), 
-                              style: const TextStyle(color: Color(0xFF1F2937)),
-                            ),
-                          ),
-                        ],
-                      ),
-                      
-                      if (isBoxUnit) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: theme.highlight.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: theme.highlight.withOpacity(0.2)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Total Pieces Result:', style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
-                              Text(
-                                '${(double.tryParse(qtyCtrl.text) ?? 0) * (double.tryParse(piecesCtrl.text) ?? 1)} Pieces',
-                                style: TextStyle(color: theme.highlight, fontSize: 13, fontWeight: FontWeight.w900),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: qtyCtrl,
+                                keyboardType: TextInputType.number,
+                                onChanged: (_) => setDialogState(() {}),
+                                decoration: _dialogInputDecoration('Stock Quantity', Icons.numbers_rounded),
+                                style: const TextStyle(color: Color(0xFF1F2937)),
                               ),
-                            ],
-                          ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: costCtrl,
+                                keyboardType: TextInputType.number,
+                                onChanged: (_) => setDialogState(() {}),
+                                decoration: _dialogInputDecoration('Cost Price', Icons.attach_money_rounded),
+                                style: const TextStyle(color: Color(0xFF1F2937)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: wholesaleCtrl,
+                                keyboardType: TextInputType.number,
+                                onChanged: (_) => setDialogState(() {}),
+                                decoration: _dialogInputDecoration('Wholesale Price', Icons.business_center_rounded),
+                                style: const TextStyle(color: Color(0xFF1F2937)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: priceCtrl,
+                                keyboardType: TextInputType.number,
+                                onChanged: (_) => setDialogState(() {}),
+                                decoration: _dialogInputDecoration('Sale Price', Icons.price_change_rounded),
+                                style: const TextStyle(color: Color(0xFF1F2937)),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
-
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: wholesaleCtrl, 
-                        keyboardType: TextInputType.number, 
-                        decoration: _dialogInputDecoration('Wholesale Price', Icons.business_center_rounded), 
-                        style: const TextStyle(color: Color(0xFF1F2937)),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: priceCtrl, 
-                        keyboardType: TextInputType.number, 
-                        decoration: _dialogInputDecoration('Selling Price', Icons.price_change_rounded), 
-                        style: const TextStyle(color: Color(0xFF1F2937)),
-                      ),
                       const SizedBox(height: 24),
                       Row(
                         children: [

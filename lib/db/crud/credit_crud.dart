@@ -31,7 +31,7 @@ mixin CreditCrud on CommonCrud {
     final db = await database;
     final result = await db.insert('credit_sales', {
       ...creditSale,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': creditSale['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -82,13 +82,13 @@ mixin CreditCrud on CommonCrud {
     // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     // ignore: unused_local_variable
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     await db.transaction((txn) async {
       // 1. Insert payment record
       insertedId = await txn.insert('credit_payments', {
         ...payment,
-        ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+        ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
         'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
         'is_synced': 0, // Ensure it's marked for sync
       });
@@ -194,7 +194,7 @@ mixin CreditCrud on CommonCrud {
     // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     // ignore: unused_local_variable
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
 
     // 1. Reset credit balances to 0 for current tenant
     final businessArgs = getBusinessArgs();

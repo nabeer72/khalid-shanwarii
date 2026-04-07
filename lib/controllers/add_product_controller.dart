@@ -7,6 +7,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/branch.dart';
 import 'package:mobile_app/models/brand.dart';
 import 'package:mobile_app/db/crud/units_crud.dart';
+import 'package:mobile_app/services/sync_service.dart';
 
 class AddProductController with ChangeNotifier {
   final Product? initialProduct;
@@ -24,6 +25,7 @@ class AddProductController with ChangeNotifier {
   late TextEditingController piecesPerBox;
   late TextEditingController boxPrice;
   late TextEditingController boxPurchasePrice;
+  late TextEditingController boxWholesalePrice;
 
   // State
   dynamic selectedCategory;
@@ -42,20 +44,23 @@ class AddProductController with ChangeNotifier {
   List<Map<String, dynamic>> units = [];
   dynamic selectedUnitId;
   bool isBoxUnit = false;
+  Map<String, List<Map<String, dynamic>>> groupedUnits = {};
+  Set<dynamic> selectedUnitIds = {};
 
   AddProductController({this.initialProduct}) {
     name = TextEditingController(text: initialProduct?.name ?? '');
-    barcode = TextEditingController(text: initialProduct?.barcode ?? '');
+    barcode = TextEditingController(text: initialProduct?.latestBarcode ?? '');
     price = TextEditingController(text: initialProduct?.latestPrice.toString() ?? '');
     purchasePrice = TextEditingController(text: initialProduct?.latestPurchasePrice.toString() ?? '');
     wholesalePrice = TextEditingController(text: initialProduct?.latestWholesalePrice.toString() ?? '');
     stock = TextEditingController(text: initialProduct?.latestStockQuantity.toString() ?? '');
     stockLimit = TextEditingController(text: (initialProduct?.stockLimit ?? 5).toString());
-    discountLimit = TextEditingController(text: initialProduct?.discountLimit?.toString() ?? '');
+    discountLimit = TextEditingController(); // Product no longer has a base discount limit
     description = TextEditingController(text: initialProduct?.description ?? '');
     piecesPerBox = TextEditingController(text: '1');
     boxPrice = TextEditingController();
     boxPurchasePrice = TextEditingController();
+    boxWholesalePrice = TextEditingController();
 
     selectedCategory = initialProduct?.categoryId;
     selectedSubCategoryId = initialProduct?.subCategoryId;
@@ -63,9 +68,9 @@ class AddProductController with ChangeNotifier {
     status = initialProduct?.status ?? 1;
     selectedBranchId = initialProduct?.branchId ?? BusinessConfig.instance.branchId;
     selectedBrandId = initialProduct?.brandId;
-    selectedUnitId = (initialProduct as dynamic)?.unitId;
-    
+    selectedUnitId = initialProduct?.unitId;
     if (selectedUnitId != null) {
+      selectedUnitIds.add(selectedUnitId);
       _checkIfBoxUnit();
     }
   }
@@ -76,7 +81,7 @@ class AddProductController with ChangeNotifier {
       return;
     }
     final unit = units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-    isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+    isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
     notifyListeners();
   }
 
@@ -92,6 +97,7 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
 
     try {
+
       await Future.wait([
         _fetchCategories(),
         _fetchBrands(),
@@ -155,11 +161,69 @@ class AddProductController with ChangeNotifier {
   }
 
   Future<void> _fetchUnits() async {
-    units = await DatabaseHelper.instance.getUnits();
+    List<Map<String, dynamic>> allUnits = await DatabaseHelper.instance.getAllUnitsWithBusiness();
+    
+    // FAIL-SAFE: If database is empty, auto-seed standard units locally
+    if (allUnits.isEmpty) {
+      if (kDebugMode) print('📦 [UI] Local units empty, auto-seeding standard units...');
+      final standardUnits = [
+        {'name': 'Piece', 'short_name': 'pc'},
+        {'name' : 'Pack', 'short_name': 'pk'},
+        {'name' : 'Box', 'short_name' : 'bx'},
+        {'name' : 'Kilogram', 'short_name': 'kg'},
+        {'name' : 'Gram', 'short_name' : 'g'},
+        {'name' : 'Liter', 'short_name': 'L'},
+        {'name' : 'Carton', 'short_name': 'ctn'},
+        {'name' : 'Dozen', 'short_name': 'doz'},
+        {'name' : 'Bag', 'short_name': 'bag'},
+        {'name' : 'Bottle', 'short_name': 'btl'},
+      ];
+
+      for (var unit in standardUnits) {
+        await DatabaseHelper.instance.insertUnit({
+          ...unit,
+          'status': 1,
+        });
+      }
+      // Refresh after seeding
+      await loadCategories();
+      return;
+    }
+
+    final bid = BusinessConfig.instance.businessId;
+
+    // Standardize: Create a unique-by-name list of units to show in the UI
+    final Map<String, Map<String, dynamic>> uniqueUnitsMap = {};
+    
+    for (var u in allUnits) {
+      final name = u['name'].toString().toLowerCase();
+      final isLocal = u['business_id'].toString() == bid.toString();
+      
+      if (!uniqueUnitsMap.containsKey(name) || isLocal) {
+        uniqueUnitsMap[name] = u;
+      }
+    }
+
+    units = uniqueUnitsMap.values.toList()
+      ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
+
     if (selectedUnitId != null) {
       final matches = units.where((u) => u['id'].toString() == selectedUnitId.toString());
-      if (matches.isEmpty) selectedUnitId = null;
+      if (matches.isEmpty) {
+        // If the specific ID is missing from the unique list, find by name instead
+        final currentUnit = allUnits.firstWhere((u) => u['id'].toString() == selectedUnitId.toString(), orElse: () => {});
+        if (currentUnit.isNotEmpty) {
+           final nameMatch = units.where((u) => u['name'].toString().toLowerCase() == currentUnit['name'].toString().toLowerCase());
+           if (nameMatch.isNotEmpty) selectedUnitId = nameMatch.first['id'];
+        }
+      }
     }
+  }
+
+  String getSelectedUnitName() {
+    if (selectedUnitId == null) return 'No Unit';
+    final unit = units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
+    return unit['name']?.toString() ?? 'No Unit';
   }
 
   Future<bool> addBrand(String name) async {
@@ -184,9 +248,63 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setUnit(dynamic value) {
-    selectedUnitId = value;
+  void toggleUnit(dynamic unitId) {
+    if (selectedUnitIds.contains(unitId)) {
+      // Don't remove if it's the primary unit, unless there are others? 
+      // Actually, just toggle it.
+      selectedUnitIds.remove(unitId);
+      if (selectedUnitId == unitId) {
+        selectedUnitId = selectedUnitIds.isNotEmpty ? selectedUnitIds.first : null;
+      }
+    } else {
+      selectedUnitIds.add(unitId);
+      if (selectedUnitId == null) selectedUnitId = unitId;
+    }
     _checkIfBoxUnit();
+    notifyListeners();
+  }
+
+  Future<void> setUnit(dynamic value) async {
+    if (value == null) {
+      selectedUnitId = null;
+      _checkIfBoxUnit();
+      notifyListeners();
+      return;
+    }
+
+    final unit = units.firstWhere((u) => u['id'].toString() == value.toString(), orElse: () => {});
+    if (unit.isEmpty) return;
+
+    final currentBid = BusinessConfig.instance.businessId;
+    
+    // If the unit belongs to another business, import it into the local business units
+    if (unit['business_id'] != null && unit['business_id'].toString() != currentBid.toString()) {
+      final existingLocalUnits = await DatabaseHelper.instance.getUnits();
+      final existingMatch = existingLocalUnits.where((u) => 
+        u['name'].toString().toLowerCase() == unit['name'].toString().toLowerCase()
+      );
+      
+      if (existingMatch.isNotEmpty) {
+        selectedUnitId = existingMatch.first['id'];
+      } else {
+        final newId = await DatabaseHelper.instance.insertUnit({
+          'name': unit['name'],
+          'short_name': unit['short_name'],
+          'status': 1,
+        });
+        await _fetchUnits(); // Refresh the list to include the newly imported unit
+        selectedUnitId = newId;
+      }
+    } else {
+      selectedUnitId = value;
+    }
+
+    if (selectedUnitId != null) {
+      selectedUnitIds.add(selectedUnitId);
+    }
+
+    _checkIfBoxUnit();
+    notifyListeners();
   }
 
   Future<void> generateUniqueBarcode() async {
@@ -321,13 +439,15 @@ class AddProductController with ChangeNotifier {
     double effectivePrice = priceVal;
     double effectivePurchase = purchaseVal;
     
+    double effectiveWholesale = wholesaleVal;
+    
     if (isBoxUnit) {
-      if (effectivePrice == 0 && boxPrice.text.isNotEmpty) {
-        effectivePrice = (double.tryParse(boxPrice.text) ?? 0.0) / pieces;
-      }
-      if (effectivePurchase == 0 && boxPurchasePrice.text.isNotEmpty) {
-        effectivePurchase = (double.tryParse(boxPurchasePrice.text) ?? 0.0) / pieces;
-      }
+      final boxPr = double.tryParse(boxPrice.text) ?? 0.0;
+      final boxPur = double.tryParse(boxPurchasePrice.text) ?? 0.0;
+      final boxWh = double.tryParse(boxWholesalePrice.text) ?? 0.0;
+      effectivePrice = pieces > 0 ? (boxPr / pieces) : boxPr;
+      effectivePurchase = pieces > 0 ? (boxPur / pieces) : boxPur;
+      effectiveWholesale = pieces > 0 ? (boxWh / pieces) : boxWh;
     }
 
     final limitVal = int.tryParse(stockLimit.text) ?? 5;
@@ -348,7 +468,7 @@ class AddProductController with ChangeNotifier {
       'barcode': barcodeVal,
       'price': effectivePrice,
       'purchase_price': effectivePurchase,
-      'wholesale_price': wholesaleVal,
+      'wholesale_price': effectiveWholesale,
       'stock_quantity': effectiveStock,
       'stock_limit': limitVal,
       'discount_limit': discountLimitVal,
@@ -391,6 +511,7 @@ class AddProductController with ChangeNotifier {
     piecesPerBox.dispose();
     boxPrice.dispose();
     boxPurchasePrice.dispose();
+    boxWholesalePrice.dispose();
     super.dispose();
   }
 }

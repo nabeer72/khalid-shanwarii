@@ -54,7 +54,7 @@ class _MyAppState extends State<MyApp> {
           // Only allow shake navigation if authenticated AND not on Login Screen
           if (LoginScreen.isActive) return;
 
-          final isAuth = BusinessConfig.instance.adminId != null || BusinessConfig.instance.staffId != null;
+          final isAuth = BusinessConfig.instance.userId != null || BusinessConfig.instance.staffId != null;
           if (!isAuth) return;
 
           // Navigate to POS screen ONLY if not already there

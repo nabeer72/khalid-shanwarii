@@ -20,7 +20,7 @@ class DebugInspect {
     ];
 
     print('--------------- 🛡️ BUSINESS ISOLATION AUDIT 🛡️ ---------------');
-    print('Current Session: Business=${BusinessConfig.instance.businessId}, Admin=${BusinessConfig.instance.adminId}, Branch=${BusinessConfig.instance.branchId}');
+    print('Current Session: Business=${BusinessConfig.instance.businessId}, Owner=${BusinessConfig.instance.userId}, Branch=${BusinessConfig.instance.branchId}');
     print('');
 
     for (var table in tables) {
@@ -44,7 +44,7 @@ class DebugInspect {
           final bid = row['business_id'];
           final aid = row['admin_id'];
           final count = row['count'];
-          final isCurrent = (bid == BusinessConfig.instance.businessId && aid == BusinessConfig.instance.adminId);
+          final isCurrent = (bid == BusinessConfig.instance.businessId && aid == BusinessConfig.instance.userId);
           print('   - [${isCurrent ? '✅ CURRENT' : '⚠️ OTHER'}] Business=$bid, Admin=$aid: $count records');
         }
 

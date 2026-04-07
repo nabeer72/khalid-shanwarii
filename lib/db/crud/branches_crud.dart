@@ -53,7 +53,7 @@ mixin BranchesCrud on CommonCrud {
       data.remove('id');
     }
     data['business_id'] = data['business_id'] ?? getBusinessArgs()[0];
-    data['admin_id'] = data['admin_id'] ?? getBusinessArgs()[1];
+    data['user_id'] = data['user_id'] ?? getBusinessArgs()[1];
     
     final result = await db.insert('branches', {
       ...data,

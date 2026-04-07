@@ -30,11 +30,11 @@ mixin EmployeesCrud on CommonCrud {
   Future<int> insertEmployee(Map<String, dynamic> employee) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     final Map<String, dynamic> data = Map.from(employee);
     final bIdToUse = getSafeInt(data['business_id']) ?? bid;
-    final aIdToUse = getSafeInt(data['admin_id']) ?? aid;
+    final uIdToUse = getSafeInt(data['user_id']) ?? uid;
 
     if (data['permissions'] is List) {
       data['permissions'] = jsonEncode(data['permissions']);
@@ -56,7 +56,7 @@ mixin EmployeesCrud on CommonCrud {
     final result = await db.insert('employees', {
       ...data,
       'business_id': bIdToUse,
-      'admin_id': aIdToUse,
+      'user_id': uIdToUse,
       'is_synced': 0
     }, conflictAlgorithm: ConflictAlgorithm.replace);
     
@@ -84,6 +84,15 @@ mixin EmployeesCrud on CommonCrud {
     return results.isNotEmpty ? results.first : null;
   }
 
+  Future<void> updateEmployeePin(dynamic id, String pin) async {
+    final db = await database;
+    await db.update('employees', {
+      'pin': pin,
+      'is_synced': 0,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, where: 'id = ?', whereArgs: [id]);
+  }
+
   Future<void> deleteEmployee(dynamic id) async {
     final db = await database;
     await db.delete('employees', where: 'id = ?', whereArgs: [id]);
@@ -109,7 +118,7 @@ mixin EmployeesCrud on CommonCrud {
   Future<int> insertRole(Map<String, dynamic> role) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     final insertData = Map<String, dynamic>.from(role);
     if (insertData['id'] == null || insertData['id'] == 0 || insertData['id'] == 'null') {
@@ -117,7 +126,7 @@ mixin EmployeesCrud on CommonCrud {
     }
 
     insertData['business_id'] = bid;
-    insertData['admin_id'] = aid;
+    insertData['user_id'] = uid;
     if (insertData['branch_id'] != null && insertData['branch_id'] is String) {
       insertData['branch_id'] = int.tryParse(insertData['branch_id']);
     }

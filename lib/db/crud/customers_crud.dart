@@ -30,7 +30,7 @@ mixin CustomersCrud on CommonCrud {
     final db = await database;
     final result = await db.insert('customers', {
       ...customer,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': customer['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0
     }, conflictAlgorithm: ConflictAlgorithm.replace);

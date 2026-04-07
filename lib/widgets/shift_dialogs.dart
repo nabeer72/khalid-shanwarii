@@ -197,7 +197,7 @@ class _ClockInDialogState extends State<ClockInDialog> {
   Future<void> _handleClockIn(BuildContext context) async {
     final now = DateTime.now();
     final shiftData = {
-      'user_id': BusinessConfig.instance.adminId ?? 1,
+      'user_id': BusinessConfig.instance.userId ?? 1,
       'staff_id': BusinessConfig.instance.staffId,
       'start_time': now.toIso8601String(),
       'opening_cash': _totalOpeningCash,

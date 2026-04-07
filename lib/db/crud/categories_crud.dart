@@ -22,7 +22,7 @@ mixin CategoriesCrud on CommonCrud {
     final now = DateTime.now().toIso8601String();
     final result = await db.insert('categories', {
       ...category,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': getSafeInt(category['branch_id'] ?? getCurrentBranchId()),
       'is_synced': 0,
       'created_at': category['created_at'] ?? now,
@@ -86,7 +86,7 @@ mixin CategoriesCrud on CommonCrud {
     final now = DateTime.now().toIso8601String();
     final result = await db.insert('subcategories', {
       ...subcategory,
-      ...Map.fromIterables(['business_id', 'admin_id'], getBusinessArgs()),
+      ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': getSafeInt(subcategory['branch_id'] ?? getCurrentBranchId()),
       'is_synced': 0,
       'created_at': subcategory['created_at'] ?? now,

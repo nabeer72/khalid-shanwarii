@@ -192,11 +192,11 @@ class AddEmployeeController with ChangeNotifier {
       final db = await DatabaseHelper.instance.database;
       final cleanEmail = email.text.trim().toLowerCase();
       final bid = BusinessConfig.instance.businessId;
-      final aid = BusinessConfig.instance.adminId;
+      final uid = BusinessConfig.instance.userId;
       final List<Map<String, dynamic>> existing = await db.query(
         'employees',
         where: 'LOWER(email) = ? AND id != ? AND business_id = ? AND admin_id = ?',
-        whereArgs: [cleanEmail, initialEmployee?.id ?? -1, bid, aid],
+        whereArgs: [cleanEmail, initialEmployee?.id ?? -1, bid, uid],
       );
 
       if (existing.isNotEmpty) {

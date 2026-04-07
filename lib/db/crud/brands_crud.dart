@@ -9,11 +9,12 @@ mixin BrandsCrud on CommonCrud {
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
-    final bid = BusinessConfig.instance.businessId;
-    String query = 'SELECT * FROM brands WHERE status = 1 AND business_id = ?$branchFilter ORDER BY name ASC';
-    List<dynamic> args = [bid, ...branchArgs];
+    final args = [...getBusinessArgs(), ...branchArgs];
     
-    return await db.rawQuery(query, args);
+    return await db.rawQuery(
+      'SELECT * FROM brands WHERE status = 1${getBusinessFilter()}$branchFilter ORDER BY name ASC',
+      args,
+    );
   }
 
   Future<int> insertBrand(Map<String, dynamic> brand) async {
@@ -23,7 +24,7 @@ mixin BrandsCrud on CommonCrud {
       ...brand,
       'business_id': BusinessConfig.instance.businessId,
       'branch_id': getSafeInt(brand['branch_id'] ?? getCurrentBranchId()),
-      'admin_id': getSafeInt(brand['admin_id'] ?? BusinessConfig.instance.adminId),
+      'user_id': getSafeInt(brand['user_id'] ?? BusinessConfig.instance.userId),
       'is_synced': 0,
       'created_at': brand['created_at'] ?? now,
       'updated_at': now,

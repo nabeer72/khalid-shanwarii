@@ -189,7 +189,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showManageBusinessesDialog() async {
     final db = DatabaseHelper.instance;
-    final userId = BusinessConfig.instance.adminId;
+    final userId = BusinessConfig.instance.userId;
     List<Map<String, dynamic>> businesses = [];
     
     if (userId != null) {
@@ -318,7 +318,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Update local config using centralized setContext
     BusinessConfig.instance.setContext(
       bid: business['id'],
-      aid: business['owner_user_id'] ?? BusinessConfig.instance.adminId, // Fallback to current admin if missing
+      uid: business['owner_user_id'] ?? BusinessConfig.instance.userId, // Fallback to current admin if missing
       brid: mainBranch['id'],
       bName: business['name'],
       bType: business['business_type'],
@@ -458,7 +458,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             
                             final db = DatabaseHelper.instance;
                             final now = DateTime.now().toIso8601String();
-                            final userId = BusinessConfig.instance.adminId;
+                            final userId = BusinessConfig.instance.userId;
 
                             // 1. Insert business
                             final bid = await db.insertBusiness({

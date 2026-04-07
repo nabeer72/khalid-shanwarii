@@ -10,10 +10,22 @@ mixin UnitsCrud on CommonCrud {
     final branchArgs = getBranchArgs();
     
     final bid = BusinessConfig.instance.businessId;
-    String query = 'SELECT * FROM units WHERE status = 1 AND business_id = ?$branchFilter ORDER BY name ASC';
-    List<dynamic> args = [bid, ...branchArgs];
+    String query = 'SELECT * FROM units WHERE status = 1${getBusinessFilter()}$branchFilter ORDER BY name ASC';
+    List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
     
     return await db.rawQuery(query, args);
+  }
+
+  Future<List<Map<String, dynamic>>> getAllUnitsWithBusiness() async {
+    final db = await database;
+    String query = '''
+      SELECT u.*, COALESCE(b.name, 'Default Units') as business_name 
+      FROM units u 
+      LEFT JOIN businesses b ON u.business_id = b.id 
+      WHERE u.status = 1
+      ORDER BY business_name ASC, u.name ASC
+    ''';
+    return await db.rawQuery(query);
   }
 
   Future<int> insertUnit(Map<String, dynamic> unit) async {
@@ -23,7 +35,7 @@ mixin UnitsCrud on CommonCrud {
       ...unit,
       'business_id': BusinessConfig.instance.businessId,
       'branch_id': getSafeInt(unit['branch_id'] ?? getCurrentBranchId()),
-      'user_id': getSafeInt(unit['user_id'] ?? BusinessConfig.instance.adminId),
+      'user_id': getSafeInt(unit['user_id'] ?? BusinessConfig.instance.userId),
       'is_synced': 0,
       'created_at': unit['created_at'] ?? now,
       'updated_at': now,

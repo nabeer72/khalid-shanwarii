@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../database_helper.dart';
 
 mixin SettingsCrud {
   Future<Database> get database;
@@ -62,9 +64,9 @@ mixin SettingsCrud {
       BusinessConfig.instance.businessId = int.tryParse(bid);
     }
     
-    var aid = await storage.read(key: 'user_id');
-    if (aid != null) {
-      BusinessConfig.instance.adminId = int.tryParse(aid);
+    var uid = await storage.read(key: 'user_id');
+    if (uid != null) {
+      BusinessConfig.instance.userId = int.tryParse(uid);
     }
 
     var sid = await storage.read(key: 'staff_id');
@@ -103,22 +105,36 @@ mixin SettingsCrud {
       }
     }
 
-    print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, adminId: ${BusinessConfig.instance.adminId}, activeBranches: ${BusinessConfig.instance.activeBranchIds}');
+    print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, userId: ${BusinessConfig.instance.userId}, activeBranches: ${BusinessConfig.instance.activeBranchIds}');
 
     // Backfill NULL credit balances for legacy records
-    if (BusinessConfig.instance.businessId != null && BusinessConfig.instance.adminId != null) {
+    if (BusinessConfig.instance.businessId != null && BusinessConfig.instance.userId != null) {
       final db = await database;
       await db.update('customers', {'credit_balance': 0}, where: 'credit_balance IS NULL');
     }
 
-    print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, adminId: ${BusinessConfig.instance.adminId}');
+    print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, userId: ${BusinessConfig.instance.userId}');
   }
 
   // We keep employees, users, businesses, products, and settings to allow local login and offline UX
   Future<void> clearAllData() async {
+    const storage = FlutterSecureStorage();
+    
+    // [FIX] Identify which users/employees to preserve for Quick Login
+    final jsonStr = await storage.read(key: 'saved_accounts');
+    List<String> preserveEmails = [];
+    if (jsonStr != null) {
+      try {
+        final accounts = List<Map<String, dynamic>>.from(jsonDecode(jsonStr));
+        preserveEmails = accounts.map((a) => a['email'].toString().toLowerCase().trim()).toList();
+      } catch (e) {
+        print('⚠️ Error parsing saved accounts during logout: $e');
+      }
+    }
+
     final db = await database;
     await db.transaction((txn) async {
-      // Delete all data on logout to strictly prevent data leaks between businesses and branches.
+      // 1. Wipe all transactional and inventory data (CRITICAL for security/isolation)
       await txn.delete('sale_items');
       await txn.delete('sales');
       await txn.delete('products'); 
@@ -142,22 +158,37 @@ mixin SettingsCrud {
       await txn.delete('currency_notes');
       await txn.delete('returns');
       await txn.delete('return_items');
+      await txn.delete('units');
+      await txn.delete('brands');
 
-      await txn.delete('users');
-      await txn.delete('employees');
-      await txn.delete('businesses');
-      await txn.delete('branches');
-      await txn.delete('settings');
-      await txn.delete('user_businesses');
-      await txn.delete('employee_roles');
-      await txn.delete('role_permissions');
+      // 2. Conditionally wipe identity data
+      if (preserveEmails.isEmpty) {
+        print('🧹 [WIPE] No saved accounts, clearing all identity data');
+        await txn.delete('users');
+        await txn.delete('employees');
+        await txn.delete('businesses');
+        await txn.delete('branches');
+        await txn.delete('user_businesses');
+        await txn.delete('employee_roles');
+        await txn.delete('role_permissions');
+        await txn.delete('settings');
+      } else {
+        print('🧹 [WIPE] Preserving identity data for ${preserveEmails.length} saved accounts');
+        final placeholders = List.filled(preserveEmails.length, '?').join(', ');
+        
+        await txn.delete('users', where: 'LOWER(email) NOT IN ($placeholders)', whereArgs: preserveEmails);
+        await txn.delete('employees', where: 'LOWER(email) NOT IN ($placeholders)', whereArgs: preserveEmails);
+        
+        // [IMPORTANT] We keep ALL businesses, branches, roles, and settings to ensure
+        // that preserved users have the full context they need to log in offline.
+        // These tables are generally small and don't contain sensitive transaction data.
+      }
     });
 
-    // Wipe all session context from secure storage EXCEPT saved_accounts
-    const storage = FlutterSecureStorage();
+    // Wipe session context from secure storage EXCEPT saved_accounts
     final allKeys = await storage.readAll();
     for (String key in allKeys.keys) {
-      if (key != 'saved_accounts') {
+      if (key != 'saved_accounts' && key != 'db_encryption_key') {
         await storage.delete(key: key);
       }
     }

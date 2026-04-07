@@ -15,7 +15,7 @@ mixin PurchasesCrud on CommonCrud {
       SELECT p.*, s.name as supplier_name 
       FROM purchases p
       LEFT JOIN suppliers s ON p.supplier_id = s.id
-      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('admin_id', 'p.admin_id')}$branchFilter
+      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('user_id', 'p.user_id')}$branchFilter
       ORDER BY p.purchase_date DESC
     ''', args);
   }
@@ -28,7 +28,7 @@ mixin PurchasesCrud on CommonCrud {
     final result = await db.transaction((txn) async {
       final generatedPurchaseId = await txn.insert('purchases', {
         ...purchase,
-        ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
+        ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
         'branch_id': brid,
         'is_synced': 0,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -36,7 +36,6 @@ mixin PurchasesCrud on CommonCrud {
       final pid = purchase['id'] ?? generatedPurchaseId;
 
       for (var item in items) {
-        // 2. [ALWAYS CREATE NEW PRODUCT ENTRY] as per user request
         var productId = item['product_id'];
         final productName = item['product_name'] ?? 'Unknown Item';
         final qtyToAdd = (item['quantity'] as num).toDouble();
@@ -46,55 +45,25 @@ mixin PurchasesCrud on CommonCrud {
         final barcode = item['barcode'];
         final now = DateTime.now().toIso8601String();
 
-        // 2a. Fetch template data if it's an existing product, or use defaults
-        final prodResult = productId != null ? await txn.query(
-          'products', 
-          where: 'id = ?${getBusinessFilter()}', 
-          whereArgs: [productId, ...businessArgs]
-        ) : [];
-
-        Map<String, dynamic> newProdMap;
-        if (prodResult.isNotEmpty) {
-          // CLONE existing product metadata but refresh prices and reset stock
-          newProdMap = Map<String, dynamic>.from(prodResult.first);
-          newProdMap.remove('id');
-        } else {
-          // BRAND NEW PRODUCT - Setup basic metadata
-          newProdMap = {
-            ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
-            'branch_id': brid,
-            'name': productName,
-            'barcode': barcode,
-            'category_id': item['category_id'] ?? 1, // Fallback to category 1
-            'sku': barcode ?? productName.toLowerCase().replaceAll(' ', '_'),
-            'status': 1,
-            'created_at': now,
-          };
+        // Products must already exist before purchase (as per new requirements)
+        if (productId == null) {
+          throw Exception('Product must be selected before making a purchase.');
         }
 
-        // Apply purchase pricing to this specific new product entry
-        newProdMap['purchase_price'] = newPurchasePrice;
-        newProdMap['price'] = newSellingPrice;
-        newProdMap['wholesale_price'] = newWholesalePrice;
-        newProdMap['stock_quantity'] = 0.0; // Initial stock is 0, will be updated by batch logic below
-        newProdMap['is_synced'] = 0;
-        newProdMap['updated_at'] = now;
-        
-        // INSERT as a fresh product entry (Every purchase = new entry)
-        productId = await txn.insert('products', newProdMap);
-
-        // 3. Insert Purchase Item (Linked to potentially new productId)
+        // Insert Purchase Item
         final itemData = Map<String, dynamic>.from(item);
         itemData.remove('product_name');
         await txn.insert('purchase_items', {
           ...itemData,
+          ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
           'product_id': productId,
           'purchase_id': pid,
           'branch_id': brid,
+          'barcode': barcode,
           'is_synced': 0,
         });
 
-        // 4. Manage Stock Batch
+        // Find existing stock batch with matching prices
         final existingStock = await txn.rawQuery(
           '''SELECT * FROM stocks 
              WHERE product_id = ? AND branch_id = ? AND status = 1 
@@ -106,49 +75,62 @@ mixin PurchasesCrud on CommonCrud {
           [productId, brid, newPurchasePrice, newSellingPrice, newWholesalePrice, ...businessArgs],
         );
 
+        int finalStockId;
+        double oldQty = 0;
+        double newQty = qtyToAdd;
+
         if (existingStock.isNotEmpty) {
-          // If price is NOT changed (or we matched the exact prices), just update quantity in existing stock entry
+          // Prices match — just add quantity to existing stock batch
           final s = existingStock.first;
-          final currentQty = (s['quantity'] as num).toDouble();
+          finalStockId = getSafeInt(s['id']) ?? 0;
+          oldQty = (s['quantity'] as num).toDouble();
+          newQty = oldQty + qtyToAdd;
+
           await txn.update('stocks', {
-            'quantity': currentQty + qtyToAdd,
-            'is_synced': 1, 
+            'quantity': newQty,
+            'is_synced': 0, 
             'updated_at': now,
           }, where: 'id = ?${getBusinessFilter()}', whereArgs: [s['id'], ...getBusinessArgs()]);
         } else {
-          // If price IS changed (which resulted in a new productId or no matching price batch), create a NEW stock entry
-          await txn.insert('stocks', {
+          // Prices differ — create a NEW stock batch entry
+          finalStockId = await txn.insert('stocks', {
             'id': null,
-            ...Map.fromIterables(['business_id', 'admin_id'], businessArgs),
+            ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
             'branch_id': brid,
             'product_id': productId,
-            'barcode': item['barcode'],
+            'barcode': barcode,
             'quantity': qtyToAdd,
             'cost_price': newPurchasePrice,
             'sale_price': newSellingPrice,
             'wholesale_price': newWholesalePrice,
             'status': 1,
-            'is_synced': 1, // DO NOT Sync absolute stock batch separately (it is handled by the purchase sync)
+            'is_synced': 0,
             'created_at': now,
             'updated_at': now,
           });
         }
 
-        // 5. Update Denormalized Product Stock Total (Local Convenience)
-        // We do NOT mark 'is_synced': 0 here because the actual inventory change 
-        // is already represented in the 'purchase_items' and 'stocks' tables.
-        // Marking the product as unsynced here causes the server to double-count 
-        // the stock update from the product's denormalized total.
-        final allStock = await txn.rawQuery(
-          'SELECT SUM(quantity) as total FROM stocks WHERE product_id = ? AND branch_id = ?${getBusinessFilter()}',
-          [productId, brid, ...getBusinessArgs()]
-        );
-        final newTotal = (allStock.first['total'] as num? ?? 0).toDouble();
-        await txn.update('products', {
-          'stock_quantity': newTotal,
+        // Create Stock Audit entry
+        await txn.insert('stock_audits', {
+          ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
+          'branch_id': brid,
+          'stock_id': finalStockId,
+          'product_id': productId,
+          'old_quantity': oldQty,
+          'new_quantity': newQty,
+          'old_purchase_price': existingStock.isNotEmpty ? (existingStock.first['cost_price'] as num).toDouble() : newPurchasePrice,
+          'new_purchase_price': newPurchasePrice,
+          'old_sale_price': existingStock.isNotEmpty ? (existingStock.first['sale_price'] as num).toDouble() : newSellingPrice,
+          'new_sale_price': newSellingPrice,
+          'remarks': 'Purchase entry: ${purchase['invoice_number'] ?? 'New Purchase'}',
+          'is_synced': 0,
+          'created_at': now,
           'updated_at': now,
-          // 'is_synced': 0, // DO NOT Trigger redundant product sync for stock levels
-        }, where: 'id = ?${getBusinessFilter()}', whereArgs: [productId, ...getBusinessArgs()]);
+        });
+
+        // Denormalized product stock update is no longer needed 
+        // as the Product model computes it from the stocks table.
+        // The stocks table was already updated above.
       }
       return pid;
     });

@@ -117,9 +117,15 @@ class AddPurchaseController with ChangeNotifier {
       categories = catData.map((e) => ProductCategory.fromMap(e)).toList();
       units = unitData;
 
-      paymentTypes = ptData.map((e) => e['name'].toString()).toList();
-      if (!paymentTypes.contains('Credit')) paymentTypes.add('Credit'); // Required for existing partial payment logic
-      if (paymentTypes.isEmpty) paymentTypes = ['Cash', 'Credit'];
+      // Start with standard payment methods
+      final standardTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit'];
+      final dbTypes = ptData.map((e) => e['name'].toString()).toList();
+      
+      // Merge: standard first, then any custom DB types not already in standard
+      paymentTypes = [...standardTypes];
+      for (final t in dbTypes) {
+        if (!paymentTypes.contains(t)) paymentTypes.add(t);
+      }
       
       if (!paymentTypes.contains(paymentType) && paymentTypes.isNotEmpty) {
         paymentType = paymentTypes.first;

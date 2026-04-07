@@ -178,7 +178,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       children: [
                         Expanded(
                           child: DropdownButtonFormField<int>(
-                            value: controller.selectedSupplierId,
+                            value: (controller.selectedSupplierId != null && controller.suppliers.any((s) => s.id == controller.selectedSupplierId))
+                                ? controller.selectedSupplierId
+                                : null,
                             dropdownColor: theme.surface,
                             style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
                             decoration: theme.glassInputDecoration('Supplier', Icons.business_rounded).copyWith(isDense: true),
@@ -405,7 +407,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     DropdownButtonFormField<int>(
-                      value: selectedCategoryId,
+                      value: (selectedCategoryId != null && controller.categories.any((c) => c.id == selectedCategoryId))
+                          ? selectedCategoryId
+                          : null,
                       dropdownColor: theme.surface,
                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
                       decoration: theme.glassInputDecoration('Filter by Category', Icons.category_rounded).copyWith(isDense: true),
@@ -422,7 +426,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int>(
-                      value: selectedProductId,
+                      value: (selectedProductId != null && controller.products.any((p) => p['id'] == selectedProductId))
+                          ? selectedProductId
+                          : null,
                       dropdownColor: theme.surface,
                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
                       decoration: theme.glassInputDecoration('Select Product', Icons.inventory_rounded).copyWith(isDense: true),
@@ -446,16 +452,28 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           
                           // If product has a default unit, select it
                           if (p['unit_id'] != null) {
-                            selectedUnitId = p['unit_id'];
-                            final unit = controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-                            isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+                            final uId = p['unit_id'];
+                            final exists = controller.units.any((u) => u['id'] == uId);
+                            if (exists) {
+                              selectedUnitId = uId;
+                              final unit = controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
+                              isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
+                            } else {
+                              selectedUnitId = null;
+                              isBoxUnit = false;
+                            }
+                          } else {
+                            selectedUnitId = null;
+                            isBoxUnit = false;
                           }
                         });
                       },
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<int>(
-                      value: selectedUnitId,
+                      value: (selectedUnitId != null && controller.units.any((u) => u['id'] == selectedUnitId))
+                          ? selectedUnitId
+                          : null,
                       dropdownColor: theme.surface,
                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
                       decoration: theme.glassInputDecoration('Unit', Icons.straighten_rounded).copyWith(isDense: true),
@@ -467,7 +485,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         setDialogState(() {
                           selectedUnitId = v;
                           final unit = controller.units.firstWhere((u) => u['id'] == v, orElse: () => {});
-                          isBoxUnit = (unit['name'] ?? '').toString().toLowerCase().contains('box');
+                          isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
                           if (!isBoxUnit) piecesCtrl.text = '1';
                         });
                       },

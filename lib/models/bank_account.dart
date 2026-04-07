@@ -1,5 +1,7 @@
 class BankAccount {
   final int? id;
+  final int? businessId;
+  final int? userId;
   final String bankName;
   final String? accountType;
   final String? accountTitle;
@@ -13,6 +15,8 @@ class BankAccount {
 
   BankAccount({
     this.id,
+    this.businessId,
+    this.userId,
     required this.bankName,
     this.accountType,
     this.accountTitle,
@@ -28,6 +32,8 @@ class BankAccount {
   factory BankAccount.fromMap(Map<String, dynamic> map) {
     return BankAccount(
       id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
+      businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? ''),
+      userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? ''),
       bankName: map['bank_name']?.toString() ?? '',
       accountType: map['account_type']?.toString(),
       accountTitle: map['account_title']?.toString(),
@@ -44,6 +50,8 @@ class BankAccount {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'business_id': businessId,
+      'user_id': userId,
       'bank_name': bankName,
       'account_type': accountType,
       'account_title': accountTitle,

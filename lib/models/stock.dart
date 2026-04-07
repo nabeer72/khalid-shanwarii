@@ -1,6 +1,7 @@
 class Stock {
   final dynamic id;
   final dynamic businessId;
+  final dynamic userId;
   final dynamic productId;
   final String? barcode;
   final String? manufactureDate;
@@ -27,6 +28,7 @@ class Stock {
   Stock({
     this.id,
     this.businessId,
+    this.userId,
     required this.productId,
     this.barcode,
     this.manufactureDate,
@@ -55,6 +57,7 @@ class Stock {
     return Stock(
       id: map['id'],
       businessId: map['business_id'],
+      userId: map['user_id'],
       productId: map['product_id'],
       barcode: map['barcode'],
       manufactureDate: map['manufacture_date'],
@@ -84,6 +87,7 @@ class Stock {
     return {
       'id': id,
       'business_id': businessId,
+      'user_id': userId,
       'product_id': productId,
       'barcode': barcode,
       'manufacture_date': manufactureDate,
@@ -115,6 +119,7 @@ class Stock {
     return Stock(
       id: id,
       businessId: businessId,
+      userId: userId,
       productId: productId,
       barcode: barcode,
       manufactureDate: manufactureDate,

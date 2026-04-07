@@ -128,14 +128,6 @@ class POSProductTile extends StatelessWidget {
                             fontWeight: FontWeight.w600),
                       ),
                     ],
-                    if (product.isPricePerWeight) ...[
-                      const SizedBox(width: 4),
-                      Text(
-                        '/ ${BusinessConfig.instance.weightUnit}',
-                        style:
-                            TextStyle(color: theme.textSecondary, fontSize: 10),
-                      ),
-                    ],
                   ],
                 ),
               ),

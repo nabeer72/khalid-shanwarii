@@ -285,8 +285,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           Navigator.pop(ctx);
                           if (s.quantity <= 0) {
                             _showStockNotFoundDialog(p, s);
-                          } else if (p.isPricePerWeight) {
-                            _showWeightDialog(p, s);
                           } else {
                             final success = _controller.addToCart(p, s);
                             if (!success) _showStockNotFoundDialog(p, s);
@@ -1181,14 +1179,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   spacing: 8,
                   runSpacing: 8,
                   children: _controller.products
-                      .where((p) => p.barcode != null && p.barcode!.isNotEmpty)
+                      .where((p) => p.latestBarcode != null && p.latestBarcode!.isNotEmpty)
                       .take(3)
                       .map((p) => Material(
                             color: Colors.transparent,
                             child: InkWell(
                               onTap: () {
                                 Navigator.pop(ctx);
-                                _processBarcode(p.barcode!);
+                                _processBarcode(p.latestBarcode!);
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
@@ -1198,7 +1196,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                   border: Border.all(color: theme.cardBorder),
                                   color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
                                 ),
-                                child: Text(p.barcode!, style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                                child: Text(p.latestBarcode!, style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                               ),
                             ),
                           ))
@@ -1247,7 +1245,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _processBarcode(String barcode) {
     // 1. Find all products that have this barcode at product level OR in any of their stocks
     final matches = _controller.products.where((p) {
-      final productMatch = p.barcode == barcode;
+      final productMatch = p.latestBarcode == barcode;
       final stockMatch = p.stocks.any((s) => s.barcode == barcode);
       return productMatch || stockMatch;
     }).toList();
@@ -1279,8 +1277,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
       if (stock.quantity <= 0) {
         _showStockNotFoundDialog(product, stock);
-      } else if (product.isPricePerWeight) {
-        _showWeightDialog(product, stock);
       } else {
         final success = _controller.addToCart(product, stock);
         if (!success) {
@@ -1377,14 +1373,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                   return;
                                 }
                                 Navigator.pop(ctx);
-                                if (v.isPricePerWeight) {
-                                  _showWeightDialog(v, stock!);
-                                } else {
-                                  final success = _controller.addToCart(v, stock!);
-                                  if (!success) {
-                                    // ignore: unnecessary_non_null_assertion
-                                    _showStockNotFoundDialog(v, stock!);
-                                  }
+                                final success = _controller.addToCart(v, stock!);
+                                if (!success) {
+                                  // ignore: unnecessary_non_null_assertion
+                                  _showStockNotFoundDialog(v, stock!);
                                 }
                               },
                         borderRadius: BorderRadius.circular(12),
@@ -1815,8 +1807,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 final stock = targetV.stocks.first;
                 if (stock.quantity <= 0) {
                   _showStockNotFoundDialog(targetV, stock);
-                } else if (targetV.isPricePerWeight) {
-                  _showWeightDialog(targetV, stock);
                 } else {
                   final success = _controller.addToCart(targetV, stock);
                   if (!success) {

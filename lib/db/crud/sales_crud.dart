@@ -42,27 +42,27 @@ mixin SalesCrud on CommonCrud {
     return await db.rawQuery(
       '''
       SELECT 
-        s.id, s.business_id, s.branch_id, s.admin_id, s.customer_id, s.user_id, s.subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.tip, s.status, s.is_synced, s.created_at as created_at, s.updated_at, s.shift_id,
+        s.id, s.business_id, s.branch_id, s.user_id, s.customer_id, s.staff_id, s.subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.tip, s.status, s.is_synced, s.created_at as created_at, s.updated_at, s.shift_id,
         c.name as customer_name, 
         c.phone as customer_phone,
         u.name as employee_name
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
-      LEFT JOIN users u ON s.user_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilterS$extraFilterS 
+      LEFT JOIN users u ON s.staff_id = u.id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilterS$extraFilterS 
       
       UNION ALL
       
       SELECT
-        r.id, r.business_id, r.branch_id, r.admin_id, r.customer_id, r.user_id, r.total_amount as subtotal, 0 as tax, 0 as discount, r.total_amount as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, rs.shift_id as shift_id,
+        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.total_amount as subtotal, 0 as tax, 0 as discount, r.total_amount as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, rs.shift_id as shift_id,
         c.name as customer_name,
         c.phone as customer_phone,
         u.name as employee_name
       FROM returns r
       LEFT JOIN sales rs ON r.sale_id = rs.id
       LEFT JOIN customers c ON r.customer_id = c.id
-      LEFT JOIN users u ON r.user_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilterR$extraFilterR
+      LEFT JOIN users u ON r.staff_id = u.id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilterR$extraFilterR
       
       ORDER BY 16 DESC${limit != null ? ' LIMIT $limit' : ''}
       ''',
@@ -73,14 +73,14 @@ mixin SalesCrud on CommonCrud {
   Future<int> insertSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     final brid = sale['branch_id'] ?? getCurrentBranchId();
     
     final result = await db.transaction((txn) async {
       final generatedSaleId = await txn.insert('sales', {
         ...sale,
         'business_id': bid,
-        'admin_id': aid,
+        'user_id': uid,
         'branch_id': brid,
         'shift_id': sale['shift_id'],
         'is_synced': 0
@@ -174,7 +174,7 @@ mixin SalesCrud on CommonCrud {
     }
     
     if (userId != null) {
-      userFilter = ' AND s.user_id = ?';
+      userFilter = ' AND s.staff_id = ?';
       args.add(userId);
     }
 
@@ -196,8 +196,8 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN products p ON si.product_id = p.id
       LEFT JOIN stocks st ON si.stock_id = st.id
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN users u ON s.user_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter$catFilter
+      LEFT JOIN users u ON s.staff_id = u.id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter$catFilter
       ORDER BY s.created_at DESC
     ''', args);
   }
@@ -207,7 +207,7 @@ mixin SalesCrud on CommonCrud {
     // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     // ignore: unused_local_variable
-    final aid = getSafeInt(BusinessConfig.instance.adminId);
+    final uid = getSafeInt(BusinessConfig.instance.userId);
     final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
@@ -236,7 +236,7 @@ mixin SalesCrud on CommonCrud {
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
       GROUP BY c.id, c.name
       ORDER BY total_amount DESC
     ''', args);
@@ -269,8 +269,8 @@ mixin SalesCrud on CommonCrud {
         SUM(s.discount) as total_discount,
         SUM(s.total) as total_amount
       FROM sales s
-      LEFT JOIN users u ON s.user_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
+      LEFT JOIN users u ON s.staff_id = u.id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
       GROUP BY u.id, u.name
       ORDER BY total_amount DESC
     ''', args);
@@ -297,7 +297,7 @@ mixin SalesCrud on CommonCrud {
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
       GROUP BY p.id, p.name
       ORDER BY total_qty DESC
       LIMIT $limit
@@ -330,7 +330,7 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT s.id) as total_count,
         SUM(s.total) as total_amount
       FROM sales s
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
       GROUP BY s.payment_method
       ORDER BY total_amount DESC
     ''', salesArgs);
@@ -350,7 +350,7 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT r.id) as total_count,
         SUM(r.total_amount) as total_amount
       FROM returns r
-      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilterR$dateFilterR
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilterR$dateFilterR
     ''', returnArgs);
 
     final List<Map<String, dynamic>> result = salesByMethod.map((r) => Map<String, dynamic>.from(r)).toList();
@@ -385,7 +385,7 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT s.id) as total_sales_count,
         SUM(s.total) as total_amount
       FROM sales s
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('admin_id', 's.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
       GROUP BY DATE(s.created_at)
       ORDER BY sale_date DESC
     ''', args);
@@ -421,7 +421,7 @@ mixin SalesCrud on CommonCrud {
       JOIN returns r ON ri.return_id = r.id
       LEFT JOIN products p ON ri.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
       GROUP BY c.id, c.name
       ORDER BY total_amount DESC
     ''', args);
@@ -452,8 +452,8 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT r.id) as total_returns_count,
         SUM(r.total_amount) as total_amount
       FROM returns r
-      LEFT JOIN users u ON r.user_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
+      LEFT JOIN users u ON r.staff_id = u.id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
       GROUP BY u.id, u.name
       ORDER BY total_amount DESC
     ''', args);
@@ -483,8 +483,8 @@ mixin SalesCrud on CommonCrud {
       JOIN returns r ON ri.return_id = r.id
       LEFT JOIN products p ON ri.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
-      LEFT JOIN users u ON r.user_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('admin_id', 'r.admin_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
+      LEFT JOIN users u ON r.staff_id = u.id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
       ORDER BY r.created_at DESC
     ''', args);
   }
