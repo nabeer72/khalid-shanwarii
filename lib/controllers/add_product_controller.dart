@@ -352,23 +352,21 @@ class AddProductController with ChangeNotifier {
       }
       if (kDebugMode) print('✅ [CONTROLLER] Category/Sub added with ID: $newId');
 
-      final newCat = ProductCategory(
-        id: newId,
-        businessId: BusinessConfig.instance.businessId!,
-        name: name,
-        parentId: parentId,
-        status: 1,
-      );
-
       if (parentId == null) {
+        final newCat = ProductCategory(
+          id: newId,
+          businessId: BusinessConfig.instance.businessId!,
+          name: name,
+          parentId: null,
+          status: 1,
+        );
         categories.add(newCat);
         selectedCategory = newCat.id;
         subCategories = []; // Reset subcategories when parent changes
         selectedSubCategoryId = null;
       } else {
-        if (kDebugMode) print('📂 [CONTROLLER] Updating UI for subcategory');
-        subCategories.add(newCat);
-        selectedSubCategoryId = newCat.id;
+        if (kDebugMode) print('📂 [CONTROLLER] Reloading subcategories for new ID: $newId');
+        await reloadSubCategories(selectId: newId);
       }
       notifyListeners();
       return true;

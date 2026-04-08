@@ -1233,6 +1233,15 @@ class DbMigrations {
         if (kDebugMode) print('v67 purchase_items new_quantity error: $e');
       }
     }
+
+    if (oldVersion < 68) {
+      if (kDebugMode) print('Upgrading DB to v68: Adding code column to brands table...');
+      try {
+        await db.execute('ALTER TABLE brands ADD COLUMN code TEXT');
+      } catch (e) {
+        if (kDebugMode) print('v68 brands code error: $e');
+      }
+    }
   }
 }
 

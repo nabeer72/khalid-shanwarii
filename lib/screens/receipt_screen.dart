@@ -136,6 +136,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     final isReturn = sale['is_return'] == 1 || sale['isReturn'] == true;
     final total = (sale['total'] as num? ?? 0).toDouble();
     final discount = (sale['discount'] as num? ?? 0).toDouble();
+    final subTotal = (sale['sub_total'] ?? sale['subtotal'] as num? ?? 0).toDouble();
+    final tax = (sale['tax'] as num? ?? 0).toDouble();
+    final tip = (sale['total_tip'] ?? sale['tip'] as num? ?? 0).toDouble();
     // ignore: unused_local_variable
     final paymentMethod = (sale['payment_method'] ?? sale['paymentMethod'] ?? 'Cash').toString();
     final customer = sale['customer_name'] ?? sale['customerName'];
@@ -299,7 +302,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                 final name = item['product_name'] ?? item['name'] ?? 'Item';
                                 final qty = (item['quantity'] as num? ?? 0).toDouble();
                                 final price = (item['price'] as num? ?? 0).toDouble();
-                                final subtotal = (item['subtotal'] as num? ?? 0).toDouble();
+                                final subtotal = (item['sub_total'] ?? item['subtotal'] as num? ?? 0).toDouble();
                                 final disc = (item['discount'] as num? ?? 0).toDouble();
 
                                 return TableRow(

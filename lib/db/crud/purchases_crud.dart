@@ -83,59 +83,52 @@ mixin PurchasesCrud on CommonCrud {
           'is_synced': 0,
         });
 
-        // Find existing stock batch with matching prices
-        final existingStock = await txn.rawQuery(
+        // find existing stock batch with matching prices (matching logic as in products_crud)
+        final nPid  = getSafeInt(productId);
+        final nBrid = getSafeInt(brid);
+        final nBid  = getSafeInt(businessArgs[0]);
+        final nUid  = getSafeInt(businessArgs[1]);
+
+        // [IMPROVED] Robust matching using integer comparison (cents/paisa) to avoid floating point issues
+        final matchingStocks = await txn.rawQuery(
           '''SELECT * FROM stocks 
-             WHERE product_id = ? AND branch_id = ? AND status = 1 
-             AND ROUND(cost_price, 2) = ROUND(?, 2) 
-             AND ROUND(sale_price, 2) = ROUND(?, 2) 
-             AND ROUND(wholesale_price, 2) = ROUND(?, 2)
-             ${getBusinessFilter()}
+             WHERE product_id = ? 
+             AND (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) 
+             AND status = 1 
+             AND business_id = ?
+             AND CAST(ROUND(COALESCE(cost_price, 0) * 100) AS INTEGER) = CAST(ROUND(? * 100) AS INTEGER)
+             AND CAST(ROUND(COALESCE(sale_price, 0) * 100) AS INTEGER) = CAST(ROUND(? * 100) AS INTEGER)
+             AND CAST(ROUND(COALESCE(wholesale_price, 0) * 100) AS INTEGER) = CAST(ROUND(? * 100) AS INTEGER)
              ORDER BY id DESC LIMIT 1''',
-          [productId, brid, newPurchasePrice, newSellingPrice, newWholesalePrice, ...businessArgs],
+          [nPid, nBrid, nBrid, nBid, newPurchasePrice, newSellingPrice, newWholesalePrice],
         );
 
-        // Always fetch the latest stock row (any price) to capture the true old prices for audit
-        final latestStock = existingStock.isNotEmpty
-            ? existingStock
-            : await txn.rawQuery(
-                '''SELECT * FROM stocks 
-                   WHERE product_id = ? AND branch_id = ? AND status = 1
-                   ${getBusinessFilter()}
-                   ORDER BY id DESC LIMIT 1''',
-                [productId, brid, ...businessArgs],
-              );
-
-        final double auditOldPurchasePrice = latestStock.isNotEmpty
-            ? (latestStock.first['cost_price'] as num?)?.toDouble() ?? 0.0
-            : 0.0;
-        final double auditOldSalePrice = latestStock.isNotEmpty
-            ? (latestStock.first['sale_price'] as num?)?.toDouble() ?? 0.0
-            : 0.0;
-
         int finalStockId;
-        double oldQty = 0;
-        double newQty = qtyToAdd;
+        double oldStockQty = 0;
+        bool isNewBatch = false;
 
-        if (existingStock.isNotEmpty) {
-          // Prices match — just add quantity to existing stock batch
-          final s = existingStock.first;
-          finalStockId = getSafeInt(s['id']) ?? 0;
-          oldQty = (s['quantity'] as num).toDouble();
-          newQty = oldQty + qtyToAdd;
+        if (matchingStocks.isNotEmpty) {
+          final existingStock = matchingStocks.first;
+          finalStockId = existingStock['id'] as int;
+          oldStockQty = (existingStock['quantity'] as num).toDouble();
+          final newQty = oldStockQty + qtyToAdd;
 
           await txn.update('stocks', {
             'quantity': newQty,
+            'user_id': nUid,
             'is_synced': 0, 
             'updated_at': now,
-          }, where: 'id = ?${getBusinessFilter()}', whereArgs: [s['id'], ...getBusinessArgs()]);
+          }, where: 'id = ? AND business_id = ?', whereArgs: [finalStockId, nBid]);
+          isNewBatch = false;
         } else {
-          // Prices differ — create a NEW stock batch entry
+          // Price differs — create a NEW stock batch
+          isNewBatch = true;
           finalStockId = await txn.insert('stocks', {
             'id': null,
-            ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
-            'branch_id': brid,
-            'product_id': productId,
+            'business_id': nBid,
+            'user_id': nUid,
+            'branch_id': nBrid,
+            'product_id': nPid,
             'barcode': barcode,
             'quantity': qtyToAdd,
             'cost_price': newPurchasePrice,
@@ -148,19 +141,22 @@ mixin PurchasesCrud on CommonCrud {
           });
         }
 
-        // Create Stock Audit entry — old prices = previous stock, new prices = this purchase
+        // Always create a Stock Audit entry
         await txn.insert('stock_audits', {
-          ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
-          'branch_id': brid,
+          'business_id': nBid,
+          'user_id': nUid,
+          'branch_id': nBrid,
           'stock_id': finalStockId,
-          'product_id': productId,
-          'old_quantity': oldQty,
-          'new_quantity': newQty,
-          'old_purchase_price': auditOldPurchasePrice,
+          'product_id': nPid,
+          'old_quantity': oldStockQty,
+          'new_quantity': oldStockQty + qtyToAdd,
+          'old_purchase_price': oldCostPrice,
           'new_purchase_price': newPurchasePrice,
-          'old_sale_price': auditOldSalePrice,
+          'old_sale_price': oldSalePrice,
           'new_sale_price': newSellingPrice,
-          'remarks': 'Purchase entry: ${purchase['invoice_number'] ?? 'New Purchase'}',
+          'remarks': isNewBatch 
+              ? 'Purchase entry (New Batch): ${purchase['invoice_number'] ?? 'INV'}'
+              : 'Purchase entry (Restock): ${purchase['invoice_number'] ?? 'INV'}',
           'is_synced': 0,
           'created_at': now,
           'updated_at': now,

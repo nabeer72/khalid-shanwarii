@@ -223,16 +223,33 @@ mixin ProductsCrud on CommonCrud {
       final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
       final newQty       = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
 
-      // Check whether an existing stock row already has these exact prices
+      // Check whether an existing stock row already has these exact prices (don't filter by user_id here)
+      final nPid  = getSafeInt(pid);
+      final nBrid = getSafeInt(brid);
+      final nBid  = getSafeInt(bid);
+
       final matchingStocks = await txn.rawQuery(
         '''SELECT * FROM stocks 
-           WHERE product_id = ? AND branch_id = ? AND status = 1 
-           AND ROUND(sale_price,      2) = ROUND(?, 2) 
-           AND ROUND(cost_price,      2) = ROUND(?, 2) 
-           AND ROUND(wholesale_price, 2) = ROUND(?, 2)
-           ORDER BY created_at DESC LIMIT 1''',
-        [pid, brid, currentPrice, currentCost, currentWholesale],
+           WHERE product_id = ? 
+           AND (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) 
+           AND business_id = ? AND status = 1 
+           AND CAST(ROUND(COALESCE(sale_price, 0) * 100) AS INTEGER) = CAST(ROUND(? * 100) AS INTEGER) 
+           AND CAST(ROUND(COALESCE(cost_price, 0) * 100) AS INTEGER) = CAST(ROUND(? * 100) AS INTEGER) 
+           AND CAST(ROUND(COALESCE(wholesale_price, 0) * 100) AS INTEGER) = CAST(ROUND(? * 100) AS INTEGER)
+           ORDER BY id DESC LIMIT 1''',
+        [nPid, nBrid, nBrid, nBid, currentPrice, currentCost, currentWholesale],
       );
+
+      // Also get the latest overall stock for this product to capture previous prices for the audit
+      final latestStockResults = await txn.rawQuery(
+        '''SELECT * FROM stocks 
+           WHERE product_id = ? 
+           AND (branch_id = ? OR (branch_id IS NULL AND ? IS NULL)) 
+           AND business_id = ? AND status = 1
+           ORDER BY id DESC LIMIT 1''',
+        [nPid, nBrid, nBrid, nBid],
+      );
+      final latestStock = latestStockResults.isNotEmpty ? latestStockResults.first : null;
 
       int    finalStockId;
       double oldQty        = 0;
@@ -295,9 +312,9 @@ mixin ProductsCrud on CommonCrud {
         'product_id':        pid,
         'old_quantity':      oldQty,
         'new_quantity':      newQty,
-        'old_purchase_price': priceChanged ? 0 : currentCost,
+        'old_purchase_price': (latestStock?['cost_price'] as num?)?.toDouble() ?? 0.0,
         'new_purchase_price': currentCost,
-        'old_sale_price':    priceChanged ? 0 : currentPrice,
+        'old_sale_price':    (latestStock?['sale_price'] as num?)?.toDouble() ?? 0.0,
         'new_sale_price':    currentPrice,
         'remarks':           remarks,
         'is_synced':         0,

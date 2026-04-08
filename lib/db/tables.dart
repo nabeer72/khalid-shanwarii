@@ -699,6 +699,7 @@ class DbTables {
         branch_id INTEGER,
         user_id INTEGER,
         name TEXT NOT NULL,
+        code TEXT,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,

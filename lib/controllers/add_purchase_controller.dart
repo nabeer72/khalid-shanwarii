@@ -244,8 +244,13 @@ class AddPurchaseController with ChangeNotifier {
   }) {
     if (quantity <= 0) return;
 
-    final effectiveQty = quantity * piecesPerBox;
-    final subtotal = effectiveQty * purchasePrice;
+    final p        = piecesPerBox > 0 ? piecesPerBox : 1.0;
+    final uPurchase  = purchasePrice / p;
+    final uWholesale = wholesalePrice / p;
+    final uSelling   = sellingPrice / p;
+
+    final effectiveQty = quantity * p;
+    final subtotal     = effectiveQty * uPurchase;
 
     items.add({
       'id': null,
@@ -254,9 +259,9 @@ class AddPurchaseController with ChangeNotifier {
       'barcode': barcode,
       'existing_stock': existingStock,
       'quantity': effectiveQty,
-      'purchase_price': purchasePrice,
-      'wholesale_price': wholesalePrice,
-      'selling_price': sellingPrice,
+      'purchase_price': uPurchase,
+      'wholesale_price': uWholesale,
+      'selling_price': uSelling,
       'subtotal': subtotal,
       'unit_id': unitId,
     });
