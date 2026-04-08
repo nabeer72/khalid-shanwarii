@@ -39,7 +39,7 @@ class DbInitializer {
       return await databaseFactoryFfi.openDatabase(
         path, 
         options: OpenDatabaseOptions(
-          version: 65,
+          version: 67,
 
           onCreate: DbTables.createDB,
           onUpgrade: DbMigrations.upgradeDB,
@@ -53,7 +53,7 @@ class DbInitializer {
     final password = await _getEncryptionKey();
     return await openDatabase(
       path, 
-      version: 65,
+      version: 67,
       password: password,
       onCreate: DbTables.createDB, 
       onUpgrade: DbMigrations.upgradeDB,

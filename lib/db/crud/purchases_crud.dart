@@ -37,7 +37,6 @@ mixin PurchasesCrud on CommonCrud {
 
       for (var item in items) {
         var productId = item['product_id'];
-        final productName = item['product_name'] ?? 'Unknown Item';
         final qtyToAdd = (item['quantity'] as num).toDouble();
         final newPurchasePrice = (item['purchase_price'] as num).toDouble();
         final newSellingPrice = (item['selling_price'] as num).toDouble();
@@ -50,9 +49,25 @@ mixin PurchasesCrud on CommonCrud {
           throw Exception('Product must be selected before making a purchase.');
         }
 
-        // Insert Purchase Item
+        // ── Capture OLD prices from the latest stock BEFORE any update ────────
+        final prevStockRows = await txn.rawQuery(
+          '''SELECT cost_price, sale_price, wholesale_price FROM stocks
+             WHERE product_id = ? AND branch_id = ? AND status = 1
+             ${getBusinessFilter()}
+             ORDER BY id DESC LIMIT 1''',
+          [productId, brid, ...businessArgs],
+        );
+        final double oldCostPrice    = prevStockRows.isNotEmpty ? (prevStockRows.first['cost_price']      as num?)?.toDouble() ?? 0.0 : 0.0;
+        final double oldSalePrice    = prevStockRows.isNotEmpty ? (prevStockRows.first['sale_price']       as num?)?.toDouble() ?? 0.0 : 0.0;
+        final double oldWholesalePrice = prevStockRows.isNotEmpty ? (prevStockRows.first['wholesale_price'] as num?)?.toDouble() ?? 0.0 : 0.0;
+
+        // Insert Purchase Item (with old prices & quantities recorded for history)
         final itemData = Map<String, dynamic>.from(item);
         itemData.remove('product_name');
+        
+        final double existingStockForProduct = (itemData['existing_stock'] as num?)?.toDouble() ?? 0.0;
+        final double itemQtyToPurchase = (itemData['quantity'] as num?)?.toDouble() ?? 0.0;
+
         await txn.insert('purchase_items', {
           ...itemData,
           ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
@@ -60,6 +75,11 @@ mixin PurchasesCrud on CommonCrud {
           'purchase_id': pid,
           'branch_id': brid,
           'barcode': barcode,
+          'old_quantity': existingStockForProduct,
+          'new_quantity': existingStockForProduct + itemQtyToPurchase,
+          'old_cost_price': oldCostPrice,
+          'old_sale_price': oldSalePrice,
+          'old_wholesale_price': oldWholesalePrice,
           'is_synced': 0,
         });
 
@@ -74,6 +94,24 @@ mixin PurchasesCrud on CommonCrud {
              ORDER BY id DESC LIMIT 1''',
           [productId, brid, newPurchasePrice, newSellingPrice, newWholesalePrice, ...businessArgs],
         );
+
+        // Always fetch the latest stock row (any price) to capture the true old prices for audit
+        final latestStock = existingStock.isNotEmpty
+            ? existingStock
+            : await txn.rawQuery(
+                '''SELECT * FROM stocks 
+                   WHERE product_id = ? AND branch_id = ? AND status = 1
+                   ${getBusinessFilter()}
+                   ORDER BY id DESC LIMIT 1''',
+                [productId, brid, ...businessArgs],
+              );
+
+        final double auditOldPurchasePrice = latestStock.isNotEmpty
+            ? (latestStock.first['cost_price'] as num?)?.toDouble() ?? 0.0
+            : 0.0;
+        final double auditOldSalePrice = latestStock.isNotEmpty
+            ? (latestStock.first['sale_price'] as num?)?.toDouble() ?? 0.0
+            : 0.0;
 
         int finalStockId;
         double oldQty = 0;
@@ -110,7 +148,7 @@ mixin PurchasesCrud on CommonCrud {
           });
         }
 
-        // Create Stock Audit entry
+        // Create Stock Audit entry — old prices = previous stock, new prices = this purchase
         await txn.insert('stock_audits', {
           ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
           'branch_id': brid,
@@ -118,9 +156,9 @@ mixin PurchasesCrud on CommonCrud {
           'product_id': productId,
           'old_quantity': oldQty,
           'new_quantity': newQty,
-          'old_purchase_price': existingStock.isNotEmpty ? (existingStock.first['cost_price'] as num).toDouble() : newPurchasePrice,
+          'old_purchase_price': auditOldPurchasePrice,
           'new_purchase_price': newPurchasePrice,
-          'old_sale_price': existingStock.isNotEmpty ? (existingStock.first['sale_price'] as num).toDouble() : newSellingPrice,
+          'old_sale_price': auditOldSalePrice,
           'new_sale_price': newSellingPrice,
           'remarks': 'Purchase entry: ${purchase['invoice_number'] ?? 'New Purchase'}',
           'is_synced': 0,

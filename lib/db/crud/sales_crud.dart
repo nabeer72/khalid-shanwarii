@@ -42,7 +42,7 @@ mixin SalesCrud on CommonCrud {
     return await db.rawQuery(
       '''
       SELECT 
-        s.id, s.business_id, s.branch_id, s.user_id, s.customer_id, s.staff_id, s.subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.tip, s.status, s.is_synced, s.created_at as created_at, s.updated_at, s.shift_id,
+        s.id, s.business_id, s.branch_id, s.user_id, s.customer_id, s.staff_id, s.sub_total as subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.total_tip as tip, s.status, s.is_synced, s.created_at as created_at, s.updated_at, s.shift_id,
         c.name as customer_name, 
         c.phone as customer_phone,
         u.name as employee_name
@@ -54,7 +54,7 @@ mixin SalesCrud on CommonCrud {
       UNION ALL
       
       SELECT
-        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.total_amount as subtotal, 0 as tax, 0 as discount, r.total_amount as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, rs.shift_id as shift_id,
+        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.total as subtotal, 0 as tax, 0 as discount, r.total as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, rs.shift_id as shift_id,
         c.name as customer_name,
         c.phone as customer_phone,
         u.name as employee_name
@@ -348,7 +348,7 @@ mixin SalesCrud on CommonCrud {
     final returnsSummary = await db.rawQuery('''
       SELECT 
         COUNT(DISTINCT r.id) as total_count,
-        SUM(r.total_amount) as total_amount
+        SUM(r.total) as total_amount
       FROM returns r
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilterR$dateFilterR
     ''', returnArgs);
@@ -450,7 +450,7 @@ mixin SalesCrud on CommonCrud {
       SELECT 
         u.name as employee_name,
         COUNT(DISTINCT r.id) as total_returns_count,
-        SUM(r.total_amount) as total_amount
+        SUM(r.total) as total_amount
       FROM returns r
       LEFT JOIN users u ON r.staff_id = u.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter

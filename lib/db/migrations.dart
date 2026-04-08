@@ -1200,6 +1200,39 @@ class DbMigrations {
         if (kDebugMode) print('v65 stock_audits staff_id error: $e');
       }
     }
+
+    if (oldVersion < 66) {
+      if (kDebugMode) print('Upgrading DB to v66: Adding old price columns to purchase_items...');
+      try {
+        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_cost_price REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v66 purchase_items old_cost_price error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_sale_price REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v66 purchase_items old_sale_price error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_wholesale_price REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v66 purchase_items old_wholesale_price error: $e');
+      }
+    }
+
+    if (oldVersion < 67) {
+      if (kDebugMode) print('Upgrading DB to v67: Adding quantity columns to purchase_items...');
+      try {
+        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_quantity REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v67 purchase_items old_quantity error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE purchase_items ADD COLUMN new_quantity REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v67 purchase_items new_quantity error: $e');
+      }
+    }
   }
 }
 

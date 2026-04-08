@@ -419,6 +419,11 @@ class DbTables {
         subtotal REAL DEFAULT 0,
         unit_id INTEGER,
         branch_id INTEGER,
+        old_cost_price REAL DEFAULT 0,
+        old_sale_price REAL DEFAULT 0,
+        old_wholesale_price REAL DEFAULT 0,
+        old_quantity REAL DEFAULT 0,
+        new_quantity REAL DEFAULT 0,
         is_synced INTEGER DEFAULT 0,
         FOREIGN KEY (purchase_id) REFERENCES purchases(id),
         FOREIGN KEY (product_id) REFERENCES products(id)

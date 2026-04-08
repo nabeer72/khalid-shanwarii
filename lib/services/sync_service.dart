@@ -1486,18 +1486,22 @@ class SyncService {
              var itemMap = Map<String, dynamic>.from(item);
              itemMap.remove('is_synced');
              
-             // Rename details fields for server
-             itemMap['cost_price'] = itemMap['purchase_price'];
+             // Rename new price fields for server
+             itemMap['cost_price']       = itemMap['purchase_price'];
              itemMap['whole_sale_price'] = itemMap['wholesale_price'];
-             itemMap['sale_price'] = itemMap['selling_price'];
+             itemMap['sale_price']       = itemMap['selling_price'];
              itemMap.remove('purchase_price');
              itemMap.remove('wholesale_price');
              itemMap.remove('selling_price');
+
+             // Include old price fields so the server can track price changes
+             itemMap['old_cost_price']       = itemMap['old_cost_price'] ?? 0.0;
+             itemMap['old_sale_price']       = itemMap['old_sale_price'] ?? 0.0;
+             itemMap['old_wholesale_price']  = itemMap['old_wholesale_price'] ?? 0.0;
              
              // Ensure ID context
              itemMap['business_id'] ??= bid;
              itemMap['user_id'] = itemMap['user_id'] ?? uid;
-             // itemMap.remove('user_id');
              
              return itemMap;
            }).toList();

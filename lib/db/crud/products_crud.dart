@@ -146,116 +146,163 @@ mixin ProductsCrud on CommonCrud {
       where: 'business_id = ? AND user_id IS NULL', 
       whereArgs: [bid]);
 
-    // 1. Separate Metadata
     final metadata = Map<String, dynamic>.from(product);
 
     await db.transaction((txn) async {
       final productId = metadata['id'];
       final isEdit = productId != null;
 
-      // 2. Insert/Update Product Metadata (Filter out redundant stock/price fields)
-      final productFields = {
-        'business_id': bid,
-        'user_id': uid,
-        'branch_id': brid,
-        'category_id': metadata['category_id'],
-        'sub_category_id': metadata['sub_category_id'],
-        'brand_id': metadata['brand_id'],
-        'name': metadata['name'],
-        'image': metadata['image'],
-        'description': metadata['description'],
-        'status': metadata['status'] ?? 1,
-        'is_favorite': metadata['is_favorite'] ?? 0,
-        'unit_id': metadata['unit_id'],
-        'is_synced': 0,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
+      // ── Step 1: Handle product metadata ──────────────────────────────────
       int generatedProductId;
+
       if (isEdit) {
-        // Make sure we just UPDATE the product table if it is an edit
-        await txn.update('products', productFields, where: 'id = ?', whereArgs: [productId]);
-        generatedProductId = productId; // Product ID stays the same
+        // Only update the products table if something in the metadata actually changed.
+        final existingRows = await txn.query('products', where: 'id = ?', whereArgs: [productId]);
+        final existing = existingRows.isNotEmpty ? existingRows.first : null;
+
+        final bool metadataChanged = existing == null ||
+            existing['name']?.toString()            != metadata['name']?.toString() ||
+            existing['category_id']?.toString()     != metadata['category_id']?.toString() ||
+            existing['sub_category_id']?.toString() != metadata['sub_category_id']?.toString() ||
+            existing['brand_id']?.toString()         != metadata['brand_id']?.toString() ||
+            existing['unit_id']?.toString()          != metadata['unit_id']?.toString() ||
+            existing['description']?.toString()      != metadata['description']?.toString() ||
+            existing['status']?.toString()           != metadata['status']?.toString() ||
+            existing['is_favorite']?.toString()      != metadata['is_favorite']?.toString();
+
+        if (metadataChanged) {
+          await txn.update(
+            'products',
+            {
+              'business_id':      bid,
+              'user_id':          uid,
+              'branch_id':        brid,
+              'category_id':      metadata['category_id'],
+              'sub_category_id':  metadata['sub_category_id'],
+              'brand_id':         metadata['brand_id'],
+              'name':             metadata['name'],
+              'image':            metadata['image'],
+              'description':      metadata['description'],
+              'status':           metadata['status'] ?? 1,
+              'is_favorite':      metadata['is_favorite'] ?? 0,
+              'unit_id':          metadata['unit_id'],
+              'is_synced':        0,
+              'updated_at':       DateTime.now().toIso8601String(),
+            },
+            where: 'id = ?',
+            whereArgs: [productId],
+          );
+        }
+        generatedProductId = productId;
       } else {
-        // If it's a new product, we must INSERT into the products table
-        productFields['id'] = null; // Auto-increment safely
-        generatedProductId = await txn.insert('products', productFields);
+        // New product: INSERT into products table
+        generatedProductId = await txn.insert('products', {
+          'id':             null,
+          'business_id':    bid,
+          'user_id':        uid,
+          'branch_id':      brid,
+          'category_id':    metadata['category_id'],
+          'sub_category_id':metadata['sub_category_id'],
+          'brand_id':       metadata['brand_id'],
+          'name':           metadata['name'],
+          'image':          metadata['image'],
+          'description':    metadata['description'],
+          'status':         metadata['status'] ?? 1,
+          'is_favorite':    metadata['is_favorite'] ?? 0,
+          'unit_id':        metadata['unit_id'],
+          'is_synced':      0,
+          'updated_at':     DateTime.now().toIso8601String(),
+        });
       }
 
-      // 3. Handle Stock (Batch)
-      final barcode = product['barcode']?.toString();
-      final pid = isEdit ? productId : generatedProductId;
-      
-      final currentPrice = (product['price'] as num?)?.toDouble() ?? 0.0;
-      final currentCost = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
+      // ── Step 2: Resolve current prices & qty ─────────────────────────────
+      final pid          = isEdit ? productId : generatedProductId;
+      final barcode      = product['barcode']?.toString();
+      final currentPrice = (product['price']          as num?)?.toDouble() ?? 0.0;
+      final currentCost  = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
       final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
+      final newQty       = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
 
-      // Check if an EXACT price-matching stock entry exists for this product
+      // Check whether an existing stock row already has these exact prices
       final matchingStocks = await txn.rawQuery(
         '''SELECT * FROM stocks 
            WHERE product_id = ? AND branch_id = ? AND status = 1 
-           AND ROUND(sale_price, 2) = ROUND(?, 2) 
-           AND ROUND(cost_price, 2) = ROUND(?, 2) 
+           AND ROUND(sale_price,      2) = ROUND(?, 2) 
+           AND ROUND(cost_price,      2) = ROUND(?, 2) 
            AND ROUND(wholesale_price, 2) = ROUND(?, 2)
            ORDER BY created_at DESC LIMIT 1''',
         [pid, brid, currentPrice, currentCost, currentWholesale],
       );
 
-      int finalStockId;
-      double oldQty = 0;
-      double newQty = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
-      bool priceChanged = matchingStocks.isEmpty && isEdit; // Exists but no price match
+      int    finalStockId;
+      double oldQty        = 0;
+      bool   priceChanged  = false;
 
       if (matchingStocks.isNotEmpty) {
-        // EXACT PRICE MATCH -> Update existing batch
+        // ── Case A: Same prices → only update quantity (& barcode) ──────────
         final matchingId = matchingStocks.first['id'];
         finalStockId = getSafeInt(matchingId) ?? 0;
         oldQty = (matchingStocks.first['quantity'] as num?)?.toDouble() ?? 0;
 
-        await txn.update('stocks', {
-          'barcode': barcode ?? matchingStocks.first['barcode'],
-          'quantity': newQty,
-          'user_id': uid,
-          'updated_at': DateTime.now().toIso8601String(),
-          'is_synced': 0,
-        }, where: 'id = ?', whereArgs: [matchingId]);
+        await txn.update(
+          'stocks',
+          {
+            'barcode':    barcode ?? matchingStocks.first['barcode'],
+            'quantity':   newQty,
+            'user_id':    uid,
+            'updated_at': DateTime.now().toIso8601String(),
+            'is_synced':  0,
+          },
+          where: 'id = ?',
+          whereArgs: [matchingId],
+        );
       } else {
-        // PRICE CHANGED or NO BATCH -> Create new batch
+        // ── Case B: Price changed (or first stock row) → new batch row ───────
+        priceChanged = isEdit; // only meaningful on edit; new products always create a row
         finalStockId = await txn.insert('stocks', {
-          'id': null,
-          'business_id': bid,
-          'user_id': uid,
-          'branch_id': brid,
-          'product_id': pid,
-          'barcode': barcode,
-          'quantity': newQty,
-          'sale_price': currentPrice,
-          'cost_price': currentCost,
+          'id':              null,
+          'business_id':     bid,
+          'user_id':         uid,
+          'branch_id':       brid,
+          'product_id':      pid,
+          'barcode':         barcode,
+          'quantity':        newQty,
+          'sale_price':      currentPrice,
+          'cost_price':      currentCost,
           'wholesale_price': currentWholesale,
-          'status': 1,
-          'is_synced': 0,
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
+          'status':          1,
+          'is_synced':       0,
+          'created_at':      DateTime.now().toIso8601String(),
+          'updated_at':      DateTime.now().toIso8601String(),
         });
       }
 
-      // 4. Create Audit Log
+      // ── Step 3: Always write a stock_audit entry ──────────────────────────
+      final String remarks;
+      if (!isEdit) {
+        remarks = 'Initial product creation';
+      } else if (priceChanged) {
+        remarks = 'New price batch created';
+      } else {
+        remarks = 'Stock quantity updated';
+      }
+
       await txn.insert('stock_audits', {
-        'business_id': bid,
-        'user_id': uid,
-        'branch_id': brid,
-        'stock_id': finalStockId,
-        'product_id': pid,
-        'old_quantity': oldQty,
-        'new_quantity': newQty,
-        'old_purchase_price': priceChanged ? 0 : currentCost, // Assuming old wasn't fetched explicitly
+        'business_id':       bid,
+        'user_id':           uid,
+        'branch_id':         brid,
+        'stock_id':          finalStockId,
+        'product_id':        pid,
+        'old_quantity':      oldQty,
+        'new_quantity':      newQty,
+        'old_purchase_price': priceChanged ? 0 : currentCost,
         'new_purchase_price': currentCost,
-        'old_sale_price': priceChanged ? 0 : currentPrice, // Assuming old wasn't fetched explicitly
-        'new_sale_price': currentPrice,
-        'remarks': priceChanged ? 'New price batch created' : (matchingStocks.isNotEmpty ? 'Product updated' : 'Initial product creation'),
-        'is_synced': 0,
-        'created_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
+        'old_sale_price':    priceChanged ? 0 : currentPrice,
+        'new_sale_price':    currentPrice,
+        'remarks':           remarks,
+        'is_synced':         0,
+        'created_at':        DateTime.now().toIso8601String(),
+        'updated_at':        DateTime.now().toIso8601String(),
       });
     });
 
