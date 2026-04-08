@@ -6,7 +6,7 @@ class POSQuickAddPanel extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onSuccess;
   final void Function(VoidCallback refresh)? onAddCategory;
-  final void Function(VoidCallback refresh, String? catId)? onAddSubCategory;
+  final void Function(void Function(int newId) refresh, String? catId)? onAddSubCategory;
 
   const POSQuickAddPanel({
     super.key,
@@ -312,7 +312,7 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
             child: IconButton(
               icon: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
               onPressed: () => widget.onAddSubCategory!(
-                () => _controller.loadCategories(),
+                (int newId) => _controller.reloadSubCategories(selectId: newId),
                 _controller.selectedCategory?.toString(),
               ),
               constraints: const BoxConstraints(minWidth: 44, minHeight: 44),

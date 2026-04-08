@@ -1571,7 +1571,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
-  void _showAddSubCategoryDialog({VoidCallback? onSuccess, String? categoryId}) {
+  void _showAddSubCategoryDialog({void Function(int newId)? onSuccess, String? categoryId}) {
     final String effectiveCategoryId = categoryId ?? _controller.selectedCategory;
     final bool isRealCategory = int.tryParse(effectiveCategoryId) != null;
     
@@ -1646,14 +1646,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     child: ElevatedButton(
                       onPressed: () async {
                         if (nameCtrl.text.isEmpty) return;
-                        await DatabaseHelper.instance.insertSubCategory({
+                        final newId = await DatabaseHelper.instance.insertSubCategory({
                           'name': nameCtrl.text,
                           'category_id': int.parse(effectiveCategoryId),
                           'status': 1,
                         });
                         if (mounted) {
                           _controller.loadData();
-                          if (onSuccess != null) onSuccess();
+                          if (onSuccess != null) onSuccess(newId);
                           Navigator.pop(ctx);
                         }
                       },
@@ -1756,7 +1756,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                               onClose: _toggleQuickAddProduct,
                               onSuccess: _onProductQuickAdded,
                               onAddCategory: (refresh) => _showAddCategoryDialog(onSuccess: refresh),
-                              onAddSubCategory: (refresh, catId) => _showAddSubCategoryDialog(onSuccess: refresh, categoryId: catId),
+                              onAddSubCategory: (void Function(int newId) refresh, catId) => _showAddSubCategoryDialog(onSuccess: refresh, categoryId: catId),
                             ),
                           ),
                         ),

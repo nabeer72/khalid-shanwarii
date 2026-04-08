@@ -402,6 +402,22 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reloads only the subcategories for the current [selectedCategory].
+  /// Optionally auto-selects [selectId] after reload (e.g. the newly created subcategory).
+  Future<void> reloadSubCategories({dynamic selectId}) async {
+    if (selectedCategory == null) return;
+    final rawSub = await DatabaseHelper.instance.getSubCategories(categoryId: selectedCategory);
+    subCategories = rawSub.map((map) => ProductCategory.fromMap({
+      ...map,
+      'parent_id': map['category_id'] ?? map['parent_id'],
+    })).toList();
+    if (selectId != null) {
+      final match = subCategories.where((c) => c.id.toString() == selectId.toString());
+      selectedSubCategoryId = match.isNotEmpty ? match.first.id : selectedSubCategoryId;
+    }
+    notifyListeners();
+  }
+
   void toggleFavorite(bool value) {
     isFavorite = value;
     notifyListeners();

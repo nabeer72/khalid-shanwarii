@@ -50,7 +50,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   List<Map<String, dynamic>> _currencyNotes = [];
 
-  List<PaymentMethod> _dynamicPaymentMethods = [];
+  // Default payment methods shown immediately (before async DB load)
+  static final _defaultPaymentMethods = [
+    PaymentMethod(id: 1, name: 'Cash',           icon: 'payments'),
+    PaymentMethod(id: 2, name: 'Mobile Payment', icon: 'phone_android'),
+    PaymentMethod(id: 3, name: 'Credit',         icon: 'account_balance_wallet'),
+    PaymentMethod(id: 4, name: 'Credit Card',    icon: 'credit_card'),
+  ];
+
+  List<PaymentMethod> _dynamicPaymentMethods = List.of(_defaultPaymentMethods);
 
   @override
   void initState() {
@@ -64,44 +72,55 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _loadPaymentMethods() async {
+    // Allowed payment methods (Bank Transfer, Cheque, Online Transfer excluded)
+    final defaultMethods = [
+      {'name': 'Cash',           'icon': 'payments'},
+      {'name': 'Mobile Payment', 'icon': 'phone_android'},
+      {'name': 'Credit',         'icon': 'account_balance_wallet'},
+      {'name': 'Credit Card',    'icon': 'credit_card'},
+    ];
+
+    // Names to exclude even if they come from DB
+    const excluded = {'bank transfer', 'cheque', 'online transfer'};
+
+    // Load any custom types from the DB (e.g. synced from server)
     final pts = await DatabaseHelper.instance.getPaymentTypes();
-    List<PaymentMethod> list = [];
-    bool hasCredit = false;
 
-    for (var i = 0; i < pts.length; i++) {
-        var pt = pts[i];
-        String name = pt['name'].toString();
-        String iconName = 'payments';
-        if (name.toLowerCase() == 'cash') iconName = 'payments';
-        else if (name.toLowerCase().contains('bank')) iconName = 'account_balance';
-        else if (name.toLowerCase().contains('cheque')) iconName = 'receipt_long';
-        else if (name.toLowerCase().contains('card')) iconName = 'credit_card';
-        else if (name.toLowerCase().contains('mobile')) iconName = 'phone_android';
-        else if (name.toLowerCase() == 'credit') {
-            iconName = 'account_balance_wallet';
-            hasCredit = true;
-        }
-
-        list.add(PaymentMethod(id: (pt['id'] ?? (i + 1)) as int, name: name, icon: iconName));
+    // Build a map of name -> method so DB rows can override/extend defaults
+    final Map<String, Map<String, String>> methodMap = {};
+    for (var d in defaultMethods) {
+      methodMap[d['name']!.toLowerCase()] = {'name': d['name']!, 'icon': d['icon']!};
+    }
+    for (var pt in pts) {
+      final name = pt['name']?.toString() ?? '';
+      if (name.isEmpty) continue;
+      final lower = name.toLowerCase();
+      if (excluded.contains(lower)) continue; // skip removed methods
+      String icon = 'payments';
+      if (lower == 'cash')                   icon = 'payments';
+      else if (lower.contains('bank'))       icon = 'account_balance';
+      else if (lower.contains('cheque'))     icon = 'receipt_long';
+      else if (lower.contains('card'))       icon = 'credit_card';
+      else if (lower.contains('online'))     icon = 'wifi';
+      else if (lower.contains('mobile'))     icon = 'phone_android';
+      else if (lower == 'credit')            icon = 'account_balance_wallet';
+      methodMap[lower] = {'name': name, 'icon': icon};
     }
 
-    // Explicitly preserve 'Credit' per user request
-    if (!hasCredit) {
-        list.add(PaymentMethod(id: 999, name: 'Credit', icon: 'account_balance_wallet'));
-    }
-
-    if (list.isEmpty) {
-        list.add(PaymentMethod(id: 1, name: 'Cash', icon: 'payments'));
-        list.add(PaymentMethod(id: 2, name: 'Credit', icon: 'account_balance_wallet'));
+    // Preserve insertion order: defaults first, then any extras from DB
+    final List<PaymentMethod> list = [];
+    int idCounter = 1;
+    for (var entry in methodMap.values) {
+      list.add(PaymentMethod(id: idCounter++, name: entry['name']!, icon: entry['icon']!));
     }
 
     if (mounted) {
-        setState(() {
-            _dynamicPaymentMethods = list;
-            if (!_dynamicPaymentMethods.any((pm) => pm.name == _selectedPayment)) {
-                _selectedPayment = _dynamicPaymentMethods.first.name;
-            }
-        });
+      setState(() {
+        _dynamicPaymentMethods = list;
+        if (!_dynamicPaymentMethods.any((pm) => pm.name == _selectedPayment)) {
+          _selectedPayment = _dynamicPaymentMethods.first.name;
+        }
+      });
     }
   }
 
@@ -1128,14 +1147,22 @@ class _PaymentMethodButton extends StatelessWidget {
 
   IconData get _icon {
     switch (iconName) {
+      case 'payments':
+        return Icons.payments_rounded;
+      case 'account_balance':
+        return Icons.account_balance_rounded;
+      case 'receipt_long':
+        return Icons.receipt_long_rounded;
       case 'credit_card':
         return Icons.credit_card_rounded;
+      case 'wifi':
+        return Icons.wifi_rounded;
       case 'phone_android':
         return Icons.phone_android_rounded;
-      case 'card_giftcard':
-        return Icons.card_giftcard_rounded;
       case 'account_balance_wallet':
         return Icons.account_balance_wallet_rounded;
+      case 'card_giftcard':
+        return Icons.card_giftcard_rounded;
       default:
         return Icons.payments_rounded;
     }
