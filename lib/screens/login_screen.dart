@@ -408,39 +408,40 @@ class _LoginScreenState extends State<LoginScreen>
         final businesses = await _dbHelper.getBusinessesForUser(userId);
         print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
         
-        // [FIX] For Quick Login, try to restore the last used business and branch automatically
-        if (isQuickLogin) {
-          final savedAcc = _savedAccounts.firstWhere(
-            (acc) => acc['email'].toString().toLowerCase() == email.toLowerCase(),
-            orElse: () => {},
-          );
-          final savedBid = savedAcc['business_id'];
-          final savedBrid = savedAcc['branch_id'];
+          // [FIX] For Quick Login, try to restore the last used business and branch automatically
+          if (isQuickLogin) {
+            final savedAcc = _savedAccounts.firstWhere(
+              (acc) => acc['email'].toString().toLowerCase().trim() == email.toLowerCase().trim(),
+              orElse: () => {},
+            );
+            final savedBid = savedAcc['business_id'];
+            final savedBrid = savedAcc['branch_id'];
 
-          if (savedBid != null) {
-            print('🚀 [LOGIN] Quick Login: Restoring saved business $savedBid and branch $savedBrid');
-            final b = businesses.firstWhere((eb) => eb['id'] == savedBid, orElse: () => {});
-            if (b.isNotEmpty) {
-              final branches = await _dbHelper.getBranchesForBusiness(savedBid);
-              final aid = b['owner_user_id'] ?? b['admin_id'] ?? userId;
-              
-              BusinessConfig.instance.setContext(
-                bid: savedBid, 
-                uid: aid,
-                brid: savedBrid,
-                bName: b['name'],
-                bType: b['business_type'],
-                activeBranches: branches.map((br) => br['id']).toList(),
-              );
-              
-              await _storage.write(key: 'branch_id', value: savedBrid?.toString() ?? '');
-              await _dbHelper.loadSettings();
+            if (savedBid != null) {
+              print('🚀 [LOGIN] Quick Login: Restoring saved business $savedBid and branch $savedBrid');
+              final b = businesses.firstWhere((eb) => eb['id'] == savedBid, orElse: () => {});
+              if (b.isNotEmpty) {
+                final branches = await _dbHelper.getBranchesForBusiness(savedBid);
+                final aid = b['owner_user_id'] ?? b['admin_id'] ?? userId;
+                
+                BusinessConfig.instance.setContext(
+                  bid: savedBid, 
+                  uid: aid,
+                  brid: savedBrid,
+                  bName: b['name'],
+                  bType: b['business_type'],
+                  activeBranches: branches.map((br) => br['id']).toList(),
+                );
+                
+                await _storage.write(key: 'branch_id', value: savedBrid?.toString() ?? '');
+                await _dbHelper.loadSettings();
 
-              // Quick sync pull in background instead of blocking
-              SyncService().syncPull().catchError((e) => print('⚠️ Quick sync failed: $e'));
+                // [FIX] Await the sync to ensure data is visible immediately.
+                // We use forceFull: true because transactional data was wiped on logout.
+                await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Quick sync failed: $e'));
+              }
             }
           }
-        }
 
         // If context was not restored (or not Quick Login), proceed with standard selection
         if (BusinessConfig.instance.businessId == null) {
@@ -607,7 +608,7 @@ class _LoginScreenState extends State<LoginScreen>
         _syncLoginToBackend();
         SyncService().syncPull().catchError((e) => print('⚠️ Background sync failed: $e'));
         
-        await _proceedToHome(isQuickLogin, email);
+        await _proceedToHome(isQuickLogin, cleanEmail);
         return;
       }
 

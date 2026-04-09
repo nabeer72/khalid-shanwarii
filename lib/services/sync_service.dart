@@ -55,15 +55,19 @@ class SyncService {
     try {
       String? lastSyncedAt = await _storage.read(key: 'last_synced_at');
 
-      // CRITICAL: If the local database is empty (no users or businesses), 
-      // we must ignore last_synced_at even if it was restored from a backup.
+      // CRITICAL: If the local database is missing essential transactional data (products),
+      // or if it has no users/businesses, we must ignore last_synced_at.
       final db = await _dbHelper.database;
       final userCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) ?? 0;
       final bizCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM businesses')) ?? 0;
+      final productCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM products')) ?? 0;
       
-      if (userCount == 0 || bizCount == 0 || forceFull) {
+      if (userCount == 0 || bizCount == 0 || productCount == 0 || forceFull) {
         lastSyncedAt = null;
-        if (kDebugMode) print('🔄 [SYNC] Forcing full sync (local database is empty)');
+        if (kDebugMode) {
+          String reason = forceFull ? 'Manual Force' : (productCount == 0 ? 'Empty Inventory' : 'Empty Identity');
+          print('🔄 [SYNC] Forcing full sync ($reason)');
+        }
       }
 
       final queryParams = {

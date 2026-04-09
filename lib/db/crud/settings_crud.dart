@@ -193,6 +193,10 @@ mixin SettingsCrud {
       }
     }
     
+    // Safety Force: Specifically ensure sync timestamps are gone
+    await storage.delete(key: 'last_synced_at');
+    await storage.delete(key: 'last_synced_push');
+    
     BusinessConfig.instance.reset(keepContext: false);
   }
 
