@@ -1242,6 +1242,20 @@ class DbMigrations {
         if (kDebugMode) print('v68 brands code error: $e');
       }
     }
+
+    if (oldVersion < 69) {
+      if (kDebugMode) print('Upgrading DB to v69: Adding total_spent and visit_count to customers...');
+      try {
+        await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v69 customers total_spent error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE customers ADD COLUMN visit_count INTEGER DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v69 customers visit_count error: $e');
+      }
+    }
   }
 }
 

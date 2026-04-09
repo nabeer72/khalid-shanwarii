@@ -85,20 +85,19 @@ mixin CreditCrud on CommonCrud {
     final uid = getSafeInt(BusinessConfig.instance.userId);
     
     await db.transaction((txn) async {
-      // 1. Insert payment record
-      insertedId = await txn.insert('credit_payments', {
-        ...payment,
-        ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
-        'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
-        'is_synced': 0, // Ensure it's marked for sync
-      });
-
       final customerId = payment['customer_id'];
       double amountLeftToApply = (payment['amount'] as num).toDouble();
 
-      // 2. Update credit sale(s) remaining balance
+      // 2. Update credit sale(s) remaining balance & Insert payment records
       if (payment['credit_sale_id'] != null) {
         // Specific sale targeted
+        insertedId = await txn.insert('credit_payments', {
+          ...payment,
+          ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
+          'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
+          'is_synced': 0,
+        });
+
         await txn.rawUpdate(
           'UPDATE credit_sales SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
           [amountLeftToApply, payment['credit_sale_id'], ...getBusinessArgs()],
@@ -120,11 +119,36 @@ mixin CreditCrud on CommonCrud {
           final remaining = (sale['remaining_balance'] as num).toDouble();
           final applyAmount = amountLeftToApply > remaining ? remaining : amountLeftToApply;
 
+          // Insert specific payment record for this portion
+          final portionPayment = Map<String, dynamic>.from(payment);
+          portionPayment['amount'] = applyAmount;
+          portionPayment['credit_sale_id'] = saleId;
+
+          insertedId = await txn.insert('credit_payments', {
+            ...portionPayment,
+            ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
+            'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
+            'is_synced': 0,
+          });
+
           await txn.rawUpdate(
             'UPDATE credit_sales SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
             [applyAmount, saleId, ...getBusinessArgs()],
           );
+          
           amountLeftToApply -= applyAmount;
+        }
+
+        // If for some reason there's still amount left, keep it as floating
+        if (amountLeftToApply > 0) {
+          final remainderPayment = Map<String, dynamic>.from(payment);
+          remainderPayment['amount'] = amountLeftToApply;
+          insertedId = await txn.insert('credit_payments', {
+            ...remainderPayment,
+            ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
+            'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
+            'is_synced': 0,
+          });
         }
       }
 

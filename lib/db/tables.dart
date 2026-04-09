@@ -144,6 +144,8 @@ class DbTables {
         discount REAL DEFAULT 0,
         credit_balance REAL DEFAULT 0,
         credit_limit REAL DEFAULT 0,
+        visit_count INTEGER DEFAULT 0,
+        total_spent REAL DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,

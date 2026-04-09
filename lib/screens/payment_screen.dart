@@ -161,13 +161,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (_selectedCustomer!.creditLimit > 0) {
         final currentBalance = _selectedCustomer!.creditBalance ?? 0.0;
         final newCredit = unpaidAmount;
-        if (currentBalance + newCredit > _selectedCustomer!.creditLimit) {
+        final totalNewBalance = currentBalance + newCredit;
+        
+        if (totalNewBalance > _selectedCustomer!.creditLimit) {
+          final exceededAmount = totalNewBalance - _selectedCustomer!.creditLimit;
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Credit limit exceeded! Limit: ${BusinessConfig.instance.formatAmount(_selectedCustomer!.creditLimit)}, Current Balance: ${BusinessConfig.instance.formatAmount(currentBalance)}, New Credit: ${BusinessConfig.instance.formatAmount(newCredit)}'),
+                content: Text('Credit limit exceeded by ${BusinessConfig.instance.formatAmount(exceededAmount)}! \nLimit: ${BusinessConfig.instance.formatAmount(_selectedCustomer!.creditLimit)}, New Balance: ${BusinessConfig.instance.formatAmount(totalNewBalance)}'),
                 backgroundColor: ThemeProvider.error,
-                duration: const Duration(seconds: 5),
+                duration: const Duration(seconds: 8),
                 action: SnackBarAction(
                   label: 'OK',
                   textColor: Colors.white,

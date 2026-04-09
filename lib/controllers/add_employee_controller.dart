@@ -195,7 +195,7 @@ class AddEmployeeController with ChangeNotifier {
       final uid = BusinessConfig.instance.userId;
       final List<Map<String, dynamic>> existing = await db.query(
         'employees',
-        where: 'LOWER(email) = ? AND id != ? AND business_id = ? AND admin_id = ?',
+        where: 'LOWER(email) = ? AND id != ? AND business_id = ? AND user_id = ?',
         whereArgs: [cleanEmail, initialEmployee?.id ?? -1, bid, uid],
       );
 
