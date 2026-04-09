@@ -430,7 +430,7 @@ class SyncService {
                       'sale_id': saleId,
                       'product_id': item['product_id'] is int ? item['product_id'] : int.tryParse(item['product_id']?.toString() ?? ''),
                       'branch_id': s['branch_id'] is int ? s['branch_id'] : int.tryParse(s['branch_id']?.toString() ?? '') ?? fallbackBranchId,
-                      'user_id': s['admin_id'] is int ? s['admin_id'] : int.tryParse(s['admin_id']?.toString() ?? '') ?? fallbackUserId,
+                      'user_id': item['user_id'] ?? item['admin_id'] ?? s['admin_id'] ?? s['user_id'] ?? fallbackUserId,
                       'quantity': _parseNum(item['quantity']),
                       'price': _parseNum(item['price'] ?? item['sale_price'] ?? item['unit_price'] ?? item['selling_price']),
                       'sub_total': _parseNum(item['sub_total'] ?? item['subtotal'] ?? item['total']),
@@ -1113,19 +1113,20 @@ class SyncService {
            saleData.remove('total_tip');
            saleData.remove('sub_total');
            
-           saleData['sale_details'] = items.map((i) {
+           // [FIX] Backend expects 'items' key, not 'sale_details'
+           // and expects 'price' and 'subtotal' fields within each item.
+           saleData['items'] = items.map((i) {
              var m = Map.from(i);
              m.remove('is_synced');
              
              // Item naming harmonization
-             m['sale_price'] = m['price'];
+             m['price'] = m['price']; // Keep 'price' for server
              m['subtotal'] = m['sub_total'];
-             m.remove('price');
+             // m.remove('price'); // Do NOT remove 'price'
              m.remove('sub_total');
              
              m['business_id'] ??= bid;
              m['user_id'] = m['user_id'] ?? uid;
-             // m.remove('user_id');
              
              return m;
            }).toList();

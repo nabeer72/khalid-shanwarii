@@ -96,6 +96,7 @@ mixin SalesCrud on CommonCrud {
         await txn.insert('sale_items', {
           ...item,
           'sale_id': sid,
+          'user_id': uid,
           'branch_id': brid,
           'is_synced': 0
         });
