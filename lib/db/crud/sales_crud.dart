@@ -186,14 +186,18 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        si.*,
+        si.id, si.sale_id, si.product_id, si.stock_id, si.business_id, si.user_id,
+        si.quantity, si.price,
+        COALESCE(si.sub_total, si.price * si.quantity) as subtotal,
+        COALESCE(si.discount, 0) as discount,
+        si.branch_id, si.is_synced,
         p.name as product_name, 
-        COALESCE(st.cost_price, p.purchase_price) as purchase_price,
-        c.name as category_name,
+        COALESCE(st.cost_price, 0) as purchase_price,
+        COALESCE(c.name, 'Uncategorized') as category_name,
         s.created_at,
-        u.name as employee_name
+        COALESCE(u.name, 'Unknown') as employee_name
       FROM sale_items si
-      JOIN sales s ON si.sale_id = s.id
+      JOIN sales s ON si.sale_id = s.id AND s.is_return = 0 AND s.status = 1
       LEFT JOIN products p ON si.product_id = p.id
       LEFT JOIN stocks st ON si.stock_id = st.id
       LEFT JOIN categories c ON p.category_id = c.id
@@ -228,16 +232,17 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        c.name as category_name,
+        COALESCE(c.name, 'Uncategorized') as category_name,
         SUM(si.quantity) as total_qty,
-        SUM(si.subtotal) as total_amount,
-        SUM(si.discount) as total_discount,
-        SUM(si.subtotal - si.discount) as total_net
+        SUM(COALESCE(si.sub_total, si.price * si.quantity)) as total_amount,
+        SUM(COALESCE(si.discount, 0)) as total_discount,
+        SUM(COALESCE(si.sub_total, si.price * si.quantity) - COALESCE(si.discount, 0)) as total_net
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
+        AND s.is_return = 0 AND s.status = 1
       GROUP BY c.id, c.name
       ORDER BY total_amount DESC
     ''', args);
@@ -264,14 +269,15 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        u.name as employee_name,
+        COALESCE(u.name, 'Unknown') as employee_name,
         COUNT(DISTINCT s.id) as total_sales_count,
-        SUM(s.subtotal) as total_gross,
-        SUM(s.discount) as total_discount,
-        SUM(s.total) as total_amount
+        SUM(COALESCE(s.sub_total, 0)) as total_gross,
+        SUM(COALESCE(s.discount, 0)) as total_discount,
+        SUM(COALESCE(s.total, 0)) as total_amount
       FROM sales s
       LEFT JOIN users u ON s.staff_id = u.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
+        AND s.is_return = 0 AND s.status = 1
       GROUP BY u.id, u.name
       ORDER BY total_amount DESC
     ''', args);
@@ -292,13 +298,14 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        p.name as product_name,
+        COALESCE(p.name, 'Unknown Product') as product_name,
         SUM(si.quantity) as total_qty,
-        SUM(si.subtotal) as total_amount
+        SUM(COALESCE(si.sub_total, si.price * si.quantity)) as total_amount
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
+        AND s.is_return = 0 AND s.status = 1
       GROUP BY p.id, p.name
       ORDER BY total_qty DESC
       LIMIT $limit
@@ -384,9 +391,10 @@ mixin SalesCrud on CommonCrud {
       SELECT 
         DATE(s.created_at) as sale_date,
         COUNT(DISTINCT s.id) as total_sales_count,
-        SUM(s.total) as total_amount
+        SUM(COALESCE(s.total, 0)) as total_amount
       FROM sales s
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
+        AND s.is_return = 0 AND s.status = 1
       GROUP BY DATE(s.created_at)
       ORDER BY sale_date DESC
     ''', args);
@@ -413,16 +421,17 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        c.name as category_name,
+        COALESCE(c.name, 'Uncategorized') as category_name,
         SUM(ri.quantity) as total_qty,
-        SUM(ri.subtotal) as total_amount,
-        SUM(ri.discount) as total_discount,
-        SUM(ri.subtotal - ri.discount) as total_net
+        SUM(COALESCE(ri.sub_total, ri.price * ri.quantity)) as total_amount,
+        SUM(COALESCE(ri.discount, 0)) as total_discount,
+        SUM(COALESCE(ri.sub_total, ri.price * ri.quantity) - COALESCE(ri.discount, 0)) as total_net
       FROM return_items ri
       JOIN returns r ON ri.return_id = r.id
       LEFT JOIN products p ON ri.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
+        AND r.status = 1
       GROUP BY c.id, c.name
       ORDER BY total_amount DESC
     ''', args);
@@ -449,12 +458,13 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        u.name as employee_name,
+        COALESCE(u.name, 'Unknown') as employee_name,
         COUNT(DISTINCT r.id) as total_returns_count,
-        SUM(r.total) as total_amount
+        SUM(COALESCE(r.total, 0)) as total_amount
       FROM returns r
       LEFT JOIN users u ON r.staff_id = u.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
+        AND r.status = 1
       GROUP BY u.id, u.name
       ORDER BY total_amount DESC
     ''', args);
@@ -475,7 +485,9 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
-        ri.id, ri.return_id, ri.product_id, ri.stock_id, ri.quantity, ri.price, ri.subtotal, ri.discount,
+        ri.id, ri.return_id, ri.product_id, ri.stock_id, ri.quantity, ri.price,
+        COALESCE(ri.sub_total, ri.price * ri.quantity) as subtotal,
+        COALESCE(ri.discount, 0) as discount,
         p.name as product_name, 
         c.name as category_name,
         r.created_at,
@@ -486,6 +498,7 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON r.staff_id = u.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
+        AND r.status = 1
       ORDER BY r.created_at DESC
     ''', args);
   }

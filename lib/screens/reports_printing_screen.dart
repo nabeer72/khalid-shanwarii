@@ -1672,12 +1672,23 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         build: (context) => [
           pw.TableHelper.fromTextArray(
             headers: ['Date', 'Category', 'Description', 'Amount'],
-            data: expenses.map((e) => [
-              DateFormat('yyyy-MM-dd').format(DateTime.parse(e['date'])),
-              e['expense_head_name'] ?? 'General',
-              e['description'] ?? '',
-              '${business.currency} ${e['amount']}',
-            ]).toList(),
+            data: expenses.map((e) {
+              String dateStr = '-';
+              try {
+                if (e['date'] != null && e['date'].toString().isNotEmpty) {
+                  dateStr = DateFormat('yyyy-MM-dd').format(DateTime.parse(e['date'].toString()));
+                }
+              } catch (_) {
+                dateStr = e['date']?.toString() ?? '-';
+              }
+              final amount = _parseAmount(e['amount']);
+              return [
+                dateStr,
+                e['expense_head_name'] ?? 'General',
+                e['description'] ?? '',
+                '${business.currency} ${amount.toStringAsFixed(2)}',
+              ];
+            }).toList(),
             border: pw.TableBorder.all(width: 1, color: PdfColor.fromHex('#E2E8F0')),
             headerAlignment: pw.Alignment.centerLeft,
             headerAlignments: {

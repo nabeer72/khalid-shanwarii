@@ -54,7 +54,8 @@ mixin ExpensesCrud on CommonCrud {
     final List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
 
     if (startTime != null && endTime != null) {
-      dateFilter = ' AND e.date BETWEEN ? AND ?';
+      // e.date is stored as 'YYYY-MM-DD'; compare using DATE() to handle datetime inputs
+      dateFilter = ' AND DATE(e.date) BETWEEN DATE(?) AND DATE(?)';
       args.addAll([startTime, endTime]);
     }
 

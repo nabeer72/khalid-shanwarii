@@ -219,7 +219,16 @@ class POSController with ChangeNotifier {
 
     // Auto-calculate discount if a customer is selected AND NO MANUAL DISCOUNT entered
     if (!_isManualDiscount && _selectedCustomer != null && _selectedCustomer!.discount > 0) {
-       _discount = _subtotal * (_selectedCustomer!.discount / 100);
+       double autoDiscount = 0;
+       for (var item in _cart) {
+         double limitPercent = item.stock.discountLimit;
+         double applyPercent = _selectedCustomer!.discount;
+         if (limitPercent >= 0 && applyPercent > limitPercent) {
+             applyPercent = limitPercent; // Cap customer discount at product's limit
+         }
+         autoDiscount += (item.price * item.quantity) * (applyPercent / 100);
+       }
+       _discount = autoDiscount;
     }
 
     _total = _subtotal + _tax - _discount;

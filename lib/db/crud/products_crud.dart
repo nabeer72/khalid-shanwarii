@@ -168,7 +168,9 @@ mixin ProductsCrud on CommonCrud {
             existing['unit_id']?.toString()          != metadata['unit_id']?.toString() ||
             existing['description']?.toString()      != metadata['description']?.toString() ||
             existing['status']?.toString()           != metadata['status']?.toString() ||
-            existing['is_favorite']?.toString()      != metadata['is_favorite']?.toString();
+            existing['is_favorite']?.toString()      != metadata['is_favorite']?.toString() ||
+            existing['stock_limit']?.toString()      != metadata['stock_limit']?.toString() ||
+            existing['discount_limit']?.toString()   != metadata['discount_limit']?.toString();
 
         if (metadataChanged) {
           await txn.update(
@@ -186,6 +188,8 @@ mixin ProductsCrud on CommonCrud {
               'status':           metadata['status'] ?? 1,
               'is_favorite':      metadata['is_favorite'] ?? 0,
               'unit_id':          metadata['unit_id'],
+              'stock_limit':      metadata['stock_limit'] ?? 5,
+              'discount_limit':   metadata['discount_limit'] ?? 0.0,
               'is_synced':        0,
               'updated_at':       DateTime.now().toIso8601String(),
             },
@@ -210,6 +214,8 @@ mixin ProductsCrud on CommonCrud {
           'status':         metadata['status'] ?? 1,
           'is_favorite':    metadata['is_favorite'] ?? 0,
           'unit_id':        metadata['unit_id'],
+          'stock_limit':    metadata['stock_limit'] ?? 5,
+          'discount_limit': metadata['discount_limit'] ?? 0.0,
           'is_synced':      0,
           'updated_at':     DateTime.now().toIso8601String(),
         });
@@ -222,6 +228,8 @@ mixin ProductsCrud on CommonCrud {
       final currentCost  = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
       final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
       final newQty       = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
+      final alertQty     = (product['stock_limit'] as num?)?.toDouble() ?? 0.0;
+      final discountLimit = (product['discount_limit'] as num?)?.toDouble() ?? 0.0;
 
       // Check whether an existing stock row already has these exact prices (don't filter by user_id here)
       final nPid  = getSafeInt(pid);
@@ -266,6 +274,8 @@ mixin ProductsCrud on CommonCrud {
           {
             'barcode':    barcode ?? matchingStocks.first['barcode'],
             'quantity':   newQty,
+            'alert_quantity': alertQty,
+            'discount_limit': discountLimit,
             'user_id':    uid,
             'updated_at': DateTime.now().toIso8601String(),
             'is_synced':  0,
@@ -287,6 +297,8 @@ mixin ProductsCrud on CommonCrud {
           'sale_price':      currentPrice,
           'cost_price':      currentCost,
           'wholesale_price': currentWholesale,
+          'alert_quantity':  alertQty,
+          'discount_limit':  discountLimit,
           'status':          1,
           'is_synced':       0,
           'created_at':      DateTime.now().toIso8601String(),

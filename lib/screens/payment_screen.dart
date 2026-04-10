@@ -138,6 +138,52 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
     // Validate partial/credit payment requires customer
     final unpaidAmount = _grandTotal - _amountTendered;
+
+    // Discount Limit Validation
+    if (!widget.isReturn) {
+      double totalMaxAllowed = 0.0;
+      double totalItemApplied = 0.0;
+      bool itemLimitExceeded = false;
+      
+      for (var item in widget.cart) {
+        double itemPrice = (item['price'] as num).toDouble();
+        double itemQty = (item['quantity'] as num).toDouble();
+        double itemDisc = (item['discount'] as num? ?? 0).toDouble();
+        double itemDiscLimitPercent = (item['discount_limit'] as num? ?? 0).toDouble();
+        
+        double maxForThisItem = (itemPrice * itemQty) * (itemDiscLimitPercent / 100.0);
+        
+        if (itemDiscLimitPercent >= 0 && itemDisc > maxForThisItem + 0.01) {
+          itemLimitExceeded = true;
+        }
+        
+        totalItemApplied += itemDisc;
+        if (itemDiscLimitPercent >= 0) {
+           totalMaxAllowed += maxForThisItem;
+        }
+      }
+
+      if (itemLimitExceeded || (widget.discount > 0.01 && (totalItemApplied + widget.discount > totalMaxAllowed + 0.01))) {
+        if (mounted) {
+           showDialog(
+             context: context,
+             builder: (ctx) => AlertDialog(
+                backgroundColor: ThemeProvider.error,
+                title: const Text('Discount Limit Exceeded', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                content: const Text('The applied discount exceeds the allowed maximum discount limit for the products. The sale cannot proceed.', style: TextStyle(color: Colors.white)),
+                actions: [
+                   TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: const Text('OK', style: TextStyle(color: Colors.white)),
+                   )
+                ]
+             )
+           );
+        }
+        return;
+      }
+    }
+
     if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer == null) {
       final customer = await _showCustomerSelectionDialog();
       if (customer == null) {

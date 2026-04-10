@@ -63,6 +63,7 @@ class POSCartItem {
       'emoji': product.image,
       'barcode': stock.barcode,
       'discount': discount,
+      'discount_limit': stock.discountLimit,
     };
   }
 
