@@ -86,6 +86,7 @@ class DbTables {
         image TEXT,
         description TEXT,
         stock_limit INTEGER DEFAULT 5,
+        discount_limit REAL DEFAULT 0,
         is_favorite INTEGER DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,

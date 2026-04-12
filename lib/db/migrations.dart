@@ -1256,6 +1256,14 @@ class DbMigrations {
         if (kDebugMode) print('v69 customers visit_count error: $e');
       }
     }
+    if (oldVersion < 70) {
+      if (kDebugMode) print('Upgrading DB to v70: Adding discount_limit to products...');
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN discount_limit REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('v70 products discount_limit error: $e');
+      }
+    }
   }
 }
 
