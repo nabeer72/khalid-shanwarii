@@ -412,6 +412,7 @@ class SyncService {
                   'discount': _parseNum(s['discount']),
                   'total': _parseNum(s['total']),
                   'payment_method': s['payment_method'] ?? 'cash',
+                  'payment_type_id': s['payment_type_id'] is int ? s['payment_type_id'] : int.tryParse(s['payment_type_id']?.toString() ?? ''),
                   'is_return': (s['is_return'] == true || s['is_return'] == 1) ? 1 : 0,
                   'total_tip': _parseNum(s['total_tip'] ?? s['tip']),
                   'status': _parseStatus(s['status']),
@@ -772,7 +773,9 @@ class SyncService {
                   'sale_id': r['sale_id'] is int ? r['sale_id'] : int.tryParse(r['sale_id']?.toString() ?? ''),
                   'customer_id': r['customer_id'] is int ? r['customer_id'] : int.tryParse(r['customer_id']?.toString() ?? ''),
                   'staff_id': r['user_id'] is int ? r['user_id'] : int.tryParse(r['user_id']?.toString() ?? ''),
-                  'total_amount': _parseNum(r['total_amount']),
+                  'total': _parseNum(r['total_amount'] ?? r['total']),
+                  'sub_total': _parseNum(r['subtotal'] ?? r['sub_total']),
+                  'discount': _parseNum(r['discount']),
                   'reason': r['reason'],
                   'status': _parseStatus(r['status']),
                   'is_synced': 1,
@@ -792,9 +795,12 @@ class SyncService {
                       'sale_item_id': item['sale_item_id'] is int ? item['sale_item_id'] : int.tryParse(item['sale_item_id']?.toString() ?? ''),
                       'product_id': item['product_id'] is int ? item['product_id'] : int.tryParse(item['product_id']?.toString() ?? ''),
                       'stock_id': item['stock_id'] is int ? item['stock_id'] : int.tryParse(item['stock_id']?.toString() ?? ''),
+                      'business_id': item['business_id'] is int ? item['business_id'] : int.tryParse(item['business_id']?.toString() ?? ''),
+                      'user_id': item['user_id'] is int ? item['user_id'] : int.tryParse(item['user_id']?.toString() ?? ''),
                       'quantity': _parseNum(item['quantity']),
                       'price': _parseNum(item['price']),
-                      'subtotal': _parseNum(item['subtotal']),
+                      'sub_total': _parseNum(item['sub_total'] ?? item['subtotal']),
+                      'discount': _parseNum(item['discount']),
                     },
                     conflictAlgorithm: ConflictAlgorithm.replace,
                   );
@@ -1117,6 +1123,9 @@ class SyncService {
            saleData.remove('total_tip');
            saleData.remove('sub_total');
            
+           // Re-inject payment_type_id if it was renamed/nested by server legacy logic
+           saleData['payment_type_id'] = saleData['payment_type_id'];
+           
            // [FIX] Backend expects 'items' key, not 'sale_details'
            // and expects 'price' and 'subtotal' fields within each item.
            saleData['items'] = items.map((i) {
@@ -1150,15 +1159,19 @@ class SyncService {
            
            // Standardize IDs for server
            retData['user_id'] = retData['user_id'] ?? uid;
-           // retData.remove('user_id');
-           // retData['user_id'] = retData['staff_id'];
-           // retData.remove('staff_id');
-
-           retData['return_details'] = items.map((i) {
+           
+           // Map local names to server names
+           retData['total_amount'] = retData['total'];
+           retData['subtotal'] = retData['sub_total'];
+           retData.remove('total');
+           retData.remove('sub_total');
+           
+           retData['items'] = items.map((i) {
              var m = Map.from(i);
              m['business_id'] ??= bid;
              m['user_id'] = m['user_id'] ?? uid;
-             // m.remove('user_id');
+             m['subtotal'] = m['sub_total'];
+             m.remove('sub_total');
              return m;
            }).toList();
            changes['returns']?.add(retData);
@@ -1798,6 +1811,12 @@ class SyncService {
           // Mark shifts as synced
           for (var s in unsyncedShifts) {
              await txn.update('shifts', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [s['id']]);
+          }
+          // Mark returns as synced
+          // NOTE: return_items has no is_synced column — only mark the parent returns record
+          for (var r in unsyncedReturns) {
+            if (r['id'] == null) continue;
+            await txn.update('returns', {'is_synced': 1}, where: 'id = ? AND is_synced = 0', whereArgs: [r['id']]);
           }
           // Mark branches as synced
           for (var b in unsyncedBranches) {

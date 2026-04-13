@@ -10,6 +10,7 @@ class Sale {
   final double discount;
   final double total;
   final String paymentMethod;
+  final int? paymentTypeId;
   final int isReturn;
   final double totalTip;
   final int status;
@@ -30,6 +31,7 @@ class Sale {
     this.discount = 0.0,
     this.total = 0.0,
     this.paymentMethod = 'cash',
+    this.paymentTypeId,
     this.isReturn = 0,
     this.totalTip = 0.0,
     this.status = 1,
@@ -52,6 +54,7 @@ class Sale {
       discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
       total: (map['total'] as num?)?.toDouble() ?? (map['grand_total'] as num?)?.toDouble() ?? 0.0,
       paymentMethod: map['payment_method']?.toString() ?? 'cash',
+      paymentTypeId: map['payment_type_id'] is int ? map['payment_type_id'] : int.tryParse(map['payment_type_id']?.toString() ?? ''),
       isReturn: (map['is_return'] as num?)?.toInt() ?? 0,
       totalTip: (map['total_tip'] as num?)?.toDouble() ?? (map['tip'] as num?)?.toDouble() ?? 0.0,
       status: (map['status'] as num?)?.toInt() ?? 1,
@@ -75,6 +78,7 @@ class Sale {
       'discount': discount,
       'total': total,
       'payment_method': paymentMethod,
+      'payment_type_id': paymentTypeId,
       'is_return': isReturn,
       'total_tip': totalTip,
       'status': status,

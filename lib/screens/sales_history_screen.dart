@@ -392,6 +392,7 @@ class _SaleTile extends StatelessWidget {
     final isReturn = sale['is_return'] == 1;
     final total = (sale['total'] as num? ?? 0).toDouble();
     final paymentMethod = sale['payment_method'] ?? 'Cash';
+    final paymentTypeId = sale['payment_type_id'] ?? sale['paymentTypeId'];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -452,7 +453,7 @@ class _SaleTile extends StatelessWidget {
                     child: Text('ONLINE', style: TextStyle(color: theme.highlight, fontSize: 7, fontWeight: FontWeight.w900)),
                   ),
                 Text(
-                  paymentMethod.toUpperCase(),
+                  '${paymentMethod.toUpperCase()}${paymentTypeId != null ? " ($paymentTypeId)" : ""}',
                   style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
                 ),
               ],

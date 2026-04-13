@@ -72,46 +72,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _loadPaymentMethods() async {
-    // Allowed payment methods (Bank Transfer, Cheque, Online Transfer excluded)
     final defaultMethods = [
-      {'name': 'Cash',           'icon': 'payments'},
-      {'name': 'Mobile Payment', 'icon': 'phone_android'},
-      {'name': 'Credit',         'icon': 'account_balance_wallet'},
-      {'name': 'Credit Card',    'icon': 'credit_card'},
+      {'id': 1, 'name': 'Cash', 'icon': 'payments'},
+      {'id': 6, 'name': 'Mobile Payment', 'icon': 'phone_android'},
+      {'id': 4, 'name': 'Credit Card', 'icon': 'credit_card'},
+      {'id': 7, 'name': 'Credit', 'icon': 'account_balance_wallet'},
     ];
 
-    // Names to exclude even if they come from DB
-    const excluded = {'bank transfer', 'cheque', 'online transfer'};
-
-    // Load any custom types from the DB (e.g. synced from server)
+    // Load custom types from the DB (synced from server or seeded locally)
     final pts = await DatabaseHelper.instance.getPaymentTypes();
 
-    // Build a map of name -> method so DB rows can override/extend defaults
-    final Map<String, Map<String, String>> methodMap = {};
+    final Map<String, Map<String, dynamic>> methodMap = {};
     for (var d in defaultMethods) {
-      methodMap[d['name']!.toLowerCase()] = {'name': d['name']!, 'icon': d['icon']!};
-    }
-    for (var pt in pts) {
-      final name = pt['name']?.toString() ?? '';
-      if (name.isEmpty) continue;
-      final lower = name.toLowerCase();
-      if (excluded.contains(lower)) continue; // skip removed methods
-      String icon = 'payments';
-      if (lower == 'cash')                   icon = 'payments';
-      else if (lower.contains('bank'))       icon = 'account_balance';
-      else if (lower.contains('cheque'))     icon = 'receipt_long';
-      else if (lower.contains('card'))       icon = 'credit_card';
-      else if (lower.contains('online'))     icon = 'wifi';
-      else if (lower.contains('mobile'))     icon = 'phone_android';
-      else if (lower == 'credit')            icon = 'account_balance_wallet';
-      methodMap[lower] = {'name': name, 'icon': icon};
+      final name = d['name'].toString();
+      methodMap[name.toLowerCase()] = {
+        'id': d['id'],
+        'name': name,
+        'icon': d['icon'].toString()
+      };
     }
 
-    // Preserve insertion order: defaults first, then any extras from DB
+    for (var pt in pts) {
+      final name = (pt['name']?.toString() ?? 'Unknown').trim();
+      if (name.isEmpty) continue;
+      final lower = name.toLowerCase();
+      
+      // Determine icon
+      String icon = 'payments';
+      if (lower.contains('cash')) icon = 'payments';
+      else if (lower.contains('bank')) icon = 'account_balance';
+      else if (lower.contains('cheque')) icon = 'receipt_long';
+      else if (lower.contains('card')) icon = 'credit_card';
+      else if (lower.contains('online')) icon = 'wifi';
+      else if (lower.contains('mobile')) icon = 'phone_android';
+      else if (lower == 'credit') icon = 'account_balance_wallet';
+
+      // Database ID takes precedence
+      methodMap[lower] = {
+        'id': pt['id'],
+        'name': name,
+        'icon': icon
+      };
+    }
+
     final List<PaymentMethod> list = [];
-    int idCounter = 1;
     for (var entry in methodMap.values) {
-      list.add(PaymentMethod(id: idCounter++, name: entry['name']!, icon: entry['icon']!));
+      list.add(PaymentMethod(
+          id: entry['id'] as int, name: entry['name']!, icon: entry['icon']!));
     }
 
     if (mounted) {
@@ -237,6 +244,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final isReturnVal = widget.isReturn ? 1 : 0;
       final sign = widget.isReturn ? -1.0 : 1.0;
       
+      final selectedMethod = _dynamicPaymentMethods.firstWhere((pm) => pm.name == _selectedPayment, orElse: () => _dynamicPaymentMethods.first);
+      final paymentTypeId = selectedMethod.id;
+      
       final sale = {
         'business_id': BusinessConfig.instance.businessId,
         'branch_id': BusinessConfig.instance.branchId,
@@ -249,6 +259,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'total_tip': _tipAmount * sign,
         'is_return': isReturnVal,
         'payment_method': _selectedPayment,
+        'payment_type_id': paymentTypeId,
         'status': 1,
         'is_synced': 0,
         'shift_id': activeShift?['id'],
@@ -343,6 +354,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'total_tip': _tipAmount * sign,
         'is_return': isReturnVal,
         'payment_method': _selectedPayment,
+        'payment_type_id': paymentTypeId,
         'status': 1,
         'is_synced': 0,
         'created_at': DateTime.now().toIso8601String(),

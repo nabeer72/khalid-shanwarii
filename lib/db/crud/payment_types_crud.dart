@@ -8,10 +8,16 @@ mixin PaymentTypesCrud on CommonCrud {
     final db = await database;
     
     final bid = BusinessConfig.instance.businessId;
-    String query = 'SELECT * FROM payment_types WHERE status = 1 AND business_id = ? ORDER BY name ASC';
-    List<dynamic> args = [bid];
+    if (bid == null) {
+      return await db.query('payment_types', where: 'status = 1', orderBy: 'name ASC');
+    }
     
-    return await db.rawQuery(query, args);
+    // Fetch records for the current business or global records
+    return await db.query('payment_types', 
+      where: 'status = 1 AND (business_id = ? OR business_id IS NULL OR business_id = 0)',
+      whereArgs: [bid],
+      orderBy: 'name ASC'
+    );
   }
 
   Future<int> insertPaymentType(Map<String, dynamic> pt) async {

@@ -139,8 +139,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     final subTotal = (sale['sub_total'] ?? sale['subtotal'] as num? ?? 0).toDouble();
     final tax = (sale['tax'] as num? ?? 0).toDouble();
     final tip = (sale['total_tip'] ?? sale['tip'] as num? ?? 0).toDouble();
-    // ignore: unused_local_variable
     final paymentMethod = (sale['payment_method'] ?? sale['paymentMethod'] ?? 'Cash').toString();
+    final paymentTypeId = sale['payment_type_id'] ?? sale['paymentTypeId'];
     final customer = sale['customer_name'] ?? sale['customerName'];
     
     // SAFE ID SUBSTRING
@@ -370,6 +370,19 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         _SummaryRow(
                           label: 'Disc:', 
                           value: '-${BusinessConfig.instance.formatAmount(discount)}',
+                          alignment: MainAxisAlignment.start,
+                          labelWidth: 55,
+                        ),
+                      _SummaryRow(
+                        label: 'Type:', 
+                        value: paymentMethod.toUpperCase(),
+                        alignment: MainAxisAlignment.start,
+                        labelWidth: 55,
+                      ),
+                      if (paymentTypeId != null)
+                        _SummaryRow(
+                          label: 'P.ID:', 
+                          value: paymentTypeId.toString(),
                           alignment: MainAxisAlignment.start,
                           labelWidth: 55,
                         ),

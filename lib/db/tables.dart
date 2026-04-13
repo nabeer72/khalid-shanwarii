@@ -194,6 +194,7 @@ class DbTables {
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         shift_id INTEGER,
+        payment_type_id INTEGER,
         created_at TEXT,
         updated_at TEXT,
         FOREIGN KEY (customer_id) REFERENCES customers(id)

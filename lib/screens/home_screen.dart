@@ -172,11 +172,12 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       // Sales query is isolated so a failure doesn't zero out product/customer counts
-      try {
+        try {
         final sales = await db.getSales();
         final returns = await db.getReturns();
         
         double todayTotal = 0;
+        int todaySaleCount = 0;
         final now = DateTime.now();
 
         for (var s in sales) {
@@ -185,17 +186,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final parsedDate = DateTime.tryParse(dateStr);
           if (parsedDate != null) {
-            // [FIX] Robust date comparison for today's stats
             final ts = parsedDate.toLocal();
-            if (ts.day == now.day &&
-                ts.month == now.month &&
-                ts.year == now.year) {
-              todayTotal += (s['total'] as num? ?? 0).toDouble();
+            final isToday = ts.day == now.day && ts.month == now.month && ts.year == now.year;
+            
+            if (isToday) {
+              final isReturn = (s['is_return'] ?? 0) == 1;
+              final amt = (s['total'] as num? ?? 0).toDouble();
+              
+              if (!isReturn) {
+                todayTotal += amt;
+                todaySaleCount++;
+              }
             }
           }
         }
 
-        // [FIX] Subtract today's returns from today's sales total
         double returnTotal = 0;
         for (var r in returns) {
           final String dateStr = (r['created_at'] ?? r['date'] ?? '').toString();
@@ -207,8 +212,8 @@ class _HomeScreenState extends State<HomeScreen> {
             if (ts.day == now.day &&
                 ts.month == now.month &&
                 ts.year == now.year) {
-              final amt = (r['total_amount'] as num? ?? 0).toDouble();
-              todayTotal -= amt;
+              // Note: Column is 'total' in returns table, not 'total_amount'
+              final amt = (r['total'] as num? ?? 0).toDouble();
               returnTotal += amt;
             }
           }
@@ -216,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (mounted) {
           setState(() {
-            _saleCount = sales.length;
+            _saleCount = todaySaleCount;
             _todaySalesAmount = todayTotal;
             _todayReturnsAmount = returnTotal;
           });
@@ -504,7 +509,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     icon: Icons.assignment_return_rounded,
                                     value:
                                         '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
-                                    label: 'RETURNS',
+                                    label: 'REFUND',
                                   ),
                                   _QuickStat(
                                     icon: BusinessConfig.instance.currencyIcon,

@@ -1264,6 +1264,14 @@ class DbMigrations {
         if (kDebugMode) print('v70 products discount_limit error: $e');
       }
     }
+    if (oldVersion < 71) {
+      if (kDebugMode) print('Upgrading DB to v71: Adding payment_type_id to sales...');
+      try {
+        await db.execute('ALTER TABLE sales ADD COLUMN payment_type_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v71 sales payment_type_id error: $e');
+      }
+    }
   }
 }
 
