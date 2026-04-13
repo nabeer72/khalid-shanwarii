@@ -379,13 +379,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         alignment: MainAxisAlignment.start,
                         labelWidth: 55,
                       ),
-                      if (paymentTypeId != null)
-                        _SummaryRow(
-                          label: 'P.ID:', 
-                          value: paymentTypeId.toString(),
-                          alignment: MainAxisAlignment.start,
-                          labelWidth: 55,
-                        ),
+
                     ],
                   ),
                 ),
@@ -519,9 +513,26 @@ class _SummaryRow extends StatelessWidget {
         children: [
           SizedBox(
             width: labelWidth,
-            child: Text(label, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+            child: Text(label,
+                style: TextStyle(
+                    color: Colors.black,
+                    fontSize: fontSize,
+                    fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           ),
-          Text(value, textAlign: TextAlign.right, style: TextStyle(color: Colors.black, fontSize: fontSize, fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
+          Expanded(
+            child: Text(
+              value,
+              textAlign: alignment == MainAxisAlignment.start
+                  ? TextAlign.left
+                  : TextAlign.right,
+              style: TextStyle(
+                  color: Colors.black,
+                  fontSize: fontSize,
+                  fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
         ],
       ),
     );

@@ -790,11 +790,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: theme.textSecondary, size: 18),
             const SizedBox(width: 6),
-            Text(label, style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
             const SizedBox(width: 4),
             Transform.scale(
               scale: 0.8,
