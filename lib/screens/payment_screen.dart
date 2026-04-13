@@ -291,13 +291,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'discount': widget.discount * sign,
           'total': _grandTotal * sign,
           'total_tip': _tipAmount * sign,
+          'payment_method': _selectedPayment,
+          'payment_type_id': paymentTypeId,
           'reason': 'Refund',
           'status': 1,
           'is_synced': 0,
         };
         final returnItems = widget.cart.map((item) {
           return {
-            'sale_item_id': null,
+            'sale_item_id': item['sale_item_id'],
             'product_id': item['id'] ?? item['productId'],
             'stock_id': item['stock_id'],
             'quantity': item['quantity'],

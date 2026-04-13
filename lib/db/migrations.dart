@@ -1272,6 +1272,92 @@ class DbMigrations {
         if (kDebugMode) print('v71 sales payment_type_id error: $e');
       }
     }
+    if (oldVersion < 72) {
+      if (kDebugMode) print('Upgrading DB to v72: Adding payment_type_id and payment_method to returns...');
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('v72 returns payment_type_id error: $e');
+      }
+      try {
+        await db.execute("ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+      } catch (e) {
+        if (kDebugMode) print('v72 returns payment_method error: $e');
+      }
+    }
+
+    if (oldVersion < 73) {
+      if (kDebugMode) print('Upgrading DB to v73: Ensuring all columns exist in returns and return_items...');
+      await db.transaction((txn) async {
+        // Safe check for Returns columns
+        final returnColumns = await txn.rawQuery('PRAGMA table_info(returns)');
+        final returnColNames = returnColumns.map((c) => c['name'] as String).toList();
+        
+        if (!returnColNames.contains('sub_total')) await txn.execute('ALTER TABLE returns ADD COLUMN sub_total REAL DEFAULT 0');
+        if (!returnColNames.contains('tax')) await txn.execute('ALTER TABLE returns ADD COLUMN tax REAL DEFAULT 0');
+        if (!returnColNames.contains('discount')) await txn.execute('ALTER TABLE returns ADD COLUMN discount REAL DEFAULT 0');
+        if (!returnColNames.contains('total')) {
+            await txn.execute('ALTER TABLE returns ADD COLUMN total REAL DEFAULT 0');
+            if (returnColNames.contains('total_amount')) {
+                await txn.execute('UPDATE returns SET total = total_amount');
+            }
+        }
+        if (!returnColNames.contains('total_tip')) await txn.execute('ALTER TABLE returns ADD COLUMN total_tip REAL DEFAULT 0');
+        if (!returnColNames.contains('payment_method')) await txn.execute("ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+        if (!returnColNames.contains('payment_type_id')) await txn.execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
+        if (!returnColNames.contains('is_return')) await txn.execute('ALTER TABLE returns ADD COLUMN is_return INTEGER DEFAULT 1');
+        if (!returnColNames.contains('staff_id')) await txn.execute('ALTER TABLE returns ADD COLUMN staff_id INTEGER');
+
+        // Safe check for Return Items columns
+        final itemColumns = await txn.rawQuery('PRAGMA table_info(return_items)');
+        final itemColNames = itemColumns.map((c) => c['name'] as String).toList();
+        
+        if (!itemColNames.contains('business_id')) await txn.execute('ALTER TABLE return_items ADD COLUMN business_id INTEGER');
+        if (!itemColNames.contains('user_id')) await txn.execute('ALTER TABLE return_items ADD COLUMN user_id INTEGER');
+        if (!itemColNames.contains('discount')) await txn.execute('ALTER TABLE return_items ADD COLUMN discount REAL DEFAULT 0');
+        if (!itemColNames.contains('sub_total')) {
+            await txn.execute('ALTER TABLE return_items ADD COLUMN sub_total REAL DEFAULT 0');
+            if (itemColNames.contains('subtotal')) {
+                await txn.execute('UPDATE return_items SET sub_total = subtotal');
+            }
+        }
+      });
+    }
+
+    if (oldVersion < 74) {
+      if (kDebugMode) print('CRITICAL: Upgrading DB to v74 - Forced column repair for returns table...');
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
+      } catch (e) {
+        if (kDebugMode) print('Note: payment_type_id already exists or error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN sub_total REAL DEFAULT 0');
+      } catch (e) {}
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN tax REAL DEFAULT 0');
+      } catch (e) {}
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN discount REAL DEFAULT 0');
+      } catch (e) {}
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN total REAL DEFAULT 0');
+      } catch (e) {}
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN total_tip REAL DEFAULT 0');
+      } catch (e) {}
+      try {
+        await db.execute("ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+      } catch (e) {}
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN is_return INTEGER DEFAULT 1');
+      } catch (e) {}
+      try {
+        await db.execute('ALTER TABLE returns ADD COLUMN staff_id INTEGER');
+      } catch (e) {}
+      
+      if (kDebugMode) print('CRITICAL: Migration v74 complete.');
+    }
   }
 }
 

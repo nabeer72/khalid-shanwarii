@@ -3,6 +3,7 @@ import 'package:mobile_app/models/stock.dart';
 
 class POSCartItem {
   final String cartItemId; // product_id + "_" + stock_id
+  final int? saleItemId; // ID from sale_items table for returns
   final Product product;
   final Stock stock;
   double quantity;
@@ -21,6 +22,7 @@ class POSCartItem {
 
   POSCartItem({
     required this.cartItemId,
+    this.saleItemId,
     required this.product,
     required this.stock,
     this.quantity = 1,
@@ -52,6 +54,7 @@ class POSCartItem {
   Map<String, dynamic> toMap() {
     return {
       'cart_item_id': cartItemId,
+      'sale_item_id': saleItemId,
       'product_id': product.id,
       'id': product.id,
       'stock_id': stock.id,
@@ -72,9 +75,11 @@ class POSCartItem {
     double? quantity,
     double? price,
     double? discount,
+    int? saleItemId,
   }) {
     final newItem = POSCartItem(
       cartItemId: cartItemId,
+      saleItemId: saleItemId ?? this.saleItemId,
       product: product,
       stock: stock,
       quantity: quantity ?? this.quantity,

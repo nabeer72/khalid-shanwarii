@@ -348,6 +348,7 @@ class POSController with ChangeNotifier {
         
         _cart.add(POSCartItem(
           cartItemId: '${product.id}_${stock.id}',
+          saleItemId: itemMap['id'], // ID from sale_items table
           product: product,
           stock: stock,
           quantity: (itemMap['quantity'] as num).toDouble(),

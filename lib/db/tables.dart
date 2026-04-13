@@ -289,6 +289,7 @@ class DbTables {
         discount REAL DEFAULT 0,
         total REAL DEFAULT 0,
         payment_method TEXT DEFAULT 'cash',
+        payment_type_id INTEGER,
         is_return INTEGER DEFAULT 1,
         total_tip REAL DEFAULT 0,
         reason TEXT,

@@ -773,8 +773,10 @@ class SyncService {
                   'sale_id': r['sale_id'] is int ? r['sale_id'] : int.tryParse(r['sale_id']?.toString() ?? ''),
                   'customer_id': r['customer_id'] is int ? r['customer_id'] : int.tryParse(r['customer_id']?.toString() ?? ''),
                   'staff_id': r['user_id'] is int ? r['user_id'] : int.tryParse(r['user_id']?.toString() ?? ''),
+                  'payment_type_id': r['payment_type_id'] is int ? r['payment_type_id'] : int.tryParse(r['payment_type_id']?.toString() ?? ''),
                   'total': _parseNum(r['total_amount'] ?? r['total']),
                   'sub_total': _parseNum(r['subtotal'] ?? r['sub_total']),
+                  'tax': _parseNum(r['tax']),
                   'discount': _parseNum(r['discount']),
                   'reason': r['reason'],
                   'status': _parseStatus(r['status']),
@@ -1163,6 +1165,9 @@ class SyncService {
            // Map local names to server names
            retData['total_amount'] = retData['total'];
            retData['subtotal'] = retData['sub_total'];
+           retData['payment_type_id'] = retData['payment_type_id'];
+           retData['sale_id'] = retData['sale_id'];
+
            retData.remove('total');
            retData.remove('sub_total');
            
@@ -2032,6 +2037,7 @@ class SyncService {
         await txn.update('sales', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
         await txn.update('sale_items', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
         await txn.update('credit_sales', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
+        await txn.update('returns', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
       }
     }
 
