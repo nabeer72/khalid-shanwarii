@@ -536,7 +536,7 @@ class _BreakdownRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           Text(
-            '${value < 0 ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${value.abs().toStringAsFixed(2)}',
+            '${BusinessConfig.instance.currencyDisplay} ${value.abs().toStringAsFixed(2)}',
             style: TextStyle(
               color: color, 
               fontSize: bold ? 20 : (small ? 13 : 15), 

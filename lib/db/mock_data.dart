@@ -40,11 +40,12 @@ class BusinessConfig {
   
   String formatAmount(double amount) {
     final c = currency.toLowerCase();
+    final absAmount = amount.abs();
     // Include various Rupee symbols: Rs, ₹ (INR), ₨ (PKR), etc.
     if (c.startsWith('rs') || c.startsWith('rupee') || c == '₹' || c == '₨' || c.contains('rs')) {
-      return amount.toStringAsFixed(2);
+      return absAmount.toStringAsFixed(2);
     } else {
-      return amount.toStringAsFixed(0);
+      return absAmount.toStringAsFixed(0);
     }
   }
 
@@ -465,7 +466,7 @@ class Expense {
       expenseHeadId: map['expense_head_id'] is int ? map['expense_head_id'] : int.tryParse(map['expense_head_id']?.toString() ?? '') ?? 0,
       expenseHeadName: headName ?? map['expense_head_name']?.toString(),
       amount: (map['amount'] as num?)?.toDouble() ?? 0,
-      description: map['description']?.toString(),
+      description: (map['remarks'] ?? map['remark'] ?? map['description'] ?? map['title'])?.toString(),
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
       branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
     );

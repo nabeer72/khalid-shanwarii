@@ -513,10 +513,30 @@ class _LoginScreenState extends State<LoginScreen>
       // [FIX] Normalize email comparison to avoid duplicate prompts
       final bool isAlreadySaved = _savedAccounts.any((acc) => acc['email'].toString().toLowerCase() == email.toLowerCase());
       if (!isAlreadySaved && _rememberMe) {
+        // [FIX] Check if user already has a PIN in the database (synced from server)
+        String? existingPin;
+        final localUser = await _dbHelper.getUserByEmail(email);
+        if (localUser != null && localUser['pin'] != null && localUser['pin'].toString().isNotEmpty) {
+          existingPin = localUser['pin'].toString();
+          print('🔐 [LOGIN] Found existing PIN for user, enabling Quick Login automatically');
+        } else {
+          final staff = await _dbHelper.getEmployeeByEmail(email);
+          if (staff != null && staff['pin'] != null && staff['pin'].toString().isNotEmpty) {
+            existingPin = staff['pin'].toString();
+            print('🔐 [LOGIN] Found existing PIN for staff, enabling Quick Login automatically');
+          }
+        }
+
         if (mounted) {
-          final pin = await PinDialogs.showSetupPinDialog(context);
-          if (pin != null) {
-            await _saveCurrentAccount(pin);
+          if (existingPin != null) {
+            // Automatically save to Quick Login if PIN exists
+            await _saveCurrentAccount(existingPin);
+          } else {
+            // Otherwise show setup dialog
+            final pin = await PinDialogs.showSetupPinDialog(context);
+            if (pin != null) {
+              await _saveCurrentAccount(pin);
+            }
           }
         }
       }

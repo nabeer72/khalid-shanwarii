@@ -241,7 +241,7 @@ mixin SuppliersCrud on CommonCrud {
         SELECT s.id as supplier_id, (SUM(IFNULL(scp.remaining_balance, 0)) + IFNULL(s.opening_amount, 0)) as calculated_balance
         FROM suppliers s
         LEFT JOIN supplier_credit_purchases scp ON s.id = scp.supplier_id AND scp.status = 1
-        WHERE s.status = 1${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id')} $branchFilter
+        WHERE s.status = 1${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id')} ${branchFilter.replaceAll('branch_id', 's.branch_id')}
         GROUP BY s.id
       ''', [...businessArgs, ...branchArgs]);
     } catch (_) {

@@ -76,8 +76,8 @@ mixin EmployeesCrud on CommonCrud {
     
     final List<Map<String, dynamic>> results = await db.query(
       'employees',
-      where: 'LOWER(email) = ? AND pin = ? AND status = 1${getBusinessFilter()}',
-      whereArgs: [cleanEmail, pin, ...getBusinessArgs()],
+      where: 'LOWER(email) = ? AND pin = ? AND status = 1',
+      whereArgs: [cleanEmail, pin],
       limit: 1,
     );
     

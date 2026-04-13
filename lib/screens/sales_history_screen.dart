@@ -442,7 +442,7 @@ class _SaleTile extends StatelessWidget {
                   style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900),
                 ),
                 Text(
-                  '${isReturn ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',
+                  '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',
                   style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
                 ),
                 if (isOnline)

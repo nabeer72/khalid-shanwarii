@@ -106,6 +106,18 @@ class SyncService {
         final fallbackUserId = currentUserId ?? pId(aid);
         final fallbackBranchId = BusinessConfig.instance.branchId ?? pId(brid);
 
+        // [FIX] Initialize BusinessConfig early so that background logic (like reconciliation)
+        // has access to the correct context even before the UI updates.
+        if (BusinessConfig.instance.businessId == null && fallbackBusinessId != null) {
+          BusinessConfig.instance.businessId = fallbackBusinessId;
+        }
+        if (BusinessConfig.instance.userId == null && fallbackUserId != null) {
+          BusinessConfig.instance.userId = fallbackUserId;
+        }
+        if (BusinessConfig.instance.branchId == null && fallbackBranchId != null) {
+          BusinessConfig.instance.branchId = fallbackBranchId;
+        }
+
         int _parseStatus(dynamic v) {
           if (v == null || v == true || v == 1 || v.toString().toLowerCase() == 'active' || v.toString() == '1') return 1;
           return 0;
@@ -632,7 +644,7 @@ class SyncService {
                   'user_id': e['admin_id'] is int ? e['admin_id'] : int.tryParse(e['admin_id']?.toString() ?? '') ?? fallbackUserId,
                   'expense_head_id': e['expense_head_id'] is int ? e['expense_head_id'] : int.tryParse(e['expense_head_id']?.toString() ?? ''),
                   'amount': _parseNum(e['amount']),
-                  'description': e['title'], // Backend calls it title
+                  'description': e['remarks'] ?? e['remark'] ?? e['title'], // Prioritize 'remarks' from backend migration
                   'date': e['date'],
                   'status': (e['status'] == null || e['status'] == true || e['status'] == 1) ? 1 : 0,
                   'created_at': e['created_at'],
@@ -1133,6 +1145,13 @@ class SyncService {
            saleData['items'] = items.map((i) {
              var m = Map.from(i);
              m.remove('is_synced');
+            m['remarks'] = m['description'];
+            
+            // Send redundant keys for better server compatibility
+            m['description'] = m['description'];
+            
+            // Send redundant keys for better server compatibility
+            m['description'] = m['description'];
              
              // Item naming harmonization
              m['price'] = m['price']; // Keep 'price' for server
@@ -1482,9 +1501,7 @@ class SyncService {
            var m = Map.from(e);
            m.remove('is_synced');
            
-           // Naming harmonization for server
-           m['title'] = m['description'];
-           m.remove('description');
+
            
            m['business_id'] ??= bid;
            m['user_id'] = m['user_id'] ?? uid;

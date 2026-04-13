@@ -103,6 +103,7 @@ mixin CommonCrud {
     'name': user['name'] ?? '',
     'email': user['email']?.toString().toLowerCase().trim(),
     'password': user['password'],
+    'pin': user['pin'],
     'role': user['role'] ?? 'admin',
     'status': (user['status'] == true || user['status'] == 1) ? 1 : 0,
     'is_synced': isSynced ?? (user['is_synced'] ?? 1), // Default to 1 if not specified

@@ -222,7 +222,9 @@ mixin CreditCrud on CommonCrud {
 
     // 1. Reset credit balances to 0 for current tenant
     final businessArgs = getBusinessArgs();
-    if (businessArgs.isNotEmpty) {
+    final hasContext = businessArgs.every((arg) => arg != null);
+    
+    if (hasContext) {
       await txn.update(
         'customers', 
         {'credit_balance': 0}, 
@@ -230,7 +232,8 @@ mixin CreditCrud on CommonCrud {
         whereArgs: businessArgs
       );
     } else {
-      // If we don't have bid/aid, reset all (safety fallback for edge cases)
+      // If we don't have bId/uId context yet (e.g. during initial sync),
+      // reset all customers on the device to avoid crashing.
       await txn.update('customers', {'credit_balance': 0});
     }
 
@@ -241,9 +244,9 @@ mixin CreditCrud on CommonCrud {
     final List<Map<String, dynamic>> results = await txn.rawQuery('''
       SELECT customer_id, SUM(remaining_balance) as calculated_balance
       FROM credit_sales
-      WHERE status = 1${getBusinessFilter()} $branchFilter
+      WHERE status = 1${hasContext ? getBusinessFilter() : ''} $branchFilter
       GROUP BY customer_id
-    ''', [...businessArgs, ...branchArgs]);
+    ''', [...(hasContext ? businessArgs : []), ...branchArgs]);
 
     // 3. Update each customer with their calculated balance
     for (var row in results) {
@@ -253,8 +256,8 @@ mixin CreditCrud on CommonCrud {
         await txn.update(
           'customers',
           {'credit_balance': balance},
-          where: 'id = ?${getBusinessFilter()}',
-          whereArgs: [customerId, ...getBusinessArgs()],
+          where: 'id = ?${hasContext ? getBusinessFilter() : ''}',
+          whereArgs: [customerId, ...(hasContext ? businessArgs : [])],
         );
       }
     }
