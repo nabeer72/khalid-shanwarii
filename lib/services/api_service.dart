@@ -5,7 +5,7 @@ class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
   // or your machine's LAN IP if running on physical device (e.g., 192.168.1.X).
   // Current IP: 192.168.137.202 (from ipconfig - Wi-Fi adapter)
-  static const String baseUrl = 'http://192.168.0.110:8080/api';
+  static const String baseUrl = 'http://192.168.0.111:8080/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,

@@ -1849,10 +1849,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       builder: (context, constraints) {
         final bool showLabel = constraints.maxWidth > 600;
 
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: Row(
-            children: [
+        final buttons = [
               Container(
                 decoration: theme.glassCircleDecoration,
                 child: IconButton(
@@ -1953,62 +1950,87 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 showLabel: showLabel,
                 onTap: _showAllHistory,
               ),
-              const SizedBox(width: 12),
-              const Spacer(),
-              Flexible(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  child: Container(
-                    decoration: theme.glassDecoration.copyWith(
-                      borderRadius: BorderRadius.circular(8),
-                      color: theme.isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.white.withOpacity(0.2),
-                    ),
-                    child: TextField(
-                      controller: _searchCtrl,
-                      focusNode: _searchFocusNode,
-                      onChanged: (v) => _controller.setSearchQuery(v),
-                      onSubmitted: (v) {
-                        if (v.isNotEmpty) {
-                          _processBarcode(v);
+        ];
+
+        final searchWidget = ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Container(
+            decoration: theme.glassDecoration.copyWith(
+              borderRadius: BorderRadius.circular(8),
+              color: theme.isDark
+                  ? Colors.white.withOpacity(0.05)
+                  : Colors.white.withOpacity(0.2),
+            ),
+            child: TextField(
+              controller: _searchCtrl,
+              focusNode: _searchFocusNode,
+              onChanged: (v) => _controller.setSearchQuery(v),
+              onSubmitted: (v) {
+                if (v.isNotEmpty) {
+                  _processBarcode(v);
+                  _searchCtrl.clear();
+                  _controller.setSearchQuery('');
+                }
+              },
+              style: TextStyle(
+                  color: theme.textPrimary, fontWeight: FontWeight.w500),
+              decoration: InputDecoration(
+                hintText: showLabel
+                    ? 'Search product or scan barcode...'
+                    : 'Search...',
+                hintStyle: TextStyle(
+                    color: theme.textHint, fontWeight: FontWeight.w400),
+                prefixIcon:
+                    Icon(Icons.search_rounded, color: theme.iconColor),
+                suffixIcon: _controller.searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.close_rounded,
+                            size: 18, color: theme.iconColor),
+                        onPressed: () {
                           _searchCtrl.clear();
                           _controller.setSearchQuery('');
-                        }
-                      },
-                      style: TextStyle(
-                          color: theme.textPrimary, fontWeight: FontWeight.w500),
-                      decoration: InputDecoration(
-                        hintText: showLabel
-                            ? 'Search product or scan barcode...'
-                            : 'Search...',
-                        hintStyle: TextStyle(
-                            color: theme.textHint, fontWeight: FontWeight.w400),
-                        prefixIcon:
-                            Icon(Icons.search_rounded, color: theme.iconColor),
-                        suffixIcon: _controller.searchQuery.isNotEmpty
-                            ? IconButton(
-                                icon: Icon(Icons.close_rounded,
-                                    size: 18, color: theme.iconColor),
-                                onPressed: () {
-                                  _searchCtrl.clear();
-                                  _controller.setSearchQuery('');
-                                })
-                            : IconButton(
-                                icon: Icon(Icons.qr_code_scanner_rounded,
-                                    color: theme.iconColor),
-                                onPressed: _openBarcodeScanner),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                  ),
-                ),
+                        })
+                    : IconButton(
+                        icon: Icon(Icons.qr_code_scanner_rounded,
+                            color: theme.iconColor),
+                        onPressed: _openBarcodeScanner),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 12),
               ),
-            ],
+            ),
           ),
         );
+
+        if (showLabel) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Row(
+              children: [
+                ...buttons,
+                const SizedBox(width: 12),
+                const Spacer(),
+                Flexible(child: searchWidget),
+              ],
+            ),
+          );
+        } else {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(children: buttons),
+                ),
+                const SizedBox(height: 12),
+                searchWidget,
+              ],
+            ),
+          );
+        }
       },
     );
   }

@@ -250,30 +250,18 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             const SizedBox(height: 16),
                             _buildSubCategorySelector(),
                             const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: _buildBrandSelector()),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildUnitSelector()),
-                              ],
+                            _buildBrandSelector(),
+                            const SizedBox(height: 16),
+                            _buildUnitSelector(),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _controller.name,
+                              label: 'Product Name',
+                              icon: Icons.inventory_2_outlined,
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                             ),
                             const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.name,
-                                    label: 'Product Name',
-                                    icon: Icons.inventory_2_outlined,
-                                    validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildBarcodeScanner()),
-                              ],
-                            ),
+                            _buildBarcodeScanner(),
                           ],
                         ],
                       );

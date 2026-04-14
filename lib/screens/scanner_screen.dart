@@ -14,11 +14,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final theme = ThemeProvider.instance;
   MobileScannerController controller = MobileScannerController();
   bool _isPopped = false;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  static final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -54,39 +53,34 @@ class _ScannerScreenState extends State<ScannerScreen> {
               if (barcodes.isNotEmpty) {
                 final String? code = barcodes.first.rawValue;
                 if (code != null) {
-                  _audioPlayer.play(AssetSource('beep.mpeg'));
                   _isPopped = true;
+                  try {
+                    AudioCache.instance.prefix = '';
+                    _audioPlayer.play(AssetSource('asset/beep.mpeg'));
+                  } catch (e) {
+                    // Ignore audio playback errors to ensure scanning completes
+                  }
                   Navigator.pop(context, code);
                 }
               }
             },
           ),
           // Dark overlay with transparent center
-          ColorFiltered(
-            colorFilter: ColorFilter.mode(
-              Colors.black.withAlpha(150),
-              BlendMode.srcOut,
-            ),
-            child: Stack(
-              children: [
-                Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.black,
-                    backgroundBlendMode: BlendMode.dstOut,
-                  ),
-                ),
-                Align(
-                  alignment: Alignment.center,
-                  child: Container(
-                    width: 250,
-                    height: 250,
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(12),
+          IgnorePointer(
+            child: Center(
+              child: Container(
+                width: 250,
+                height: 250,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(150),
+                      spreadRadius: 2000,
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
           // Scanner Overlay (Visual Cue - Red Layer)
