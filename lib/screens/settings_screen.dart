@@ -935,28 +935,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   );
                 },
               ),
-              _SettingsTile(
-                icon: Icons.scale_rounded,
-                title: 'Manage Units',
-                subtitle: 'Define units of measurement (e.g. Kg, Pcs)',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const UnitsScreen()),
-                  );
-                },
-              ),
-              _SettingsTile(
-                icon: Icons.credit_card_rounded,
-                title: 'Payment Types',
-                subtitle: 'Manage custom payment methods',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PaymentTypesScreen()),
-                  );
-                },
-              ),
+              // _SettingsTile(
+              //   icon: Icons.scale_rounded,
+              //   title: 'Manage Units',
+              //   subtitle: 'Define units of measurement (e.g. Kg, Pcs)',
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => const UnitsScreen()),
+              //     );
+              //   },
+              // ),
+              // _SettingsTile(
+              //   icon: Icons.credit_card_rounded,
+              //   title: 'Payment Types',
+              //   subtitle: 'Manage custom payment methods',
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(builder: (context) => const PaymentTypesScreen()),
+              //     );
+              //   },
+              // ),
 
               const SizedBox(height: 24),
               const _SectionHeader(title: 'PREFERENCES'),
