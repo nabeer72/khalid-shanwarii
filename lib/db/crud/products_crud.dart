@@ -230,6 +230,8 @@ mixin ProductsCrud on CommonCrud {
       final newQty       = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
       final alertQty     = (product['stock_limit'] as num?)?.toDouble() ?? 0.0;
       final discountLimit = (product['discount_limit'] as num?)?.toDouble() ?? 0.0;
+      final piecesPerPack = product['pieces_per_pack']?.toString();
+      final packing       = product['packing']?.toString();
 
       // Check whether an existing stock row already has these exact prices (don't filter by user_id here)
       final nPid  = getSafeInt(pid);
@@ -276,6 +278,8 @@ mixin ProductsCrud on CommonCrud {
             'quantity':   newQty,
             'alert_quantity': alertQty,
             'discount_limit': discountLimit,
+            'pieces_per_pack': piecesPerPack ?? matchingStocks.first['pieces_per_pack'],
+            'packing':    packing ?? matchingStocks.first['packing'],
             'user_id':    uid,
             'updated_at': DateTime.now().toIso8601String(),
             'is_synced':  0,
@@ -299,6 +303,8 @@ mixin ProductsCrud on CommonCrud {
           'wholesale_price': currentWholesale,
           'alert_quantity':  alertQty,
           'discount_limit':  discountLimit,
+          'pieces_per_pack': piecesPerPack,
+          'packing':         packing,
           'status':          1,
           'is_synced':       0,
           'created_at':      DateTime.now().toIso8601String(),

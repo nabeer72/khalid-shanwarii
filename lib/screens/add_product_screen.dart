@@ -358,7 +358,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                         Expanded(
                                           child: _buildTextField(
                                             controller: _controller.stock,
-                                            label: 'Initial ${unitName}s',
+                                            label: 'Total ${unitName}s',
                                             icon: Icons.warehouse_outlined,
                                             keyboardType: TextInputType.number,
                                             validator: validateStock,

@@ -45,7 +45,8 @@ class AddProductController with ChangeNotifier {
   dynamic selectedUnitId;
   bool isBoxUnit = false;
   Map<String, List<Map<String, dynamic>>> groupedUnits = {};
-  Set<dynamic> selectedUnitIds = {};
+  static final Set<dynamic> _globalSelectedUnitIds = {};
+  Set<dynamic> get selectedUnitIds => _globalSelectedUnitIds;
 
   AddProductController({this.initialProduct}) {
     name = TextEditingController(text: initialProduct?.name ?? '');
@@ -486,6 +487,8 @@ class AddProductController with ChangeNotifier {
       'stock_quantity': effectiveStock,
       'stock_limit': limitVal,
       'discount_limit': discountLimitVal,
+      'pieces_per_pack': isBoxUnit ? piecesPerBox.text : null,
+      'packing': isBoxUnit ? stock.text : null,
       'description': description.text.trim(),
       'image': initialProduct?.image ?? 'box',
       'status': status,
