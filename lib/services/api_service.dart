@@ -8,7 +8,6 @@ class ApiService {
   static const String baseUrl = 'https://pos.sata.pk/api';
 
   final Dio _dio = Dio(BaseOptions(
-    
     baseUrl: baseUrl,
     connectTimeout: const Duration(seconds: 20),
     receiveTimeout: const Duration(seconds: 20),
