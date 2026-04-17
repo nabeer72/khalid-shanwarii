@@ -24,7 +24,7 @@ SourceFiles=SourceFiles
 InstallPrompt=
 DisplayLicense=
 FinishMessage=Installation Success!
-TargetName=d:\sata projects\pos2\mobile-pos\windows\MobilePOS_Setup.exe
+TargetName=mobilePOS_setup.exe
 FriendlyName=Mobile POS Installer
 AppLaunched=cmd.exe /c setup.bat
 PostInstallCmd=<None>
@@ -33,7 +33,7 @@ UserQuietInstCmd=
 FILE0="package.zip"
 FILE1="setup.bat"
 [SourceFiles]
-SourceFiles0=d:\sata projects\pos2\mobile-pos\windows\
+SourceFiles0=.\
 [SourceFiles0]
 %FILE0%=
 %FILE1%=
