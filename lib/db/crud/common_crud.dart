@@ -106,6 +106,8 @@ mixin CommonCrud {
     'pin': user['pin'],
     'role': user['role'] ?? 'admin',
     'status': (user['status'] == true || user['status'] == 1) ? 1 : 0,
+    'phone': user['phone'],
+    'cnic': user['cnic'],
     'is_synced': isSynced ?? (user['is_synced'] ?? 1), // Default to 1 if not specified
     'created_at': user['created_at'],
     'updated_at': user['updated_at'],
@@ -158,6 +160,16 @@ mixin CommonCrud {
   Future<void> updateUserSyncStatus(dynamic id, int synced) async {
     final db = await database;
     await db.update('users', {'is_synced': synced}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  Future<void> updateUserFields(dynamic id, Map<String, dynamic> fields) async {
+    final db = await database;
+    await db.update('users', {
+      ...fields,
+      'is_synced': 0,
+      'updated_at': DateTime.now().toIso8601String(),
+    }, where: 'id = ?', whereArgs: [id]);
+    DatabaseHelper.notifyDataChanged();
   }
 
   // Businesses

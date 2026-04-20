@@ -1358,6 +1358,20 @@ class DbMigrations {
       
       if (kDebugMode) print('CRITICAL: Migration v74 complete.');
     }
+
+    if (oldVersion < 75) {
+      if (kDebugMode) print('Upgrading DB to v75: Adding phone and cnic to users table...');
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN phone TEXT');
+      } catch (e) {
+        if (kDebugMode) print('v75 users phone error: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE users ADD COLUMN cnic TEXT');
+      } catch (e) {
+        if (kDebugMode) print('v75 users cnic error: $e');
+      }
+    }
   }
 }
 

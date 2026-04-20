@@ -4,6 +4,8 @@ import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
+import 'package:mobile_app/db/mock_data.dart';
+
 class AddProductScreen extends StatefulWidget {
   final Product? product;
 
@@ -770,7 +772,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
             items: [
               const DropdownMenuItem(value: null, child: Text('No Unit')),
               ..._controller.units
-                .where((u) => _controller.selectedUnitIds.contains(u['id']))
+                .where((u) {
+                  final bid = BusinessConfig.instance.businessId?.toString();
+                  final unitBid = u['business_id']?.toString();
+                  // Show if specifically selected OR if it belongs to the current business
+                  return _controller.selectedUnitIds.contains(u['id']) || 
+                         (unitBid != null && unitBid != 'null' && unitBid == bid);
+                })
                 .map((u) => DropdownMenuItem(value: u['id'], child: Text(u['name'] ?? '')))
                 .toList(),
             ],

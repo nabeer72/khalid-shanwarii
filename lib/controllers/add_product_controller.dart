@@ -208,6 +208,15 @@ class AddProductController with ChangeNotifier {
     units = uniqueUnitsMap.values.toList()
       ..sort((a, b) => a['name'].toString().compareTo(b['name'].toString()));
 
+    // [FIX] Auto-select units that belong to the current business
+    // This solves the issue where units added during onboarding don't show up in the product dropdown.
+    for (var u in units) {
+      final unitBid = u['business_id']?.toString();
+      if (unitBid != null && unitBid != 'null' && unitBid == bid?.toString()) {
+        selectedUnitIds.add(u['id']);
+      }
+    }
+
     if (selectedUnitId != null) {
       final matches = units.where((u) => u['id'].toString() == selectedUnitId.toString());
       if (matches.isEmpty) {

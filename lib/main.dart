@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/login_screen.dart';
+import 'package:mobile_app/screens/onboarding_screen.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:shake/shake.dart';
@@ -98,7 +99,9 @@ class _MyAppState extends State<MyApp> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
-          home: const LoginScreen(),
+          home: BusinessConfig.instance.hasSeenOnboarding 
+              ? const LoginScreen() 
+              : const OnboardingScreen(),
         );
       },
     );

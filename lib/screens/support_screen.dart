@@ -22,62 +22,69 @@ class SupportScreen extends StatelessWidget {
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: theme.highlight.withOpacity(0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: theme.highlight.withOpacity(0.3), width: 2),
-                    ),
-                    child: Icon(Icons.support_agent_rounded, size: 64, color: theme.highlight),
+          child: SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 600),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(24),
+                          decoration: BoxDecoration(
+                            color: theme.highlight.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: theme.highlight.withOpacity(0.3), width: 2),
+                          ),
+                          child: Icon(Icons.support_agent_rounded, size: 64, color: theme.highlight),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'Need Help?',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: theme.textPrimary,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Contact our support team for any assistance or inquiries.',
+                        style: TextStyle(fontSize: 14, color: theme.textSecondary, fontWeight: FontWeight.w500),
+                      ),
+                      const SizedBox(height: 32),
+                      
+                      // Email Card
+                      _buildContactCard(
+                        context,
+                        icon: Icons.email_rounded,
+                        title: 'Email Us',
+                        value: _email,
+                        iconColor: theme.secondary,
+                        onTap: () => _launchEmail(_email),
+                        onLongPress: () => _copyToClipboard(context, _email),
+                      ),
+                      const SizedBox(height: 16),
+      
+                      // Phone Card
+                      _buildContactCard(
+                        context,
+                        icon: Icons.phone_rounded,
+                        title: 'Call Us',
+                        value: _mobile,
+                        iconColor: ThemeProvider.success,
+                        onTap: () => _launchPhone(_mobile),
+                        onLongPress: () => _copyToClipboard(context, _mobile),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 32),
-                Text(
-                  'Need Help?',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: theme.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Contact our support team for any assistance or inquiries.',
-                  style: TextStyle(fontSize: 14, color: theme.textSecondary, fontWeight: FontWeight.w500),
-                ),
-                const SizedBox(height: 32),
-                
-                // Email Card
-                _buildContactCard(
-                  context,
-                  icon: Icons.email_rounded,
-                  title: 'Email Us',
-                  value: _email,
-                  iconColor: theme.secondary,
-                  onTap: () => _launchEmail(_email),
-                  onLongPress: () => _copyToClipboard(context, _email),
-                ),
-                const SizedBox(height: 16),
-
-                // Phone Card
-                _buildContactCard(
-                  context,
-                  icon: Icons.phone_rounded,
-                  title: 'Call Us',
-                  value: _mobile,
-                  iconColor: ThemeProvider.success,
-                  onTap: () => _launchPhone(_mobile),
-                  onLongPress: () => _copyToClipboard(context, _mobile),
-                ),
-              ],
+              ),
             ),
           ),
         ),

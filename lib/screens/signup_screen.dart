@@ -9,6 +9,7 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
+import 'package:mobile_app/screens/setup_profile_screen.dart';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -372,7 +373,7 @@ class _SignupScreenState extends State<SignupScreen>
           content: Text('Account created and synced successfully!'),
         ));
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) => const SetupProfileScreen()),
           (route) => false,
         );
       }

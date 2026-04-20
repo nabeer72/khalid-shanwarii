@@ -29,6 +29,8 @@ class DbTables {
         pin TEXT,
         role TEXT DEFAULT 'admin',
         status INTEGER DEFAULT 1,
+        phone TEXT,
+        cnic TEXT,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT,

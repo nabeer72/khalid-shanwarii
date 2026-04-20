@@ -20,7 +20,7 @@ class ThemeProvider extends ChangeNotifier {
   static const double radiusInput = 8;
   static const double radiusGlass = 8;
 
-  bool _isDark = true;
+  bool _isDark = false;
   bool get isDark => _isDark;
 
   void toggleTheme() {

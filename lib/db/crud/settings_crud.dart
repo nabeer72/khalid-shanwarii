@@ -24,6 +24,11 @@ mixin SettingsCrud {
     BusinessConfig.instance.currency = symbol;
   }
 
+  Future<void> setHasSeenOnboarding(bool value) async {
+    await setSetting('has_seen_onboarding', value ? '1' : '0');
+    BusinessConfig.instance.hasSeenOnboarding = value;
+  }
+
   Future<void> loadSettings() async {
     final currency = await getSetting('currency_symbol');
     if (currency != null) BusinessConfig.instance.currency = currency;
@@ -56,6 +61,9 @@ mixin SettingsCrud {
 
     final sound = await getSetting('sound_enabled');
     if (sound != null) BusinessConfig.instance.soundEnabled = sound == '1';
+
+    final onboarding = await getSetting('has_seen_onboarding');
+    if (onboarding != null) BusinessConfig.instance.hasSeenOnboarding = onboarding == '1';
 
     // Load IDs from secure storage
     const storage = FlutterSecureStorage();

@@ -25,6 +25,8 @@ class BusinessConfig {
   bool autoReceipt = true;
   bool openCashDrawer = true;
   bool soundEnabled = true;
+  bool hasSeenOnboarding = false;
+
   
   final ValueNotifier<String> currencyNotifier = ValueNotifier<String>('\$');
   String get currency => currencyNotifier.value;
@@ -86,7 +88,9 @@ class BusinessConfig {
     soundEnabled = true;
     weightMode = false;
     weightUnit = 'kg';
+    hasSeenOnboarding = false;
   }
+
 
   /// Sets the complete business and branch context
    void setContext({

@@ -5,7 +5,7 @@ class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
   // or your machine's LAN IP if running on physical device (e.g., 192.168.1.X).
   // Current IP: 192.168.137.202 (from ipconfig - Wi-Fi adapter)
-  static const String baseUrl = 'https://pos.sata.pk/api';
+  static const String baseUrl = 'http://192.168.137.1:8080/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
@@ -121,11 +121,24 @@ class ApiService {
     }
   }
 
+  Future<Response?> updateProfile(Map<String, dynamic> data) async {
+    try {
+      return await _dio.post('/user/update-profile', data: data);
+    } catch (e) {
+      print('❌ [API] Failed to update profile: $e');
+      rethrow;
+    }
+  }
+
   Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) {
     return _dio.get(path, queryParameters: queryParameters);
   }
 
   Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) {
     return _dio.post(path, data: data, queryParameters: queryParameters);
+  }
+
+  Future<Response> patch(String path, {dynamic data, Map<String, dynamic>? queryParameters}) {
+    return _dio.patch(path, data: data, queryParameters: queryParameters);
   }
 }
