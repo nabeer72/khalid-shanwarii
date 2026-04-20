@@ -1372,6 +1372,63 @@ class DbMigrations {
         if (kDebugMode) print('v75 users cnic error: $e');
       }
     }
+
+    if (oldVersion < 76) {
+      if (kDebugMode) print('Upgrading DB to v76: Creating bank related tables...');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS banks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          business_id INTEGER,
+          user_id INTEGER,
+          name TEXT NOT NULL,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS bank_details (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          bank_id INTEGER NOT NULL,
+          business_id INTEGER,
+          user_id INTEGER,
+          account_title TEXT NOT NULL,
+          account_number TEXT,
+          account_type TEXT,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT,
+          FOREIGN KEY (bank_id) REFERENCES banks (id) ON DELETE CASCADE
+        )
+      ''');
+    }
+    
+    if (oldVersion < 77) {
+      if (kDebugMode) print('Upgrading DB to version 77: Fixing bank_accounts for relational bank_id...');
+      await db.execute('DROP TABLE IF EXISTS bank_accounts');
+      await db.execute('''
+        CREATE TABLE bank_accounts (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          business_id INTEGER,
+          user_id INTEGER,
+          branch_id INTEGER,
+          bank_id INTEGER NOT NULL,
+          account_type TEXT,
+          account_title TEXT,
+          account_number TEXT,
+          amount REAL DEFAULT 0,
+          transaction_type TEXT,
+          remarks TEXT,
+          date TEXT,
+          status INTEGER DEFAULT 1,
+          is_synced INTEGER DEFAULT 0,
+          created_at TEXT,
+          updated_at TEXT
+        )
+      ''');
+    }
   }
 }
 

@@ -752,7 +752,7 @@ class SyncService {
                   'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
                   'user_id': b['admin_id'] is int ? b['admin_id'] : int.tryParse(b['admin_id']?.toString() ?? '') ?? fallbackUserId,
                   'branch_id': b['branch_id'] is int ? b['branch_id'] : int.tryParse(b['branch_id']?.toString() ?? '') ?? fallbackBranchId,
-                  'bank_name': b['bank_name'] ?? 'Unknown',
+                  'bank_id': b['bank_id'],
                   'account_type': b['account_type'],
                   'account_title': b['account_title'],
                   'account_number': b['account_number'],
@@ -1002,6 +1002,51 @@ class SyncService {
               );
             }
             if (kDebugMode) print('Synced ${data['units'].length} units');
+          }
+
+          // [NEW] Banks
+          if (data['banks'] != null) {
+            for (var b in data['banks']) {
+              await txn.insert(
+                'banks',
+                {
+                  'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
+                  'business_id': b['business_id'] is int ? b['business_id'] : int.tryParse(b['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'user_id': b['user_id'] is int ? b['user_id'] : int.tryParse(b['user_id']?.toString() ?? '') ?? fallbackUserId,
+                  'name': b['name'] ?? 'Unknown',
+                  'status': b['status'] ?? 1,
+                  'is_synced': 1,
+                  'created_at': b['created_at'],
+                  'updated_at': b['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['banks'].length} banks');
+          }
+
+          // [NEW] Bank Details
+          if (data['bank_details'] != null) {
+            for (var bd in data['bank_details']) {
+              await txn.insert(
+                'bank_details',
+                {
+                  'id': bd['id'] is int ? bd['id'] : int.tryParse(bd['id']?.toString() ?? ''),
+                  'bank_id': bd['bank_id'] is int ? bd['bank_id'] : int.tryParse(bd['bank_id']?.toString() ?? ''),
+                  'business_id': bd['business_id'] is int ? bd['business_id'] : int.tryParse(bd['business_id']?.toString() ?? '') ?? fallbackBusinessId,
+                  'user_id': bd['user_id'] is int ? bd['user_id'] : int.tryParse(bd['user_id']?.toString() ?? '') ?? fallbackUserId,
+                  'account_title': bd['account_title'] ?? 'Unknown',
+                  'account_number': bd['account_number'],
+                  'account_type': bd['account_type'],
+                  'status': bd['status'] ?? 1,
+                  'is_synced': 1,
+                  'created_at': bd['created_at'],
+                  'updated_at': bd['updated_at'],
+                },
+                conflictAlgorithm: ConflictAlgorithm.replace,
+              );
+            }
+            if (kDebugMode) print('Synced ${data['bank_details'].length} bank details');
           }
 
           // Payment Types
@@ -1713,6 +1758,28 @@ class SyncService {
       }
 
 
+      // [NEW] Unsynced Banks
+      final unsyncedBanks = await db.query('banks', where: 'is_synced = 0 AND business_id = ?', whereArgs: [bid]);
+      if (unsyncedBanks.isNotEmpty) {
+        changes['banks'] = unsyncedBanks.map((b) {
+          var m = Map<String, dynamic>.from(b);
+          m.remove('is_synced');
+          m['user_id'] = m['user_id'] ?? uid;
+          return m;
+        }).toList();
+      }
+
+      // [NEW] Unsynced Bank Details
+      final unsyncedBankDetails = await db.query('bank_details', where: 'is_synced = 0 AND business_id = ?', whereArgs: [bid]);
+      if (unsyncedBankDetails.isNotEmpty) {
+        changes['bank_details'] = unsyncedBankDetails.map((bd) {
+          var m = Map<String, dynamic>.from(bd);
+          m.remove('is_synced');
+          m['user_id'] = m['user_id'] ?? uid;
+          return m;
+        }).toList();
+      }
+
       if (changes.isEmpty) {
         if (kDebugMode) print('No changes to push');
         return;
@@ -2294,6 +2361,32 @@ class SyncService {
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Stock Audit: $oldId -> $newId');
         await txn.update('stock_audits', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // [NEW] 24. Banks
+    if (allMappings['banks'] != null && allMappings['banks'] is Map) {
+      final map = allMappings['banks'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Bank: $oldId -> $newId');
+        await txn.update('banks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await txn.update('bank_details', {'bank_id': newId}, where: 'bank_id = ?', whereArgs: [oldId]);
+        await txn.update('bank_accounts', {'bank_id': newId}, where: 'bank_id = ?', whereArgs: [oldId]);
+      }
+    }
+
+    // [NEW] 25. Bank Details
+    if (allMappings['bank_details'] != null && allMappings['bank_details'] is Map) {
+      final map = allMappings['bank_details'] as Map<String, dynamic>;
+      for (var entry in map.entries) {
+        final oldId = int.tryParse(entry.key);
+        if (oldId == null) continue;
+        final newId = entry.value as int;
+        if (kDebugMode) print('🔄 [MAPPING] Bank Detail: $oldId -> $newId');
+        await txn.update('bank_details', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
       }
     }
   }

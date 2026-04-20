@@ -5,6 +5,9 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/bank_account.dart';
 import 'package:intl/intl.dart';
+import 'manage_banks_screen.dart';
+import 'package:mobile_app/models/bank.dart';
+import 'package:mobile_app/models/bank_detail.dart';
 
 class BankManagementScreen extends StatefulWidget {
   const BankManagementScreen({super.key});
@@ -16,6 +19,7 @@ class BankManagementScreen extends StatefulWidget {
 class _BankManagementScreenState extends State<BankManagementScreen> {
   final theme = ThemeProvider.instance;
   List<BankAccount> _transactions = [];
+  Map<int, String> _bankNames = {};
   bool _isLoading = true;
 
   @override
@@ -26,17 +30,28 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
 
   Future<void> _loadTransactions() async {
     setState(() => _isLoading = true);
+    
+    // Load bank names mapping
+    final bankData = await DatabaseHelper.instance.getBanks();
+    final Map<int, String> namesMap = {};
+    for (var b in bankData) {
+      final id = b['id'] as int;
+      namesMap[id] = b['name'] as String;
+    }
+
     final data = await DatabaseHelper.instance.getBankTransactions();
     if (mounted) {
       setState(() {
+        _bankNames = namesMap;
         _transactions = data.map((t) => BankAccount.fromMap(t)).toList();
         _isLoading = false;
       });
     }
   }
 
-  void _showTransactionDialog([BankAccount? transaction]) {
-    final bankCtrl = TextEditingController(text: transaction?.bankName ?? '');
+  void _showTransactionDialog([BankAccount? transaction]) async {
+    final theme = ThemeProvider.instance;
+    final bankCtrl = TextEditingController();
     final typeCtrl = TextEditingController(text: transaction?.accountType ?? '');
     final titleCtrl = TextEditingController(text: transaction?.accountTitle ?? '');
     final numberCtrl = TextEditingController(text: transaction?.accountNumber ?? '');
@@ -44,6 +59,22 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     final remarksCtrl = TextEditingController(text: transaction?.remarks ?? '');
     String transType = transaction?.transactionType ?? 'Deposit';
     final formKey = GlobalKey<FormState>();
+
+    // Master data for dropdowns
+    List<Bank> banks = [];
+    List<BankDetail> accounts = [];
+    Bank? selectedBank;
+    BankDetail? selectedAccount;
+
+    // Load banks
+    final bankData = await DatabaseHelper.instance.getBanks();
+    banks = bankData.map((b) => Bank.fromMap(b)).toList();
+    if (transaction != null && transaction.bankId != null) {
+      try {
+        selectedBank = banks.firstWhere((b) => b.id == transaction.bankId);
+        bankCtrl.text = selectedBank.name;
+      } catch (_) {}
+    }
 
     showDialog(
       context: context,
@@ -71,10 +102,57 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (banks.isNotEmpty) ...[
+                    DropdownButtonFormField<Bank>(
+                      value: selectedBank,
+                      dropdownColor: theme.surface,
+                      style: TextStyle(color: theme.textPrimary),
+                      decoration: theme.glassInputDecoration('Select Bank', Icons.account_balance_rounded),
+                      items: banks.map((b) => DropdownMenuItem(value: b, child: Text(b.name))).toList(),
+                      onChanged: (b) async {
+                        selectedBank = b;
+                        bankCtrl.text = b?.name ?? '';
+                        final accData = await DatabaseHelper.instance.getBankDetails(bankId: b?.id);
+                        setDialogState(() {
+                          accounts = accData.map((d) => BankDetail.fromMap(d)).toList();
+                          if (accounts.length == 1) {
+                            selectedAccount = accounts.first;
+                            titleCtrl.text = selectedAccount!.accountTitle;
+                            numberCtrl.text = selectedAccount!.accountNumber ?? '';
+                            typeCtrl.text = selectedAccount!.accountType ?? '';
+                          } else {
+                            selectedAccount = null;
+                            titleCtrl.text = '';
+                            numberCtrl.text = '';
+                            typeCtrl.text = '';
+                          }
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    if (selectedBank != null) ...[
+                      DropdownButtonFormField<BankDetail>(
+                        value: selectedAccount,
+                        dropdownColor: theme.surface,
+                        style: TextStyle(color: theme.textPrimary),
+                        decoration: theme.glassInputDecoration('Select Account', Icons.credit_card_rounded),
+                        items: accounts.map((a) => DropdownMenuItem(value: a, child: Text(a.accountTitle))).toList(),
+                        onChanged: (a) {
+                          setDialogState(() {
+                            selectedAccount = a;
+                            titleCtrl.text = a?.accountTitle ?? '';
+                            numberCtrl.text = a?.accountNumber ?? '';
+                            typeCtrl.text = a?.accountType ?? '';
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ],
                   _buildDialogField(
                     ctrl: bankCtrl, 
                     label: 'Bank Name', 
-                    icon: Icons.account_balance_rounded,
+                    icon: Icons.account_balance_outlined,
                     validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
@@ -129,7 +207,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                 
                 final newEntry = BankAccount(
                   id: transaction?.id,
-                  bankName: bankCtrl.text,
+                  bankId: selectedBank?.id,
                   accountType: typeCtrl.text,
                   accountTitle: titleCtrl.text,
                   accountNumber: numberCtrl.text,
@@ -181,6 +259,17 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
           style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.settings_suggest_rounded, color: theme.textPrimary),
+            tooltip: 'Manage Banks & Accounts',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ManageBanksScreen()),
+            ).then((_) => _loadTransactions()),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: theme.glassBackground(
         child: SafeArea(
@@ -216,7 +305,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                             title: Row(
                               children: [
                                 Expanded(
-                                  child: Text(t.bankName, 
+                                  child: Text(_bankNames[t.bankId] ?? 'Bank ID: ${t.bankId}', 
                                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                 ),
                                 Text(

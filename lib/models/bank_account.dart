@@ -2,7 +2,7 @@ class BankAccount {
   final int? id;
   final int? businessId;
   final int? userId;
-  final String bankName;
+  final int? bankId;
   final String? accountType;
   final String? accountTitle;
   final String? accountNumber;
@@ -17,7 +17,7 @@ class BankAccount {
     this.id,
     this.businessId,
     this.userId,
-    required this.bankName,
+    this.bankId,
     this.accountType,
     this.accountTitle,
     this.accountNumber,
@@ -34,7 +34,7 @@ class BankAccount {
       id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? ''),
       userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? ''),
-      bankName: map['bank_name']?.toString() ?? '',
+      bankId: map['bank_id'] is int ? map['bank_id'] : int.tryParse(map['bank_id']?.toString() ?? ''),
       accountType: map['account_type']?.toString(),
       accountTitle: map['account_title']?.toString(),
       accountNumber: map['account_number']?.toString(),
@@ -52,7 +52,7 @@ class BankAccount {
       'id': id,
       'business_id': businessId,
       'user_id': userId,
-      'bank_name': bankName,
+      'bank_id': bankId,
       'account_type': accountType,
       'account_title': accountTitle,
       'account_number': accountNumber,

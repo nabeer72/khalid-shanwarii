@@ -141,15 +141,15 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
                               'Business Setup',
                               style: TextStyle(
                                 color: theme.textPrimary,
-                                fontSize: 32,
+                                fontSize: 24,
                                 fontWeight: FontWeight.w900,
                                 letterSpacing: -1,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 4),
                             Text(
                               'Configure your business environment.',
-                              style: TextStyle(color: theme.textSecondary, fontSize: 16, fontWeight: FontWeight.w500),
+                              style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                             ),
                             
                             const SizedBox(height: 40),
@@ -165,7 +165,7 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
                             ),
                             const SizedBox(height: 16),
                             Container(
-                              height: 90, // Reduced from 120
+                              height: 70,
                               child: _filteredCurrencies.isEmpty 
                                 ? Center(child: Text('No currencies found', style: TextStyle(color: theme.textSecondary)))
                                 : ListView.builder(
@@ -178,17 +178,17 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
                                         onTap: () => setState(() => _selectedCurrencySymbol = currency.symbol),
                                         child: AnimatedContainer(
                                           duration: const Duration(milliseconds: 200),
-                                          width: 75, // Reduced from 100
+                                          width: 60,
                                           margin: const EdgeInsets.only(right: 10, bottom: 8),
                                           decoration: BoxDecoration(
                                             color: isSelected ? theme.highlight : theme.whiteAlpha(0.08),
-                                            borderRadius: BorderRadius.circular(16), // Reduced from 20
+                                            borderRadius: BorderRadius.circular(12),
                                             border: Border.all(
                                               color: isSelected ? theme.highlight : theme.whiteAlpha(0.1),
                                               width: 2,
                                             ),
                                             boxShadow: isSelected ? [
-                                              BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))
+                                              BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 6, offset: const Offset(0, 3))
                                             ] : null,
                                           ),
                                           child: Column(
@@ -198,16 +198,16 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
                                                 currency.symbol,
                                                 style: TextStyle(
                                                   color: isSelected ? Colors.white : theme.textPrimary,
-                                                  fontSize: 22, // Reduced from 28
+                                                  fontSize: 16,
                                                   fontWeight: FontWeight.w900,
                                                 ),
                                               ),
-                                              const SizedBox(height: 2), // Reduced from 4
+                                              const SizedBox(height: 1),
                                               Text(
                                                 currency.code,
                                                 style: TextStyle(
                                                   color: isSelected ? Colors.white.withOpacity(0.8) : theme.textSecondary,
-                                                  fontSize: 10, // Reduced from 12
+                                                  fontSize: 9,
                                                   fontWeight: FontWeight.bold,
                                                 ),
                                               ),
@@ -325,13 +325,13 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
   Widget _sectionTitle(String title, IconData icon) {
     return Row(
       children: [
-        Icon(icon, color: theme.highlight, size: 20),
-        const SizedBox(width: 10),
+        Icon(icon, color: theme.highlight, size: 16),
+        const SizedBox(width: 8),
         Text(
           title,
           style: TextStyle(
             color: theme.textSecondary,
-            fontSize: 13,
+            fontSize: 11,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.5,
           ),

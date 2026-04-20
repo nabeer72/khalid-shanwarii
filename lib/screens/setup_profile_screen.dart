@@ -96,28 +96,28 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                                   ),
                                   border: Border.all(color: theme.highlight.withOpacity(0.3), width: 1.5),
                                 ),
-                                child: Icon(Icons.person_pin_rounded, size: 48, color: theme.highlight),
+                                child: Icon(Icons.person_pin_rounded, size: 32, color: theme.highlight),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
                               Text(
                                 'PROFILE SETUP',
                                 style: TextStyle(
                                   color: theme.textPrimary,
-                                  fontSize: 24,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: -0.5,
                                 ),
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 'Complete your account details',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                                style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
                         ),
                         
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
                         
                         // Glass Card for Form
                         Container(

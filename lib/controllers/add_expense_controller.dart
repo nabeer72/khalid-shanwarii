@@ -3,6 +3,8 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/branch.dart';
+import 'package:mobile_app/models/bank.dart';
+import 'package:mobile_app/models/bank_detail.dart';
 
 class AddExpenseController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -21,6 +23,13 @@ class AddExpenseController with ChangeNotifier {
   int? selectedBranchId;
   bool isLoading = false;
 
+  // [NEW] Payment selection
+  String paymentMethod = 'Cash'; // 'Cash' or 'Bank'
+  List<Bank> banks = [];
+  List<BankDetail> bankDetails = [];
+  Bank? selectedBank;
+  BankDetail? selectedBankDetail;
+
   AddExpenseController({this.initialExpense}) {
     if (initialExpense != null) {
       amountCtrl.text = initialExpense!.amount.toString();
@@ -36,6 +45,43 @@ class AddExpenseController with ChangeNotifier {
 
   Future<void> loadData() async {
     await loadHeads();
+    await loadBanks();
+  }
+
+  Future<void> loadBanks() async {
+    final data = await _db.getBanks();
+    banks = data.map((b) => Bank.fromMap(b)).toList();
+    notifyListeners();
+  }
+
+  Future<void> loadBankDetails(int bankId) async {
+    final data = await _db.getBankDetails(bankId: bankId);
+    bankDetails = data.map((d) => BankDetail.fromMap(d)).toList();
+    notifyListeners();
+  }
+
+  void setPaymentMethod(String method) {
+    paymentMethod = method;
+    notifyListeners();
+  }
+
+  void setBank(Bank? bank) async {
+    selectedBank = bank;
+    selectedBankDetail = null;
+    bankDetails = [];
+    if (bank != null) {
+      final data = await _db.getBankDetails(bankId: bank.id!);
+      bankDetails = data.map((d) => BankDetail.fromMap(d)).toList();
+      if (bankDetails.length == 1) {
+        selectedBankDetail = bankDetails.first;
+      }
+    }
+    notifyListeners();
+  }
+
+  void setBankDetail(BankDetail? detail) {
+    selectedBankDetail = detail;
+    notifyListeners();
   }
 
   bool get isEdit => initialExpense != null;
@@ -86,11 +132,17 @@ class AddExpenseController with ChangeNotifier {
     notifyListeners();
 
     try {
+      String finalDescription = descCtrl.text.trim();
+      if (paymentMethod == 'Bank' && selectedBankDetail != null) {
+        final bankInfo = '[Bank: ${selectedBank?.name}, Account: ${selectedBankDetail?.accountTitle}]';
+        finalDescription = finalDescription.isEmpty ? bankInfo : '$bankInfo $finalDescription';
+      }
+
       final data = {
         'id': initialExpense?.id,
         'expense_head_id': selectedHeadId,
         'amount': amount,
-        'description': descCtrl.text.trim().isNotEmpty ? descCtrl.text.trim() : null,
+        'description': finalDescription.isNotEmpty ? finalDescription : null,
         'date': selectedDate.toIso8601String(),
         'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
         'status': 1,
@@ -100,6 +152,22 @@ class AddExpenseController with ChangeNotifier {
         await _db.updateExpense(initialExpense!.id!, data);
       } else {
         await _db.insertExpense(data);
+        
+        // If paid via bank, record it in bank transactions too
+        if (paymentMethod == 'Bank' && selectedBankDetail != null) {
+          await _db.insertBankTransaction({
+            'bank_id': selectedBank?.id,
+            'account_title': selectedBankDetail?.accountTitle ?? '',
+            'account_type': selectedBankDetail?.accountType ?? '',
+            'account_number': selectedBankDetail?.accountNumber ?? '',
+            'amount': amount,
+            'transaction_type': 'Withdrawal',
+            'remarks': 'Expense: ${descCtrl.text.trim()}',
+            'date': selectedDate.toIso8601String(),
+            'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
+            'status': 1,
+          });
+        }
       }
       return true;
     } catch (e) {

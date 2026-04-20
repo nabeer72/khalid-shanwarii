@@ -20,6 +20,7 @@ import 'crud/currency_notes_crud.dart';
 import 'crud/units_crud.dart';
 import 'crud/payment_types_crud.dart';
 import 'crud/brands_crud.dart';
+import 'crud/banks_crud.dart';
 class DatabaseHelper
     with
         CommonCrud,
@@ -40,7 +41,8 @@ class DatabaseHelper
         CurrencyNotesCrud,
         UnitsCrud,
         PaymentTypesCrud,
-        BrandsCrud {
+        BrandsCrud,
+        BanksCrud {
           
   static final DatabaseHelper instance = DatabaseHelper._init();
   

@@ -3,6 +3,8 @@ import 'package:mobile_app/controllers/expenses_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/controllers/add_expense_controller.dart';
+import 'package:mobile_app/models/bank.dart';
+import 'package:mobile_app/models/bank_detail.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});

@@ -574,7 +574,7 @@ class DbTables {
         business_id INTEGER,
         user_id INTEGER,
         branch_id INTEGER,
-        bank_name TEXT NOT NULL,
+        bank_id INTEGER NOT NULL,
         account_type TEXT,
         account_title TEXT,
         account_number TEXT,
@@ -586,6 +586,38 @@ class DbTables {
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT
+      )
+    ''');
+
+    // [NEW] Banks (Master)
+    await db.execute('''
+      CREATE TABLE banks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        user_id INTEGER,
+        name TEXT NOT NULL,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    // [NEW] Bank Details (Master)
+    await db.execute('''
+      CREATE TABLE bank_details (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        bank_id INTEGER NOT NULL,
+        business_id INTEGER,
+        user_id INTEGER,
+        account_title TEXT NOT NULL,
+        account_number TEXT,
+        account_type TEXT,
+        status INTEGER DEFAULT 1,
+        is_synced INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        FOREIGN KEY (bank_id) REFERENCES banks (id) ON DELETE CASCADE
       )
     ''');
 
