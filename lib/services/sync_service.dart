@@ -19,15 +19,55 @@ class SyncService {
     return 0.0;
   }
 
+  /// Ensures we have a valid auth token by attempting background re-auth if missing
+  Future<bool> _ensureToken() async {
+    final token = await _storage.read(key: 'auth_token');
+    if (token != null) return true;
+
+    // Try to re-authenticate using saved accounts
+    final email = await _storage.read(key: 'user_email');
+    if (email == null) {
+      if (kDebugMode) print('⚠️ [SYNC] Cannot re-auth: user_email missing from storage');
+      return false;
+    }
+
+    final jsonStr = await _storage.read(key: 'saved_accounts');
+    if (jsonStr == null) {
+      if (kDebugMode) print('⚠️ [SYNC] Cannot re-auth: saved_accounts missing from storage');
+      return false;
+    }
+
+    try {
+      final accounts = List<Map<String, dynamic>>.from(jsonDecode(jsonStr));
+      final account = accounts.firstWhere(
+        (acc) => acc['email'].toString().toLowerCase().trim() == email.toLowerCase().trim(),
+        orElse: () => {},
+      );
+
+      if (account.isNotEmpty && account['password'] != null) {
+        if (kDebugMode) print('🔄 [SYNC] Token missing, attempting background re-auth for $email');
+        // This will update the token in ApiService and storage
+        await _api.login(email, account['password']);
+        return true;
+      } else {
+        if (kDebugMode) print('⚠️ [SYNC] Cannot re-auth: No saved password found for $email');
+      }
+    } catch (e) {
+      if (kDebugMode) print('⚠️ [SYNC] Background re-auth failed: $e');
+    }
+
+    return false;
+  }
+
   /// Full sync - pull then push 
   Future<SyncResult> syncAll() async {
     final result = SyncResult();
     
     // Check if we have a token before syncing
-    final token = await _storage.read(key: 'auth_token');
-    if (token == null) {
-      result.pullError = 'Authentication token missing. Please log in again.';
-      result.pushError = 'Authentication token missing. Please log in again.';
+    final hasToken = await _ensureToken();
+    if (!hasToken) {
+      result.pullError = 'Authentication token missing and re-auth failed. Please log in again.';
+      result.pushError = 'Authentication token missing and re-auth failed. Please log in again.';
       return result;
     }
 
@@ -53,6 +93,9 @@ class SyncService {
 
   Future<Map<String, dynamic>?> syncPull({bool forceFull = false, bool saveTimestamp = true}) async {
     try {
+      final hasToken = await _ensureToken();
+      if (!hasToken) throw Exception('Authentication failed');
+
       String? lastSyncedAt = await _storage.read(key: 'last_synced_at');
 
       // CRITICAL: If the local database is missing essential transactional data (products),
@@ -1130,6 +1173,9 @@ class SyncService {
   /// Push local changes to server
   Future<void> syncPush() async {
     try {
+      final hasToken = await _ensureToken();
+      if (!hasToken) throw Exception('Authentication failed');
+
       final db = await _dbHelper.database;
       Map<String, dynamic> changes = {};
 
