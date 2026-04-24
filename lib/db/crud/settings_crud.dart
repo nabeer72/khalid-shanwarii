@@ -124,6 +124,26 @@ mixin SettingsCrud {
     print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, userId: ${BusinessConfig.instance.userId}');
   }
 
+  // Clears session-specific context from storage and memory without wiping the database
+  Future<void> clearSessionContext() async {
+    const storage = FlutterSecureStorage();
+    
+    // Wipe session context from secure storage EXCEPT saved_accounts and encryption keys
+    final allKeys = await storage.readAll();
+    for (String key in allKeys.keys) {
+      if (key != 'saved_accounts' && key != 'db_encryption_key') {
+        await storage.delete(key: key);
+      }
+    }
+    
+    // Safety Force: Specifically ensure sync timestamps are gone to force fresh check on next login
+    await storage.delete(key: 'last_synced_at');
+    await storage.delete(key: 'last_synced_push');
+    
+    // Reset in-memory config
+    BusinessConfig.instance.reset(keepContext: false);
+  }
+
   // We keep employees, users, businesses, products, and settings to allow local login and offline UX
   Future<void> clearAllData() async {
     const storage = FlutterSecureStorage();

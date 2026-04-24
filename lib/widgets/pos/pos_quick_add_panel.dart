@@ -5,7 +5,7 @@ import 'package:mobile_app/providers/theme_provider.dart';
 class POSQuickAddPanel extends StatefulWidget {
   final VoidCallback onClose;
   final VoidCallback onSuccess;
-  final void Function(VoidCallback refresh)? onAddCategory;
+  final void Function(void Function(int newId) refresh)? onAddCategory;
   final void Function(void Function(int newId) refresh, String? catId)? onAddSubCategory;
 
   const POSQuickAddPanel({
@@ -261,7 +261,12 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
             ),
             child: IconButton(
               icon: Icon(Icons.add_rounded, color: theme.highlight, size: 20),
-              onPressed: () => widget.onAddCategory!(() => _controller.loadCategories()),
+              onPressed: () => widget.onAddCategory!(
+                (int newId) async {
+                  await _controller.loadCategories();
+                  _controller.setCategory(newId.toString());
+                },
+              ),
               constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
             ),
           ),

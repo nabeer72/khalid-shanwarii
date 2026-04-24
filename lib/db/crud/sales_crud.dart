@@ -506,12 +506,14 @@ mixin SalesCrud on CommonCrud {
         p.name as product_name, 
         c.name as category_name,
         r.created_at,
-        u.name as employee_name
+        u.name as employee_name,
+        COALESCE(st.cost_price, 0) as purchase_price
       FROM return_items ri
       JOIN returns r ON ri.return_id = r.id
       LEFT JOIN products p ON ri.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON r.staff_id = u.id
+      LEFT JOIN stocks st ON ri.stock_id = st.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter
         AND r.status = 1
       ORDER BY r.created_at DESC

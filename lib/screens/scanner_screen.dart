@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
 
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
@@ -14,10 +15,22 @@ class _ScannerScreenState extends State<ScannerScreen> {
   final theme = ThemeProvider.instance;
   MobileScannerController controller = MobileScannerController();
   bool _isPopped = false;
-  static final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer? _audioPlayer;
 
   @override
+  void initState() {
+    super.initState();
+    try {
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)) {
+        _audioPlayer = AudioPlayer();
+      }
+    } catch (_) {}
+  }
+  @override
   void dispose() {
+    _audioPlayer?.dispose();
     controller.dispose();
     super.dispose();
   }
@@ -56,7 +69,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   _isPopped = true;
                   try {
                     AudioCache.instance.prefix = '';
-                    _audioPlayer.play(AssetSource('asset/beep.mpeg'));
+                    _audioPlayer?.play(AssetSource('asset/beep.mpeg'));
                   } catch (e) {
                     // Ignore audio playback errors to ensure scanning completes
                   }

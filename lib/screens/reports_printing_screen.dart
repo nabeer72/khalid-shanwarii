@@ -1294,6 +1294,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
           double retGross = 0;
           double retDisc = 0;
           double retNet = 0;
+          double totalReturnsProfit = 0;
           List<List<dynamic>> returnTableData = [];
 
           if (returnItems != null && returnItems.isNotEmpty) {
@@ -1311,11 +1312,14 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               
               final disc = _parseAmount(item['discount']);
               final net = gross - disc;
+              final cost = _parseAmount(item['purchase_price']) * qty;
+              final profit = net - cost;
 
               retQty += qty;
               retGross += gross;
               retDisc += disc;
               retNet += net;
+              totalReturnsProfit += profit;
 
               return [
                 (index + 1).toString(),
@@ -1443,7 +1447,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
           }
 
           final finalNetAmount = totalSalesNet - retNet;
-          final finalProfit = totalSalesProfit - retNet; // Simple profit - refund subtraction
+          final finalProfit = totalSalesProfit - totalReturnsProfit; // Simple profit - refund subtraction
           
           final summaryContent = pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,

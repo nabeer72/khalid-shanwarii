@@ -436,9 +436,9 @@ class _LoginScreenState extends State<LoginScreen>
                 await _storage.write(key: 'branch_id', value: savedBrid?.toString() ?? '');
                 await _dbHelper.loadSettings();
 
-                // [FIX] Await the sync to ensure data is visible immediately.
-                // We use forceFull: true because transactional data was wiped on logout.
-                await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Quick sync failed: $e'));
+                // [FIX] Perform a standard sync. We no longer wipe data on logout,
+                // but we trigger a sync here to ensure the session is up-to-date.
+                await SyncService().syncPull().catchError((e) => print('⚠️ Quick sync failed: $e'));
               }
             }
           }

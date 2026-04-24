@@ -792,7 +792,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (ctx) => AlertDialog(
         title: Text('Logout', style: TextStyle(color: theme.textPrimary)),
         content: Text(
-            'Are you sure you want to logout? Any unsynced data will be permanently lost.',
+            'Are you sure you want to logout? Your local data will remain saved on this device.',
             style: TextStyle(color: theme.textSecondary)),
         backgroundColor: theme.surface,
         actions: [
@@ -818,8 +818,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // 1. Invalidate session on server
       await _syncService.logout();
 
-      // 2. Clear local session, wipe secure storage, and reset BusinessConfig
-      await DatabaseHelper.instance.clearAllData();
+      // 2. Clear local session context only (DO NOT wipe database)
+      await DatabaseHelper.instance.clearSessionContext();
 
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(

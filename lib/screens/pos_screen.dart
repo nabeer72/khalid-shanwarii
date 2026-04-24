@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_app/controllers/pos_controller.dart';
@@ -41,7 +41,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  AudioPlayer? _audioPlayer;
   
   bool _showQuickAddProduct = false;
   late AnimationController _quickAddController;
@@ -50,6 +50,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   @override
   void initState() {
     super.initState();
+    try {
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)) {
+        _audioPlayer = AudioPlayer();
+      }
+    } catch (_) {}
     POSScreen.isActive = true;
     _controller.addListener(_onControllerChange);
     
@@ -77,7 +84,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     POSScreen.isActive = false;
     _controller.removeListener(_onControllerChange);
     _controller.dispose();
-    _audioPlayer.dispose();
+    _audioPlayer?.dispose();
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
     _scannerController?.dispose();
@@ -1042,7 +1049,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       if (code != null) {
         if (_lastScanTime == null || DateTime.now().difference(_lastScanTime!).inMilliseconds > 1500) {
           _lastScanTime = DateTime.now();
-          _audioPlayer.play(AssetSource('beep.mpeg'));
+          _audioPlayer?.play(AssetSource('beep.mpeg'));
           _processBarcode(code);
         }
       }
@@ -1462,7 +1469,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
-  void _showAddCategoryDialog({VoidCallback? onSuccess}) {
+  void _showAddCategoryDialog({void Function(int newId)? onSuccess}) {
     final nameCtrl = TextEditingController();
     final iconCtrl = TextEditingController(text: '📦');
     
@@ -1542,14 +1549,15 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     child: ElevatedButton(
                       onPressed: () async {
                         if (nameCtrl.text.isEmpty) return;
-                        await DatabaseHelper.instance.insertCategory({
+                        final newId = await DatabaseHelper.instance.insertCategory({
                           'name': nameCtrl.text,
                           'icon': iconCtrl.text,
                           'status': 1,
                         });
                         if (mounted) {
-                          _controller.loadData();
-                          if (onSuccess != null) onSuccess();
+                          await _controller.loadData();
+                          _controller.setCategory(newId.toString());
+                          if (onSuccess != null) onSuccess(newId);
                           Navigator.pop(ctx);
                         }
                       },
@@ -1652,7 +1660,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           'status': 1,
                         });
                         if (mounted) {
-                          _controller.loadData();
+                          await _controller.loadData();
+                          _controller.setSubCategory(newId.toString());
                           if (onSuccess != null) onSuccess(newId);
                           Navigator.pop(ctx);
                         }
@@ -1755,7 +1764,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                             child: POSQuickAddPanel(
                               onClose: _toggleQuickAddProduct,
                               onSuccess: _onProductQuickAdded,
-                              onAddCategory: (refresh) => _showAddCategoryDialog(onSuccess: refresh),
+                              onAddCategory: (void Function(int newId) refresh) => _showAddCategoryDialog(onSuccess: refresh),
                               onAddSubCategory: (void Function(int newId) refresh, catId) => _showAddSubCategoryDialog(onSuccess: refresh, categoryId: catId),
                             ),
                           ),
