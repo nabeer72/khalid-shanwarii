@@ -416,10 +416,12 @@ class _SignupScreenState extends State<SignupScreen>
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                         // Header row with back button and title
                         Row(
                           children: [
@@ -758,7 +760,8 @@ class _SignupScreenState extends State<SignupScreen>
                                 style: TextStyle(color: theme.textSecondary, fontSize: 12)),
                           ),
                         ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
