@@ -913,13 +913,15 @@ class _LoginScreenState extends State<LoginScreen>
 
                         // Saved Accounts Display
                         if (_savedAccounts.isNotEmpty && !_showLoginForm) ...[
-                          Text(
-                            'QUICK LOGIN',
-                            style: TextStyle(
-                              color: theme.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 2.0,
+                          Center(
+                            child: Text(
+                              'QUICK LOGIN',
+                              style: TextStyle(
+                                color: theme.textSecondary,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 2.0,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -999,24 +1001,39 @@ class _LoginScreenState extends State<LoginScreen>
                           ),
                           const SizedBox(height: 12),
                           Center(
-                            child: SizedBox(
-                              width: 200,
-                              height: 40,
-                              child: OutlinedButton.icon(
-                                onPressed: () => setState(() => _showLoginForm = true),
-                                icon: Icon(Icons.email_outlined, color: theme.highlight, size: 18),
-                                label: Text(
-                                  'LOGIN WITH EMAIL',
-                                  style: TextStyle(
-                                    color: theme.highlight,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                  ),
+                            child: InkWell(
+                              onTap: () => setState(() => _showLoginForm = true),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                width: 220,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: theme.highlight,
+                                  borderRadius: BorderRadius.circular(22),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: theme.highlight.withOpacity(0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                                 ),
-                                style: OutlinedButton.styleFrom(
-                                  side: BorderSide(color: theme.highlight.withOpacity(0.5), width: 1.5),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.email_outlined, 
+                                        color: Colors.white, size: 18),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      'LOGIN WITH EMAIL',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
