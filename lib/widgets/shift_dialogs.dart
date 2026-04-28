@@ -68,127 +68,136 @@ class _ClockInDialogState extends State<ClockInDialog> {
       backgroundColor: Colors.transparent,
       contentPadding: EdgeInsets.zero,
       content: theme.glassDecorationWidget(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: _isLoading 
-            ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-            : SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
+        child: Stack(
+          children: [
+            Container(
+              width: 400,
+              padding: const EdgeInsets.all(24),
+              child: _isLoading 
+                ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: theme.glassCircleDecoration,
-                          child: Icon(Icons.login_rounded, color: theme.highlight, size: 24),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: theme.glassCircleDecoration,
+                              child: Icon(Icons.login_rounded, color: theme.highlight, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Text('Shift Clock-In', 
+                              style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Text('Shift Clock-In', 
-                          style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Enter opening cash denominations:', 
-                      style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-                    const SizedBox(height: 16),
-                    Column(
-                      children: _denominations.keys.map((denom) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
+                        const SizedBox(height: 20),
+                        Text('Enter opening cash denominations:', 
+                          style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+                        const SizedBox(height: 16),
+                        Column(
+                          children: _denominations.keys.map((denom) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
-                                        onPressed: () {
-                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                          if (current > 0) {
-                                            final newValue = current - 1;
-                                            _controllers[denom]!.text = newValue.toString();
-                                            setState(() => _denominations[denom] = newValue);
-                                          }
-                                        },
+                                  Expanded(
+                                    flex: 3,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                       ),
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _controllers[denom],
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                                          decoration: const InputDecoration(
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                            border: InputBorder.none,
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
+                                            onPressed: () {
+                                              final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                              if (current > 0) {
+                                                final newValue = current - 1;
+                                                _controllers[denom]!.text = newValue.toString();
+                                                setState(() => _denominations[denom] = newValue);
+                                              }
+                                            },
                                           ),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _denominations[denom] = int.tryParse(val) ?? 0;
-                                            });
-                                          },
-                                        ),
+                                          Expanded(
+                                            child: TextField(
+                                              controller: _controllers[denom],
+                                              keyboardType: TextInputType.number,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                                              decoration: const InputDecoration(
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                                border: InputBorder.none,
+                                              ),
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _denominations[denom] = int.tryParse(val) ?? 0;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
+                                            onPressed: () {
+                                              final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                              final newValue = current + 1;
+                                              _controllers[denom]!.text = newValue.toString();
+                                              setState(() => _denominations[denom] = newValue);
+                                            },
+                                          ),
+                                        ],
                                       ),
-                                      IconButton(
-                                        icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
-                                        onPressed: () {
-                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                          final newValue = current + 1;
-                                          _controllers[denom]!.text = newValue.toString();
-                                          setState(() => _denominations[denom] = newValue);
-                                        },
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                            );
+                          }).toList(),
+                        ),
+                        const Divider(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total Opening Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
+                            Text('${BusinessConfig.instance.currencyDisplay} ${_totalOpeningCash.toStringAsFixed(0)}', 
+                              style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.highlight,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                            ),
+                            onPressed: () => _handleClockIn(context),
+                            child: const Text('START SHIFT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                           ),
-                        );
-                      }).toList(),
-                    ),
-                    const Divider(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Total Opening Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
-                        Text('${BusinessConfig.instance.currencyDisplay} ${_totalOpeningCash.toStringAsFixed(0)}', 
-                          style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                        ),
+                        const SizedBox(height: 12),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.highlight,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                        ),
-                        onPressed: () => _handleClockIn(context),
-                        child: const Text('START SHIFT', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
-                    ),
-                  ],
-                ),
+                  ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.red, size: 24),
+                onPressed: () => Navigator.pop(context),
               ),
+            ),
+          ],
         ),
       ),
     );
@@ -277,130 +286,139 @@ class _ClockOutDenominationsDialogState extends State<ClockOutDenominationsDialo
       backgroundColor: Colors.transparent,
       contentPadding: EdgeInsets.zero,
       content: theme.glassDecorationWidget(
-        child: Container(
-          width: 400,
-          padding: const EdgeInsets.all(24),
-          child: _isLoading 
-            ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
-            : SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
+        child: Stack(
+          children: [
+            Container(
+              width: 400,
+              padding: const EdgeInsets.all(24),
+              child: _isLoading 
+                ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                : SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: theme.glassCircleDecoration,
-                          child: Icon(Icons.money_off_rounded, color: theme.highlight, size: 24),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: theme.glassCircleDecoration,
+                              child: Icon(Icons.money_off_rounded, color: theme.highlight, size: 24),
+                            ),
+                            const SizedBox(width: 12),
+                            Text('Closing Cash Count', 
+                              style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Text('Closing Cash Count', 
-                          style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Text('Enter remaining cash denominations in drawer:', 
-                      style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-                    const SizedBox(height: 16),
-                    Column(
-                      children: _denominations.keys.map((denom) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
+                        const SizedBox(height: 20),
+                        Text('Enter remaining cash denominations in drawer:', 
+                          style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+                        const SizedBox(height: 16),
+                        Column(
+                          children: _denominations.keys.map((denom) {
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(denom, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
                                   ),
-                                  child: Row(
-                                    children: [
-                                      IconButton(
-                                        icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
-                                        onPressed: () {
-                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                          if (current > 0) {
-                                            final newValue = current - 1;
-                                            _controllers[denom]!.text = newValue.toString();
-                                            setState(() => _denominations[denom] = newValue);
-                                          }
-                                        },
+                                  Expanded(
+                                    flex: 3,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
                                       ),
-                                      Expanded(
-                                        child: TextField(
-                                          controller: _controllers[denom],
-                                          keyboardType: TextInputType.number,
-                                          textAlign: TextAlign.center,
-                                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
-                                          decoration: const InputDecoration(
-                                            isDense: true,
-                                            contentPadding: EdgeInsets.symmetric(vertical: 8),
-                                            border: InputBorder.none,
+                                      child: Row(
+                                        children: [
+                                          IconButton(
+                                            icon: Icon(Icons.remove_circle_outline, size: 18, color: theme.textSecondary),
+                                            onPressed: () {
+                                              final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                              if (current > 0) {
+                                                final newValue = current - 1;
+                                                _controllers[denom]!.text = newValue.toString();
+                                                setState(() => _denominations[denom] = newValue);
+                                              }
+                                            },
                                           ),
-                                          onChanged: (val) {
-                                            setState(() {
-                                              _denominations[denom] = int.tryParse(val) ?? 0;
-                                            });
-                                          },
-                                        ),
+                                          Expanded(
+                                            child: TextField(
+                                              controller: _controllers[denom],
+                                              keyboardType: TextInputType.number,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14),
+                                              decoration: const InputDecoration(
+                                                isDense: true,
+                                                contentPadding: EdgeInsets.symmetric(vertical: 8),
+                                                border: InputBorder.none,
+                                              ),
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  _denominations[denom] = int.tryParse(val) ?? 0;
+                                                });
+                                              },
+                                            ),
+                                          ),
+                                          IconButton(
+                                            icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
+                                            onPressed: () {
+                                              final current = int.tryParse(_controllers[denom]!.text) ?? 0;
+                                              final newValue = current + 1;
+                                              _controllers[denom]!.text = newValue.toString();
+                                              setState(() => _denominations[denom] = newValue);
+                                            },
+                                          ),
+                                        ],
                                       ),
-                                      IconButton(
-                                        icon: Icon(Icons.add_circle_outline, size: 18, color: theme.highlight),
-                                        onPressed: () {
-                                          final current = int.tryParse(_controllers[denom]!.text) ?? 0;
-                                          final newValue = current + 1;
-                                          _controllers[denom]!.text = newValue.toString();
-                                          setState(() => _denominations[denom] = newValue);
-                                        },
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
+                            );
+                          }).toList(),
+                        ),
+                        const Divider(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total Closing Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
+                            Text('${BusinessConfig.instance.currencyDisplay} ${_totalClosingCash.toStringAsFixed(0)}', 
+                              style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.highlight,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                            ),
+                            onPressed: () => Navigator.pop(context, {
+                              'total': _totalClosingCash,
+                              'denominations': jsonEncode(_denominations),
+                            }),
+                            child: const Text('PROCEED TO SUMMARY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
                           ),
-                        );
-                      }).toList(),
-                    ),
-                    const Divider(height: 32),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Total Closing Cash:', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w500)),
-                        Text('${BusinessConfig.instance.currencyDisplay} ${_totalClosingCash.toStringAsFixed(0)}', 
-                          style: TextStyle(color: theme.highlight, fontSize: 20, fontWeight: FontWeight.w900)),
+                        ),
+                        const SizedBox(height: 12),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.highlight,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                        ),
-                        onPressed: () => Navigator.pop(context, {
-                          'total': _totalClosingCash,
-                          'denominations': jsonEncode(_denominations),
-                        }),
-                        child: const Text('PROCEED TO SUMMARY', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1)),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
-                    ),
-                  ],
-                ),
+                  ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.red, size: 24),
+                onPressed: () => Navigator.pop(context),
               ),
+            ),
+          ],
         ),
       ),
     );

@@ -64,6 +64,7 @@ class BusinessConfig {
 
   bool weightMode = false;
   String weightUnit = 'kg'; // kg, lb
+  bool enableShiftManagement = true;
 
   void reset({bool keepContext = false}) {
     if (!keepContext) {
@@ -89,6 +90,7 @@ class BusinessConfig {
     weightMode = false;
     weightUnit = 'kg';
     hasSeenOnboarding = false;
+    enableShiftManagement = true;
   }
 
 

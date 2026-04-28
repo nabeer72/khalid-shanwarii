@@ -179,6 +179,116 @@ mixin SuppliersCrud on CommonCrud {
     DatabaseHelper.notifyDataChanged();
   }
 
+  Future<void> updateSupplierPayback(int paybackId, Map<String, dynamic> data) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Get the old record
+      final List<Map<String, dynamic>> oldRecords = await txn.query(
+        'supplier_paybacks',
+        where: 'id = ?',
+        whereArgs: [paybackId],
+      );
+      if (oldRecords.isEmpty) return;
+      final old = oldRecords.first;
+      final double oldAmount = (old['amount'] as num).toDouble();
+      final int supplierId = old['supplier_id'];
+      final int? purchaseId = old['credit_purchase_id'];
+
+      // 2. Revert old amount
+      if (purchaseId != null) {
+        await txn.rawUpdate(
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          [oldAmount, purchaseId, ...getBusinessArgs()],
+        );
+      }
+      await txn.rawUpdate(
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        [oldAmount, supplierId, ...getBusinessArgs()],
+      );
+
+      // 3. Apply new amount
+      final double newAmount = (data['amount'] as num).toDouble();
+      if (purchaseId != null) {
+        await txn.rawUpdate(
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          [newAmount, purchaseId, ...getBusinessArgs()],
+        );
+      }
+      await txn.rawUpdate(
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        [newAmount, supplierId, ...getBusinessArgs()],
+      );
+
+      // 4. Update the record
+      await txn.update(
+        'supplier_paybacks', 
+        {
+          ...data,
+          'is_synced': 0,
+          'updated_at': DateTime.now().toIso8601String(),
+        }, 
+        where: 'id = ?', 
+        whereArgs: [paybackId]
+      );
+    });
+    DatabaseHelper.notifyDataChanged();
+  }
+
+  Future<void> deleteSupplierPayback(int paybackId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Get the payback record
+      final List<Map<String, dynamic>> paybacks = await txn.query(
+        'supplier_paybacks',
+        where: 'id = ?',
+        whereArgs: [paybackId],
+      );
+      if (paybacks.isEmpty) return;
+      final payback = paybacks.first;
+      final double amount = (payback['amount'] as num).toDouble();
+      final int supplierId = payback['supplier_id'];
+      final int? purchaseId = payback['supplier_credit_purchase_id'];
+
+      // 2. Reverse effect on supplier_credit_purchases if applicable
+      if (purchaseId != null) {
+        await txn.rawUpdate(
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          [amount, purchaseId, ...getBusinessArgs()],
+        );
+      }
+
+      // 3. Reverse effect on supplier balance
+      await txn.rawUpdate(
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        [amount, supplierId, ...getBusinessArgs()],
+      );
+
+      // 4. Delete the record
+      await txn.delete('supplier_paybacks', where: 'id = ?', whereArgs: [paybackId]);
+    });
+    DatabaseHelper.notifyDataChanged();
+  }
+
+  Future<List<Map<String, dynamic>>> getSupplierPaybacksWithSupplier() async {
+    final db = await database;
+    final branchFilter = getBranchFilter();
+    final branchArgs = getBranchArgs();
+    final businessArgs = getBusinessArgs();
+    
+    final bid = businessArgs[0];
+    final uid = businessArgs[1];
+    
+    String bFilter = branchFilter.replaceAll('branch_id', 'sp.branch_id');
+
+    return await db.rawQuery('''
+      SELECT sp.*, s.name as supplier_name, s.phone as supplier_phone
+      FROM supplier_paybacks sp
+      JOIN suppliers s ON sp.supplier_id = s.id
+      WHERE sp.business_id = ? AND sp.user_id = ? $bFilter
+      ORDER BY sp.payment_date DESC
+    ''', [bid, uid, ...branchArgs]);
+  }
+
   Future<void> updateSupplierCreditBalance(dynamic supplierId, double amount) async {
     final db = await database;
     await db.rawUpdate(

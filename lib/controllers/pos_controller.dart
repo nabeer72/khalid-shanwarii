@@ -20,6 +20,8 @@ class POSController with ChangeNotifier {
   double _subtotal = 0;
   double _tax = 0;
   double _discount = 0;
+  String _globalDiscountType = 'fixed'; // 'fixed' or 'percentage'
+  double _globalDiscountValue = 0;
   double _total = 0;
   bool _isReturn = false;
   int? _originalSaleId;
@@ -172,6 +174,8 @@ class POSController with ChangeNotifier {
         quantity: qty,
         price: stock.salePrice,
         isWeight: isWeight,
+        discountType: 'fixed', // Default for manual entry in cart
+        discountValue: 0,
       ));
     }
     calculateTotals();
@@ -214,24 +218,62 @@ class POSController with ChangeNotifier {
   }
 
   void calculateTotals() {
-    _subtotal = _cart.fold(0, (sum, item) => sum + item.subtotal);
-    _tax = _subtotal * (BusinessConfig.instance.taxRate / 100);
-
-    // Auto-calculate discount if a customer is selected AND NO MANUAL DISCOUNT entered
+    // 1. Apply Auto-discount Logic first if applicable
     if (!_isManualDiscount && _selectedCustomer != null && _selectedCustomer!.discount > 0) {
-       double autoDiscount = 0;
        for (var item in _cart) {
-         double limitPercent = item.stock.discountLimit;
-         double applyPercent = _selectedCustomer!.discount;
-         if (limitPercent >= 0 && applyPercent > limitPercent) {
-             applyPercent = limitPercent; // Cap customer discount at product's limit
+         if (item.isManual) continue; // Skip auto-discount for manual overrides
+         
+         double limitValue = item.stock.discountLimit;
+         String limitType = item.stock.discountLimitType;
+         double customerPercent = _selectedCustomer!.discount;
+         
+         double calculatedDiscount = 0;
+         if (limitType == 'percentage') {
+            double applyPercent = customerPercent;
+            if (limitValue > 0 && applyPercent > limitValue) {
+                applyPercent = limitValue;
+            }
+            calculatedDiscount = (item.price * item.quantity) * (applyPercent / 100);
+         } else {
+            calculatedDiscount = (item.price * item.quantity) * (customerPercent / 100);
+            if (limitValue > 0 && calculatedDiscount > limitValue) {
+                calculatedDiscount = limitValue;
+            }
          }
-         autoDiscount += (item.price * item.quantity) * (applyPercent / 100);
+         
+         item.discountType = 'fixed';
+         item.discountValue = calculatedDiscount;
+         item.updateSubtotal();
        }
-       _discount = autoDiscount;
+    }
+
+    // 2. Sum up final figures
+    _subtotal = 0;
+    double itemDiscounts = 0;
+    
+    for (var item in _cart) {
+      // The user wants item-level discounts to be 'hidden' from the bottom discount row
+      // So we make the subtotal reflect the value AFTER item discounts
+      _subtotal += item.subtotal; 
+      itemDiscounts += item.discount;
+    }
+
+    _tax = _subtotal * (BusinessConfig.instance.taxRate / 100);
+    
+    if (_isManualDiscount) {
+      // Global manual discount
+      if (_globalDiscountType == 'percentage') {
+        _discount = _subtotal * (_globalDiscountValue / 100);
+      } else {
+        _discount = _globalDiscountValue;
+      }
+    } else {
+      // Bottom discount row stays 'empty' (0) for item-level discounts
+      _discount = 0; 
     }
 
     _total = _subtotal + _tax - _discount;
+    
     if (_total < 0) _total = 0;
     notifyListeners();
   }
@@ -242,8 +284,9 @@ class POSController with ChangeNotifier {
         .fold(0.0, (sum, item) => sum + item.quantity);
   }
 
-  void setDiscount(double value) {
-    _discount = value;
+  void setDiscount(double value, {String type = 'fixed'}) {
+    _globalDiscountValue = value;
+    _globalDiscountType = type;
     _isManualDiscount = true;
     calculateTotals();
   }

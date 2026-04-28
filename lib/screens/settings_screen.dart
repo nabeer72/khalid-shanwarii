@@ -36,6 +36,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoReceipt = BusinessConfig.instance.autoReceipt;
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
+  bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
 
   Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
     return TextField(
@@ -1009,6 +1010,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _soundEnabled = v);
                   BusinessConfig.instance.soundEnabled = v;
                   await DatabaseHelper.instance.setSetting('sound_enabled', v ? '1' : '0');
+                },
+              ),
+              _SettingsSwitch(
+                icon: Icons.timer_outlined,
+                title: 'Clock In/Out Management',
+                subtitle: 'Enable shifts and cash drawer balancing',
+                value: _enableShiftManagement,
+                onChanged: (v) async {
+                  setState(() => _enableShiftManagement = v);
+                  BusinessConfig.instance.enableShiftManagement = v;
+                  await DatabaseHelper.instance.setSetting('enable_shift_management', v ? '1' : '0');
                 },
               ),
 

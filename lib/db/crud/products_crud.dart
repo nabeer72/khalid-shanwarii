@@ -44,8 +44,9 @@ mixin ProductsCrud on CommonCrud {
     final productIds = productMaps.map((p) => p['id']).toList();
     final idPlaceholders = List.filled(productIds.length, '?').join(', ');
     
+    final statusFilterStock = includeInactive ? '' : ' AND status = 1';
     final stockMaps = await db.rawQuery(
-      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) AND status = 1 ${getBusinessFilter()} $branchFilter',
+      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders)$statusFilterStock ${getBusinessFilter()} $branchFilter',
       [...productIds, ...getBusinessArgs(), ...branchArgs],
     );
 
@@ -61,7 +62,14 @@ mixin ProductsCrud on CommonCrud {
     // Attach stocks to product maps (using a mutable copy)
     return productMaps.map((p) {
       final mutable = Map<String, dynamic>.from(p);
-      mutable['stocks'] = stocksByProduct[p['id']?.toString()] ?? [];
+      final productStocks = stocksByProduct[p['id']?.toString()] ?? [];
+      mutable['stocks'] = productStocks;
+      
+      // Fallback barcode for legacy UI compatibility
+      if (productStocks.isNotEmpty) {
+        mutable['barcode'] = productStocks.last['barcode'];
+      }
+      
       return mutable;
     }).toList();
   }
@@ -72,7 +80,7 @@ mixin ProductsCrud on CommonCrud {
     final branchArgs = getBranchArgs();
     
     return await db.rawQuery(
-      'SELECT * FROM stocks WHERE product_id = ? AND status = 1 ${getBusinessFilter()} $branchFilter',
+      'SELECT * FROM stocks WHERE product_id = ? ${getBusinessFilter()} $branchFilter',
       [productId?.toString(), ...getBusinessArgs(), ...branchArgs]
     );
   }
@@ -102,7 +110,7 @@ mixin ProductsCrud on CommonCrud {
     final idPlaceholders = List.filled(productIds.length, '?').join(', ');
     
     final stockMaps = await db.rawQuery(
-      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) AND status = 1 ${getBusinessFilter()} $branchFilter',
+      'SELECT * FROM stocks WHERE product_id IN ($idPlaceholders) ${getBusinessFilter()} $branchFilter',
       [...productIds, ...getBusinessArgs(), ...branchArgs],
     );
 
@@ -116,7 +124,14 @@ mixin ProductsCrud on CommonCrud {
 
     return productMaps.map((p) {
       final mutable = Map<String, dynamic>.from(p);
-      mutable['stocks'] = stocksByProduct[p['id']?.toString()] ?? [];
+      final productStocks = stocksByProduct[p['id']?.toString()] ?? [];
+      mutable['stocks'] = productStocks;
+      
+      // Fallback barcode for legacy UI compatibility
+      if (productStocks.isNotEmpty) {
+        mutable['barcode'] = productStocks.last['barcode'];
+      }
+      
       return mutable;
     }).toList();
   }
@@ -350,7 +365,26 @@ mixin ProductsCrud on CommonCrud {
       'products',
       {'is_favorite': currentStatus ? 0 : 1},
       where: 'id = ?${getBusinessFilter().replaceAll('business_id', 'business_id').replaceAll('user_id', 'user_id')}',
+      whereArgs: [productId?.toString(), ...getBusinessArgs()],
     );
+  }
+  Future<void> toggleProductStatus(dynamic productId, int currentStatus) async {
+    final db = await database;
+    final args = [productId?.toString(), ...getBusinessArgs()];
+    await db.rawUpdate(
+      'UPDATE products SET status = ?, is_synced = 0, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
+      [currentStatus == 1 ? 0 : 1, DateTime.now().toIso8601String(), ...args]
+    );
+    DatabaseHelper.notifyDataChanged();
+  }
+
+  Future<void> toggleStockStatus(dynamic stockId, int currentStatus) async {
+    final db = await database;
+    await db.rawUpdate(
+      'UPDATE stocks SET status = ?, is_synced = 0, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
+      [currentStatus == 1 ? 0 : 1, DateTime.now().toIso8601String(), stockId?.toString(), ...getBusinessArgs()]
+    );
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<bool> checkBarcodeExists(String barcode) async {

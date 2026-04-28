@@ -16,6 +16,7 @@ class Stock {
   final String? alertStatus;
   final double discount;
   final double discountLimit;
+  final String discountLimitType;
   final double tax;
   final String? tradeOff;
   final double carryExpense;
@@ -43,6 +44,7 @@ class Stock {
     this.alertStatus,
     this.discount = 0,
     this.discountLimit = 0,
+    this.discountLimitType = 'percentage',
     this.tax = 0,
     this.tradeOff,
     this.carryExpense = 0,
@@ -72,6 +74,7 @@ class Stock {
       alertStatus: map['alert_status'],
       discount: (map['discount'] ?? 0).toDouble(),
       discountLimit: (map['discount_limit'] ?? 0).toDouble(),
+      discountLimitType: map['discount_limit_type'] ?? 'percentage',
       tax: (map['tax'] ?? 0).toDouble(),
       tradeOff: map['trade_off'],
       carryExpense: (map['carry_expense'] ?? 0).toDouble(),
@@ -102,6 +105,7 @@ class Stock {
       'alert_status': alertStatus,
       'discount': discount,
       'discount_limit': discountLimit,
+      'discount_limit_type': discountLimitType,
       'tax': tax,
       'trade_off': tradeOff,
       'carry_expense': carryExpense,

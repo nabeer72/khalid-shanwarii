@@ -121,6 +121,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     // Apply refund filter
     if (_showOnlyRefunds) {
       filtered = filtered.where((s) => s['is_return'] == 1).toList();
+    } else {
+      filtered = filtered.where((s) => s['is_return'] != 1).toList();
     }
 
     // Apply search query (Local filter only if NOT online search)
@@ -143,8 +145,6 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
 
     return filtered;
   }
-
-  double get _totalAmount => _filteredSales.fold(0.0, (sum, s) => sum + (s['total'] as num? ?? 0).toDouble());
 
   @override
   Widget build(BuildContext context) {
@@ -169,70 +169,47 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Filter tabs & Summary
+              // Search & Tab Toggle Row
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: theme.glassDecoration,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('TOTAL REVENUE', 
-                              style: TextStyle(color: theme.textHint, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                            const SizedBox(height: 4),
-                            Text('${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_totalAmount)}', 
-                              style: TextStyle(color: theme.highlight, fontSize: 28, fontWeight: FontWeight.w900, letterSpacing: -1)),
-                          ],
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                        child: Row(
-                          children: [
-                            Icon(Icons.analytics_rounded, color: theme.highlight, size: 20),
-                            const SizedBox(width: 8),
-                            Text('${_filteredSales.length} SALES', 
-                              style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w900)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Search & Filter Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 child: Row(
                   children: [
                     Expanded(
                       child: Container(
-                        decoration: theme.glassDecoration,
+                        decoration: theme.glassDecoration.copyWith(
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                          color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+                        ),
                         child: TextField(
                           controller: _searchCtrl,
                           onChanged: (v) => setState(() => _query = v),
-                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
                           decoration: InputDecoration(
-                            hintText: 'Search records...',
+                            hintText: _showOnlyRefunds ? 'Search refunds...' : 'Search sales...',
                             hintStyle: TextStyle(color: theme.textHint),
                             prefixIcon: Icon(Icons.search_rounded, color: theme.highlight),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'REFUNDS',
-                      selected: _showOnlyRefunds,
-                      onTap: () => setState(() => _showOnlyRefunds = !_showOnlyRefunds),
+                    const SizedBox(width: 12),
+                    Container(
+                      height: 40,
+                      width: 160,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: theme.whiteAlpha(0.05),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                        border: Border.all(color: theme.whiteAlpha(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildTabButton('Sales', !_showOnlyRefunds),
+                          _buildTabButton('Refunds', _showOnlyRefunds),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -342,6 +319,39 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   void _handleRefund(Map<String, dynamic> sale) {
     Navigator.pop(context, sale); // Return to caller with sale data
   }
+
+  Widget _buildTabButton(String label, bool active) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _showOnlyRefunds = (label == 'Refunds')),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: active ? theme.highlight : Colors.transparent,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusList - 2), // Slightly less to fit inside padding
+            boxShadow: active ? [
+              BoxShadow(
+                color: theme.highlight.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            ] : null,
+          ),
+          child: Center(
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: active ? Colors.white : theme.textSecondary,
+                fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+                fontSize: 11,
+                letterSpacing: 1,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _FilterChip extends StatelessWidget {
@@ -404,8 +414,8 @@ class _SaleTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(isReturn ? 'REFUND' : 'SALE', 
-                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+            Text('BILL #${sale['id'] ?? '??'}', 
+                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 14)),
             if (sale['customer_name'] != null)
               Text(sale['customer_name'].toString().toUpperCase(), 
                   style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
@@ -438,8 +448,8 @@ class _SaleTile extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isReturn ? 'REFUND #${sale['id'] ?? '??'}' : 'BILL #${sale['id'] ?? '??'}',
-                  style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w900),
+                  isReturn ? 'REFUND' : 'SALE',
+                  style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontSize: 10, fontWeight: FontWeight.w900),
                 ),
                 Text(
                   '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',

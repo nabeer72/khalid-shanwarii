@@ -65,6 +65,9 @@ mixin SettingsCrud {
     final onboarding = await getSetting('has_seen_onboarding');
     if (onboarding != null) BusinessConfig.instance.hasSeenOnboarding = onboarding == '1';
 
+    final shifts = await getSetting('enable_shift_management');
+    if (shifts != null) BusinessConfig.instance.enableShiftManagement = shifts == '1';
+
     // Load IDs from secure storage
     const storage = FlutterSecureStorage();
     var bid = await storage.read(key: 'business_id');

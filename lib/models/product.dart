@@ -15,6 +15,8 @@ class Product {
   final int status;
   bool isFavorite;
   final int stockLimit;
+  final double discountLimit;
+  final String discountLimitType;
   final String? updatedAt;
   final String? deletedAt;
   final dynamic unitId;
@@ -36,6 +38,8 @@ class Product {
     this.status = 1,
     this.isFavorite = false,
     this.stockLimit = 5,
+    this.discountLimit = 0,
+    this.discountLimitType = 'percentage',
     this.updatedAt,
     this.deletedAt,
     this.unitId,
@@ -57,6 +61,8 @@ class Product {
       status: map['status'] ?? 1,
       isFavorite: (map['is_favorite'] ?? 0) == 1,
       stockLimit: map['stock_limit'] ?? 5,
+      discountLimit: (map['discount_limit'] ?? 0).toDouble(),
+      discountLimitType: map['discount_limit_type'] ?? 'percentage',
       updatedAt: map['updated_at'],
       deletedAt: map['deleted_at'],
       unitId: map['unit_id'],
@@ -79,6 +85,8 @@ class Product {
       'status': status,
       'is_favorite': isFavorite ? 1 : 0,
       'stock_limit': stockLimit,
+      'discount_limit': discountLimit,
+      'discount_limit_type': discountLimitType,
       'updated_at': updatedAt,
       'deleted_at': deletedAt,
       'unit_id': unitId,

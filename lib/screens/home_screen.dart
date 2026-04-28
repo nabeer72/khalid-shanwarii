@@ -430,7 +430,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       GestureDetector(
                         onTap: () async {
                           final activeShift = await DatabaseHelper.instance.getActiveShift();
-                          if (activeShift != null) {
+                          final bool skipShift = !BusinessConfig.instance.enableShiftManagement;
+
+                          if (activeShift != null || skipShift) {
                             if (mounted) {
                               Navigator.push(
                                 context,
@@ -678,10 +680,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                 _loadStats();
                                 if (result != null && result is Map && mounted) {
                                   final Map<String, dynamic> castedResult = Map<String, dynamic>.from(result);
-                                  final activeShift = await DatabaseHelper.instance.getActiveShift();
-                                  if (activeShift != null) {
-                                    Navigator.push(context, MaterialPageRoute(builder: (_) => POSScreen(returnSale: castedResult))).then((_) => _loadStats());
-                                  } else {
+                                   final activeShift = await DatabaseHelper.instance.getActiveShift();
+                                   final bool skipShift = !BusinessConfig.instance.enableShiftManagement;
+                                   if (activeShift != null || skipShift) {
+                                     Navigator.push(context, MaterialPageRoute(builder: (_) => POSScreen(returnSale: castedResult))).then((_) => _loadStats());
+                                   } else {
                                     final clockedIn = await showDialog<bool>(
                                       context: context,
                                       barrierDismissible: false,

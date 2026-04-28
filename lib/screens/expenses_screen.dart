@@ -151,26 +151,48 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         validator: (v) => v == null || v.trim().isEmpty ? 'Amount is required' : null,
                       ),
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<int?>(
-                        value: controller.expenseHeads.any((h) => h.id == controller.selectedHeadId)
-                            ? controller.selectedHeadId
-                            : null,
-                        dropdownColor: theme.surface,
-                        style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                        decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded).copyWith(
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<int?>(
+                              value: controller.expenseHeads.any((h) => h.id == controller.selectedHeadId)
+                                  ? controller.selectedHeadId
+                                  : null,
+                              dropdownColor: theme.surface,
+                              style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                              decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded).copyWith(
+                                    isDense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  ),
+                              items: controller.expenseHeads
+                                  .map((h) => DropdownMenuItem<int?>(
+                                        value: h.id,
+                                        child: Text(h.name),
+                                      ))
+                                  .toList(),
+                              onChanged: (val) {
+                                controller.setCategory(val);
+                                setDialogState(() {});
+                              },
                             ),
-                        items: controller.expenseHeads
-                            .map((h) => DropdownMenuItem<int?>(
-                                  value: h.id,
-                                  child: Text(h.name),
-                                ))
-                            .toList(),
-                        onChanged: (val) {
-                          controller.setCategory(val);
-                          setDialogState(() {});
-                        },
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: theme.highlight.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              onPressed: () async {
+                                await _showAddExpenseHeadDialog();
+                                await controller.loadHeads();
+                                setDialogState(() {});
+                              },
+                              icon: Icon(Icons.add_rounded, color: theme.highlight),
+                              tooltip: 'Add Category',
+                            ),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       InkWell(

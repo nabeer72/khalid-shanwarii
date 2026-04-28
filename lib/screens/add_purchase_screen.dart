@@ -6,6 +6,9 @@ import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/screens/add_supplier_screen.dart';
 import 'package:mobile_app/screens/add_product_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 class AddPurchaseScreen extends StatefulWidget {
   const AddPurchaseScreen({super.key});
@@ -251,6 +254,21 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     final wholesaleCtrl = TextEditingController();
     final priceCtrl = TextEditingController();
     final piecesCtrl = TextEditingController(text: '1');
+    final searchCtrl = TextEditingController();
+    bool isScannerOpen = false;
+    bool isDropdownOpen = false;
+    MobileScannerController? scannerController;
+    AudioPlayer? audioPlayer;
+    DateTime? lastScanTime;
+    List<Map<String, dynamic>> queuedItems = [];
+
+    try {
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)) {
+        audioPlayer = AudioPlayer();
+      }
+    } catch (_) {}
 
     int? selectedProductId = productId;
     int? selectedCategoryId;
@@ -299,9 +317,18 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
-            final filteredProducts = selectedCategoryId == null 
-              ? _controller.products 
-              : _controller.products.where((p) => p['category_id']?.toString() == selectedCategoryId?.toString()).toList();
+            void clearInputs() {
+              setDialogState(() {
+                selectedProductId = null;
+                searchCtrl.clear();
+                qtyCtrl.text = '1';
+                costCtrl.text = '0.00';
+                wholesaleCtrl.text = '0.00';
+                priceCtrl.text = '0.00';
+                stock = 0;
+              });
+            }
+            final filteredProducts = _controller.products;
 
             return AlertDialog(
               backgroundColor: Colors.white,
@@ -350,113 +377,171 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       const SizedBox(height: 16),
                       
                       if (!isManualEntry) ...[
-                        DropdownButtonFormField<int>(
-                          value: selectedCategoryId,
-                          dropdownColor: Colors.white,
-                          style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600, fontSize: 12),
-                          decoration: _dialogInputDecoration('Filter by Category', Icons.category_rounded),
-                          items: [
-                            const DropdownMenuItem(value: null, child: Text('All Categories')),
-                            ..._controller.categories.map((c) => DropdownMenuItem(value: c.id as int, child: Text(c.name))),
-                          ],
-                          onChanged: (v) {
-                            setDialogState(() {
-                              selectedCategoryId = v;
-                              selectedProductId = null;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Row(
+                        // Searchable Product Selector
+                        // Searchable Product Selector using Column (pushes content down)
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: DropdownButtonFormField<int>(
-                                value: selectedProductId,
-                                dropdownColor: Colors.white,
-                                style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                                decoration: _dialogInputDecoration('Select Product', Icons.inventory_rounded),
-                                items: filteredProducts.map((p) => DropdownMenuItem(
-                                  value: p['id'] as int,
-                                  child: Text(p['name'] as String, overflow: TextOverflow.ellipsis),
-                                )).toList(),
-                                onChanged: (v) {
-                                  if (v == null) return;
-                                  setDialogState(() {
-                                    selectedProductId = v;
-                                    final p = _controller.products.firstWhere((x) => x['id'] == v);
-                                    nameCtrl.text = p['name'] as String;
-                                    
-                                    final stocks = p['stocks'] as List<dynamic>? ?? [];
-                                    if (stocks.isNotEmpty) {
-                                      final latestStock = stocks.last; 
-                                      currCost = (latestStock['cost_price'] as num? ?? 0).toDouble();
-                                      currWholesale = (latestStock['wholesale_price'] as num? ?? 0).toDouble();
-                                      currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
-                                      stock = (latestStock['quantity'] as num? ?? 0).toInt();
-                                    } else {
-                                      currCost = (p['purchase_price'] as num? ?? 0).toDouble();
-                                      currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
-                                      currPrice = (p['price'] as num? ?? 0).toDouble();
-                                      stock = 0;
+                            if (isScannerOpen)
+                              Container(
+                                height: 180,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: theme.highlight.withOpacity(0.3)),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: MobileScanner(
+                                  controller: scannerController ??= MobileScannerController(),
+                                  onDetect: (capture) async {
+                                    final List<Barcode> barcodes = capture.barcodes;
+                                    if (barcodes.isNotEmpty) {
+                                      final code = barcodes.first.rawValue;
+                                      if (code != null) {
+                                        final now = DateTime.now();
+                                        if (lastScanTime == null || now.difference(lastScanTime!) > const Duration(seconds: 2)) {
+                                          lastScanTime = now;
+                                          try { audioPlayer?.play(AssetSource('beep.mp3')); } catch (_) {}
+                                          
+                                          final p = _controller.products.firstWhere(
+                                            (x) => x['barcode']?.toString() == code,
+                                            orElse: () => {},
+                                          );
+                                          if (p.isNotEmpty) {
+                                            setDialogState(() {
+                                              selectedProductId = p['id'] as int;
+                                              nameCtrl.text = p['name'] as String;
+                                              searchCtrl.text = p['name'] as String;
+                                              isScannerOpen = false;
+                                              isDropdownOpen = false;
+                                              
+                                              final stocks = p['stocks'] as List<dynamic>? ?? [];
+                                              if (stocks.isNotEmpty) {
+                                                final latestStock = stocks.last; 
+                                                currCost = (latestStock['cost_price'] as num? ?? 0).toDouble();
+                                                currWholesale = (latestStock['wholesale_price'] as num? ?? 0).toDouble();
+                                                currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
+                                                stock = (latestStock['quantity'] as num? ?? 0).toInt();
+                                              } else {
+                                                currCost = (p['purchase_price'] as num? ?? 0).toDouble();
+                                                currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
+                                                currPrice = (p['price'] as num? ?? 0).toDouble();
+                                                stock = 0;
+                                              }
+                                              costCtrl.text = currCost.toStringAsFixed(2);
+                                              wholesaleCtrl.text = currWholesale.toStringAsFixed(2);
+                                              priceCtrl.text = currPrice.toStringAsFixed(2);
+                                            });
+                                          }
+                                        }
+                                      }
                                     }
-
-                                    costCtrl.text = currCost.toStringAsFixed(2);
-                                    wholesaleCtrl.text = currWholesale.toStringAsFixed(2);
-                                    priceCtrl.text = currPrice.toStringAsFixed(2);
-                                    
-                                    if (p['unit_id'] != null) {
-                                      selectedUnitId = p['unit_id'];
-                                      final unit = _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-                                      isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
-                                    }
-                                  });
-                                },
+                                  },
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            _ScannerButton(
-                              theme: theme,
-                              onScan: (code) async {
-                                final p = _controller.products.firstWhere(
-                                  (x) => x['barcode'] == code,
-                                  orElse: () => {},
-                                );
-                                if (p.isNotEmpty) {
-                                  setDialogState(() {
-                                    selectedProductId = p['id'] as int;
-                                    nameCtrl.text = p['name'] as String;
-                                    
-                                    final stocks = p['stocks'] as List<dynamic>? ?? [];
-                                    if (stocks.isNotEmpty) {
-                                      final latestStock = stocks.last;
-                                      currCost = (latestStock['cost_price'] as num? ?? 0).toDouble();
-                                      currWholesale = (latestStock['wholesale_price'] as num? ?? 0).toDouble();
-                                      currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
-                                      stock = (latestStock['quantity'] as num? ?? 0).toInt();
-                                    } else {
-                                      currCost = (p['purchase_price'] as num? ?? 0).toDouble();
-                                      currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
-                                      currPrice = (p['price'] as num? ?? 0).toDouble();
-                                      stock = 0;
-                                    }
-
-                                    costCtrl.text = currCost.toStringAsFixed(2);
-                                    wholesaleCtrl.text = currWholesale.toStringAsFixed(2);
-                                    priceCtrl.text = currPrice.toStringAsFixed(2);
-                                    
-                                    if (p['unit_id'] != null) {
-                                      selectedUnitId = p['unit_id'];
-                                      final unit = _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
-                                      isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
-                                    }
-                                  });
-                                } else {
-                                  ScaffoldMessenger.of(ctx).showSnackBar(
-                                    SnackBar(content: Text('Product with barcode $code not found')),
-                                  );
+                            TextFormField(
+                              controller: searchCtrl,
+                              decoration: _dialogInputDecoration('Search Product...', Icons.search_rounded).copyWith(
+                                suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (searchCtrl.text.isNotEmpty)
+                                      IconButton(
+                                        icon: const Icon(Icons.clear_rounded, size: 20),
+                                        onPressed: () {
+                                          setDialogState(() {
+                                            searchCtrl.clear();
+                                            selectedProductId = null;
+                                          });
+                                        },
+                                      ),
+                                    IconButton(
+                                      icon: Icon(isScannerOpen ? Icons.close_rounded : Icons.qr_code_scanner_rounded, color: theme.highlight),
+                                      onPressed: () {
+                                        setDialogState(() {
+                                          isScannerOpen = !isScannerOpen;
+                                          if (!isScannerOpen) scannerController?.dispose();
+                                        });
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: Icon(isDropdownOpen ? Icons.arrow_drop_up_rounded : Icons.arrow_drop_down_rounded, color: theme.iconColor),
+                                      onPressed: () {
+                                        setDialogState(() {
+                                          isDropdownOpen = !isDropdownOpen;
+                                        });
+                                      },
+                                    ),
+                                    const SizedBox(width: 8),
+                                  ],
+                                ),
+                              ),
+                              onChanged: (v) => setDialogState(() {
+                                if (v.isNotEmpty) isDropdownOpen = true;
+                              }),
+                              onTap: () => setDialogState(() {
+                                if (selectedProductId != null) {
+                                  selectedProductId = null;
+                                  searchCtrl.clear();
+                                  isDropdownOpen = true;
                                 }
-                              },
+                              }),
                             ),
+                            if (isDropdownOpen && selectedProductId == null)
+                              Container(
+                                constraints: const BoxConstraints(maxHeight: 180),
+                                margin: const EdgeInsets.only(top: 8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8),
+                                  ],
+                                  border: Border.all(color: theme.highlight.withOpacity(0.1)),
+                                ),
+                                child: ListView(
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.zero,
+                                  children: _controller.products
+                                      .where((p) => 
+                                          searchCtrl.text.isEmpty ||
+                                          p['name'].toString().toLowerCase().contains(searchCtrl.text.toLowerCase()) ||
+                                          p['barcode'].toString().contains(searchCtrl.text))
+                                      .map((p) => ListTile(
+                                            title: Text(p['name'], style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                            subtitle: (p['barcode'] == null || p['barcode'].toString() == 'null' || p['barcode'].toString().isEmpty) 
+                                                ? null 
+                                                : Text('Barcode: ${p['barcode']}', style: const TextStyle(fontSize: 11)),
+                                            dense: true,
+                                            onTap: () {
+                                              setDialogState(() {
+                                                selectedProductId = p['id'] as int;
+                                                nameCtrl.text = p['name'] as String;
+                                                searchCtrl.text = p['name'] as String;
+                                                isDropdownOpen = false;
+                                                
+                                                final stocks = p['stocks'] as List<dynamic>? ?? [];
+                                                if (stocks.isNotEmpty) {
+                                                  final latestStock = stocks.last; 
+                                                  currCost = (latestStock['cost_price'] as num? ?? 0).toDouble();
+                                                  currWholesale = (latestStock['wholesale_price'] as num? ?? 0).toDouble();
+                                                  currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
+                                                  stock = (latestStock['quantity'] as num? ?? 0).toInt();
+                                                } else {
+                                                  currCost = (p['purchase_price'] as num? ?? 0).toDouble();
+                                                  currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
+                                                  currPrice = (p['price'] as num? ?? 0).toDouble();
+                                                  stock = 0;
+                                                }
+                                                costCtrl.text = currCost.toStringAsFixed(2);
+                                                wholesaleCtrl.text = currWholesale.toStringAsFixed(2);
+                                                priceCtrl.text = currPrice.toStringAsFixed(2);
+                                              });
+                                            },
+                                          ))
+                                      .toList(),
+                                ),
+                              ),
                           ],
                         ),
                       ] else ...[
@@ -468,26 +553,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       ],
 
                       const SizedBox(height: 12),
-                      DropdownButtonFormField<int>(
-                        value: selectedUnitId,
-                        dropdownColor: Colors.white,
-                        style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                        decoration: _dialogInputDecoration('Unit', Icons.straighten_rounded),
-                        items: [
-                          const DropdownMenuItem(value: null, child: Text('No Unit')),
-                          ..._controller.units.map((u) => DropdownMenuItem(value: u['id'] as int, child: Text(u['name'] as String))),
-                        ],
-                        onChanged: (v) {
-                          setDialogState(() {
-                            selectedUnitId = v;
-                            final unit = _controller.units.firstWhere((u) => u['id'] == v, orElse: () => {});
-                            isBoxUnit = ['box', 'carton', 'bag'].any((w) => (unit['name'] ?? '').toString().toLowerCase().contains(w));
-                            if (!isBoxUnit) piecesCtrl.text = '1';
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      if (isBoxUnit) ...[
+                      if (false) ...[
                         Builder(
                           builder: (context) {
                             final unitMap = selectedUnitId != null ? _controller.units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {}) : {};
@@ -667,9 +733,17 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                     color: theme.highlight.withOpacity(0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
+                                   ),
+                                  onChanged: (v) => setDialogState(() {}),
+                                  onTap: () => setDialogState(() {
+                                    if (selectedProductId != null) {
+                                      selectedProductId = null;
+                                      searchCtrl.clear();
+                                    }
+                                  }),
+                                ),
+                              ],
+                            ),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
@@ -826,27 +900,11 @@ class _PurchaseInfoCard extends StatelessWidget {
             children: [
               Expanded(
                 child: DropdownButtonFormField<int>(
-                  value: controller.mainCategoryId,
-                  dropdownColor: theme.surface,
-                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
-                  decoration: theme.glassInputDecoration('Category', Icons.category_rounded),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('All categories')),
-                    ...controller.categories.map((c) => DropdownMenuItem(value: c.id as int, child: Text(c.name))),
-                  ],
-                  onChanged: controller.setMainCategory,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: DropdownButtonFormField<int>(
                   value: controller.mainProductId,
                   dropdownColor: theme.surface,
                   style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
                   decoration: theme.glassInputDecoration('Product', Icons.inventory_rounded),
-                  items: (controller.mainCategoryId == null 
-                    ? controller.products 
-                    : controller.products.where((p) => p['category_id'] == controller.mainCategoryId))
+                  items: controller.products
                     .map((p) => DropdownMenuItem(value: p['id'] as int, child: Text(p['name'] as String, overflow: TextOverflow.ellipsis)))
                     .toList(),
                   onChanged: controller.setMainProduct,
@@ -929,7 +987,7 @@ class _PurchaseInfoCard extends StatelessWidget {
             TextField(controller: controller.bankNameCtrl, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600), decoration: theme.glassInputDecoration('Bank Name', Icons.account_balance_rounded)),
             const SizedBox(height: 16),
             TextField(controller: controller.transRefCtrl, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600), decoration: theme.glassInputDecoration('Transaction Reference', Icons.receipt_long_rounded)),
-          ] else if (controller.paymentType == 'Credit') ...[
+          ] else if (controller.paymentType == 'Credit' || controller.paymentType == 'Partial') ...[
             const SizedBox(height: 16),
             InkWell(
               onTap: onCreditDueTap,
@@ -946,10 +1004,10 @@ class _PurchaseInfoCard extends StatelessWidget {
           // Payment Section (Prominent)
           TextField(
             controller: controller.paidAmountCtrl,
-            enabled: controller.paymentType == 'Credit',
+            enabled: controller.paymentType == 'Partial',
             keyboardType: TextInputType.number,
             style: TextStyle(
-              color: controller.paymentType == 'Credit' ? theme.textPrimary : theme.textSecondary, 
+              color: controller.paymentType == 'Partial' ? theme.textPrimary : theme.textSecondary, 
               fontWeight: FontWeight.w600
             ),
             // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
@@ -1200,7 +1258,7 @@ class _ProductStats extends StatelessWidget {
       decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
       child: Column(
         children: [
-          _buildMiniStat('In Stock', '$stock units', labelColor, textColor),
+          _buildMiniStat('In Stock', '$stock Items', labelColor, textColor),
           const Divider(height: 16),
           _buildMiniStat('Current Cost', '$currency. ${cost.toStringAsFixed(2)}', labelColor, textColor),
         ],

@@ -21,6 +21,7 @@ class AddProductController with ChangeNotifier {
   late TextEditingController stock;
   late TextEditingController stockLimit;
   late TextEditingController discountLimit;
+  String discountLimitType = 'percentage'; // 'percentage' or 'fixed'
   late TextEditingController description;
   late TextEditingController piecesPerBox;
   late TextEditingController boxPrice;
@@ -56,7 +57,8 @@ class AddProductController with ChangeNotifier {
     wholesalePrice = TextEditingController(text: initialProduct?.latestWholesalePrice.toString() ?? '');
     stock = TextEditingController(text: initialProduct?.latestStockQuantity.toString() ?? '');
     stockLimit = TextEditingController(text: (initialProduct?.stockLimit ?? 5).toString());
-    discountLimit = TextEditingController(); // Product no longer has a base discount limit
+    discountLimit = TextEditingController(text: initialProduct?.discountLimit.toString() ?? ''); 
+    discountLimitType = initialProduct?.discountLimitType ?? 'percentage';
     description = TextEditingController(text: initialProduct?.description ?? '');
     piecesPerBox = TextEditingController(text: '1');
     boxPrice = TextEditingController();
@@ -475,7 +477,7 @@ class AddProductController with ChangeNotifier {
     }
 
     final limitVal = int.tryParse(stockLimit.text) ?? 5;
-    final discountLimitVal = double.tryParse(discountLimit.text);
+    final discountLimitVal = double.tryParse(discountLimit.text) ?? 0.0;
     final barcodeVal = barcode.text.trim().isEmpty ? null : barcode.text.trim();
 
     final productId = isEditMode ? initialProduct!.id : null;
@@ -496,6 +498,7 @@ class AddProductController with ChangeNotifier {
       'stock_quantity': effectiveStock,
       'stock_limit': limitVal,
       'discount_limit': discountLimitVal,
+      'discount_limit_type': discountLimitType,
       'pieces_per_pack': isBoxUnit ? piecesPerBox.text : null,
       'packing': isBoxUnit ? stock.text : null,
       'description': description.text.trim(),

@@ -12,10 +12,16 @@ class POSCartItem {
   double _discountRate = 0; // Discount per unit
   double subtotal;
   final bool isWeight;
+  String discountType = 'fixed'; // 'fixed' or 'percentage'
+  double discountValue = 0; // The rate (%) or amount ($) entered
+  bool isManual = false;
 
   double get discount => _discount;
   set discount(double value) {
     _discount = value;
+    if (discountType == 'fixed') {
+      discountValue = value;
+    }
     _discountRate = quantity > 0 ? value / quantity : 0;
     updateSubtotal();
   }
@@ -30,7 +36,10 @@ class POSCartItem {
     double discount = 0,
     this.subtotal = 0,
     this.isWeight = false,
+    this.discountType = 'fixed',
+    this.discountValue = 0,
   }) : _discount = discount {
+    if (discountValue == 0 && _discount != 0) discountValue = _discount;
     _discountRate = quantity > 0 ? _discount / quantity : 0;
     if (subtotal == 0 && price != 0) {
       updateSubtotal();
@@ -39,6 +48,16 @@ class POSCartItem {
 
   // Calculate subtotal automatically
   void updateSubtotal() {
+    if (discountType == 'percentage') {
+      _discount = (quantity * price) * (discountValue / 100);
+    } else {
+      // For fixed, we might want to scale it per unit if we want it to be a "per unit" fixed discount?
+      // But user said "currency", usually means total for that line or per unit.
+      // If it's a fixed amount for the WHOLE line, it shouldn't scale.
+      // But the current system has _discountRate.
+      // Let's assume 'fixed' means total for this line item.
+      _discount = discountValue;
+    }
     subtotal = (quantity * price) - _discount;
     if (subtotal < 0) subtotal = 0;
   }
@@ -46,7 +65,7 @@ class POSCartItem {
   // Update quantity and scale discount proportionally
   void setQuantity(double newQty) {
     quantity = newQty;
-    _discount = _discountRate * quantity;
+    // _discount = _discountRate * quantity; // Removed in favor of updateSubtotal logic
     updateSubtotal();
   }
 

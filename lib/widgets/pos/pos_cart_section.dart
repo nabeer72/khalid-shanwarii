@@ -57,6 +57,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                   itemBuilder: (ctx, i) => POSCartItemTile(
                     item: widget.controller.cart[i],
                     isExpanded: _expandedIndex == i,
+                    isReturn: widget.controller.isReturn,
                     onToggleExpand: () => setState(() {
                       _expandedIndex = (_expandedIndex == i) ? null : i;
                     }),
@@ -284,7 +285,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.5)),
               Text(
-                  '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.total)}',
+                  '${widget.controller.isReturn ? "-" : ""}${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.total)}',
                   style: TextStyle(
                       color: theme.highlight,
                       fontSize: 15,

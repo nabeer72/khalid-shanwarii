@@ -111,23 +111,22 @@ class POSProductTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Row(
                   children: [
-                    Text(
-                      product.priceRange,
-                      style: TextStyle(
-                          color: theme.highlight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w900),
-                    ),
-                    if (product.stocks.length > 1) ...[
-                      const SizedBox(width: 4),
+                    if (product.stocks.length > 1)
                       Text(
-                        '${product.stocks.length} batches',
+                        'Multiple Prices',
                         style: TextStyle(
-                            color: theme.textSecondary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600),
+                            color: theme.highlight,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800),
+                      )
+                    else
+                      Text(
+                        product.priceRange,
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w900),
                       ),
-                    ],
                   ],
                 ),
               ),

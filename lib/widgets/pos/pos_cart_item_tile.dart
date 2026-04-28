@@ -10,6 +10,7 @@ class POSCartItemTile extends StatelessWidget {
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
   final VoidCallback onRemove;
+  final bool isReturn;
   final Function(double) onQuantityChanged;
   final Function(double) onPriceChanged;
   final Function(double) onDiscountChanged;
@@ -18,6 +19,7 @@ class POSCartItemTile extends StatelessWidget {
     super.key,
     required this.item,
     required this.isExpanded,
+    this.isReturn = false,
     required this.onToggleExpand,
     required this.onIncrement,
     required this.onDecrement,
@@ -89,7 +91,7 @@ class POSCartItemTile extends StatelessWidget {
                 SizedBox(
                   width: 60,
                   child: Text(
-                    BusinessConfig.instance.formatAmount(item.price),
+                    '${isReturn ? "-" : ""}${BusinessConfig.instance.formatAmount(item.price)}',
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         color: theme.textSecondary,
@@ -103,7 +105,7 @@ class POSCartItemTile extends StatelessWidget {
                 SizedBox(
                   width: 75,
                   child: Text(
-                    BusinessConfig.instance.formatAmount(item.subtotal),
+                    '${isReturn ? "-" : ""}${BusinessConfig.instance.formatAmount(item.subtotal)}',
                     textAlign: TextAlign.right,
                     style: TextStyle(
                         color: theme.textPrimary,
@@ -142,12 +144,7 @@ class POSCartItemTile extends StatelessWidget {
                 _POSActionButton(
                   icon: Icons.discount_rounded,
                   label: 'Disc',
-                  onTap: () => _showEditValueDialog(
-                    context,
-                    title: 'Discount',
-                    initialValue: item.discount,
-                    onChanged: onDiscountChanged,
-                  ),
+                  onTap: () => _showEditDiscountDialog(context),
                 ),
                 
                 const Spacer(),
@@ -246,6 +243,111 @@ class POSCartItemTile extends StatelessWidget {
             child: const Text('Update'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditDiscountDialog(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    String dType = item.discountType;
+    final ctrl = TextEditingController(text: item.discountValue.toString());
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          backgroundColor: theme.surface,
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Item Discount', style: TextStyle(color: theme.textPrimary)),
+              TextButton(
+                onPressed: () {
+                  setDialogState(() {
+                    dType = dType == 'percentage' ? 'fixed' : 'percentage';
+                  });
+                },
+                child: Text(
+                  dType == 'percentage' ? '%' : BusinessConfig.instance.currencyDisplay,
+                  style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: ctrl,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: theme.textPrimary, fontSize: 32, fontWeight: FontWeight.bold),
+                autofocus: true,
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: theme.whiteAlpha(0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  hintText: '0.00',
+                  prefixIcon: Icon(dType == 'percentage' ? Icons.percent_outlined : Icons.monetization_on_outlined, color: theme.highlight),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Max allowed: ${item.stock.discountLimit}${item.stock.discountLimitType == "percentage" ? "%" : BusinessConfig.instance.currencyDisplay}',
+                style: TextStyle(color: theme.textSecondary, fontSize: 11),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final val = double.tryParse(ctrl.text) ?? 0.0;
+                
+                // Enforcement
+                double limitValue = item.stock.discountLimit;
+                String limitType = item.stock.discountLimitType;
+                
+                bool isAllowed = true;
+                if (limitValue > 0) {
+                  if (dType == limitType) {
+                    if (val > limitValue) isAllowed = false;
+                  } else {
+                    // Mixed types - approximate check or convert
+                    if (dType == 'percentage') {
+                      // entered % but limit is fixed
+                      double amount = (item.price * item.quantity) * (val / 100);
+                      if (amount > limitValue) isAllowed = false;
+                    } else {
+                      // entered fixed but limit is %
+                      double percent = (item.price * item.quantity) > 0 ? (val / (item.price * item.quantity)) * 100 : 0;
+                      if (percent > limitValue) isAllowed = false;
+                    }
+                  }
+                }
+
+                if (!isAllowed) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                     SnackBar(content: Text('Discount exceeds allowed limit!'), backgroundColor: ThemeProvider.error),
+                   );
+                   return;
+                }
+
+                item.isManual = true;
+                item.discountType = dType;
+                item.discountValue = val;
+                item.updateSubtotal();
+                onDiscountChanged(item.discount);
+                Navigator.pop(ctx);
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
+              child: const Text('Update'),
+            ),
+          ],
+        ),
       ),
     );
   }

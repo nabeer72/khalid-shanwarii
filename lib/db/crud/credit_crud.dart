@@ -164,6 +164,96 @@ mixin CreditCrud on CommonCrud {
     return insertedId;
   }
 
+  Future<void> updateCreditPayment(int paymentId, Map<String, dynamic> data) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Get the old payment record
+      final List<Map<String, dynamic>> oldRecords = await txn.query(
+        'credit_payments',
+        where: 'id = ?',
+        whereArgs: [paymentId],
+      );
+      if (oldRecords.isEmpty) return;
+      final old = oldRecords.first;
+      final double oldAmount = (old['amount'] as num).toDouble();
+      final int customerId = old['customer_id'];
+      final int? saleId = old['credit_sale_id'];
+
+      // 2. Revert the old amount
+      if (saleId != null) {
+        await txn.rawUpdate(
+          'UPDATE credit_sales SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          [oldAmount, saleId, ...getBusinessArgs()],
+        );
+      }
+      await txn.rawUpdate(
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        [oldAmount, customerId, ...getBusinessArgs()],
+      );
+
+      // 3. Apply the new amount
+      final double newAmount = (data['amount'] as num).toDouble();
+      if (saleId != null) {
+        await txn.rawUpdate(
+          'UPDATE credit_sales SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          [newAmount, saleId, ...getBusinessArgs()],
+        );
+      }
+      await txn.rawUpdate(
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        [newAmount, customerId, ...getBusinessArgs()],
+      );
+
+      // 4. Update the payment record
+      await txn.update(
+        'credit_payments', 
+        {
+          ...data,
+          'is_synced': 0,
+          'updated_at': DateTime.now().toIso8601String(),
+        }, 
+        where: 'id = ?', 
+        whereArgs: [paymentId]
+      );
+    });
+    DatabaseHelper.notifyDataChanged();
+  }
+
+  Future<void> deleteCreditPayment(int paymentId) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      // 1. Get the payment record
+      final List<Map<String, dynamic>> payments = await txn.query(
+        'credit_payments',
+        where: 'id = ?',
+        whereArgs: [paymentId],
+      );
+      if (payments.isEmpty) return;
+      final payment = payments.first;
+      final double amount = (payment['amount'] as num).toDouble();
+      final int customerId = payment['customer_id'];
+      final int? saleId = payment['credit_sale_id'];
+
+      // 2. Reverse effect on credit_sales if applicable
+      if (saleId != null) {
+        await txn.rawUpdate(
+          'UPDATE credit_sales SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          [amount, saleId, ...getBusinessArgs()],
+        );
+      }
+
+      // 3. Reverse effect on customer balance
+      await txn.rawUpdate(
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        [amount, customerId, ...getBusinessArgs()],
+      );
+
+      // 4. Delete the record
+      await txn.delete('credit_payments', where: 'id = ?', whereArgs: [paymentId]);
+    });
+    DatabaseHelper.notifyDataChanged();
+  }
+
   // Get customer's total credit balance
   Future<double> getCustomerCreditBalance(dynamic customerId) async {
     final db = await database;
@@ -191,6 +281,26 @@ mixin CreditCrud on CommonCrud {
       'SELECT * FROM customers WHERE COALESCE(credit_balance, 0) > 0${getBusinessFilter()} AND status = 1$branchFilter ORDER BY credit_balance DESC',
       args,
     );
+  }
+
+  Future<List<Map<String, dynamic>>> getCreditPaymentsWithCustomer() async {
+    final db = await database;
+    final branchFilter = getBranchFilter();
+    final branchArgs = getBranchArgs();
+    final businessArgs = getBusinessArgs();
+    
+    final bid = businessArgs[0];
+    final uid = businessArgs[1];
+    
+    String bFilter = branchFilter.replaceAll('branch_id', 'cp.branch_id');
+
+    return await db.rawQuery('''
+      SELECT cp.*, c.name as customer_name, c.phone as customer_phone
+      FROM credit_payments cp
+      JOIN customers c ON cp.customer_id = c.id
+      WHERE cp.business_id = ? AND cp.user_id = ? $bFilter
+      ORDER BY cp.payment_date DESC
+    ''', [bid, uid, ...branchArgs]);
   }
 
   // Update customer credit balance (used when creating credit sale)

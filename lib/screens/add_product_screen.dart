@@ -5,6 +5,9 @@ import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 class AddProductScreen extends StatefulWidget {
   final Product? product;
@@ -20,9 +23,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _formKey = GlobalKey<FormState>();
   final theme = ThemeProvider.instance;
 
+  bool _isScannerOpen = false;
+  MobileScannerController? _scannerController;
+  AudioPlayer? _audioPlayer;
+  DateTime? _lastScanTime;
+
   @override
   void initState() {
     super.initState();
+    try {
+      if (!kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.android ||
+              defaultTargetPlatform == TargetPlatform.iOS)) {
+        _audioPlayer = AudioPlayer();
+      }
+    } catch (_) {}
     _controller = AddProductController(initialProduct: widget.product);
     _controller.addListener(_updateUI);
     _controller.loadCategories();
@@ -36,6 +51,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   void dispose() {
     _controller.removeListener(_updateUI);
     _controller.dispose();
+    _scannerController?.dispose();
+    _audioPlayer?.dispose();
     super.dispose();
   }
 
@@ -507,48 +524,23 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         Expanded(
                           child: _buildTextField(
                             controller: _controller.discountLimit,
-                            label: 'Max Discount (%)',
-                            icon: Icons.percent_outlined,
+                            label: 'Max Discount',
+                            icon: _controller.discountLimitType == 'percentage' ? Icons.percent_outlined : Icons.monetization_on_outlined,
                             keyboardType: TextInputType.number,
+                            suffixIcon: TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _controller.discountLimitType = _controller.discountLimitType == 'percentage' ? 'fixed' : 'percentage';
+                                });
+                              },
+                              child: Text(
+                                _controller.discountLimitType == 'percentage' ? '%' : BusinessConfig.instance.currencyDisplay,
+                                style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                           ),
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: theme.background.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                        border: Border.all(color: theme.textHint.withOpacity(0.1)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                _controller.status == 1 ? Icons.check_circle : Icons.cancel,
-                                color: _controller.status == 1 ? ThemeProvider.success : ThemeProvider.error,
-                                size: 22,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                _controller.status == 1 ? 'Product Active' : 'Product Inactive',
-                                style: TextStyle(
-                                  color: theme.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Switch.adaptive(
-                            value: _controller.status == 1,
-                            activeColor: ThemeProvider.success,
-                            onChanged: (val) => _controller.toggleStatus(val),
-                          ),
-                        ],
-                      ),
                     ),
                   ]),
                   const SizedBox(height: 100),
@@ -605,22 +597,112 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  // Custom compact dropdown: fixed max-width popup, anchored below the field
+  Widget _buildDropdownField({
+    required dynamic value,
+    required String label,
+    required IconData icon,
+    required List<Map<String, dynamic>> items, // [{'value': v, 'label': l}]
+    required void Function(dynamic) onChanged,
+  }) {
+    final key = GlobalKey();
+    final displayLabel = items.firstWhere(
+      (i) => i['value'] == value,
+      orElse: () => {'label': label},
+    )['label'] as String;
+
+    return GestureDetector(
+      key: key,
+      onTap: () async {
+        final box = key.currentContext?.findRenderObject() as RenderBox?;
+        if (box == null) return;
+        final pos = box.localToGlobal(Offset.zero);
+        final size = box.size;
+        final screenWidth = MediaQuery.of(context).size.width;
+        
+        // Make it wider but responsive
+        final dropdownWidth = (size.width > 300) ? size.width : 300.0;
+        
+        // Ensure it doesn't go off the right edge
+        double left = pos.dx;
+        if (left + dropdownWidth > screenWidth - 16) {
+          left = screenWidth - dropdownWidth - 16;
+        }
+        if (left < 16) left = 16;
+
+        final result = await showMenu<dynamic>(
+          context: context,
+          color: theme.surface,
+          elevation: 8,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: BorderSide(color: theme.highlight.withOpacity(0.2), width: 1),
+          ),
+          constraints: BoxConstraints(
+            minWidth: dropdownWidth,
+            maxWidth: dropdownWidth,
+            maxHeight: 300,
+          ),
+          position: RelativeRect.fromLTRB(
+            left,
+            pos.dy + size.height + 4,
+            left + dropdownWidth,
+            pos.dy + size.height + 304,
+          ),
+          items: items.map((item) => PopupMenuItem<dynamic>(
+            value: item['value'],
+            height: 44,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Text(
+                item['label'] as String,
+                style: TextStyle(
+                  color: item['value'] == value ? theme.highlight : theme.textPrimary, 
+                  fontSize: 14, 
+                  fontWeight: item['value'] == value ? FontWeight.bold : FontWeight.w500
+                ),
+              ),
+            ),
+          )).toList(),
+        );
+        if (result != null && result != value) onChanged(result);
+        if (result == null && value != null) {
+          // allow clearing by tapping "No X" which has value=null sentinel
+        }
+      },
+      child: InputDecorator(
+        decoration: theme.glassInputDecoration(label, icon).copyWith(
+          suffixIcon: Icon(Icons.arrow_drop_down_rounded, color: theme.iconColor),
+        ),
+        child: Text(
+          displayLabel,
+          style: TextStyle(
+            color: value != null ? theme.textPrimary : theme.textHint,
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+          ),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+
   Widget _buildCategorySelector() {
     return Row(
       children: [
         Expanded(
           child: _controller.categories.isEmpty 
             ? _buildTextField(controller: TextEditingController(text: 'Add Category'), label: 'Category', icon: Icons.category_outlined, enabled: false)
-            : DropdownButtonFormField<dynamic>(
-                value: _controller.categories.any((c) => c.id == _controller.selectedCategory) 
-                    ? _controller.selectedCategory 
+            : _buildDropdownField(
+                value: _controller.categories.any((c) => c.id == _controller.selectedCategory)
+                    ? _controller.selectedCategory
                     : null,
-                dropdownColor: theme.surface,
-                style: TextStyle(color: theme.textPrimary),
-                decoration: theme.glassInputDecoration('Category', Icons.category_outlined),
+                label: 'Category',
+                icon: Icons.category_outlined,
                 items: _controller.categories
                     .fold<List<ProductCategory>>([], (list, c) => list.any((e) => e.id == c.id) ? list : [...list, c])
-                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                    .map((c) => {'value': c.id, 'label': c.name})
                     .toList(),
                 onChanged: _controller.setCategory,
               ),
@@ -642,66 +724,145 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
 
+  void _openBarcodeScanner() {
+    if (kIsWeb) return;
+    setState(() {
+      if (!_isScannerOpen) {
+        _isScannerOpen = true;
+        _scannerController = MobileScannerController();
+      } else {
+        _closeBarcodeScanner();
+      }
+    });
+  }
+
+  void _closeBarcodeScanner() {
+    setState(() {
+      _isScannerOpen = false;
+      _scannerController?.dispose();
+      _scannerController = null;
+    });
+  }
+
+  void _onDetectBarcode(BarcodeCapture capture) {
+    if (!_isScannerOpen) return;
+    final List<Barcode> barcodes = capture.barcodes;
+    if (barcodes.isNotEmpty) {
+      final String? code = barcodes.first.rawValue;
+      if (code != null) {
+        if (_lastScanTime == null || DateTime.now().difference(_lastScanTime!).inMilliseconds > 1500) {
+          _lastScanTime = DateTime.now();
+          try {
+             AudioCache.instance.prefix = '';
+             _audioPlayer?.play(AssetSource('asset/beep.mpeg'));
+          } catch (_) {}
+          setState(() {
+            _controller.barcode.text = code;
+          });
+          _closeBarcodeScanner();
+        }
+      }
+    }
+  }
+
+  Widget _buildInlineScanner() {
+    return Container(
+      height: 250,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.highlight, width: 2),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            if (_scannerController != null)
+              MobileScanner(
+                controller: _scannerController!,
+                onDetect: _onDetectBarcode,
+              ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                icon: const Icon(Icons.close_rounded, color: Colors.white),
+                onPressed: _closeBarcodeScanner,
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: IconButton(
+                icon: const Icon(Icons.flash_on, color: Colors.white),
+                onPressed: () => _scannerController?.toggleTorch(),
+                style: IconButton.styleFrom(backgroundColor: Colors.black54),
+              ),
+            ),
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 8.0),
+                child: Text('Scan Barcode', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBarcodeScanner() {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: _buildTextField(
-            controller: _controller.barcode,
-            label: 'Barcode',
-            icon: Icons.qr_code,
-            suffixIcon: IconButton(
-              icon: Icon(Icons.auto_fix_high_rounded, color: theme.highlight, size: 20),
-              onPressed: _controller.generateUniqueBarcode,
-              tooltip: 'Generate Unique Barcode',
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _controller.barcode,
+                label: 'Barcode',
+                icon: Icons.qr_code,
+                suffixIcon: IconButton(
+                  icon: Icon(Icons.auto_fix_high_rounded, color: theme.highlight, size: 20),
+                  onPressed: _controller.generateUniqueBarcode,
+                  tooltip: 'Generate Unique Barcode',
+                ),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          onPressed: () async {
-            final String? code = await Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const ScannerScreen()),
-            );
-            if (code != null && mounted) {
-              _controller.barcode.text = code;
-            }
-          },
-          icon: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: theme.highlight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _openBarcodeScanner,
+              icon: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.highlight.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                ),
+                child: Icon(Icons.qr_code_scanner, color: theme.highlight, size: 20),
+              ),
             ),
-            child: Icon(Icons.qr_code_scanner, color: theme.highlight, size: 20),
-          ),
+          ],
         ),
+        if (_isScannerOpen) _buildInlineScanner(),
       ],
     );
   }
 
   Widget _buildSubCategorySelector() {
-    if (kDebugMode) print('🎨 [UI] Building SubCategorySelector: selected=${_controller.selectedSubCategoryId}, count=${_controller.subCategories.length}');
-    for (var sc in _controller.subCategories) {
-      if (kDebugMode) print('   - SubCat Item: ${sc.id} (${sc.name})');
-    }
-    
     return Row(
       children: [
         Expanded(
-          child: DropdownButtonFormField<dynamic>(
-            value: _controller.subCategories.any((c) => c.id == _controller.selectedSubCategoryId) 
-                ? _controller.selectedSubCategoryId 
+          child: _buildDropdownField(
+            value: _controller.subCategories.any((c) => c.id == _controller.selectedSubCategoryId)
+                ? _controller.selectedSubCategoryId
                 : null,
-            dropdownColor: theme.surface,
-            style: TextStyle(color: theme.textPrimary),
-            decoration: theme.glassInputDecoration('Sub-Category', Icons.account_tree_outlined),
+            label: 'Sub-Category',
+            icon: Icons.account_tree_outlined,
             items: [
-              const DropdownMenuItem(value: null, child: Text('No Sub-Category')),
-              ..._controller.subCategories
-                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                .toList(),
+              {'value': null, 'label': 'No Sub-Category'},
+              ..._controller.subCategories.map((c) => {'value': c.id, 'label': c.name}),
             ],
             onChanged: _controller.setSubCategory,
           ),
@@ -726,18 +887,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Row(
       children: [
         Expanded(
-          child: DropdownButtonFormField<dynamic>(
-            value: _controller.brands.any((b) => b.id == _controller.selectedBrandId) 
-                ? _controller.selectedBrandId 
+          child: _buildDropdownField(
+            value: _controller.brands.any((b) => b.id == _controller.selectedBrandId)
+                ? _controller.selectedBrandId
                 : null,
-            dropdownColor: theme.surface,
-            style: TextStyle(color: theme.textPrimary),
-            decoration: theme.glassInputDecoration('Brand', Icons.branding_watermark_outlined),
+            label: 'Brand',
+            icon: Icons.branding_watermark_outlined,
             items: [
-              const DropdownMenuItem(value: null, child: Text('No Brand')),
-              ..._controller.brands
-                .map((b) => DropdownMenuItem(value: b.id, child: Text(b.name)))
-                .toList(),
+              {'value': null, 'label': 'No Brand'},
+              ..._controller.brands.map((b) => {'value': b.id, 'label': b.name}),
             ],
             onChanged: _controller.setBrand,
           ),
@@ -762,24 +920,22 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Row(
       children: [
         Expanded(
-          child: DropdownButtonFormField<dynamic>(
-            value: _controller.units.any((u) => u['id'] == _controller.selectedUnitId) 
-                ? _controller.selectedUnitId 
+          child: _buildDropdownField(
+            value: _controller.units.any((u) => u['id'] == _controller.selectedUnitId)
+                ? _controller.selectedUnitId
                 : null,
-            dropdownColor: theme.surface,
-            style: TextStyle(color: theme.textPrimary),
-            decoration: theme.glassInputDecoration('Unit', Icons.straighten_outlined),
+            label: 'Unit',
+            icon: Icons.straighten_outlined,
             items: [
-              const DropdownMenuItem(value: null, child: Text('No Unit')),
+              {'value': null, 'label': 'No Unit'},
               ..._controller.units
                 .where((u) {
                   final bid = BusinessConfig.instance.businessId?.toString();
                   final unitBid = u['business_id']?.toString();
-                  // Show if specifically selected OR if it belongs to the current business
-                  return _controller.selectedUnitIds.contains(u['id']) || 
+                  return _controller.selectedUnitIds.contains(u['id']) ||
                          (unitBid != null && unitBid != 'null' && unitBid == bid);
                 })
-                .map((u) => DropdownMenuItem(value: u['id'], child: Text(u['name'] ?? '')))
+                .map((u) => {'value': u['id'], 'label': (u['name'] ?? '') as String})
                 .toList(),
             ],
             onChanged: _controller.setUnit,

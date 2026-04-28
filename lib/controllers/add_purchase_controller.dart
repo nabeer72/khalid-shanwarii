@@ -21,7 +21,7 @@ class AddPurchaseController with ChangeNotifier {
   final notesCtrl = TextEditingController();
   final paidAmountCtrl = TextEditingController();
   String paymentType = 'Cash';
-  List<String> paymentTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit'];
+  List<String> paymentTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit', 'Partial'];
 
   // Conditional payment controllers
   final chequeNoCtrl = TextEditingController();
@@ -53,7 +53,7 @@ class AddPurchaseController with ChangeNotifier {
   }
 
   void _enforcePaidAmountLimit() {
-    if (paymentType == 'Credit') {
+    if (paymentType == 'Partial') {
       final val = double.tryParse(paidAmountCtrl.text) ?? 0.0;
       if (val > totalAmount) {
         paidAmountCtrl.text = totalAmount.toStringAsFixed(2);
@@ -73,8 +73,11 @@ class AddPurchaseController with ChangeNotifier {
   bool get isInvoiceDuplicate => _isInvoiceDuplicate;
   double get totalAmount => items.fold(0.0, (sum, item) => sum + (item['subtotal'] as double));
   double get paidAmount {
-    if (paymentType == 'Credit') {
+    if (paymentType == 'Partial') {
       return double.tryParse(paidAmountCtrl.text) ?? 0.0;
+    }
+    if (paymentType == 'Credit') {
+      return 0.0;
     }
     return totalAmount;
   }
@@ -118,7 +121,7 @@ class AddPurchaseController with ChangeNotifier {
       units = unitData;
 
       // Start with standard payment methods
-      final standardTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit'];
+      final standardTypes = ['Cash', 'Bank Transfer', 'Cheque', 'Credit Card', 'Credit', 'Partial'];
       final dbTypes = ptData.map((e) => e['name'].toString()).toList();
       
       // Merge: standard first, then any custom DB types not already in standard
@@ -205,13 +208,13 @@ class AddPurchaseController with ChangeNotifier {
   }
 
   void _updatePaidAmountOnTotalChange() {
-    if (paymentType != 'Credit') {
-      paidAmountCtrl.text = totalAmount.toStringAsFixed(2);
+    if (paymentType == 'Partial') {
+       final val = double.tryParse(paidAmountCtrl.text) ?? 0.0;
+       if (val > totalAmount) paidAmountCtrl.text = totalAmount.toStringAsFixed(2);
+    } else if (paymentType == 'Credit') {
+      paidAmountCtrl.text = '0.00';
     } else {
-      // If switching to credit from a full payment, default to 0
-      if (double.tryParse(paidAmountCtrl.text) == totalAmount) {
-        paidAmountCtrl.text = '0.00';
-      }
+      paidAmountCtrl.text = totalAmount.toStringAsFixed(2);
     }
     notifyListeners();
   }
