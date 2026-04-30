@@ -76,6 +76,21 @@ class AddProductController with ChangeNotifier {
       selectedUnitIds.add(selectedUnitId);
       _checkIfBoxUnit();
     }
+    
+    barcode.addListener(() {
+      if (_errorMessage != null && _errorMessage!.contains('barcode')) {
+        _errorMessage = null;
+      }
+      // Trigger uniqueness check with delay
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (barcode.text.isNotEmpty) {
+          checkBarcodeUniqueness(barcode.text);
+        } else {
+          barcodeValidationError = null;
+          notifyListeners();
+        }
+      });
+    });
   }
 
   void _checkIfBoxUnit() {
@@ -319,13 +334,58 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<String?> validateBarcodeUnique(String? val) async {
+    if (val == null || val.trim().isEmpty) return null;
+    final exists = await DatabaseHelper.instance.checkBarcodeExists(val.trim());
+    if (exists) {
+      if (isEditMode) {
+        final productWithBarcode = await DatabaseHelper.instance.getProductByBarcode(val.trim());
+        if (productWithBarcode != null && productWithBarcode['id'].toString() != initialProduct!.id.toString()) {
+          return 'Barcode already assigned to: ${productWithBarcode['name']}';
+        }
+      } else {
+        final productWithBarcode = await DatabaseHelper.instance.getProductByBarcode(val.trim());
+        return 'Barcode already assigned to: ${productWithBarcode != null ? productWithBarcode['name'] : 'another product'}';
+      }
+    }
+    return null;
+  }
+
+  String? barcodeValidationError;
+
+  Future<void> checkBarcodeUniqueness(String val) async {
+    if (val.trim().isEmpty) {
+      barcodeValidationError = null;
+      notifyListeners();
+      return;
+    }
+    
+    final exists = await DatabaseHelper.instance.checkBarcodeExists(val.trim());
+    if (exists) {
+      if (isEditMode) {
+        final productWithBarcode = await DatabaseHelper.instance.getProductByBarcode(val.trim());
+        if (productWithBarcode != null && productWithBarcode['id'].toString() != initialProduct!.id.toString()) {
+          barcodeValidationError = 'Assigned to: ${productWithBarcode['name']}';
+        } else {
+          barcodeValidationError = null;
+        }
+      } else {
+        final productWithBarcode = await DatabaseHelper.instance.getProductByBarcode(val.trim());
+        barcodeValidationError = 'Assigned to: ${productWithBarcode != null ? productWithBarcode['name'] : 'another product'}';
+      }
+    } else {
+      barcodeValidationError = null;
+    }
+    notifyListeners();
+  }
+
   Future<void> generateUniqueBarcode() async {
     final random = Random();
     String newBarcode = '';
     bool exists = true;
 
-    // Try up to 10 times to find a unique 13-digit barcode
-    for (int i = 0; i < 10; i++) {
+    // Try up to 100 times to find a unique 13-digit barcode
+    for (int i = 0; i < 100; i++) {
       newBarcode = '';
       for (int j = 0; j < 13; j++) {
         newBarcode += random.nextInt(10).toString();
@@ -337,6 +397,7 @@ class AddProductController with ChangeNotifier {
 
     if (!exists) {
       barcode.text = newBarcode;
+      barcodeValidationError = null;
       notifyListeners();
     }
   }
@@ -479,6 +540,26 @@ class AddProductController with ChangeNotifier {
     final limitVal = int.tryParse(stockLimit.text) ?? 5;
     final discountLimitVal = double.tryParse(discountLimit.text) ?? 0.0;
     final barcodeVal = barcode.text.trim().isEmpty ? null : barcode.text.trim();
+
+    if (barcodeVal != null) {
+      final barcodeExists = await DatabaseHelper.instance.checkBarcodeExists(barcodeVal);
+      if (barcodeExists) {
+        // If editing, check if the barcode belongs to the current product
+        if (isEditMode) {
+          final productWithBarcode = await DatabaseHelper.instance.getProductByBarcode(barcodeVal);
+          if (productWithBarcode != null && productWithBarcode['id'].toString() != initialProduct!.id.toString()) {
+            _errorMessage = 'This barcode is already assigned to another product: ${productWithBarcode['name']}';
+            notifyListeners();
+            return {'success': false, 'message': _errorMessage};
+          }
+        } else {
+          final productWithBarcode = await DatabaseHelper.instance.getProductByBarcode(barcodeVal);
+          _errorMessage = 'This barcode is already assigned to another product${productWithBarcode != null ? ': ' + productWithBarcode['name'] : ''}';
+          notifyListeners();
+          return {'success': false, 'message': _errorMessage};
+        }
+      }
+    }
 
     final productId = isEditMode ? initialProduct!.id : null;
 

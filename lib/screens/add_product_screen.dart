@@ -692,20 +692,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Row(
       children: [
         Expanded(
-          child: _controller.categories.isEmpty 
-            ? _buildTextField(controller: TextEditingController(text: 'Add Category'), label: 'Category', icon: Icons.category_outlined, enabled: false)
-            : _buildDropdownField(
-                value: _controller.categories.any((c) => c.id == _controller.selectedCategory)
-                    ? _controller.selectedCategory
-                    : null,
-                label: 'Category',
-                icon: Icons.category_outlined,
-                items: _controller.categories
-                    .fold<List<ProductCategory>>([], (list, c) => list.any((e) => e.id == c.id) ? list : [...list, c])
-                    .map((c) => {'value': c.id, 'label': c.name})
-                    .toList(),
-                onChanged: _controller.setCategory,
-              ),
+          child: _buildDropdownField(
+            value: _controller.categories.any((c) => c.id == _controller.selectedCategory)
+                ? _controller.selectedCategory
+                : null,
+            label: 'Category',
+            icon: Icons.category_outlined,
+            items: [
+              {'value': null, 'label': 'No Category'},
+              ..._controller.categories
+                  .fold<List<ProductCategory>>([], (list, c) => list.any((e) => e.id == c.id) ? list : [...list, c])
+                  .map((c) => {'value': c.id, 'label': c.name}),
+            ],
+            onChanged: _controller.setCategory,
+          ),
         ),
         const SizedBox(width: 8),
         IconButton(
@@ -824,6 +824,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
                 controller: _controller.barcode,
                 label: 'Barcode',
                 icon: Icons.qr_code,
+                validator: (v) {
+                  if (_controller.barcodeValidationError != null) {
+                    return _controller.barcodeValidationError;
+                  }
+                  if (v != null && v.isNotEmpty && _controller.errorMessage != null && _controller.errorMessage!.contains('barcode')) {
+                    return _controller.errorMessage;
+                  }
+                  return null;
+                },
                 suffixIcon: IconButton(
                   icon: Icon(Icons.auto_fix_high_rounded, color: theme.highlight, size: 20),
                   onPressed: _controller.generateUniqueBarcode,

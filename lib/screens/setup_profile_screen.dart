@@ -73,9 +73,11 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
         children: [
           theme.glassBackground(
             child: SafeArea(
-              child: Center(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Stack(
+                children: [
+                  Center(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
                     child: Column(
@@ -189,6 +191,20 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                   ),
                 ),
               ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushReplacement(
+                      MaterialPageRoute(builder: (_) => const SetupBusinessScreen()),
+                    );
+                  },
+                  child: Text('SKIP', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
             ),
           ),
         ],

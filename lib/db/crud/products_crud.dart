@@ -18,6 +18,23 @@ mixin ProductsCrud on CommonCrud {
       where: 'business_id = ? AND user_id IS NULL', 
       whereArgs: [baseArgs[0]]);
 
+    // Repair missing columns for discount_limit
+    final stockCols = await db.rawQuery('PRAGMA table_info(stocks)');
+    if (!stockCols.any((c) => c['name'] == 'discount_limit_type')) {
+      await db.execute("ALTER TABLE stocks ADD COLUMN discount_limit_type TEXT DEFAULT 'percentage'");
+    }
+    if (!stockCols.any((c) => c['name'] == 'discount_limit')) {
+      await db.execute("ALTER TABLE stocks ADD COLUMN discount_limit REAL DEFAULT 0");
+    }
+    
+    final prodCols = await db.rawQuery('PRAGMA table_info(products)');
+    if (!prodCols.any((c) => c['name'] == 'discount_limit_type')) {
+      await db.execute("ALTER TABLE products ADD COLUMN discount_limit_type TEXT DEFAULT 'percentage'");
+    }
+    if (!prodCols.any((c) => c['name'] == 'discount_limit')) {
+      await db.execute("ALTER TABLE products ADD COLUMN discount_limit REAL DEFAULT 0");
+    }
+
     List<Map<String, dynamic>> productMaps;
     if (categoryId != null) {
       if (categoryId == 'cat-fav') {
@@ -185,7 +202,8 @@ mixin ProductsCrud on CommonCrud {
             existing['status']?.toString()           != metadata['status']?.toString() ||
             existing['is_favorite']?.toString()      != metadata['is_favorite']?.toString() ||
             existing['stock_limit']?.toString()      != metadata['stock_limit']?.toString() ||
-            existing['discount_limit']?.toString()   != metadata['discount_limit']?.toString();
+            existing['discount_limit']?.toString()   != metadata['discount_limit']?.toString() ||
+            existing['discount_limit_type']?.toString() != metadata['discount_limit_type']?.toString();
 
         if (metadataChanged) {
           await txn.update(
@@ -205,6 +223,7 @@ mixin ProductsCrud on CommonCrud {
               'unit_id':          metadata['unit_id'],
               'stock_limit':      metadata['stock_limit'] ?? 5,
               'discount_limit':   metadata['discount_limit'] ?? 0.0,
+              'discount_limit_type': metadata['discount_limit_type'] ?? 'percentage',
               'is_synced':        0,
               'updated_at':       DateTime.now().toIso8601String(),
             },
@@ -231,6 +250,7 @@ mixin ProductsCrud on CommonCrud {
           'unit_id':        metadata['unit_id'],
           'stock_limit':    metadata['stock_limit'] ?? 5,
           'discount_limit': metadata['discount_limit'] ?? 0.0,
+          'discount_limit_type': metadata['discount_limit_type'] ?? 'percentage',
           'is_synced':      0,
           'updated_at':     DateTime.now().toIso8601String(),
         });
@@ -245,6 +265,7 @@ mixin ProductsCrud on CommonCrud {
       final newQty       = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
       final alertQty     = (product['stock_limit'] as num?)?.toDouble() ?? 0.0;
       final discountLimit = (product['discount_limit'] as num?)?.toDouble() ?? 0.0;
+      final discountLimitType = product['discount_limit_type']?.toString() ?? 'percentage';
       final piecesPerPack = product['pieces_per_pack']?.toString();
       final packing       = product['packing']?.toString();
 
@@ -293,6 +314,7 @@ mixin ProductsCrud on CommonCrud {
             'quantity':   newQty,
             'alert_quantity': alertQty,
             'discount_limit': discountLimit,
+            'discount_limit_type': discountLimitType,
             'pieces_per_pack': piecesPerPack ?? matchingStocks.first['pieces_per_pack'],
             'packing':    packing ?? matchingStocks.first['packing'],
             'user_id':    uid,
@@ -318,6 +340,7 @@ mixin ProductsCrud on CommonCrud {
           'wholesale_price': currentWholesale,
           'alert_quantity':  alertQty,
           'discount_limit':  discountLimit,
+          'discount_limit_type': discountLimitType,
           'pieces_per_pack': piecesPerPack,
           'packing':         packing,
           'status':          1,

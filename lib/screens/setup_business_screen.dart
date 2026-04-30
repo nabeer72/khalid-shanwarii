@@ -124,9 +124,11 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
     return Scaffold(
       body: theme.glassBackground(
         child: SafeArea(
-          child: Column(
+          child: Stack(
             children: [
-              Expanded(
+              Column(
+                children: [
+                  Expanded(
                 child: SingleChildScrollView(
                   child: Center(
                     child: ConstrainedBox(
@@ -283,36 +285,56 @@ class _SetupBusinessScreenState extends State<SetupBusinessScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 44, // Reduced from 64
-                        child: ElevatedButton(
-                          onPressed: _loading ? null : _finishSetup,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: theme.highlight,
-                            foregroundColor: Colors.white,
-                            elevation: 8,
-                            shadowColor: theme.highlight.withOpacity(0.4),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                          ),
-                          child: _loading 
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text('GET STARTED', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-                                  SizedBox(width: 12),
-                                  Icon(Icons.rocket_launch_rounded, size: 20),
-                                ],
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            height: 44, // Reduced from 64
+                            child: ElevatedButton(
+                              onPressed: _loading ? null : _finishSetup,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.highlight,
+                                foregroundColor: Colors.white,
+                                elevation: 8,
+                                shadowColor: theme.highlight.withOpacity(0.4),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                               ),
-                        ),
+                              child: _loading 
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Text('GET STARTED', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                                      SizedBox(width: 12),
+                                      Icon(Icons.rocket_launch_rounded, size: 20),
+                                    ],
+                                  ),
+                            ),
+                          ),
+                        ],
                       ),
                   ),
+                ),
+              ),
+            ],
+          ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pushAndRemoveUntil(
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                      (route) => false,
+                    );
+                  },
+                  child: Text('SKIP', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
                 ),
               ),
             ],

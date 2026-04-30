@@ -67,8 +67,28 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     if (!kIsWeb) {
-      WidgetsBinding.instance
-          .addPostFrameCallback((_) => _performSync(silent: true));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _performSync(silent: true);
+        _checkFirstTimeWelcome();
+      });
+    }
+  }
+
+  Future<void> _checkFirstTimeWelcome() async {
+    const storage = FlutterSecureStorage();
+    final userId = BusinessConfig.instance.userId;
+    if (userId == null) return;
+
+    final hasShown = await storage.read(key: 'tutorial_shown_welcome_$userId');
+    if (hasShown == null) {
+      if (mounted) {
+        await _handleModuleTap('welcome', 'Dashboard', [
+          'Welcome to your business dashboard!',
+          'Manage all aspects of your store from this screen.',
+          'Tap any card to view detailed module tutorials.',
+          'Use the Sync button regularly to keep data updated.',
+        ], () {});
+      }
     }
   }
 
@@ -611,7 +631,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.inventory_2_outlined,
                               label: 'Products',
                               color: const Color(0xFF3366FF),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductListScreen())).then((_) => _loadStats())),
+                              onTap: () => _handleModuleTap('products', 'Products', [
+                                    'Add and manage your inventory items.',
+                                    'Set product prices and cost details.',
+                                    'Organize products by categories and units.',
+                                    'Track low stock alerts and favorites.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProductListScreen())).then((_) => _loadStats()))),
                         
                         // 2. Purchases
                         if (_hasPerm(AppPermissions.purchasesManage))
@@ -619,7 +644,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.shopping_cart_outlined,
                               label: 'Purchases',
                               color: const Color(0xFF64748B),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchasesScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('purchases', 'Purchases', [
+                                    'Record new stock purchases from suppliers.',
+                                    'Track purchase history and invoices.',
+                                    'Manage unpaid purchase balances.',
+                                    'Update inventory automatically on purchase.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PurchasesScreen())).then((_) => setState(() {})))),
                         
                         // 3. Expenses
                         if (_hasPerm(AppPermissions.expensesManage))
@@ -627,7 +657,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.account_balance_wallet_outlined,
                               label: 'Expenses',
                               color: const Color(0xFFEF4444),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpensesScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('expenses', 'Expenses', [
+                                    'Log daily business expenses (e.g., rent, bills).',
+                                    'Categorize expenses for better tracking.',
+                                    'View expense history and totals.',
+                                    'Analyze spending to maximize profit.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpensesScreen())).then((_) => setState(() {})))),
                         
                         // 4. Recovery
                         if (_hasPerm(AppPermissions.recovery))
@@ -635,7 +670,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.payments_outlined,
                               label: 'Recovery',
                               color: const Color(0xFF0EA5E9),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecoveryScreen())).then((_) => _loadStats())),
+                              onTap: () => _handleModuleTap('recovery', 'Recovery', [
+                                    'Track outstanding customer balances.',
+                                    'Record partial or full payments received.',
+                                    'View payment history for each customer.',
+                                    'Settle credit sales easily.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RecoveryScreen())).then((_) => _loadStats()))),
                         
                         // 5. Suppliers
                         if (_hasPerm(AppPermissions.suppliersManage))
@@ -643,7 +683,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.business_outlined,
                               label: 'Suppliers',
                               color: const Color(0xFF84CC16),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('suppliers', 'Suppliers', [
+                                    'Maintain a list of your vendors and suppliers.',
+                                    'Track contact details and addresses.',
+                                    'Monitor total payable amounts to each supplier.',
+                                    'View purchase history by supplier.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SuppliersScreen())).then((_) => setState(() {})))),
                         
                         // 5b. Supplier Payback
                         if (_hasPerm(AppPermissions.paybackManage))
@@ -651,7 +696,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.payments_outlined,
                               label: 'Payback',
                               color: const Color(0xFF10B981),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierPaybackScreen())).then((_) => _loadStats())),
+                              onTap: () => _handleModuleTap('payback', 'Payback', [
+                                    'Manage payments made to your suppliers.',
+                                    'Clear outstanding purchase balances.',
+                                    'Track the history of supplier payments.',
+                                    'Keep accurate vendor accounts.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupplierPaybackScreen())).then((_) => _loadStats()))),
                         
                         // 6. Stock
                         if (_hasPerm(AppPermissions.productManage) || _hasPerm(AppPermissions.reportsView) || _hasPerm(AppPermissions.stockView))
@@ -659,7 +709,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.analytics_outlined,
                               label: 'Stock',
                               color: const Color(0xFF8B5CF6),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StockReportScreen()))),
+                              onTap: () => _handleModuleTap('stock', 'Stock', [
+                                    'View real-time inventory levels.',
+                                    'Check stock valuation and potential profit.',
+                                    'Identify low-stock and out-of-stock items.',
+                                    'Generate comprehensive stock reports.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StockReportScreen())))),
 
                         // 7. Roles
                         if (_hasPerm(AppPermissions.staffManage))
@@ -667,7 +722,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.badge_outlined,
                               label: 'Roles',
                               color: const Color(0xFFF59E0B),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RolesScreen()))),
+                              onTap: () => _handleModuleTap('roles', 'Roles', [
+                                    'Create custom roles for your staff.',
+                                    'Assign specific permissions (e.g., cashier, manager).',
+                                    'Control access to sensitive modules.',
+                                    'Ensure secure system management.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RolesScreen())))),
                         
                         // 7. Sales
                         if (_hasPerm(AppPermissions.salesHistory))
@@ -675,7 +735,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.receipt_long_outlined,
                               label: 'Sales',
                               color: const Color(0xFF22C55E),
-                              onTap: () async {
+                              onTap: () => _handleModuleTap('sales', 'Sales', [
+                                    'View a complete history of all transactions.',
+                                    'Reprint receipts for past sales.',
+                                    'Process returns and refunds.',
+                                    'Track daily, weekly, and monthly revenue.'
+                                  ], () async {
                                 final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
                                 _loadStats();
                                 if (result != null && result is Map && mounted) {
@@ -695,7 +760,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     }
                                   }
                                 }
-                              }),
+                              })),
                         
                         // 8. Reports
                         if (_hasPerm(AppPermissions.reportsView))
@@ -703,7 +768,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.bar_chart_outlined,
                               label: 'Reports',
                               color: const Color(0xFFF59E0B),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('reports', 'Reports', [
+                                    'Analyze business performance and profits.',
+                                    'View sales, expense, and tax summaries.',
+                                    'Track best-selling products.',
+                                    'Export data for accounting purposes.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsScreen())).then((_) => setState(() {})))),
                         
                         // 8b. Print Reports
                         if (_hasPerm(AppPermissions.reportsPrint) || _hasPerm(AppPermissions.reportsView))
@@ -711,7 +781,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.print_outlined,
                               label: 'Print Reports',
                               color: const Color(0xFF0EA5E9),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsPrintingScreen()))),
+                              onTap: () => _handleModuleTap('print_reports', 'Print Reports', [
+                                    'Generate formatted reports for printing.',
+                                    'Print via Bluetooth or Wi-Fi thermal printers.',
+                                    'Share reports directly via PDF.',
+                                    'Keep physical records of your business.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ReportsPrintingScreen())))),
                         
                         // 9. Staff
                         if (_hasPerm(AppPermissions.staffManage))
@@ -719,7 +794,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.badge_outlined,
                               label: 'Staff',
                               color: const Color(0xFF6366F1),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmployeeListScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('staff', 'Staff', [
+                                    'Manage employee profiles and details.',
+                                    'Assign roles and secure login PINs.',
+                                    'Track staff activity and sales.',
+                                    'Manage shift timings and attendance.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const EmployeeListScreen())).then((_) => setState(() {})))),
                         
                         // 10. Settings
                         if (_hasPerm(AppPermissions.settingsManage))
@@ -727,7 +807,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.settings_outlined,
                               label: 'Settings',
                               color: const Color(0xFF6366F1),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()))),
+                              onTap: () => _handleModuleTap('settings', 'Settings', [
+                                    'Configure business details and currency.',
+                                    'Set up printer and hardware preferences.',
+                                    'Manage tax rates and application theme.',
+                                    'Backup and restore your database.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen())))),
                         
                         // 11. Branches
                         if (_hasPerm(AppPermissions.branchesManage))
@@ -735,7 +820,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.alt_route_rounded,
                               label: 'Branches',
                               color: const Color(0xFF8B5CF6),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BranchManagementScreen()))),
+                              onTap: () => _handleModuleTap('branches', 'Branches', [
+                                    'Manage multiple store locations.',
+                                    'Switch between different branches.',
+                                    'Track performance across branches.',
+                                    'Centralize multi-store management.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BranchManagementScreen())))),
                         
                         // 12. Bank
                         if (_hasPerm(AppPermissions.bankManage))
@@ -743,7 +833,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.account_balance_rounded,
                               label: 'Bank',
                               color: const Color(0xFF10B981),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BankManagementScreen()))),
+                              onTap: () => _handleModuleTap('bank', 'Bank', [
+                                    'Manage your linked bank accounts.',
+                                    'Track bank deposits and withdrawals.',
+                                    'Monitor digital payment methods.',
+                                    'Reconcile bank statements.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BankManagementScreen())))),
                         
                         // 13. Support
                         if (_hasPerm(AppPermissions.supportView))
@@ -751,7 +846,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.help_outline_rounded,
                               label: 'Support',
                               color: const Color(0xFFF59E0B),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen()))),
+                              onTap: () => _handleModuleTap('support', 'Support', [
+                                    'Contact technical support for help.',
+                                    'View tutorials and guides.',
+                                    'Report bugs or request new features.',
+                                    'Check for application updates.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SupportScreen())))),
                         
                         // 14. Customers
                         if (_hasPerm(AppPermissions.customerManage))
@@ -759,7 +859,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.groups_outlined,
                               label: 'Customers',
                               color: const Color(0xFF06B6D4),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerListScreen())).then((_) => _loadStats())),
+                              onTap: () => _handleModuleTap('customers', 'Customers', [
+                                    'Maintain a database of your customers.',
+                                    'Track individual purchase history.',
+                                    'Monitor customer credit and balances.',
+                                    'Reward frequent shoppers.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomerListScreen())).then((_) => _loadStats()))),
 
                         // 15. Gift Cards
                         if (_hasPerm(AppPermissions.giftCards))
@@ -767,7 +872,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.card_giftcard_outlined,
                               label: 'Gift Cards',
                               color: const Color(0xFF14B8A6),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftCardsScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('gift_cards', 'Gift Cards', [
+                                    'Create and issue gift cards.',
+                                    'Track gift card balances and usage.',
+                                    'Accept gift cards as payment.',
+                                    'Boost sales with prepaid cards.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const GiftCardsScreen())).then((_) => setState(() {})))),
                         
                         // 16. Loyalty
                         if (_hasPerm(AppPermissions.loyalty))
@@ -775,7 +885,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icons.loyalty_outlined,
                               label: 'Loyalty',
                               color: const Color(0xFFEAB308),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoyaltyScreen())).then((_) => setState(() {}))),
+                              onTap: () => _handleModuleTap('loyalty', 'Loyalty', [
+                                    'Set up a customer loyalty program.',
+                                    'Award points for customer purchases.',
+                                    'Allow points redemption for discounts.',
+                                    'Increase customer retention.'
+                                  ], () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoyaltyScreen())).then((_) => setState(() {})))),
                       ],
                     ),
                     const SizedBox(height: 40),
@@ -787,6 +902,60 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleModuleTap(
+      String moduleKey, String moduleName, List<String> tutorialLines, VoidCallback onNavigate) async {
+    const storage = FlutterSecureStorage();
+    final userId = BusinessConfig.instance.userId;
+    final storageKey = userId != null ? 'tutorial_shown_${moduleKey}_$userId' : 'tutorial_shown_$moduleKey';
+    final hasShown = await storage.read(key: storageKey);
+    
+    if (hasShown == null) {
+      if (mounted) {
+        await showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: theme.surface,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+            title: Row(
+              children: [
+                Icon(Icons.info_outline_rounded, color: theme.highlight),
+                const SizedBox(width: 8),
+                Text('$moduleName Guide', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: tutorialLines
+                  .map((line) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(Icons.check_circle_outline, color: theme.highlight, size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(line, style: TextStyle(color: theme.textSecondary, fontSize: 13))),
+                          ],
+                        ),
+                      ))
+                  .toList(),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('GOT IT', style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+        await storage.write(key: storageKey, value: 'true');
+        onNavigate();
+      }
+    } else {
+      onNavigate();
+    }
   }
 
   Future<void> _logout() async {

@@ -131,10 +131,10 @@ mixin SettingsCrud {
   Future<void> clearSessionContext() async {
     const storage = FlutterSecureStorage();
     
-    // Wipe session context from secure storage EXCEPT saved_accounts and encryption keys
+    // Wipe session context from secure storage EXCEPT saved_accounts, encryption keys, and tutorial flags
     final allKeys = await storage.readAll();
     for (String key in allKeys.keys) {
-      if (key != 'saved_accounts' && key != 'db_encryption_key') {
+      if (key != 'saved_accounts' && key != 'db_encryption_key' && !key.startsWith('tutorial_shown_')) {
         await storage.delete(key: key);
       }
     }
@@ -216,10 +216,10 @@ mixin SettingsCrud {
       }
     });
 
-    // Wipe session context from secure storage EXCEPT saved_accounts
+    // Wipe session context from secure storage EXCEPT saved_accounts, encryption keys, and tutorial flags
     final allKeys = await storage.readAll();
     for (String key in allKeys.keys) {
-      if (key != 'saved_accounts' && key != 'db_encryption_key') {
+      if (key != 'saved_accounts' && key != 'db_encryption_key' && !key.startsWith('tutorial_shown_')) {
         await storage.delete(key: key);
       }
     }
