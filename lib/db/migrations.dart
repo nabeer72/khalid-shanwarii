@@ -1429,6 +1429,41 @@ class DbMigrations {
         )
       ''');
     }
+
+    if (oldVersion < 78) {
+      if (kDebugMode) print('Upgrading DB to version 78: Isolating settings table...');
+      await db.transaction((txn) async {
+        try {
+          // 1. Rename existing table
+          await txn.execute('ALTER TABLE settings RENAME TO settings_old');
+          
+          // 2. Create new isolated table
+          await txn.execute('''
+            CREATE TABLE settings (
+              key TEXT,
+              value TEXT,
+              business_id INTEGER,
+              user_id INTEGER,
+              PRIMARY KEY (key, business_id, user_id)
+            )
+          ''');
+          
+          // 3. Copy existing data (associating with current user context if available)
+          final bid = BusinessConfig.instance.businessId;
+          final uid = BusinessConfig.instance.userId;
+          
+          await txn.execute('''
+            INSERT INTO settings (key, value, business_id, user_id)
+            SELECT key, value, ?, ? FROM settings_old
+          ''', [bid, uid]);
+          
+          // 4. Drop old table
+          await txn.execute('DROP TABLE settings_old');
+        } catch (e) {
+          if (kDebugMode) print('Migration v78 failed: $e');
+        }
+      });
+    }
   }
 }
 

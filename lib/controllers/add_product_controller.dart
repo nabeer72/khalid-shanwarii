@@ -49,6 +49,11 @@ class AddProductController with ChangeNotifier {
   static final Set<dynamic> _globalSelectedUnitIds = {};
   Set<dynamic> get selectedUnitIds => _globalSelectedUnitIds;
 
+  // Called during logout to ensure no in-memory state leaks to the next session
+  static void clearGlobalState() {
+    _globalSelectedUnitIds.clear();
+  }
+
   AddProductController({this.initialProduct}) {
     name = TextEditingController(text: initialProduct?.name ?? '');
     barcode = TextEditingController(text: initialProduct?.latestBarcode ?? '');
@@ -438,8 +443,8 @@ class AddProductController with ChangeNotifier {
         subCategories = []; // Reset subcategories when parent changes
         selectedSubCategoryId = null;
       } else {
-        if (kDebugMode) print('📂 [CONTROLLER] Reloading subcategories for new ID: $newId');
-        await reloadSubCategories(selectId: newId);
+        if (kDebugMode) print('📂 [CONTROLLER] Reloading subcategories for new ID: $newId under parent: $parentId');
+        await reloadSubCategories(selectId: newId, forCategoryId: parentId);
       }
       notifyListeners();
       return true;
@@ -475,9 +480,11 @@ class AddProductController with ChangeNotifier {
 
   /// Reloads only the subcategories for the current [selectedCategory].
   /// Optionally auto-selects [selectId] after reload (e.g. the newly created subcategory).
-  Future<void> reloadSubCategories({dynamic selectId}) async {
-    if (selectedCategory == null) return;
-    final rawSub = await DatabaseHelper.instance.getSubCategories(categoryId: selectedCategory);
+  Future<void> reloadSubCategories({dynamic selectId, dynamic forCategoryId}) async {
+    // Use the explicitly-provided category ID, falling back to the current selection.
+    final catId = forCategoryId ?? selectedCategory;
+    if (catId == null) return;
+    final rawSub = await DatabaseHelper.instance.getSubCategories(categoryId: catId);
     subCategories = rawSub.map((map) => ProductCategory.fromMap({
       ...map,
       'parent_id': map['category_id'] ?? map['parent_id'],

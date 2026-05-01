@@ -10,13 +10,28 @@ mixin SettingsCrud {
   // Settings
   Future<String?> getSetting(String key) async {
     final db = await database;
-    final results = await db.query('settings', where: 'key = ?', whereArgs: [key]);
+    final bid = BusinessConfig.instance.businessId;
+    final uid = BusinessConfig.instance.userId;
+
+    final results = await db.query(
+      'settings',
+      where: 'key = ? AND (business_id = ? OR (business_id IS NULL AND ? IS NULL)) AND (user_id = ? OR (user_id IS NULL AND ? IS NULL))',
+      whereArgs: [key, bid, bid, uid, uid],
+    );
     return results.isNotEmpty ? results.first['value'] as String? : null;
   }
 
   Future<void> setSetting(String key, String value) async {
     final db = await database;
-    await db.insert('settings', {'key': key, 'value': value}, conflictAlgorithm: ConflictAlgorithm.replace);
+    final bid = BusinessConfig.instance.businessId;
+    final uid = BusinessConfig.instance.userId;
+
+    await db.insert('settings', {
+      'key': key,
+      'value': value,
+      'business_id': bid,
+      'user_id': uid,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
   }
 
   Future<void> saveCurrency(String symbol) async {
@@ -30,6 +45,37 @@ mixin SettingsCrud {
   }
 
   Future<void> loadSettings() async {
+    // 1. Load IDs from secure storage FIRST so that getSetting uses the correct context
+    const storage = FlutterSecureStorage();
+    var bid = await storage.read(key: 'business_id');
+    if (bid != null) {
+      BusinessConfig.instance.businessId = int.tryParse(bid);
+    }
+    
+    var uid = await storage.read(key: 'user_id');
+    if (uid != null) {
+      BusinessConfig.instance.userId = int.tryParse(uid);
+    }
+
+    var sid = await storage.read(key: 'staff_id');
+    if (sid != null) {
+      BusinessConfig.instance.staffId = int.tryParse(sid);
+    }
+
+    var inactiveStr = await storage.read(key: 'inactive_branches');
+    List<int> inactiveIds = [];
+    if (inactiveStr != null) {
+      inactiveIds = inactiveStr.split(',').where((e) => e.isNotEmpty).map((e) => int.tryParse(e)).whereType<int>().toList();
+    }
+    BusinessConfig.instance.inactiveBranchIds = inactiveIds;
+
+    var brIdString = await storage.read(key: 'branch_id');
+    if (BusinessConfig.instance.branchId == null && brIdString != null && brIdString.isNotEmpty && brIdString != 'NONE') {
+      final brIdInt = int.tryParse(brIdString);
+      BusinessConfig.instance.branchId = brIdInt;
+    }
+
+    // 2. Load business-specific settings using the now-loaded IDs
     final currency = await getSetting('currency_symbol');
     if (currency != null) BusinessConfig.instance.currency = currency;
 
@@ -67,42 +113,6 @@ mixin SettingsCrud {
 
     final shifts = await getSetting('enable_shift_management');
     if (shifts != null) BusinessConfig.instance.enableShiftManagement = shifts == '1';
-
-    // Load IDs from secure storage
-    const storage = FlutterSecureStorage();
-    var bid = await storage.read(key: 'business_id');
-    if (bid != null) {
-      BusinessConfig.instance.businessId = int.tryParse(bid);
-    }
-    
-    var uid = await storage.read(key: 'user_id');
-    if (uid != null) {
-      BusinessConfig.instance.userId = int.tryParse(uid);
-    }
-
-    var sid = await storage.read(key: 'staff_id');
-    if (sid != null) {
-      BusinessConfig.instance.staffId = int.tryParse(sid);
-    }
-
-    var inactiveStr = await storage.read(key: 'inactive_branches');
-    List<int> inactiveIds = [];
-    if (inactiveStr != null) {
-      inactiveIds = inactiveStr.split(',').where((e) => e.isNotEmpty).map((e) => int.tryParse(e)).whereType<int>().toList();
-    }
-    BusinessConfig.instance.inactiveBranchIds = inactiveIds;
-
-    var brIdString = await storage.read(key: 'branch_id');
-    // Session Guard: Only load branch from storage if it hasn't been set by the current login process
-    if (BusinessConfig.instance.branchId == null && brIdString != null && brIdString.isNotEmpty && brIdString != 'NONE') {
-      final brIdInt = int.tryParse(brIdString);
-      BusinessConfig.instance.branchId = brIdInt;
-      
-      // If we have a branch ID but no active list yet, initialize it
-      if (BusinessConfig.instance.activeBranchIds.isEmpty && brIdInt != null) {
-        BusinessConfig.instance.activeBranchIds = [brIdInt];
-      }
-    }
 
     // By default, dynamically compute active branches by explicitly excluding inactive ones.
     if (inactiveStr == null || brIdString == null || brIdString == 'NONE') {
@@ -142,7 +152,11 @@ mixin SettingsCrud {
     // Safety Force: Specifically ensure sync timestamps are gone to force fresh check on next login
     await storage.delete(key: 'last_synced_at');
     await storage.delete(key: 'last_synced_push');
-    
+
+    // [REMOVED] Deleting settings from the DB is no longer necessary now that the
+    // settings table is isolated by (key, business_id, user_id).
+    // The reset() call below ensures the next user doesn't see this session's state.
+
     // Reset in-memory config
     BusinessConfig.instance.reset(keepContext: false);
   }

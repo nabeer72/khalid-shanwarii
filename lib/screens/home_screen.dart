@@ -18,6 +18,7 @@ import 'package:mobile_app/screens/loyalty_screen.dart';
 import 'package:mobile_app/screens/expenses_screen.dart';
 import 'package:mobile_app/screens/suppliers_screen.dart';
 import 'package:mobile_app/screens/purchases_screen.dart';
+import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/screens/recovery_screen.dart';
 import 'package:mobile_app/screens/supplier_payback_screen.dart';
 import 'package:mobile_app/screens/branch_management_screen.dart';
@@ -990,7 +991,11 @@ class _HomeScreenState extends State<HomeScreen> {
       // 1. Invalidate session on server
       await _syncService.logout();
 
-      // 2. Clear local session context only (DO NOT wipe database)
+      // 2. Clear in-memory static state so it cannot leak to the next account
+      AddProductController.clearGlobalState();
+      MockDataStore.instance.clear();
+
+      // 3. Clear local session context only (DO NOT wipe database)
       await DatabaseHelper.instance.clearSessionContext();
 
       if (mounted) {

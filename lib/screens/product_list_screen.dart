@@ -23,6 +23,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   bool _loading = true;
   String _searchQuery = '';
   final Set<String> _expandedGroups = {};
+  bool _isInactiveView = false;
 
   @override
   void initState() {
@@ -112,24 +113,47 @@ class _ProductListScreenState extends State<ProductListScreen> {
               // Glass Search Bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Container(
-                  decoration: theme.glassDecoration.copyWith(
-                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                    color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
-                  ),
-                  child: TextField(
-                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
-                    decoration: InputDecoration(
-                      hintText: 'Search products...',
-                      hintStyle: TextStyle(color: theme.textHint, fontWeight: FontWeight.w400),
-                      prefixIcon: Icon(Icons.search_rounded, color: theme.iconColor),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: theme.glassDecoration.copyWith(
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                          color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+                        ),
+                        child: TextField(
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
+                          decoration: InputDecoration(
+                            hintText: 'Search products...',
+                            hintStyle: TextStyle(color: theme.textHint, fontWeight: FontWeight.w400),
+                            prefixIcon: Icon(Icons.search_rounded, color: theme.iconColor),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                          ),
+                          onChanged: (val) {
+                            setState(() => _searchQuery = val.trim().toLowerCase());
+                          },
+                        ),
+                      ),
                     ),
-                    onChanged: (val) {
-                      setState(() => _searchQuery = val.trim().toLowerCase());
-                    },
-                  ),
+                    const SizedBox(width: 12),
+                    Container(
+                      height: 50,
+                      width: 160,
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: theme.whiteAlpha(0.05),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                        border: Border.all(color: theme.whiteAlpha(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          _buildTabButton('Active', !_isInactiveView),
+                          _buildTabButton('Deactive', _isInactiveView),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
               
@@ -173,14 +197,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
       );
     }
 
-    // Filter by search query
-    final filtered = _searchQuery.isEmpty
-        ? _products
-        : _products.where((p) {
-            final name = p.name.toLowerCase();
-            final barcode = p.stocks.any((s) => (s.barcode ?? '').toLowerCase().contains(_searchQuery));
-            return name.contains(_searchQuery) || barcode;
-          }).toList();
+    // Filter by search query and active status
+    final filtered = _products.where((p) {
+      final matchesStatus = _isInactiveView ? p.status == 0 : p.status == 1;
+      if (!matchesStatus) return false;
+
+      if (_searchQuery.isEmpty) return true;
+      final name = p.name.toLowerCase();
+      final barcode = p.stocks.any((s) => (s.barcode ?? '').toLowerCase().contains(_searchQuery));
+      return name.contains(_searchQuery) || barcode;
+    }).toList();
 
     // Group by Name
     final Map<String, List<Product>> grouped = {};
@@ -442,4 +468,36 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
+  Widget _buildTabButton(String label, bool active) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _isInactiveView = (label == 'Deactive')),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: BoxDecoration(
+            color: active ? theme.highlight : Colors.transparent,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusList - 2),
+            boxShadow: active ? [
+              BoxShadow(
+                color: theme.highlight.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              )
+            ] : null,
+          ),
+          child: Center(
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: active ? Colors.white : theme.textSecondary,
+                fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+                fontSize: 10,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

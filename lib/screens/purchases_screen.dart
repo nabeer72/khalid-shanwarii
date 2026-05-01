@@ -615,14 +615,14 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         Expanded(
                           child: _buildDialogTextField(
                             controller: qtyCtrl, 
-                            label: 'Qty', 
+                            label: 'Stock Quantity', 
                             icon: Icons.numbers, 
                             keyboardType: TextInputType.number,
                             onChanged: (_) => setDialogState(() {}),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildDialogTextField(controller: costCtrl, label: 'Unit Cost', icon: Icons.attach_money, keyboardType: TextInputType.number)),
+                        Expanded(child: _buildDialogTextField(controller: costCtrl, label: 'Cost Price', icon: Icons.attach_money, keyboardType: TextInputType.number)),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -630,7 +630,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       children: [
                         Expanded(child: _buildDialogTextField(controller: wholesaleCtrl, label: 'Wholesale', icon: Icons.business, keyboardType: TextInputType.number)),
                         const SizedBox(width: 8),
-                        Expanded(child: _buildDialogTextField(controller: priceCtrl, label: 'Selling', icon: Icons.sell, keyboardType: TextInputType.number)),
+                        Expanded(child: _buildDialogTextField(controller: priceCtrl, label: 'Sale Price', icon: Icons.sell, keyboardType: TextInputType.number)),
                       ],
                     ),
                     

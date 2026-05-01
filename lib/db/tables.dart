@@ -329,8 +329,11 @@ class DbTables {
     // Settings
     await db.execute('''
       CREATE TABLE settings (
-        key TEXT PRIMARY KEY,
-        value TEXT
+        key TEXT,
+        value TEXT,
+        business_id INTEGER,
+        user_id INTEGER,
+        PRIMARY KEY (key, business_id, user_id)
       )
     ''');
 

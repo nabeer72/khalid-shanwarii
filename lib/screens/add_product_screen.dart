@@ -127,6 +127,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
+    // Capture category ID before dialog opens so it can't drift during async operations
+    final parentCategoryId = _controller.selectedCategory;
+
     final catCtrl = TextEditingController();
     await showDialog(
       context: context,
@@ -158,8 +161,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
             onPressed: () async {
               if (catCtrl.text.trim().isNotEmpty) {
                 final success = await _controller.addCategory(
-                  catCtrl.text.trim(), 
-                  parentId: _controller.selectedCategory,
+                  catCtrl.text.trim(),
+                  parentId: parentCategoryId, // Use pre-captured ID
                 );
                 if (success && mounted) {
                   Navigator.pop(c);
@@ -171,6 +174,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ],
       ),
     );
+
+    // Force reload for the correct parent category after dialog closes
+    if (mounted) {
+      await _controller.reloadSubCategories(forCategoryId: parentCategoryId);
+      setState(() {});
+    }
   }
 
   @override
