@@ -8,6 +8,11 @@ import 'package:intl/intl.dart';
 import 'manage_banks_screen.dart';
 import 'package:mobile_app/models/bank.dart';
 import 'package:mobile_app/models/bank_detail.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
+import 'package:mobile_app/services/api_service.dart';
+import 'dart:convert';
 
 class BankManagementScreen extends StatefulWidget {
   const BankManagementScreen({super.key});
@@ -21,6 +26,8 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
   List<BankAccount> _transactions = [];
   Map<int, String> _bankNames = {};
   bool _isLoading = true;
+  DateTime _selectedDate = DateTime.now();
+  String? _imagePath;
 
   @override
   void initState() {
@@ -57,7 +64,10 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     final numberCtrl = TextEditingController(text: transaction?.accountNumber ?? '');
     final amountCtrl = TextEditingController(text: transaction?.amount.toString() ?? '');
     final remarksCtrl = TextEditingController(text: transaction?.remarks ?? '');
+    final personCtrl = TextEditingController(text: transaction?.personName ?? '');
     String transType = transaction?.transactionType ?? 'Deposit';
+    _selectedDate = transaction?.date ?? DateTime.now();
+    _imagePath = transaction?.receiptImage;
     final formKey = GlobalKey<FormState>();
 
     // Master data for dropdowns
@@ -102,6 +112,51 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Date Selection
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                        builder: (context, child) => Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: ColorScheme.dark(
+                              primary: theme.highlight,
+                              onPrimary: Colors.white,
+                              surface: theme.surface,
+                              onSurface: theme.textPrimary,
+                            ),
+                          ),
+                          child: child!,
+                        ),
+                      );
+                      if (picked != null) {
+                        setDialogState(() => _selectedDate = picked);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                      decoration: BoxDecoration(
+                        color: theme.whiteAlpha(0.05),
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
+                        border: Border.all(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.calendar_month_rounded, color: theme.iconColor, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            DateFormat('MMM dd, yyyy').format(_selectedDate),
+                            style: TextStyle(color: theme.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
                   if (banks.isNotEmpty) ...[
                     DropdownButtonFormField<Bank>(
                       value: selectedBank,
@@ -179,6 +234,12 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildDialogField(
+                    ctrl: personCtrl, 
+                    label: 'Person Name', 
+                    icon: Icons.person_pin_rounded,
+                  ),
+                  const SizedBox(height: 12),
+                  _buildDialogField(
                     ctrl: amountCtrl, 
                     label: 'Amount', 
                     icon: Icons.attach_money_rounded, 
@@ -191,6 +252,74 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   ),
                   const SizedBox(height: 12),
                   _buildDialogField(ctrl: remarksCtrl, label: 'Remarks', icon: Icons.notes_rounded),
+                  const SizedBox(height: 12),
+
+                  // Image Upload
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Receipt Image (Optional)',
+                        style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: () async {
+                          final picker = ImagePicker();
+                          final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                          if (pickedFile != null) {
+                            setDialogState(() => _imagePath = pickedFile.path);
+                          }
+                        },
+                        child: Container(
+                          height: 100,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: theme.textHint.withOpacity(0.3)),
+                            borderRadius: BorderRadius.circular(12),
+                            color: theme.surface.withOpacity(0.5),
+                          ),
+                          child: _imagePath != null
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: _imagePath!.startsWith('base64:')
+                                      ? Image.memory(
+                                          base64Decode(_imagePath!.substring(7)),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (ctx, err, st) => const Icon(Icons.broken_image_rounded),
+                                        )
+                                      : (_imagePath!.startsWith('/') || _imagePath!.contains(':'))
+                                          ? Image.file(File(_imagePath!), fit: BoxFit.cover)
+                                          : Image.network(
+                                              '${ApiService.baseUrl.replaceAll('/api', '')}/storage/$_imagePath',
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (ctx, err, st) => Container(
+                                                color: theme.surface,
+                                                child: const Center(child: Icon(Icons.broken_image_rounded)),
+                                              ),
+                                            ),
+                                )
+                              : Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo_rounded, color: theme.textHint),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      transType == 'Transfer' ? 'Upload Transfer Receipt' : (transType == 'Withdrawal' ? 'Upload Cheque Image' : 'Upload Slip Image'),
+                                      style: TextStyle(color: theme.textHint, fontSize: 10),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                      if (_imagePath != null)
+                        TextButton.icon(
+                          onPressed: () => setDialogState(() => _imagePath = null),
+                          icon: const Icon(Icons.delete_outline, color: ThemeProvider.error, size: 16),
+                          label: const Text('Remove Image', style: TextStyle(color: ThemeProvider.error, fontSize: 11)),
+                        ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -214,7 +343,9 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   amount: double.tryParse(amountCtrl.text.trim()) ?? 0.0,
                   transactionType: transType,
                   remarks: remarksCtrl.text,
-                  date: transaction?.date ?? DateTime.now(),
+                  personName: personCtrl.text,
+                  receiptImage: _imagePath,
+                  date: _selectedDate,
                 );
 
                 await DatabaseHelper.instance.insertBankTransaction(newEntry.toMap());
@@ -244,6 +375,109 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
       style: TextStyle(color: theme.textPrimary),
       validator: validator,
       decoration: theme.glassInputDecoration(label, icon),
+    );
+  }
+
+  void _showTransactionDetailsDialog(BankAccount t) {
+    final bankName = _bankNames[t.bankId] ?? 'Unknown Bank';
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          width: MediaQuery.of(context).size.width * 0.9,
+          constraints: const BoxConstraints(maxWidth: 360),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Transaction Details', style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: Colors.red),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                Table(
+                  border: TableBorder.all(color: Colors.black12, width: 1, borderRadius: BorderRadius.circular(8)),
+                  columnWidths: const {
+                    0: FlexColumnWidth(1.2),
+                    1: FlexColumnWidth(2.0),
+                  },
+                  children: [
+                    _buildTableRow('Bank', bankName),
+                    _buildTableRow('Account Title', t.accountTitle ?? 'N/A'),
+                    _buildTableRow('Account Number', t.accountNumber ?? 'N/A'),
+                    _buildTableRow('Person Name', t.personName ?? 'N/A'),
+                    _buildTableRow('Type', t.transactionType ?? 'N/A'),
+                    _buildTableRow('Amount', '${BusinessConfig.instance.currency}. ${t.amount}'),
+                    _buildTableRow('Date', DateFormat('MMM dd, yyyy').format(t.date ?? DateTime.now())),
+                    _buildTableRow('Remarks', t.remarks ?? 'N/A'),
+                  ],
+                ),
+                if (t.receiptImage != null && t.receiptImage!.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  const Text('Receipt Image:', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: t.receiptImage!.startsWith('base64:')
+                        ? Image.memory(base64Decode(t.receiptImage!.substring(7)), fit: BoxFit.contain)
+                        : (t.receiptImage!.startsWith('/') || t.receiptImage!.contains(':'))
+                            ? Image.file(File(t.receiptImage!), fit: BoxFit.contain)
+                            : Image.network(
+                                '${ApiService.baseUrl.replaceAll('/api', '')}/storage/${t.receiptImage}',
+                                fit: BoxFit.contain,
+                                errorBuilder: (ctx, err, st) => const Icon(Icons.broken_image_rounded, color: Colors.black54),
+                              ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Center(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.edit_rounded, size: 16),
+                    label: const Text('Edit Transaction'),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _showTransactionDialog(t);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.highlight, 
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  TableRow _buildTableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(label, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 13)),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Text(value, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 14)),
+        ),
+      ],
     );
   }
 
@@ -301,24 +535,16 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                           decoration: theme.glassDecoration,
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                            onTap: () => _showTransactionDialog(t),
-                            title: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(_bankNames[t.bankId] ?? 'Bank ID: ${t.bankId}', 
-                                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
-                                ),
-                                Text(
-                                  DateFormat('MMM dd, yyyy').format(t.date ?? DateTime.now()),
-                                  style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800),
-                                ),
-                              ],
+                            onTap: () => _showTransactionDetailsDialog(t),
+                            title: Text(
+                              t.accountTitle ?? 'Unknown Account',
+                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 15),
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                '${t.accountTitle} | ${t.accountNumber ?? ""}',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                '${t.personName != null && t.personName!.isNotEmpty ? t.personName : ""} ${t.personName != null && t.personName!.isNotEmpty && t.accountNumber != null && t.accountNumber!.isNotEmpty ? "|" : ""} ${t.accountNumber ?? ""}'.trim(),
+                                style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),

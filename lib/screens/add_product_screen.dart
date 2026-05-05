@@ -175,11 +175,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
     );
 
-    // Force reload for the correct parent category after dialog closes
-    if (mounted) {
-      await _controller.reloadSubCategories(forCategoryId: parentCategoryId);
-      setState(() {});
-    }
+    // The controller handles reloading and selection during addCategory
+    // and also listens to background sync mappings via DatabaseHelper.dataStream.
   }
 
   @override

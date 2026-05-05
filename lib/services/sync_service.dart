@@ -6,6 +6,8 @@ import 'package:mobile_app/services/api_service.dart';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'dart:io';
+import 'package:path/path.dart' as p;
 
 class SyncService {
   final ApiService _api = ApiService();
@@ -57,6 +59,19 @@ class SyncService {
     }
 
     return false;
+  }
+
+  Future<String?> _imageToBase64(String localPath) async {
+    try {
+      final file = File(localPath);
+      if (!file.existsSync()) return null;
+      final bytes = await file.readAsBytes();
+      // Use prefix to identify it as base64 data for the server and UI
+      return 'base64:' + base64Encode(bytes);
+    } catch (e) {
+      if (kDebugMode) print('❌ [SYNC] Base64 conversion failed: $e');
+    }
+    return null;
   }
 
   /// Full sync - pull then push 
@@ -803,6 +818,8 @@ class SyncService {
                   'amount': _parseNum(b['amount']),
                   'transaction_type': b['transaction_type'],
                   'remarks': b['remarks'],
+                  'person_name': b['person_name'],
+                  'receipt_image': b['receipt_image'],
                   'date': b['date'],
                   'status': (b['status'] == null || b['status'] == true || b['status'] == 1) ? 1 : 0,
                   'is_synced': 1,
@@ -1678,13 +1695,29 @@ class SyncService {
       unsyncedBankAccounts = await db.query('bank_accounts', where: 'is_synced = 0 AND $businessFilter', whereArgs: businessArgs);
       if (kDebugMode) print('🔍 [SYNC] Unsynced Bank accounts: ${unsyncedBankAccounts.length}');
       if (unsyncedBankAccounts.isNotEmpty) {
-        changes['bank_accounts'] = unsyncedBankAccounts.map((b) {
+        List<Map<String, dynamic>> bankList = [];
+        for (var b in unsyncedBankAccounts) {
           var m = Map<String, dynamic>.from(b);
           m.remove('is_synced');
           m['user_id'] = m['user_id'] ?? uid;
-          // m.remove('user_id');
-          return m;
-        }).toList();
+
+          // If there's a local image path, convert to Base64
+          if (m['receipt_image'] != null && !m['receipt_image'].startsWith('base64:') && (m['receipt_image'].startsWith('/') || m['receipt_image'].contains(':'))) {
+            if (kDebugMode) print('📤 [SYNC] Converting image to Base64: ${m['receipt_image']}');
+            final b64Data = await _imageToBase64(m['receipt_image']);
+            if (b64Data != null) {
+              m['receipt_image'] = b64Data;
+              // Update local DB so we don't convert again
+              await db.update('bank_accounts', {'receipt_image': b64Data}, where: 'id = ?', whereArgs: [m['id']]);
+            } else {
+              // If conversion failed, don't send the local path to the server
+              m['receipt_image'] = null;
+            }
+          }
+          
+          bankList.add(m);
+        }
+        changes['bank_accounts'] = bankList;
       }
 
       // Unsynced Supplier Credit Purchases

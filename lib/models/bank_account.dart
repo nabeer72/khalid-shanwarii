@@ -9,6 +9,8 @@ class BankAccount {
   final double amount;
   final String? transactionType;
   final String? remarks;
+  final String? personName;
+  final String? receiptImage;
   final DateTime? date;
   final int status;
   final int isSynced;
@@ -24,6 +26,8 @@ class BankAccount {
     this.amount = 0.0,
     this.transactionType,
     this.remarks,
+    this.personName,
+    this.receiptImage,
     this.date,
     this.status = 1,
     this.isSynced = 0,
@@ -41,6 +45,8 @@ class BankAccount {
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       transactionType: map['transaction_type']?.toString(),
       remarks: map['remarks']?.toString(),
+      personName: map['person_name']?.toString(),
+      receiptImage: map['receipt_image']?.toString(),
       date: map['date'] != null ? DateTime.tryParse(map['date'].toString()) : null,
       status: map['status'] ?? 1,
       isSynced: map['is_synced'] ?? 0,
@@ -59,6 +65,8 @@ class BankAccount {
       'amount': amount,
       'transaction_type': transactionType,
       'remarks': remarks,
+      'person_name': personName,
+      'receipt_image': receiptImage,
       'date': date?.toIso8601String(),
       'status': status,
       'is_synced': isSynced,

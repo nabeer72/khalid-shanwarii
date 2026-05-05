@@ -1464,6 +1464,16 @@ class DbMigrations {
         }
       });
     }
+
+    if (oldVersion < 79) {
+      if (kDebugMode) print('Upgrading DB to version 79: Adding person_name and receipt_image to bank_accounts...');
+      try {
+        await db.execute('ALTER TABLE bank_accounts ADD COLUMN person_name TEXT');
+        await db.execute('ALTER TABLE bank_accounts ADD COLUMN receipt_image TEXT');
+      } catch (e) {
+        if (kDebugMode) print('Migration v79 failed (columns might already exist): $e');
+      }
+    }
   }
 }
 

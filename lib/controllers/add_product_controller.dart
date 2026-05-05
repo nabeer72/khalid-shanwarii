@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+
 import 'package:flutter/foundation.dart';
 import 'dart:math';
 import 'package:mobile_app/db/database_helper.dart';
@@ -48,6 +50,8 @@ class AddProductController with ChangeNotifier {
   Map<String, List<Map<String, dynamic>>> groupedUnits = {};
   static final Set<dynamic> _globalSelectedUnitIds = {};
   Set<dynamic> get selectedUnitIds => _globalSelectedUnitIds;
+  StreamSubscription? _dbSubscription;
+
 
   // Called during logout to ensure no in-memory state leaks to the next session
   static void clearGlobalState() {
@@ -96,7 +100,53 @@ class AddProductController with ChangeNotifier {
         }
       });
     });
+
+    _dbSubscription = DatabaseHelper.dataStream.listen((_) {
+      _handleDatabaseChange();
+    });
   }
+
+  Future<void> _handleDatabaseChange() async {
+    if (_isLoading) return;
+
+    // Capture current names to re-associate after ID changes (sync mappings)
+    final currentCatName = _firstOrNull(categories.where((c) => c.id == selectedCategory))?.name;
+    final currentSubName = _firstOrNull(subCategories.where((c) => c.id == selectedSubCategoryId))?.name;
+
+    final oldCatId = selectedCategory;
+    final oldSubId = selectedSubCategoryId;
+
+    await _fetchCategories();
+    
+    // If IDs changed due to sync, re-map selection by name
+    if (currentCatName != null) {
+      final newCatMatch = _firstOrNull(categories.where((c) => c.name == currentCatName));
+      if (newCatMatch != null) {
+        selectedCategory = newCatMatch.id;
+        
+        // If category ID changed, we MUST reload subcategories to find the new sub ID
+        if (selectedCategory != oldCatId) {
+           await reloadSubCategories();
+        }
+
+        if (currentSubName != null) {
+          final newSubMatch = _firstOrNull(subCategories.where((sc) => sc.name == currentSubName));
+          if (newSubMatch != null) {
+            selectedSubCategoryId = newSubMatch.id;
+          }
+        }
+      }
+    }
+    
+    if (oldCatId != selectedCategory || oldSubId != selectedSubCategoryId) {
+      if (kDebugMode) print('🔄 [CONTROLLER] Re-mapped selection after DB change: Cat $oldCatId->$selectedCategory, Sub $oldSubId->$selectedSubCategoryId');
+      notifyListeners();
+    }
+  }
+
+  // Helper extension-like getter for safety
+  T? _firstOrNull<T>(Iterable<T> iterable) => iterable.isEmpty ? null : iterable.first;
+
 
   void _checkIfBoxUnit() {
     if (selectedUnitId == null) {
@@ -616,7 +666,9 @@ class AddProductController with ChangeNotifier {
 
   @override
   void dispose() {
+    _dbSubscription?.cancel();
     name.dispose();
+
     barcode.dispose();
     price.dispose();
     purchasePrice.dispose();
