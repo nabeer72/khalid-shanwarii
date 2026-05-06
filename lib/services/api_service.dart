@@ -140,4 +140,28 @@ class ApiService {
   Future<Response> patch(String path, {dynamic data, Map<String, dynamic>? queryParameters}) {
     return _dio.patch(path, data: data, queryParameters: queryParameters);
   }
+
+  Future<bool> deleteBankAccount(int id) async {
+    try {
+      final response = await _dio.delete('/bank-accounts/$id');
+      print('✅ [API] deleteBankAccount($id) → ${response.statusCode} ${response.data}');
+      return response.statusCode == 200 && response.data['success'] == true;
+    } on DioException catch (e) {
+      print('❌ [API] deleteBankAccount($id) failed → status: ${e.response?.statusCode}, body: ${e.response?.data}');
+      return false;
+    } catch (e) {
+      print('❌ [API] deleteBankAccount($id) unexpected error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateBankAccount(int id, Map<String, dynamic> data) async {
+    try {
+      final response = await _dio.put('/bank-accounts/$id', data: data);
+      return response.statusCode == 200 && response.data['success'] == true;
+    } catch (e) {
+      print('❌ [API] updateBankAccount failed: $e');
+      return false;
+    }
+  }
 }

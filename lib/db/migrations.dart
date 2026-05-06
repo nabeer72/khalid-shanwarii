@@ -5,6 +5,20 @@ import 'tables.dart';
 
 class DbMigrations {
   static Future<void> upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 80) {
+      if (kDebugMode) print('Upgrading DB to version 80: Adding person_name and receipt_image to bank_accounts...');
+      try {
+        await db.execute('ALTER TABLE bank_accounts ADD COLUMN person_name TEXT');
+      } catch (e) {
+        if (kDebugMode) print('person_name column already exists in bank_accounts: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE bank_accounts ADD COLUMN receipt_image TEXT');
+      } catch (e) {
+        if (kDebugMode) print('receipt_image column already exists in bank_accounts: $e');
+      }
+    }
+
     if (oldVersion < 64) {
       if (kDebugMode) print('Upgrading DB to version 64: Renaming admin_id to user_id...');
       await db.transaction((txn) async {

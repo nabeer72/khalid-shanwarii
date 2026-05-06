@@ -23,6 +23,7 @@ class BankManagementScreen extends StatefulWidget {
 
 class _BankManagementScreenState extends State<BankManagementScreen> {
   final theme = ThemeProvider.instance;
+  final _api = ApiService();
   List<BankAccount> _transactions = [];
   Map<int, String> _bankNames = {};
   bool _isLoading = true;
@@ -348,8 +349,39 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   date: _selectedDate,
                 );
 
+                // 1. Save/update locally
+                // If transaction is not null, it's an update, so we keep the ID
                 await DatabaseHelper.instance.insertBankTransaction(newEntry.toMap());
-                Navigator.pop(ctx);
+
+                // 2. If editing an existing record, push update to live server immediately
+                if (transaction?.id != null) {
+                  final payload = {
+                    'bank_id': newEntry.bankId,
+                    'account_type': newEntry.accountType,
+                    'account_title': newEntry.accountTitle,
+                    'account_number': newEntry.accountNumber,
+                    'amount': newEntry.amount,
+                    'transaction_type': newEntry.transactionType,
+                    'remarks': newEntry.remarks,
+                    'person_name': newEntry.personName,
+                    'receipt_image': newEntry.receiptImage,
+                    'date': newEntry.date?.toIso8601String(),
+                    'status': 1,
+                  };
+                  final success = await _api.updateBankAccount(transaction!.id!, payload);
+                  
+                  if (success) {
+                    // Mark as synced locally if server update worked
+                    await DatabaseHelper.instance.database.then((db) => db.update(
+                      'bank_accounts', 
+                      {'is_synced': 1}, 
+                      where: 'id = ?', 
+                      whereArgs: [transaction!.id]
+                    ));
+                  }
+                }
+
+                if (ctx.mounted) Navigator.pop(ctx);
                 _loadTransactions();
               },
               style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
@@ -586,10 +618,24 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                                         ],
                                       ),
                                     );
-                                    if (confirm == true) {
-                                      await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0);
-                                      _loadTransactions();
-                                    }
+                                      if (confirm == true) {
+                                        bool serverDeleted = false;
+                                        // 1. Delete on live server immediately
+                                        if (t.id != null) {
+                                          serverDeleted = await _api.deleteBankAccount(t.id!);
+                                          if (mounted) {
+                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                              content: Text(serverDeleted ? '✅ Deleted from server' : '⚠️ Server delete failed – check logs'),
+                                              backgroundColor: serverDeleted ? Colors.green : Colors.red,
+                                              duration: const Duration(seconds: 3),
+                                            ));
+                                          }
+                                        }
+                                        // 2. Delete locally
+                                        // If server delete was successful, we can do a hard delete locally as requested
+                                        await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0, hardDelete: serverDeleted);
+                                        _loadTransactions();
+                                      }
                                   },
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),

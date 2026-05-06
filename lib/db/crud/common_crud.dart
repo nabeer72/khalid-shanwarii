@@ -266,24 +266,42 @@ mixin CommonCrud {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final uid = getSafeInt(BusinessConfig.instance.userId);
-    
-    await db.insert('bank_accounts', {
+
+    // Check if record exists to preserve created_at
+    final List<Map<String, dynamic>> existing = await db.query(
+      'bank_accounts',
+      where: 'id = ?',
+      whereArgs: [transaction['id']],
+    );
+
+    final data = {
       ...transaction,
       'business_id': bid,
       'user_id': uid,
       'branch_id': transaction['branch_id'] ?? getCurrentBranchId(),
       'is_synced': 0,
-      'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
-    }, conflictAlgorithm: ConflictAlgorithm.replace);
+    };
+
+    if (existing.isEmpty) {
+      data['created_at'] = DateTime.now().toIso8601String();
+      await db.insert('bank_accounts', data, conflictAlgorithm: ConflictAlgorithm.replace);
+    } else {
+      // Preserve created_at from existing record
+      data['created_at'] = existing.first['created_at'];
+      await db.update('bank_accounts', data, where: 'id = ?', whereArgs: [transaction['id']]);
+    }
     
     DatabaseHelper.notifyDataChanged();
   }
 
-  Future<void> deleteBankTransaction(dynamic id) async {
+  Future<void> deleteBankTransaction(dynamic id, {bool hardDelete = false}) async {
     final db = await database;
-    await db.update('bank_accounts', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
-    
+    if (hardDelete) {
+      await db.delete('bank_accounts', where: 'id = ?', whereArgs: [id]);
+    } else {
+      await db.update('bank_accounts', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
+    }
     DatabaseHelper.notifyDataChanged();
   }
 

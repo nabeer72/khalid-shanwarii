@@ -587,6 +587,8 @@ class DbTables {
         transaction_type TEXT,
         remarks TEXT,
         date TEXT,
+        person_name TEXT,
+        receipt_image TEXT,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,
         created_at TEXT,
