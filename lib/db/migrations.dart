@@ -19,6 +19,16 @@ class DbMigrations {
       }
     }
 
+    if (oldVersion < 81) {
+      if (kDebugMode) print('Upgrading DB to version 81: Resetting bank_accounts sequence...');
+      try {
+        await db.execute('DELETE FROM bank_accounts');
+        await db.execute("DELETE FROM sqlite_sequence WHERE name = 'bank_accounts'");
+      } catch (e) {
+        if (kDebugMode) print('Error resetting bank_accounts sequence: $e');
+      }
+    }
+
     if (oldVersion < 64) {
       if (kDebugMode) print('Upgrading DB to version 64: Renaming admin_id to user_id...');
       await db.transaction((txn) async {

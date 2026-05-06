@@ -39,7 +39,7 @@ class DbInitializer {
       return await databaseFactoryFfi.openDatabase(
         path, 
         options: OpenDatabaseOptions(
-          version: 80,
+          version: 81,
 
           onCreate: DbTables.createDB,
           onUpgrade: DbMigrations.upgradeDB,

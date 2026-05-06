@@ -5,13 +5,13 @@ class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
   // or your machine's LAN IP if running on physical device (e.g., 192.168.1.X).
   // Current IP: 192.168.137.202 (from ipconfig - Wi-Fi adapter)
-  static const String baseUrl = 'http://192.168.96.53:8080/api';
+  static const String baseUrl = 'http://192.168.214.53:8080/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
-    connectTimeout: const Duration(seconds: 20),
-    receiveTimeout: const Duration(seconds: 20),
-    sendTimeout: const Duration(seconds: 20),
+    connectTimeout: const Duration(seconds: 60),
+    receiveTimeout: const Duration(seconds: 60),
+    sendTimeout: const Duration(seconds: 60),
   ));
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
   ApiService() {
@@ -148,10 +148,13 @@ class ApiService {
       return response.statusCode == 200 && response.data['success'] == true;
     } on DioException catch (e) {
       print('❌ [API] deleteBankAccount($id) failed → status: ${e.response?.statusCode}, body: ${e.response?.data}');
+      if (e.response?.statusCode == 404) {
+        throw '404'; // Special case for UI
+      }
       return false;
     } catch (e) {
       print('❌ [API] deleteBankAccount($id) unexpected error: $e');
-      return false;
+      rethrow;
     }
   }
 

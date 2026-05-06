@@ -209,6 +209,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     ctrl: bankCtrl, 
                     label: 'Bank Name', 
                     icon: Icons.account_balance_outlined,
+                    readOnly: selectedBank != null,
                     validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
@@ -216,12 +217,13 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     ctrl: titleCtrl, 
                     label: 'Account Title', 
                     icon: Icons.person_rounded,
+                    readOnly: selectedAccount != null,
                     validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
                   ),
                   const SizedBox(height: 12),
-                  _buildDialogField(ctrl: typeCtrl, label: 'Account Type', icon: Icons.category_rounded),
+                  _buildDialogField(ctrl: typeCtrl, label: 'Account Type', icon: Icons.category_rounded, readOnly: selectedAccount != null),
                   const SizedBox(height: 12),
-                  _buildDialogField(ctrl: numberCtrl, label: 'Account Number', icon: Icons.numbers_rounded),
+                  _buildDialogField(ctrl: numberCtrl, label: 'Account Number', icon: Icons.numbers_rounded, readOnly: selectedAccount != null),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: transType,
@@ -398,15 +400,20 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     required String label, 
     required IconData icon, 
     bool isNumber = false, 
+    bool readOnly = false,
     String? Function(String?)? validator
   }) {
     return TextFormField(
       controller: ctrl,
+      readOnly: readOnly,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
-      style: TextStyle(color: theme.textPrimary),
+      style: TextStyle(color: readOnly ? theme.textHint : theme.textPrimary),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon),
+      decoration: theme.glassInputDecoration(label, icon).copyWith(
+        fillColor: readOnly ? theme.surface.withOpacity(0.3) : null,
+        filled: readOnly,
+      ),
     );
   }
 
@@ -620,20 +627,27 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                                     );
                                       if (confirm == true) {
                                         bool serverDeleted = false;
+                                        bool recordMissingOnServer = false;
                                         // 1. Delete on live server immediately
                                         if (t.id != null) {
-                                          serverDeleted = await _api.deleteBankAccount(t.id!);
+                                          try {
+                                            serverDeleted = await _api.deleteBankAccount(t.id!);
+                                          } catch (e) {
+                                            // If server returns 404, it means the record is already gone or never existed there
+                                            recordMissingOnServer = true;
+                                          }
+                                          
                                           if (mounted) {
                                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                              content: Text(serverDeleted ? '✅ Deleted from server' : '⚠️ Server delete failed – check logs'),
-                                              backgroundColor: serverDeleted ? Colors.green : Colors.red,
+                                              content: Text(serverDeleted ? ' Deleted Sucessfully' : (recordMissingOnServer ? ' Record already removed from server' : '⚠️ Server delete failed – check logs')),
+                                              backgroundColor: serverDeleted ? Colors.green : (recordMissingOnServer ? Colors.blue : Colors.red),
                                               duration: const Duration(seconds: 3),
                                             ));
                                           }
                                         }
                                         // 2. Delete locally
-                                        // If server delete was successful, we can do a hard delete locally as requested
-                                        await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0, hardDelete: serverDeleted);
+                                        // If server delete was successful OR if it was already missing on the server, hard delete it locally
+                                        await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0, hardDelete: serverDeleted || recordMissingOnServer);
                                         _loadTransactions();
                                       }
                                   },

@@ -268,11 +268,13 @@ mixin CommonCrud {
     final uid = getSafeInt(BusinessConfig.instance.userId);
 
     // Check if record exists to preserve created_at
-    final List<Map<String, dynamic>> existing = await db.query(
-      'bank_accounts',
-      where: 'id = ?',
-      whereArgs: [transaction['id']],
-    );
+    final List<Map<String, dynamic>> existing = transaction['id'] != null 
+      ? await db.query(
+          'bank_accounts',
+          where: 'id = ?',
+          whereArgs: [transaction['id']],
+        )
+      : [];
 
     final data = {
       ...transaction,
@@ -296,6 +298,7 @@ mixin CommonCrud {
   }
 
   Future<void> deleteBankTransaction(dynamic id, {bool hardDelete = false}) async {
+    if (id == null) return;
     final db = await database;
     if (hardDelete) {
       await db.delete('bank_accounts', where: 'id = ?', whereArgs: [id]);
