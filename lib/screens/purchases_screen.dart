@@ -165,7 +165,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                  icon: const Icon(Icons.close_rounded, color: Colors.red, size: 20),
                 ),
               ],
             ),
@@ -180,14 +180,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: DropdownButtonFormField<int>(
+                          child: _buildDropdownField(
+                            context: ctx,
                             value: (controller.selectedSupplierId != null && controller.suppliers.any((s) => s.id == controller.selectedSupplierId))
                                 ? controller.selectedSupplierId
                                 : null,
-                            dropdownColor: theme.surface,
-                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
-                            decoration: theme.glassInputDecoration('Supplier', Icons.business_rounded).copyWith(isDense: true),
-                            items: controller.suppliers.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name, style: const TextStyle(fontSize: 12)))).toList(),
+                            label: 'Supplier',
+                            icon: Icons.business_rounded,
+                            searchable: true,
+                            items: controller.suppliers.map((s) => <String, dynamic>{'value': s.id, 'label': s.name}).toList(),
                             onChanged: (v) {
                               controller.setSupplier(v);
                               setDialogState(() {});
@@ -292,13 +293,18 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     ),
                     const SizedBox(height: 20),
                     _buildDialogSectionHeader('Payment Details'),
-                    DropdownButtonFormField<String>(
+                    _buildDropdownField(
+                      context: ctx,
                       value: controller.paymentType,
-                      dropdownColor: theme.surface,
-                      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
-                      decoration: theme.glassInputDecoration('Payment Type', Icons.payment_rounded).copyWith(isDense: true),
-                      items: controller.paymentTypes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
-                      onChanged: (v) => v != null ? controller.setPaymentType(v) : null,
+                      label: 'Payment Type',
+                      icon: Icons.payment_rounded,
+                      items: controller.paymentTypes.map((t) => <String, dynamic>{'value': t, 'label': t}).toList(),
+                      onChanged: (v) {
+                        if (v != null) {
+                          controller.setPaymentType(v);
+                          setDialogState(() {});
+                        }
+                      },
                     ),
                     if (controller.paymentType == 'Cheque') ...[
                       const SizedBox(height: 12),
@@ -745,6 +751,159 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     );
   }
 
+  Widget _buildDropdownField({
+    required BuildContext context,
+    required dynamic value,
+    required String label,
+    required IconData icon,
+    required List<Map<String, dynamic>> items,
+    required void Function(dynamic) onChanged,
+    bool searchable = false,
+  }) {
+    final key = GlobalKey();
+    final displayLabel = (items as List<Map<String, dynamic>>).firstWhere(
+      (i) => i['value'] == value,
+      orElse: () => <String, dynamic>{'label': label},
+    )['label'] as String;
+
+    return GestureDetector(
+      key: key,
+      onTap: () async {
+        if (searchable) {
+          _showSearchDialog(context, label, items, value, onChanged);
+        } else {
+          final box = key.currentContext?.findRenderObject() as RenderBox?;
+          if (box == null) return;
+          final pos = box.localToGlobal(Offset.zero);
+          final size = box.size;
+          
+          final result = await showMenu<dynamic>(
+            context: context,
+            elevation: 8,
+            color: theme.surface.withOpacity(0.9),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: theme.whiteAlpha(0.1))),
+            constraints: BoxConstraints(minWidth: size.width, maxWidth: size.width),
+            position: RelativeRect.fromLTRB(pos.dx, pos.dy + size.height + 4, pos.dx + size.width, pos.dy + size.height + 304),
+            items: items.map((item) => PopupMenuItem<dynamic>(
+              value: item['value'],
+              height: 40,
+              child: Text(
+                item['label'] as String,
+                style: TextStyle(
+                  color: item['value'] == value ? theme.highlight : theme.textPrimary,
+                  fontSize: 13,
+                  fontWeight: item['value'] == value ? FontWeight.bold : FontWeight.w500,
+                ),
+              ),
+            )).toList(),
+          );
+          if (result != null) onChanged(result);
+        }
+      },
+      child: InputDecorator(
+        decoration: theme.glassInputDecoration(label, icon).copyWith(
+          suffixIcon: Icon(Icons.arrow_drop_down_rounded, color: theme.iconColor),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+        ),
+        child: Text(
+          displayLabel,
+          style: TextStyle(
+            color: value != null ? theme.textPrimary : theme.textHint,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSearchDialog(BuildContext context, String title, List<Map<String, dynamic>> items, dynamic currentValue, void Function(dynamic) onSelected) {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        String searchQuery = '';
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final filteredItems = items.where((i) => 
+              i['label'].toString().toLowerCase().contains(searchQuery.toLowerCase())
+            ).toList();
+
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                width: 350,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 4)),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Select Supplier', style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 16)),
+                        IconButton(icon: const Icon(Icons.close_rounded, color: Colors.red, size: 20), onPressed: () => Navigator.pop(ctx)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.black87, fontSize: 13),
+                      decoration: InputDecoration(
+                        hintText: 'Search...',
+                        prefixIcon: const Icon(Icons.search_rounded, color: Colors.black45),
+                        filled: true,
+                        fillColor: Colors.grey[100],
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      ),
+                      onChanged: (v) => setDialogState(() => searchQuery = v),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      constraints: const BoxConstraints(maxHeight: 300),
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: filteredItems.length,
+                        separatorBuilder: (ctx, i) => const Divider(height: 1),
+                        itemBuilder: (ctx, i) {
+                          final item = filteredItems[i];
+                          final isSelected = item['value'] == currentValue;
+                          return ListTile(
+                            onTap: () {
+                              onSelected(item['value']);
+                              Navigator.pop(ctx);
+                            },
+                            title: Text(
+                              item['label'], 
+                              style: TextStyle(
+                                color: isSelected ? theme.highlight : Colors.black87,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                fontSize: 14,
+                              ),
+                            ),
+                            trailing: isSelected ? Icon(Icons.check_circle_rounded, color: theme.highlight, size: 18) : null,
+                            dense: true,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        );
+      }
+    );
+  }
+
   Widget _buildDialogTextField({
     required TextEditingController controller,
     required String label,
@@ -871,8 +1030,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                   child: Text(purchase.supplierName ?? 'Direct Purchase', 
                                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
                                 ),
-                                Text('ID: ${purchase.id ?? '??'}', 
-                                    style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
                               ],
                             ),
                             subtitle: Padding(
