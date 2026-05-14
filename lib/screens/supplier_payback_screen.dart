@@ -75,62 +75,20 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
 
   Future<void> _showPaybackForm({Supplier? supplier, Map<String, dynamic>? editingPayback}) async {
     final bool isEdit = editingPayback != null;
-    
-    List<Map<String, dynamic>> employees = [];
-    double balance = 0;
-    int? effectiveSupplierId = isEdit ? editingPayback['supplier_id'] : supplier?.id;
-    
-    try {
-      final dbEmployees = await DatabaseHelper.instance.getEmployees();
-      employees = List<Map<String, dynamic>>.from(dbEmployees);
-      
-      if (effectiveSupplierId != null) {
-        balance = await DatabaseHelper.instance.getSupplierCreditBalance(effectiveSupplierId);
-        if (isEdit) balance += (editingPayback['amount'] as num).toDouble();
-      }
-    } catch (e) {
-      debugPrint('Error fetching data for payback form: $e');
-    }
-
-    final staffNames = employees.map((e) => e['name'].toString()).toList();
-    String currentStaff = BusinessConfig.instance.staffName;
-
-    if (currentStaff.isEmpty && BusinessConfig.instance.userId != null) {
-      final user = await DatabaseHelper.instance.getUser(BusinessConfig.instance.userId);
-      if (user != null && user['name'] != null) {
-        currentStaff = user['name'];
-      }
-    }
-
-    if (currentStaff.isNotEmpty && !staffNames.contains(currentStaff)) {
-      employees.insert(0, {'name': currentStaff});
-    }
-
-    String? selectedStaff = isEdit 
-        ? editingPayback['paid_by'] 
-        : (currentStaff.isNotEmpty ? currentStaff : (employees.isNotEmpty ? employees.first['name'] : null));
+    final formKey = GlobalKey<FormState>();
+    final amountCtrl = TextEditingController(text: isEdit ? editingPayback['amount'].toString() : '');
+    final noteCtrl = TextEditingController(text: isEdit ? editingPayback['notes'] ?? '' : '');
     
     DateTime selectedDate = isEdit 
         ? DateTime.parse(editingPayback['payment_date']) 
         : DateTime.now();
-    
-    final amountCtrl = TextEditingController(text: isEdit ? editingPayback['amount'].toString() : '');
-    final noteCtrl = TextEditingController(text: isEdit ? editingPayback['notes'] ?? '' : '');
-    final formKey = GlobalKey<FormState>();
-    bool isSaving = false;
-    
+        
     Supplier? selectedSupplier = supplier;
-    if (isEdit && selectedSupplier == null) {
-      try {
-        selectedSupplier = _suppliersWithCredit.firstWhere((s) => s.id == effectiveSupplierId);
-      } catch (_) {
-        selectedSupplier = Supplier(
-          id: effectiveSupplierId, 
-          name: editingPayback['supplier_name'] ?? 'Unknown',
-          creditBalance: balance
-        );
-      }
-    }
+    String? selectedStaff;
+    List<Map<String, dynamic>> employees = [];
+    double balance = 0;
+    bool isLoadingData = true;
+    bool isSaving = false;
 
     if (!mounted) return;
 
@@ -139,9 +97,59 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
+          if (isLoadingData) {
+            // Load data once inside the dialog
+            Future.microtask(() async {
+              try {
+                final dbEmployees = await DatabaseHelper.instance.getEmployees();
+                employees = List<Map<String, dynamic>>.from(dbEmployees);
+                
+                int? effectiveSupplierId = isEdit ? editingPayback['supplier_id'] : selectedSupplier?.id;
+                if (effectiveSupplierId != null) {
+                  balance = await DatabaseHelper.instance.getSupplierCreditBalance(effectiveSupplierId);
+                  if (isEdit) balance += (editingPayback['amount'] as num).toDouble();
+                }
+
+                String currentStaff = BusinessConfig.instance.staffName;
+                if (currentStaff.isEmpty && BusinessConfig.instance.userId != null) {
+                  final user = await DatabaseHelper.instance.getUser(BusinessConfig.instance.userId);
+                  if (user != null) currentStaff = user['name'] ?? '';
+                }
+
+                final staffNames = employees.map((e) => e['name'].toString()).toList();
+                if (currentStaff.isNotEmpty && !staffNames.contains(currentStaff)) {
+                  employees.insert(0, {'name': currentStaff});
+                }
+
+                selectedStaff = isEdit 
+                    ? editingPayback['paid_by'] 
+                    : (currentStaff.isNotEmpty ? currentStaff : (employees.isNotEmpty ? employees.first['name'] : null));
+
+                if (isEdit && selectedSupplier == null) {
+                  try {
+                    selectedSupplier = _suppliersWithCredit.firstWhere((s) => s.id == effectiveSupplierId);
+                  } catch (_) {
+                    selectedSupplier = Supplier(id: effectiveSupplierId, name: editingPayback['supplier_name'] ?? 'Unknown', creditBalance: balance);
+                  }
+                }
+                
+                if (ctx.mounted) setDialogState(() => isLoadingData = false);
+              } catch (e) {
+                debugPrint('Error loading payback data: $e');
+                if (ctx.mounted) setDialogState(() => isLoadingData = false);
+              }
+            });
+
+            return AlertDialog(
+              backgroundColor: theme.surface,
+              content: const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+            );
+          }
+
           double paidAmount = double.tryParse(amountCtrl.text) ?? 0.0;
-          double currentBalance = (selectedSupplier != null) ? balance : 0.0;
+          double currentBalance = balance;
           double remainingBalance = currentBalance - paidAmount;
+
 
           return AlertDialog(
             backgroundColor: theme.surface,
@@ -384,11 +392,6 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showPaybackForm(),
-        backgroundColor: theme.highlight,
-        child: const Icon(Icons.add_rounded, color: Colors.white),
-      ),
       body: theme.glassBackground(
         child: SafeArea(
           child: Column(
@@ -467,7 +470,7 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
                             final supplier = _filteredItems[i] as Supplier;
                             return _SupplierCreditCard(
                               supplier: supplier,
-                              onTap: () {}, // Tap disabled per concept
+                              onTap: () => _showPaybackForm(supplier: supplier),
                             );
                           }
                         },
@@ -560,7 +563,10 @@ class _SupplierCreditCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassDecoration,
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         onTap: onTap,
         leading: _buildAvatar(theme, supplier.name),
@@ -585,9 +591,10 @@ class _SupplierCreditCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text('${BusinessConfig.instance.currencyDisplay} ${creditBalance.toStringAsFixed(2)}',
-              style: const TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 13)),
+              style: TextStyle(color: theme.isDark ? ThemeProvider.warning : ThemeProvider.error, fontWeight: FontWeight.w900, fontSize: 13)),
             Text('DEBT', style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800)),
           ],
+        ),
         ),
       ),
     );
@@ -628,7 +635,11 @@ class _PaybackHistoryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassDecoration,
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        child: ListTile(
+          onTap: onEdit,
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: Container(
           width: 40,
@@ -676,6 +687,7 @@ class _PaybackHistoryCard extends StatelessWidget {
         trailing: IconButton(
           icon: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 24),
           onPressed: onEdit,
+        ),
         ),
       ),
     );

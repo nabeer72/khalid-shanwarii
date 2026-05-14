@@ -66,7 +66,12 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getEmployeeByEmail(String email) async {
     final db = await database;
-    final results = await db.query('employees', where: 'email = ?', whereArgs: [email], limit: 1);
+    final results = await db.query(
+      'employees', 
+      where: 'email = ?${getBusinessFilter()}', 
+      whereArgs: [email, ...getBusinessArgs()], 
+      limit: 1
+    );
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -76,8 +81,8 @@ mixin EmployeesCrud on CommonCrud {
     
     final List<Map<String, dynamic>> results = await db.query(
       'employees',
-      where: 'LOWER(email) = ? AND pin = ? AND status = 1',
-      whereArgs: [cleanEmail, pin],
+      where: 'LOWER(email) = ? AND pin = ? AND status = 1${getBusinessFilter()}',
+      whereArgs: [cleanEmail, pin, ...getBusinessArgs()],
       limit: 1,
     );
     
@@ -90,12 +95,12 @@ mixin EmployeesCrud on CommonCrud {
       'pin': pin,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [id]);
+    }, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
   }
 
   Future<void> deleteEmployee(dynamic id) async {
     final db = await database;
-    await db.delete('employees', where: 'id = ?', whereArgs: [id]);
+    await db.delete('employees', where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     
     DatabaseHelper.notifyDataChanged();
   }
@@ -110,7 +115,7 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getRoleById(dynamic id) async {
     final db = await database;
-    final res = await db.query('roles', where: 'id = ?', whereArgs: [id]);
+    final res = await db.query('roles', where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     return res.firstOrNull;
   }
 
@@ -144,6 +149,10 @@ mixin EmployeesCrud on CommonCrud {
   Future<void> insertRolePermissions(dynamic roleId, List<dynamic> permissionIds) async {
     final db = await database;
     await db.transaction((txn) async {
+      // Security Check: Verify role belongs to business
+      final role = await txn.query('roles', where: 'id = ?${getBusinessFilter()}', whereArgs: [roleId, ...getBusinessArgs()]);
+      if (role.isEmpty) return;
+
       await txn.delete('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
       for (var pid in permissionIds) {
         await txn.insert('role_permissions', {
@@ -157,7 +166,12 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<List<dynamic>> getRolePermissions(dynamic roleId) async {
     final db = await database;
-    final res = await db.query('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
+    final res = await db.rawQuery('''
+      SELECT rp.permission_id 
+      FROM role_permissions rp
+      JOIN roles r ON rp.role_id = r.id
+      WHERE rp.role_id = ? ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id')}
+    ''', [roleId, ...getBusinessArgs()]);
     return res.map((r) => r['permission_id']).toList();
   }
 
@@ -212,21 +226,31 @@ mixin EmployeesCrud on CommonCrud {
       FROM employee_roles er
       JOIN role_permissions rp ON er.role_id = rp.role_id
       JOIN permissions p ON rp.permission_id = p.id
-      WHERE er.employee_id = ?
-    ''', [employeeId]);
+      JOIN employees e ON er.employee_id = e.id
+      WHERE er.employee_id = ? ${getBusinessFilter().replaceAll('business_id', 'e.business_id').replaceAll('user_id', 'e.user_id')}
+    ''', [employeeId, ...getBusinessArgs()]);
     
     return res.map((r) => r['name'].toString()).toList();
   }
 
   Future<List<int>> getEmployeeRoleIds(dynamic employeeId) async {
     final db = await database;
-    final res = await db.query('employee_roles', columns: ['role_id'], where: 'employee_id = ?', whereArgs: [employeeId]);
+    final res = await db.rawQuery('''
+      SELECT er.role_id 
+      FROM employee_roles er
+      JOIN employees e ON er.employee_id = e.id
+      WHERE er.employee_id = ? ${getBusinessFilter().replaceAll('business_id', 'e.business_id').replaceAll('user_id', 'e.user_id')}
+    ''', [employeeId, ...getBusinessArgs()]);
     return res.map((r) => int.tryParse(r['role_id'].toString()) ?? 0).where((id) => id > 0).toList();
   }
 
   Future<void> updateEmployeeRoles(dynamic employeeId, List<int> roleIds) async {
     final db = await database;
     await db.transaction((txn) async {
+      // Security Check: Verify employee belongs to business
+      final employee = await txn.query('employees', where: 'id = ?${getBusinessFilter()}', whereArgs: [employeeId, ...getBusinessArgs()]);
+      if (employee.isEmpty) return;
+
       await txn.delete('employee_roles', where: 'employee_id = ?', whereArgs: [employeeId]);
       for (var rid in roleIds) {
         await txn.insert('employee_roles', {

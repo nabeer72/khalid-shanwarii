@@ -318,7 +318,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                             if (!hasVariants)
                               Switch.adaptive(
                                 value: isActive,
-                                activeColor: ThemeProvider.success,
+                                activeColor: theme.toggleActiveColor,
                                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                 onChanged: (val) {
                                   for (var p in group) {
@@ -445,7 +445,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     const SizedBox(width: 8),
                     Switch.adaptive(
                       value: s.status == 1,
-                      activeColor: ThemeProvider.success,
+                      activeColor: theme.toggleActiveColor,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onChanged: (val) async {
                         await DatabaseHelper.instance.toggleStockStatus(s.id, s.status);

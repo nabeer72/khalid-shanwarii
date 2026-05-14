@@ -617,6 +617,7 @@ class _LoginScreenState extends State<LoginScreen>
           uid: aid,
           brid: user['branch_id'],
         );
+        BusinessConfig.instance.staffName = user['name'] ?? 'Admin';
         
         await _storage.write(key: 'user_id', value: uid.toString());
         await _storage.write(key: 'business_id', value: bid?.toString());
@@ -645,6 +646,7 @@ class _LoginScreenState extends State<LoginScreen>
 
         BusinessConfig.instance.userId = staff['admin_id'];
         BusinessConfig.instance.staffId = staff['id'];
+        BusinessConfig.instance.staffName = staff['name'] ?? 'Staff';
 
         if (staff['branch_id'] != null) {
           BusinessConfig.instance.branchId = staff['branch_id'];
@@ -726,6 +728,7 @@ class _LoginScreenState extends State<LoginScreen>
                 brid: brid,
               );
               BusinessConfig.instance.staffId = resolvedStaffId;
+              BusinessConfig.instance.staffName = u['name'] ?? 'User';
 
               if (isStaff) {
                 await storage.write(key: 'user_id', value: effectiveUserId.toString());
@@ -1067,7 +1070,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       color: theme.textPrimary,
                                       fontWeight: FontWeight.w500),
                                   decoration: theme.glassInputDecoration(
-                                      'Email Address', Icons.email_outlined),
+                                      'Email Address', Icons.email_outlined, isRequired: true),
                                 ),
                                 const SizedBox(height: 12),
                                 TextFormField(
@@ -1078,7 +1081,7 @@ class _LoginScreenState extends State<LoginScreen>
                                       fontWeight: FontWeight.w500),
                                   decoration: theme
                                       .glassInputDecoration(
-                                          'Password', Icons.lock_outlined)
+                                          'Password', Icons.lock_outlined, isRequired: true)
                                       .copyWith(
                                         suffixIcon: IconButton(
                                           icon: Icon(
@@ -1103,7 +1106,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         child: Checkbox(
                                           value: _rememberMe,
                                           onChanged: (v) => setState(() => _rememberMe = v ?? false),
-                                          activeColor: theme.highlight,
+                                          activeColor: theme.toggleActiveColor,
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                                         ),
                                       ),

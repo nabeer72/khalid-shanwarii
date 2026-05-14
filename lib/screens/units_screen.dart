@@ -50,14 +50,14 @@ class _UnitsScreenState extends State<UnitsScreen> {
             children: [
               TextField(
                 controller: nameCtrl,
-                decoration: theme.glassInputDecoration('Unit Name (e.g. Kg, Pcs)', Icons.scale_rounded),
+                decoration: theme.glassInputDecoration('Unit Name (e.g. Kg, Pcs)', Icons.scale_rounded, isRequired: true),
                 style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 16),
               SwitchListTile(
                 title: const Text('Is Active', style: TextStyle(fontWeight: FontWeight.w600)),
                 value: isActive,
-                activeColor: ThemeProvider.success,
+                activeColor: theme.switchActiveColor,
                 onChanged: (val) => setDialogState(() => isActive = val),
               ),
             ],

@@ -162,7 +162,7 @@ class AddProductController with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isEditMode => initialProduct != null;
 
-  String get screenTitle => isEditMode ? 'Edit Product' : 'Add New Product';
+  String get screenTitle => isEditMode ? 'Edit Product Screen' : 'Add New Product Screen';
   String get saveSuccessMessage => '${name.text.trim()} saved successfully!';
 
   Future<void> loadCategories() async {

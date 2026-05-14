@@ -82,6 +82,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         controller: controller.nameCtrl,
                         label: 'Supplier Name',
                         icon: Icons.business_rounded,
+                        isRequired: true,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                       ),
                       const SizedBox(height: 12),
@@ -97,6 +98,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         label: 'Phone Number',
                         icon: Icons.phone_rounded,
                         type: TextInputType.phone,
+                        isRequired: true,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                       ),
                       const SizedBox(height: 12),
@@ -205,6 +207,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
     required IconData icon,
     TextInputType type = TextInputType.text,
     int maxLines = 1,
+    bool isRequired = false,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
@@ -213,7 +216,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
       maxLines: maxLines,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),

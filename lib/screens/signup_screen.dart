@@ -528,28 +528,12 @@ class _SignupScreenState extends State<SignupScreen>
                         TextField(
                           controller: _businessNameCtrl,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: InputDecoration(
+                          decoration: theme.glassInputDecoration(
+                              'Business Name', Icons.store_outlined, isRequired: true).copyWith(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             isDense: true,
                             hintText: 'Enter your business name',
                             hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon: Icon(Icons.store_outlined,
-                                color: theme.iconColor),
-                            filled: true,
-                            fillColor: theme.card,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? Colors.transparent
-                                        : Colors.black.withOpacity(0.3))),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? theme.highlight
-                                        : Colors.black.withOpacity(0.6),
-                                    width: 2)),
                           ),
                         ),
 
@@ -564,28 +548,12 @@ class _SignupScreenState extends State<SignupScreen>
                           controller: _emailCtrl,
                           keyboardType: TextInputType.emailAddress,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: InputDecoration(
+                          decoration: theme.glassInputDecoration(
+                              'Email', Icons.email_outlined, isRequired: true).copyWith(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             isDense: true,
                             hintText: 'admin@example.com',
                             hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon: Icon(Icons.email_outlined,
-                                color: theme.iconColor),
-                            filled: true,
-                            fillColor: theme.card,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? Colors.transparent
-                                        : Colors.black.withOpacity(0.3))),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? theme.highlight
-                                        : Colors.black.withOpacity(0.6),
-                                    width: 2)),
                           ),
                         ),
 
@@ -600,13 +568,12 @@ class _SignupScreenState extends State<SignupScreen>
                           controller: _passCtrl,
                           obscureText: _obscurePassword,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: InputDecoration(
+                          decoration: theme.glassInputDecoration(
+                              'Password', Icons.lock_outlined, isRequired: true).copyWith(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             isDense: true,
                             hintText: '••••••••',
                             hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon: Icon(Icons.lock_outlined,
-                                color: theme.iconColor),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword
@@ -617,21 +584,6 @@ class _SignupScreenState extends State<SignupScreen>
                               onPressed: () => setState(
                                   () => _obscurePassword = !_obscurePassword),
                             ),
-                            filled: true,
-                            fillColor: theme.card,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? Colors.transparent
-                                        : Colors.black.withOpacity(0.3))),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? theme.highlight
-                                        : Colors.black.withOpacity(0.6),
-                                    width: 2)),
                           ),
                         ),
 
@@ -646,13 +598,12 @@ class _SignupScreenState extends State<SignupScreen>
                           controller: _confirmPassCtrl,
                           obscureText: _obscureConfirmPassword,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: InputDecoration(
+                          decoration: theme.glassInputDecoration(
+                              'Confirm Password', Icons.lock_outlined, isRequired: true).copyWith(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             isDense: true,
                             hintText: '••••••••',
                             hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon: Icon(Icons.lock_outlined,
-                                color: theme.iconColor),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscureConfirmPassword
@@ -664,21 +615,6 @@ class _SignupScreenState extends State<SignupScreen>
                                   _obscureConfirmPassword =
                                       !_obscureConfirmPassword),
                             ),
-                            filled: true,
-                            fillColor: theme.card,
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? Colors.transparent
-                                        : Colors.black.withOpacity(0.3))),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                                borderSide: BorderSide(
-                                    color: theme.isDark
-                                        ? theme.highlight
-                                        : Colors.black.withOpacity(0.6),
-                                    width: 2)),
                           ),
                         ),
 

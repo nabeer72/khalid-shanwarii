@@ -38,11 +38,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
   bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
+  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {bool isRequired = false}) {
     return TextField(
       controller: ctrl,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-      decoration: theme.glassInputDecoration(label, icon),
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired),
     );
   }
 
@@ -54,9 +54,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final List<FocusNode> focusNodes = List.generate(4, (_) => FocusNode());
 
-    InputDecoration _dialogInputDecoration(String label, IconData icon) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
       return InputDecoration(
-        labelText: label,
+        label: isRequired 
+          ? RichText(
+              text: TextSpan(
+                text: label,
+                style: const TextStyle(color: Color(0xFF6B7280)),
+                children: const [
+                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            )
+          : Text(label),
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
         filled: true,
@@ -76,13 +86,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
 
-    Widget _buildDialogField(TextEditingController ctrl, FocusNode node, String label, IconData icon, {TextInputType? keyboardType}) {
+    Widget _buildDialogField(TextEditingController ctrl, FocusNode node, String label, IconData icon, {TextInputType? keyboardType, bool isRequired = false}) {
       return TextField(
         controller: ctrl,
         focusNode: node,
         keyboardType: keyboardType,
         style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-        decoration: _dialogInputDecoration(label, icon),
+        decoration: _dialogInputDecoration(label, icon, isRequired: isRequired),
       );
     }
 
@@ -115,11 +125,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Text('Business Profile', 
                     style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
                   const SizedBox(height: 24),
-                  _buildDialogField(nameCtrl, focusNodes[0], 'Business Name', Icons.store_rounded),
+                  _buildDialogField(nameCtrl, focusNodes[0], 'Business Name', Icons.store_rounded, isRequired: true),
                   const SizedBox(height: 16),
                   _buildDialogField(addressCtrl, focusNodes[1], 'Physical Address', Icons.location_on_rounded),
                   const SizedBox(height: 16),
-                  _buildDialogField(phoneCtrl, focusNodes[2], 'Contact Phone', Icons.phone_rounded, keyboardType: TextInputType.phone),
+                  _buildDialogField(phoneCtrl, focusNodes[2], 'Contact Phone', Icons.phone_rounded, keyboardType: TextInputType.phone, isRequired: true),
                   const SizedBox(height: 16),
                   _buildDialogField(footerCtrl, focusNodes[3], 'Receipt Footer Message', Icons.sticky_note_2_rounded),
                   const SizedBox(height: 32),
@@ -386,7 +396,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller: nameCtrl,
                     autofocus: true,
                     style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                    decoration: theme.glassInputDecoration('Business Name', Icons.store_rounded),
+                    decoration: theme.glassInputDecoration('Business Name', Icons.store_rounded, isRequired: true),
                   ),
                   const SizedBox(height: 20),
                   const Text('Select Category', 
@@ -515,9 +525,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showCurrencyDialog() {
-    InputDecoration _dialogInputDecoration(String label, IconData icon) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
       return InputDecoration(
-        labelText: label,
+        label: isRequired 
+          ? RichText(
+              text: TextSpan(
+                text: label,
+                style: const TextStyle(color: Color(0xFF6B7280)),
+                children: const [
+                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            )
+          : Text(label),
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
         filled: true,
@@ -675,9 +695,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showCustomCurrencyDialog() {
     final customCtrl = TextEditingController();
-    InputDecoration _dialogInputDecoration(String label, IconData icon) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
       return InputDecoration(
-        labelText: label,
+        label: isRequired 
+          ? RichText(
+              text: TextSpan(
+                text: label,
+                style: const TextStyle(color: Color(0xFF6B7280)),
+                children: const [
+                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            )
+          : Text(label),
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
         filled: true,
@@ -721,7 +751,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: customCtrl,
                 autofocus: true,
                 style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                decoration: _dialogInputDecoration('Enter symbol (e.g. ₿)', Icons.currency_exchange_rounded),
+                decoration: _dialogInputDecoration('Enter symbol (e.g. ₿)', Icons.currency_exchange_rounded, isRequired: true),
               ),
               const SizedBox(height: 32),
               Row(
@@ -764,9 +794,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showTaxDialog() {
     final taxCtrl = TextEditingController(text: _taxRate.toString());
 
-    InputDecoration _dialogInputDecoration(String label, IconData icon) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
       return InputDecoration(
-        labelText: label,
+        label: isRequired 
+          ? RichText(
+              text: TextSpan(
+                text: label,
+                style: const TextStyle(color: Color(0xFF6B7280)),
+                children: const [
+                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            )
+          : Text(label),
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
         filled: true,
@@ -810,7 +850,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 keyboardType: TextInputType.number,
                 autofocus: true,
                 style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                decoration: _dialogInputDecoration('Tax Percentage (%)', Icons.percent_rounded),
+                decoration: _dialogInputDecoration('Tax Percentage (%)', Icons.percent_rounded, isRequired: true),
               ),
               const SizedBox(height: 32),
               Row(
@@ -1446,8 +1486,8 @@ class _SettingsSwitch extends StatelessWidget {
           trailing: Switch(
             value: value, 
             onChanged: onChanged, 
-            activeColor: ThemeProvider.success,
-            activeTrackColor: ThemeProvider.success.withOpacity(0.3),
+            activeColor: theme.switchActiveColor,
+            activeTrackColor: theme.switchActiveColor.withOpacity(0.3),
             inactiveThumbColor: theme.textHint,
             inactiveTrackColor: theme.whiteAlpha(0.1),
           ),

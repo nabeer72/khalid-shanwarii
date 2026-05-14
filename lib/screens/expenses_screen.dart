@@ -60,14 +60,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               TextField(
                 controller: nameCtrl,
                 style: const TextStyle(color: Colors.black),
-                decoration: InputDecoration(
-                  labelText: 'Category Name',
-                  labelStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
-                  prefixIcon: Icon(Icons.label_rounded, color: theme.highlight),
-                  filled: true,
-                  fillColor: Colors.black.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList), borderSide: BorderSide.none),
-                ),
+                decoration: _buildDecoration('Category Name', isRequired: true),
               ),
               const SizedBox(height: 24),
               OverflowBar(
@@ -148,6 +141,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         label: 'Amount (Cash Out)',
                         icon: Icons.money_off_rounded,
                         keyboardType: TextInputType.number,
+                        isRequired: true,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Amount is required' : null,
                       ),
                       const SizedBox(height: 12),
@@ -160,7 +154,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                   : null,
                               dropdownColor: theme.surface,
                               style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                              decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded).copyWith(
+                              decoration: theme.glassInputDecoration('Expense Category', Icons.category_rounded, isRequired: true).copyWith(
                                     isDense: true,
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   ),
@@ -319,6 +313,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     return TextFormField(
       controller: controller,
@@ -326,10 +321,32 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
       maxLines: maxLines,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
+    );
+  }
+
+  InputDecoration _buildDecoration(String label, {bool isRequired = false}) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
+      label: isRequired 
+        ? RichText(
+            text: TextSpan(
+              text: label,
+              style: TextStyle(color: Colors.black.withOpacity(0.6)),
+              children: const [
+                TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
+        : null,
+      prefixIcon: Icon(Icons.label_rounded, color: theme.highlight),
+      filled: true,
+      fillColor: Colors.black.withOpacity(0.05),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList), borderSide: BorderSide.none),
     );
   }
 

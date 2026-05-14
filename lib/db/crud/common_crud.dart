@@ -120,7 +120,12 @@ mixin CommonCrud {
 
   Future<Map<String, dynamic>?> getUser(dynamic id) async {
     final db = await database;
-    final results = await db.query('users', where: 'id = ?', whereArgs: [id], limit: 1);
+    final results = await db.query(
+      'users', 
+      where: 'id = ? AND business_id = ?', 
+      whereArgs: [id, getSafeInt(BusinessConfig.instance.businessId)], 
+      limit: 1
+    );
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -154,12 +159,12 @@ mixin CommonCrud {
       'pin': pin,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [id]);
+    }, where: 'id = ? AND business_id = ?', whereArgs: [id, getSafeInt(BusinessConfig.instance.businessId)]);
   }
 
   Future<void> updateUserSyncStatus(dynamic id, int synced) async {
     final db = await database;
-    await db.update('users', {'is_synced': synced}, where: 'id = ?', whereArgs: [id]);
+    await db.update('users', {'is_synced': synced}, where: 'id = ? AND business_id = ?', whereArgs: [id, getSafeInt(BusinessConfig.instance.businessId)]);
   }
 
   Future<void> updateUserFields(dynamic id, Map<String, dynamic> fields) async {
@@ -168,7 +173,7 @@ mixin CommonCrud {
       ...fields,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [id]);
+    }, where: 'id = ? AND business_id = ?', whereArgs: [id, getSafeInt(BusinessConfig.instance.businessId)]);
     DatabaseHelper.notifyDataChanged();
   }
 

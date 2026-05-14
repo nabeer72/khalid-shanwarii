@@ -387,7 +387,7 @@ mixin ProductsCrud on CommonCrud {
     await db.update(
       'products',
       {'is_favorite': currentStatus ? 0 : 1},
-      where: 'id = ?${getBusinessFilter().replaceAll('business_id', 'business_id').replaceAll('user_id', 'user_id')}',
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [productId?.toString(), ...getBusinessArgs()],
     );
   }
@@ -396,7 +396,7 @@ mixin ProductsCrud on CommonCrud {
     final args = [productId?.toString(), ...getBusinessArgs()];
     await db.rawUpdate(
       'UPDATE products SET status = ?, is_synced = 0, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
-      [currentStatus == 1 ? 0 : 1, DateTime.now().toIso8601String(), ...args]
+      [currentStatus == 1 ? 0 : 1, DateTime.now().toIso8601String(), productId?.toString(), ...getBusinessArgs()]
     );
     DatabaseHelper.notifyDataChanged();
   }
@@ -415,8 +415,8 @@ mixin ProductsCrud on CommonCrud {
     // Barcode is now only in stocks table
     final stockResults = await db.query(
       'stocks',
-      where: 'barcode = ?',
-      whereArgs: [barcode],
+      where: 'barcode = ? ${getBusinessFilter()}',
+      whereArgs: [barcode, ...getBusinessArgs()],
     );
     return stockResults.isNotEmpty;
   }

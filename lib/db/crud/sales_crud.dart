@@ -168,8 +168,10 @@ mixin SalesCrud on CommonCrud {
       SELECT si.*, si.sub_total as subtotal, p.name as product_name
       FROM sale_items si
       LEFT JOIN products p ON si.product_id = p.id
-      WHERE si.sale_id = ?
-    ''', [saleId]);
+      WHERE si.sale_id = ? 
+      AND si.business_id = ? AND si.user_id = ?
+      AND (p.id IS NULL OR (p.business_id = ? AND p.user_id = ?))
+    ''', [saleId, ...getBusinessArgs(), ...getBusinessArgs()]);
   }
 
   // --- Reporting Methods ---

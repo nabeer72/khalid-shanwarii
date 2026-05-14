@@ -38,7 +38,7 @@ mixin BanksCrud {
 
   Future<void> deleteBank(int id) async {
     final db = await database;
-    await db.update('banks', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
+    await db.update('banks', {'status': 0, 'is_synced': 0}, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     DatabaseHelper.notifyDataChanged();
   }
 
@@ -77,7 +77,7 @@ mixin BanksCrud {
 
   Future<void> deleteBankDetail(int id) async {
     final db = await database;
-    await db.update('bank_details', {'status': 0, 'is_synced': 0}, where: 'id = ?', whereArgs: [id]);
+    await db.update('bank_details', {'status': 0, 'is_synced': 0}, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     DatabaseHelper.notifyDataChanged();
   }
 }

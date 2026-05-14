@@ -210,6 +210,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                     icon: Icons.business_rounded,
                                     validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                                     isTablet: isTablet,
+                                    isRequired: true,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -230,19 +231,20 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.phoneCtrl,
-                                    label: 'Phone Number',
-                                    icon: Icons.phone_rounded,
-                                    type: TextInputType.number,
-                                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                    validator: (v) {
-                                      if (v == null || v.trim().isEmpty) return 'Phone is required';
-                                      if (!RegExp(r'^[0-9]+$').hasMatch(v.trim())) return 'Must be an integer';
-                                      return null;
-                                    },
-                                    isTablet: isTablet,
-                                  ),
+                                    child: _buildTextField(
+                                      controller: _controller.phoneCtrl,
+                                      label: 'Phone Number',
+                                      icon: Icons.phone_rounded,
+                                      type: TextInputType.number,
+                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                      validator: (v) {
+                                        if (v == null || v.trim().isEmpty) return 'Phone is required';
+                                        if (!RegExp(r'^[0-9]+$').hasMatch(v.trim())) return 'Must be an integer';
+                                        return null;
+                                      },
+                                      isTablet: isTablet,
+                                      isRequired: true,
+                                    ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -271,6 +273,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                               icon: Icons.business_rounded,
                               validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                               isTablet: isTablet,
+                              isRequired: true,
                             ),
                             SizedBox(height: fieldSpacing),
                             _buildTextField(
@@ -294,6 +297,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
                                 return null;
                               },
                               isTablet: isTablet,
+                              isRequired: true,
                             ),
                             SizedBox(height: fieldSpacing),
                             _buildTextField(
@@ -393,6 +397,7 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     String? Function(String?)? validator,
     required bool isTablet,
     List<TextInputFormatter>? inputFormatters,
+    bool isRequired = false,
   }) {
     final labelFontSize = isTablet ? 11.0 : 10.0;
     final textFontSize = isTablet ? 16.0 : 14.0;
@@ -404,13 +409,22 @@ class _AddSupplierScreenState extends State<AddSupplierScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label.toUpperCase(),
-          style: TextStyle(
-            color: theme.textHint,
-            fontSize: labelFontSize,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.5,
+        RichText(
+          text: TextSpan(
+            text: label.toUpperCase(),
+            style: TextStyle(
+              color: theme.textHint,
+              fontSize: labelFontSize,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 0.5,
+            ),
+            children: [
+              if (isRequired)
+                const TextSpan(
+                  text: ' *',
+                  style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+            ],
           ),
         ),
         SizedBox(height: isTablet ? 10 : 8),

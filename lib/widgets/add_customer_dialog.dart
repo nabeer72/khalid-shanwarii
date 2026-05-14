@@ -52,6 +52,7 @@ class AddCustomerDialog {
                         controller: nameController,
                         label: 'Customer Name',
                         icon: Icons.person_outline,
+                        isRequired: true,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                       ),
                       const SizedBox(height: 12),
@@ -218,6 +219,7 @@ class AddCustomerDialog {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     return TextFormField(
       controller: controller,
@@ -225,7 +227,7 @@ class AddCustomerDialog {
       maxLines: maxLines,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),

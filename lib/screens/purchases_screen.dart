@@ -317,27 +317,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     ] else if (controller.paymentType == 'Credit Card') ...[
                       const SizedBox(height: 12),
                       _buildDialogTextField(controller: controller.cardAuthCtrl, label: 'Auth Code', icon: Icons.security_rounded),
-                    ] else if (controller.paymentType == 'Credit' || controller.paymentType == 'Partial') ...[
-                      const SizedBox(height: 12),
-                      InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: ctx,
-                            initialDate: DateTime.now().add(const Duration(days: 30)),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (picked != null) controller.setCreditDueDate(picked);
-                        },
-                        child: InputDecorator(
-                          decoration: theme.glassInputDecoration('Due Date', Icons.event_available_rounded).copyWith(isDense: true),
-                          child: Text(
-                            controller.creditDueDate != null ? DateFormat('yyyy-MM-dd').format(controller.creditDueDate!) : 'Select Due Date',
-                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 12),
-                          ),
-                        ),
-                      ),
-                      if (controller.paymentType == 'Partial') ...[
+                    ] else if (controller.paymentType == 'Partial') ...[
                         const SizedBox(height: 12),
                         TextField(
                           controller: controller.paidAmountCtrl,
@@ -347,8 +327,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           decoration: theme.glassInputDecoration('Paid Amount', Icons.payments_rounded).copyWith(isDense: true),
                         ),
                       ],
-                    ],
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -435,6 +414,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       }
     } catch (_) {}
 
+    String? dialogError;
     showDialog(
       context: parentCtx,
       builder: (ctx) => StatefulBuilder(
@@ -453,7 +433,53 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           return AlertDialog(
             backgroundColor: theme.surface,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
-            title: Text('Add Item', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 16)),
+            title: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Add Item', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 16)),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.highlight,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                  onPressed: () {
+                    final qty = double.tryParse(qtyCtrl.text) ?? 0;
+                    final pieces = double.tryParse(piecesCtrl.text) ?? 1.0;
+                    if (selectedProductId != null && qty > 0) {
+                      if (controller.items.any((item) => item['product_id'] == selectedProductId) ||
+                          queuedItems.any((item) => item['productId'] == selectedProductId)) {
+                        setDialogState(() {
+                          dialogError = 'Item already added';
+                        });
+                        return;
+                      }
+                      final p = controller.products.firstWhere((x) => x['id'] == selectedProductId);
+                      setDialogState(() {
+                        dialogError = null;
+                        queuedItems.add({
+                          'productId': selectedProductId!,
+                          'productName': p['name'],
+                          'barcode': p['barcode'],
+                          'existingStock': stk,
+                          'quantity': qty,
+                          'purchasePrice': double.tryParse(costCtrl.text) ?? 0,
+                          'wholesalePrice': double.tryParse(wholesaleCtrl.text) ?? 0,
+                          'sellingPrice': double.tryParse(priceCtrl.text) ?? 0,
+                          'unitId': selectedUnitId,
+                          'piecesPerBox': pieces,
+                        });
+                      });
+                      clearInputs();
+                    }
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('ADD MORE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                ),
+              ],
+            ),
             content: SizedBox(
               width: 400,
               child: SingleChildScrollView(
@@ -494,6 +520,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                           searchCtrl.text = p['name'] as String;
                                           isScannerOpen = false;
                                           isDropdownOpen = false;
+                                          dialogError = null;
                                           
                                           final stocks = p['stocks'] as List<dynamic>? ?? [];
                                           if (stocks.isNotEmpty) {
@@ -595,6 +622,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                             selectedProductId = p['id'] as int;
                                             searchCtrl.text = p['name'] as String;
                                             isDropdownOpen = false;
+                                            dialogError = null;
                                             
                                             final stocks = p['stocks'] as List<dynamic>? ?? [];
                                             if (stocks.isNotEmpty) {
@@ -639,6 +667,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         Expanded(child: _buildDialogTextField(controller: priceCtrl, label: 'Sale Price', icon: Icons.sell, keyboardType: TextInputType.number)),
                       ],
                     ),
+                    if (dialogError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          dialogError!,
+                          style: const TextStyle(color: ThemeProvider.error, fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
                     
                     if (queuedItems.isNotEmpty) ...[
                       const SizedBox(height: 20),
@@ -651,22 +688,86 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       ),
                       const SizedBox(height: 8),
                       Container(
-                        constraints: const BoxConstraints(maxHeight: 150),
-                        child: ListView.separated(
+                        constraints: const BoxConstraints(maxHeight: 250),
+                        child: ListView.builder(
                           shrinkWrap: true,
                           itemCount: queuedItems.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1),
                           itemBuilder: (context, index) {
                             final item = queuedItems[index];
-                            return ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(item['productName'], style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
-                              subtitle: Text('Qty: ${item['quantity']} | Cost: ${item['purchasePrice']}', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, color: Colors.red, size: 18),
-                                onPressed: () => setDialogState(() => queuedItems.removeAt(index)),
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.highlight.withOpacity(0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: theme.highlight.withOpacity(0.1)),
                               ),
-                              dense: true,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          item['productName'], 
+                                          style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w900),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Cost: ${BusinessConfig.instance.currency} ${item['purchasePrice']}',
+                                          style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  // Quantity Controls
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: theme.surface,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: theme.highlight.withOpacity(0.2)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        IconButton(
+                                          icon: Icon(Icons.remove_rounded, size: 16, color: theme.highlight),
+                                          onPressed: () {
+                                            if (item['quantity'] > 1) {
+                                              setDialogState(() => item['quantity']--);
+                                            }
+                                          },
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                                          child: Text(
+                                            item['quantity'].toStringAsFixed(0),
+                                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 14),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          icon: Icon(Icons.add_rounded, size: 16, color: theme.highlight),
+                                          onPressed: () => setDialogState(() => item['quantity']++),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 20),
+                                    onPressed: () => setDialogState(() => queuedItems.removeAt(index)),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                  ),
+                                ],
+                              ),
                             );
                           },
                         ),
@@ -683,7 +784,12 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               ),
               if (queuedItems.isNotEmpty)
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green, 
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                   onPressed: () {
                     for (var item in queuedItems) {
                       controller.addItem(
@@ -703,32 +809,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   },
                   child: const Text('CONFIRM ALL', style: TextStyle(fontWeight: FontWeight.w900)),
                 ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: theme.highlight, foregroundColor: Colors.white),
-                onPressed: () {
-                  final qty = double.tryParse(qtyCtrl.text) ?? 0;
-                  final pieces = double.tryParse(piecesCtrl.text) ?? 1.0;
-                  if (selectedProductId != null && qty > 0) {
-                    final p = controller.products.firstWhere((x) => x['id'] == selectedProductId);
-                    setDialogState(() {
-                      queuedItems.add({
-                        'productId': selectedProductId!,
-                        'productName': p['name'],
-                        'barcode': p['barcode'],
-                        'existingStock': stk,
-                        'quantity': qty,
-                        'purchasePrice': double.tryParse(costCtrl.text) ?? 0,
-                        'wholesalePrice': double.tryParse(wholesaleCtrl.text) ?? 0,
-                        'sellingPrice': double.tryParse(priceCtrl.text) ?? 0,
-                        'unitId': selectedUnitId,
-                        'piecesPerBox': pieces,
-                      });
-                    });
-                    clearInputs();
-                  }
-                },
-                child: Text(queuedItems.isEmpty ? 'ADD' : 'ADD MORE', style: const TextStyle(fontWeight: FontWeight.w900)),
-              ),
             ],
           );
         },

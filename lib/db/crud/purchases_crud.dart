@@ -179,8 +179,10 @@ mixin PurchasesCrud on CommonCrud {
       SELECT pi.*, p.name as product_name 
       FROM purchase_items pi
       LEFT JOIN products p ON pi.product_id = p.id
-      WHERE pi.purchase_id = ?
-    ''', [purchaseId]);
+      WHERE pi.purchase_id = ? 
+      AND pi.business_id = ? AND pi.user_id = ?
+      AND (p.id IS NULL OR (p.business_id = ? AND p.user_id = ?))
+    ''', [purchaseId, ...getBusinessArgs(), ...getBusinessArgs()]);
   }
 
   Future<void> deletePurchase(dynamic id) async {

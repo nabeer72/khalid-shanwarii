@@ -188,11 +188,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: theme.surface,
         foregroundColor: theme.textPrimary,
-        elevation: 0,
+        elevation: 1,
         centerTitle: true,
         title: Text(
           _controller.screenTitle,
@@ -230,6 +230,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_isScannerOpen) ...[
+                    _buildInlineScanner(),
+                    const SizedBox(height: 16),
+                  ],
                   _buildSectionHeader('Basic Information'),
                   _buildCard([
                     LayoutBuilder(builder: (context, constraints) {
@@ -259,12 +263,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.name,
-                                    label: 'Product Name',
-                                    icon: Icons.inventory_2_outlined,
-                                    validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
-                                  ),
+                                    child: _buildTextField(
+                                      controller: _controller.name,
+                                      label: 'Product Name',
+                                      icon: Icons.inventory_2_outlined,
+                                      validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                                      isRequired: true,
+                                    ),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(child: _buildBarcodeScanner()),
@@ -284,6 +289,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Product Name',
                               icon: Icons.inventory_2_outlined,
                               validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                              isRequired: true,
                             ),
                             const SizedBox(height: 16),
                             _buildBarcodeScanner(),
@@ -335,6 +341,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             icon: Icons.inventory_2_outlined,
                                             keyboardType: TextInputType.number,
                                             validator: (v) => validateInt(v, true),
+                                            isRequired: true,
                                           ),
                                         ),
                                         const SizedBox(width: 16),
@@ -345,6 +352,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             icon: Icons.local_offer_outlined,
                                             keyboardType: TextInputType.number,
                                             validator: (v) => validateInt(v, true),
+                                            isRequired: true,
                                           ),
                                         ),
                                       ],
@@ -361,6 +369,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             icon: Icons.account_balance_wallet_outlined,
                                             keyboardType: TextInputType.number,
                                             validator: (v) => validateInt(v, true),
+                                            isRequired: true,
                                           ),
                                         ),
                                         const SizedBox(width: 16),
@@ -371,6 +380,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             icon: Icons.grid_view_rounded,
                                             keyboardType: TextInputType.number,
                                             validator: (v) => validateInt(v, true),
+                                            isRequired: true,
                                           ),
                                         ),
                                       ],
@@ -386,7 +396,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                             label: 'Total ${unitName}s',
                                             icon: Icons.warehouse_outlined,
                                             keyboardType: TextInputType.number,
-                                            validator: validateStock,
+                                            isRequired: true,
+                                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : validateStock(v),
                                           ),
                                         ),
                                         const SizedBox(width: 16),
@@ -438,7 +449,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Cost Price',
                                     icon: Icons.shopping_bag_outlined,
                                     keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, false),
+                                    isRequired: true,
+                                    validator: (v) => validateInt(v, true),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -449,6 +461,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     icon: Icons.monetization_on_outlined,
                                     keyboardType: TextInputType.number,
                                     validator: (v) => validateInt(v, true),
+                                    isRequired: true,
                                   ),
                                 ),
                               ],
@@ -463,7 +476,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Wholesale Price',
                                     icon: Icons.business_center_outlined,
                                     keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, false),
+                                    isRequired: true,
+                                    validator: (v) => validateInt(v, true),
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -473,7 +487,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                     label: 'Stock Quantity',
                                     icon: Icons.warehouse_outlined,
                                     keyboardType: TextInputType.number,
-                                    validator: validateStock,
+                                    isRequired: true,
+                                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : validateStock(v),
                                   ),
                                 ),
                               ],
@@ -484,7 +499,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Cost Price',
                               icon: Icons.shopping_bag_outlined,
                               keyboardType: TextInputType.number,
-                              validator: (v) => validateInt(v, false),
+                              isRequired: true,
+                              validator: (v) => validateInt(v, true),
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -493,6 +509,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               icon: Icons.monetization_on_outlined,
                               keyboardType: TextInputType.number,
                               validator: (v) => validateInt(v, true),
+                              isRequired: true,
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -500,7 +517,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Wholesale Price',
                               icon: Icons.business_center_outlined,
                               keyboardType: TextInputType.number,
-                              validator: (v) => validateInt(v, false),
+                              isRequired: true,
+                              validator: (v) => validateInt(v, true),
                             ),
                             const SizedBox(height: 16),
                             _buildTextField(
@@ -508,7 +526,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               label: 'Stock Quantity',
                               icon: Icons.warehouse_outlined,
                               keyboardType: TextInputType.number,
-                              validator: validateStock,
+                              isRequired: true,
+                              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : validateStock(v),
                             ),
                           ],
                         ],
@@ -524,6 +543,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                             icon: Icons.notifications_active_outlined,
                             keyboardType: TextInputType.number,
                             validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                            isRequired: true,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -591,6 +611,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     int maxLines = 1,
     bool enabled = true,
     Widget? suffixIcon,
+    bool isRequired = false,
   }) {
     return TextFormField(
       controller: controller,
@@ -599,7 +620,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
       enabled: enabled,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(suffixIcon: suffixIcon),
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(suffixIcon: suffixIcon),
     );
   }
 
@@ -678,7 +699,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         }
       },
       child: InputDecorator(
-        decoration: theme.glassInputDecoration(label, icon).copyWith(
+        decoration: theme.glassInputDecoration(label, icon, isRequired: label == 'Category' || label == 'Unit').copyWith(
           suffixIcon: Icon(Icons.arrow_drop_down_rounded, color: theme.iconColor),
         ),
         child: Text(
@@ -773,7 +794,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _buildInlineScanner() {
     return Container(
-      height: 250,
+      height: 120,
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: Colors.black,
@@ -860,7 +881,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
             ),
           ],
         ),
-        if (_isScannerOpen) _buildInlineScanner(),
       ],
     );
   }

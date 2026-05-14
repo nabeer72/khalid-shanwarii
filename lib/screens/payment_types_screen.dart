@@ -69,7 +69,7 @@ class _PaymentTypesScreenState extends State<PaymentTypesScreen> {
               SwitchListTile(
                 title: const Text('Is Active', style: TextStyle(fontWeight: FontWeight.w600)),
                 value: isActive,
-                activeColor: ThemeProvider.success,
+                activeColor: theme.switchActiveColor,
                 onChanged: (val) => setDialogState(() => isActive = val),
               ),
             ],

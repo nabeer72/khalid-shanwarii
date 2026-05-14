@@ -127,15 +127,6 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           );
                           if (picked != null) _controller.setPurchaseDate(picked);
                         },
-                        onCreditDueTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now().add(const Duration(days: 30)),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                          );
-                          if (picked != null) _controller.setCreditDueDate(picked);
-                        },
                         onAddSupplier: () async {
                           await Navigator.push(
                             context,
@@ -245,6 +236,38 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     if (_formKey.currentState!.validate()) {
       _controller.savePurchase();
     }
+  }
+
+  InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+    return InputDecoration(
+      label: isRequired 
+        ? RichText(
+            text: TextSpan(
+              text: label,
+              style: const TextStyle(color: Color(0xFF6B7280)),
+              children: const [
+                TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          )
+        : Text(label),
+      labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+      prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
+      filled: true,
+      fillColor: Colors.black.withOpacity(0.05),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
+        borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+      ),
+    );
   }
 
   void _showAddItemDialog({int? productId}) {
@@ -547,7 +570,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       ] else ...[
                         TextField(
                           controller: nameCtrl,
-                          decoration: _dialogInputDecoration('Product Name', Icons.edit_note_rounded),
+                          decoration: _dialogInputDecoration('Product Name', Icons.edit_note_rounded, isRequired: true),
                           style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -568,7 +591,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: costCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('Purchase $unitName Price', Icons.inventory_2_outlined),
+                                        decoration: _dialogInputDecoration('Purchase $unitName Price', Icons.inventory_2_outlined, isRequired: true),
                                         style: const TextStyle(color: Color(0xFF1F2937)),
                                       ),
                                     ),
@@ -593,7 +616,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: priceCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('$unitName Sale Price', Icons.account_balance_wallet_outlined),
+                                        decoration: _dialogInputDecoration('$unitName Sale Price', Icons.account_balance_wallet_outlined, isRequired: true),
                                         style: const TextStyle(color: Color(0xFF1F2937)),
                                       ),
                                     ),
@@ -603,7 +626,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: piecesCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('$unitName Quantity', Icons.grid_view_rounded),
+                                        decoration: _dialogInputDecoration('$unitName Quantity', Icons.grid_view_rounded, isRequired: true),
                                         style: const TextStyle(color: Color(0xFF1F2937)),
                                       ),
                                     ),
@@ -618,7 +641,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: qtyCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('Initial ${unitName}s', Icons.warehouse_outlined),
+                                        decoration: _dialogInputDecoration('Initial ${unitName}s', Icons.warehouse_outlined, isRequired: true),
                                         style: const TextStyle(color: Color(0xFF1F2937)),
                                       ),
                                     ),
@@ -668,7 +691,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: qtyCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Stock Quantity', Icons.numbers_rounded),
+                                decoration: _dialogInputDecoration('Stock Quantity', Icons.numbers_rounded, isRequired: true),
                                 style: const TextStyle(color: Color(0xFF1F2937)),
                               ),
                             ),
@@ -678,7 +701,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: costCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Cost Price', Icons.attach_money_rounded),
+                                decoration: _dialogInputDecoration('Cost Price', Icons.attach_money_rounded, isRequired: true),
                                 style: const TextStyle(color: Color(0xFF1F2937)),
                               ),
                             ),
@@ -702,7 +725,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: priceCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Sale Price', Icons.price_change_rounded),
+                                decoration: _dialogInputDecoration('Sale Price', Icons.price_change_rounded, isRequired: true),
                                 style: const TextStyle(color: Color(0xFF1F2937)),
                               ),
                             ),
@@ -849,14 +872,12 @@ class _PurchaseInfoCard extends StatelessWidget {
   final AddPurchaseController controller;
   final ThemeProvider theme;
   final VoidCallback onDateTap;
-  final VoidCallback onCreditDueTap;
   final VoidCallback onAddSupplier;
 
   const _PurchaseInfoCard({
     required this.controller,
     required this.theme,
     required this.onDateTap,
-    required this.onCreditDueTap,
     required this.onAddSupplier,
   });
 
@@ -875,7 +896,7 @@ class _PurchaseInfoCard extends StatelessWidget {
                   dropdownColor: theme.surface,
                   validator: (v) => v == null ? 'Supplier is required' : null,
                   style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-                  decoration: theme.glassInputDecoration('Supplier', Icons.business_rounded),
+                  decoration: theme.glassInputDecoration('Supplier', Icons.business_rounded, isRequired: true),
                   items: controller.suppliers.map((s) => DropdownMenuItem(value: s.id, child: Text(s.name))).toList(),
                   onChanged: controller.setSupplier,
                 ),
@@ -949,7 +970,7 @@ class _PurchaseInfoCard extends StatelessWidget {
                 child: InkWell(
                   onTap: onDateTap,
                   child: InputDecorator(
-                    decoration: theme.glassInputDecoration('Date', Icons.calendar_today_rounded),
+                    decoration: theme.glassInputDecoration('Date', Icons.calendar_today_rounded, isRequired: true),
                     child: Text(DateFormat('yyyy-MM-dd').format(controller.purchaseDate), style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -959,7 +980,7 @@ class _PurchaseInfoCard extends StatelessWidget {
                 child: TextFormField(
                   controller: controller.invoiceCtrl,
                   style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-                  decoration: theme.glassInputDecoration('Invoice #', Icons.receipt_rounded),
+                  decoration: theme.glassInputDecoration('Invoice #', Icons.receipt_rounded, isRequired: true),
                   onChanged: (v) => controller.checkInvoiceDuplicate(),
                   validator: (v) {
                     if (v == null || v.trim().isEmpty) return 'Required';
@@ -987,18 +1008,6 @@ class _PurchaseInfoCard extends StatelessWidget {
             TextField(controller: controller.bankNameCtrl, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600), decoration: theme.glassInputDecoration('Bank Name', Icons.account_balance_rounded)),
             const SizedBox(height: 16),
             TextField(controller: controller.transRefCtrl, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600), decoration: theme.glassInputDecoration('Transaction Reference', Icons.receipt_long_rounded)),
-          ] else if (controller.paymentType == 'Credit' || controller.paymentType == 'Partial') ...[
-            const SizedBox(height: 16),
-            InkWell(
-              onTap: onCreditDueTap,
-              child: InputDecorator(
-                decoration: theme.glassInputDecoration('Payment Due Date', Icons.event_available_rounded),
-                child: Text(
-                  controller.creditDueDate != null ? DateFormat('yyyy-MM-dd').format(controller.creditDueDate!) : 'Select Due Date',
-                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
           ],
           const SizedBox(height: 16),
           // Payment Section (Prominent)

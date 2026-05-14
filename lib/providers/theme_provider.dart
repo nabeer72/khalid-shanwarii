@@ -81,6 +81,8 @@ class ThemeProvider extends ChangeNotifier {
   Color get secondary => _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
   Color get cardBorder => _isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04);
   Color get iconColor => _isDark ? Colors.white : Colors.black;
+  Color get toggleActiveColor => _isDark ? success : highlight;
+  Color get switchActiveColor => toggleActiveColor; // Backward compatibility
 
   // Responsive UI Helpers
   static bool isWideScreen(BuildContext context) => MediaQuery.of(context).size.width > 600;
@@ -118,10 +120,24 @@ class ThemeProvider extends ChangeNotifier {
     : [const Color(0xFFE0F2F1), const Color(0xFFE3F2FD)];
 
   // Input Field Glass style
-  InputDecoration glassInputDecoration(String label, IconData icon) {
+  InputDecoration glassInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+    final labelStyle = TextStyle(
+      color: _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563),
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+    );
+
     return InputDecoration(
-      labelText: label,
-      labelStyle: TextStyle(color: _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563)),
+      label: isRequired 
+        ? RichText(
+            text: TextSpan(
+              children: [
+                TextSpan(text: label, style: labelStyle),
+                const TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
+              ],
+            ),
+          )
+        : Text(label, style: labelStyle),
       prefixIcon: Icon(icon, color: iconColor),
       filled: true,
       fillColor: whiteAlpha(0.05),

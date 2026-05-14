@@ -170,8 +170,8 @@ mixin CreditCrud on CommonCrud {
       // 1. Get the old payment record
       final List<Map<String, dynamic>> oldRecords = await txn.query(
         'credit_payments',
-        where: 'id = ?',
-        whereArgs: [paymentId],
+        where: 'id = ?${getBusinessFilter()}',
+        whereArgs: [paymentId, ...getBusinessArgs()],
       );
       if (oldRecords.isEmpty) return;
       final old = oldRecords.first;
@@ -225,8 +225,8 @@ mixin CreditCrud on CommonCrud {
       // 1. Get the payment record
       final List<Map<String, dynamic>> payments = await txn.query(
         'credit_payments',
-        where: 'id = ?',
-        whereArgs: [paymentId],
+        where: 'id = ?${getBusinessFilter()}',
+        whereArgs: [paymentId, ...getBusinessArgs()],
       );
       if (payments.isEmpty) return;
       final payment = payments.first;
@@ -249,7 +249,7 @@ mixin CreditCrud on CommonCrud {
       );
 
       // 4. Delete the record
-      await txn.delete('credit_payments', where: 'id = ?', whereArgs: [paymentId]);
+      await txn.delete('credit_payments', where: 'id = ?${getBusinessFilter()}', whereArgs: [paymentId, ...getBusinessArgs()]);
     });
     DatabaseHelper.notifyDataChanged();
   }

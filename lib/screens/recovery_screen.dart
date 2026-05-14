@@ -77,66 +77,20 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
 
   Future<void> _showRecoveryForm({Customer? customer, Map<String, dynamic>? editingPayment}) async {
     final bool isEdit = editingPayment != null;
-    
-    // 1. Fetch data first to avoid dialog race conditions
-    List<Map<String, dynamic>> employees = [];
-    double balance = 0;
-    int? effectiveCustomerId = isEdit ? editingPayment['customer_id'] : customer?.id;
-    
-    try {
-      final dbEmployees = await DatabaseHelper.instance.getEmployees();
-      employees = List<Map<String, dynamic>>.from(dbEmployees); // Convert to modifiable list
-      
-      if (effectiveCustomerId != null) {
-        balance = await DatabaseHelper.instance.getCustomerCreditBalance(effectiveCustomerId);
-        if (isEdit) balance += (editingPayment['amount'] as num).toDouble();
-      }
-    } catch (e) {
-      debugPrint('Error fetching data for recovery form: $e');
-    }
-
-    final staffNames = employees.map((e) => e['name'].toString()).toList();
-    String currentStaff = BusinessConfig.instance.staffName;
-
-    // If staffName is empty (e.g. Admin logged in), try to fetch from users table
-    if (currentStaff.isEmpty && BusinessConfig.instance.userId != null) {
-      final user = await DatabaseHelper.instance.getUser(BusinessConfig.instance.userId);
-      if (user != null && user['name'] != null) {
-        currentStaff = user['name'];
-      }
-    }
-
-    if (currentStaff.isNotEmpty && !staffNames.contains(currentStaff)) {
-      employees.insert(0, {'name': currentStaff});
-    }
-
-    String? selectedStaff = isEdit 
-        ? editingPayment['received_by'] 
-        : (currentStaff.isNotEmpty ? currentStaff : (employees.isNotEmpty ? employees.first['name'] : null));
+    final formKey = GlobalKey<FormState>();
+    final receivedAmountCtrl = TextEditingController(text: isEdit ? editingPayment['amount'].toString() : '');
+    final noteCtrl = TextEditingController(text: isEdit ? editingPayment['notes'] ?? '' : '');
     
     DateTime selectedDate = isEdit 
         ? DateTime.parse(editingPayment['payment_date']) 
         : DateTime.now();
-    
-    final receivedAmountCtrl = TextEditingController(text: isEdit ? editingPayment['amount'].toString() : '');
-    final noteCtrl = TextEditingController(text: isEdit ? editingPayment['notes'] ?? '' : '');
-    final formKey = GlobalKey<FormState>();
-    bool isSaving = false;
-    
+
     Customer? selectedCustomer = customer;
-    if (isEdit && selectedCustomer == null) {
-      // Find customer in our list for display info
-      try {
-        selectedCustomer = _customersWithCredit.firstWhere((c) => c.id == effectiveCustomerId);
-      } catch (_) {
-        // If not in list (balance 0), create a dummy for display
-        selectedCustomer = Customer(
-          id: effectiveCustomerId, 
-          name: editingPayment['customer_name'] ?? 'Unknown',
-          businessId: 0
-        );
-      }
-    }
+    String? selectedStaff;
+    List<Map<String, dynamic>> employees = [];
+    double balance = 0;
+    bool isLoadingData = true;
+    bool isSaving = false;
 
     if (!mounted) return;
 
@@ -145,9 +99,59 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) {
+          if (isLoadingData) {
+            // Load data once inside the dialog
+            Future.microtask(() async {
+              try {
+                final dbEmployees = await DatabaseHelper.instance.getEmployees();
+                employees = List<Map<String, dynamic>>.from(dbEmployees);
+                
+                int? effectiveCustomerId = isEdit ? editingPayment['customer_id'] : selectedCustomer?.id;
+                if (effectiveCustomerId != null) {
+                  balance = await DatabaseHelper.instance.getCustomerCreditBalance(effectiveCustomerId);
+                  if (isEdit) balance += (editingPayment['amount'] as num).toDouble();
+                }
+
+                String currentStaff = BusinessConfig.instance.staffName;
+                if (currentStaff.isEmpty && BusinessConfig.instance.userId != null) {
+                  final user = await DatabaseHelper.instance.getUser(BusinessConfig.instance.userId);
+                  if (user != null) currentStaff = user['name'] ?? '';
+                }
+
+                final staffNames = employees.map((e) => e['name'].toString()).toList();
+                if (currentStaff.isNotEmpty && !staffNames.contains(currentStaff)) {
+                  employees.insert(0, {'name': currentStaff});
+                }
+
+                selectedStaff = isEdit 
+                    ? editingPayment['received_by'] 
+                    : (currentStaff.isNotEmpty ? currentStaff : (employees.isNotEmpty ? employees.first['name'] : null));
+
+                if (isEdit && selectedCustomer == null) {
+                  try {
+                    selectedCustomer = _customersWithCredit.firstWhere((c) => c.id == effectiveCustomerId);
+                  } catch (_) {
+                    selectedCustomer = Customer(id: effectiveCustomerId, name: editingPayment['customer_name'] ?? 'Unknown', businessId: 0);
+                  }
+                }
+                
+                if (ctx.mounted) setDialogState(() => isLoadingData = false);
+              } catch (e) {
+                debugPrint('Error loading recovery data: $e');
+                if (ctx.mounted) setDialogState(() => isLoadingData = false);
+              }
+            });
+
+            return AlertDialog(
+              backgroundColor: theme.surface,
+              content: const SizedBox(height: 100, child: Center(child: CircularProgressIndicator())),
+            );
+          }
+
           double receivedAmount = double.tryParse(receivedAmountCtrl.text) ?? 0.0;
-          double currentBalance = (selectedCustomer != null) ? balance : 0.0;
+          double currentBalance = balance;
           double remainingBalance = currentBalance - receivedAmount;
+
 
           return AlertDialog(
             backgroundColor: theme.surface,
@@ -390,11 +394,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showRecoveryForm(),
-        backgroundColor: theme.highlight,
-        child: const Icon(Icons.add_rounded, color: Colors.white),
-      ),
+      // FAB removed
       body: theme.glassBackground(
         child: SafeArea(
           child: Column(
@@ -473,7 +473,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                             final customer = _filteredItems[i] as Customer;
                             return _CustomerCreditCard(
                               customer: customer,
-                              onTap: () {}, // Tap disabled as per user request
+                              onTap: () => _showRecoveryForm(customer: customer),
                             );
                           }
                         },
@@ -566,7 +566,10 @@ class _CustomerCreditCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassDecoration,
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         onTap: onTap,
         leading: _buildAvatar(theme, customer.name),
@@ -611,9 +614,10 @@ class _CustomerCreditCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text('${BusinessConfig.instance.currencyDisplay} ${creditBalance.toStringAsFixed(2)}',
-              style: const TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.w900, fontSize: 13)),
+              style: TextStyle(color: theme.isDark ? ThemeProvider.warning : ThemeProvider.error, fontWeight: FontWeight.w900, fontSize: 13)),
             Text('CREDIT', style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800)),
           ],
+        ),
         ),
       ),
     );
@@ -654,7 +658,10 @@ class _PaymentHistoryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassDecoration,
-      child: ListTile(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         leading: Container(
           width: 40,
@@ -702,6 +709,7 @@ class _PaymentHistoryCard extends StatelessWidget {
         trailing: IconButton(
           icon: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 24),
           onPressed: onEdit,
+        ),
         ),
       ),
     );

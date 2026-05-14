@@ -247,6 +247,13 @@ class AddPurchaseController with ChangeNotifier {
   }) {
     if (quantity <= 0) return;
 
+    // Check if product already exists in items to prevent duplicates
+    if (items.any((item) => item['product_id'] == productId)) {
+      _errorMessage = 'Item already added to this purchase';
+      notifyListeners();
+      return;
+    }
+
     final p        = piecesPerBox > 0 ? piecesPerBox : 1.0;
     final uPurchase  = purchasePrice / p;
     final uWholesale = wholesalePrice / p;

@@ -185,8 +185,8 @@ mixin SuppliersCrud on CommonCrud {
       // 1. Get the old record
       final List<Map<String, dynamic>> oldRecords = await txn.query(
         'supplier_paybacks',
-        where: 'id = ?',
-        whereArgs: [paybackId],
+        where: 'id = ?${getBusinessFilter()}',
+        whereArgs: [paybackId, ...getBusinessArgs()],
       );
       if (oldRecords.isEmpty) return;
       final old = oldRecords.first;
@@ -240,8 +240,8 @@ mixin SuppliersCrud on CommonCrud {
       // 1. Get the payback record
       final List<Map<String, dynamic>> paybacks = await txn.query(
         'supplier_paybacks',
-        where: 'id = ?',
-        whereArgs: [paybackId],
+        where: 'id = ?${getBusinessFilter()}',
+        whereArgs: [paybackId, ...getBusinessArgs()],
       );
       if (paybacks.isEmpty) return;
       final payback = paybacks.first;
@@ -264,7 +264,7 @@ mixin SuppliersCrud on CommonCrud {
       );
 
       // 4. Delete the record
-      await txn.delete('supplier_paybacks', where: 'id = ?', whereArgs: [paybackId]);
+      await txn.delete('supplier_paybacks', where: 'id = ?${getBusinessFilter()}', whereArgs: [paybackId, ...getBusinessArgs()]);
     });
     DatabaseHelper.notifyDataChanged();
   }

@@ -176,6 +176,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         controller: controller.name,
                         label: 'Full Name',
                         icon: Icons.person_outline,
+                        isRequired: true,
                         validator: controller.validateName,
                       ),
                       const SizedBox(height: 12),
@@ -184,6 +185,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         label: 'Email Address',
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
+                        isRequired: true,
                         validator: controller.validateEmail,
                       ),
                       const SizedBox(height: 12),
@@ -192,6 +194,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         label: 'Phone Number',
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
+                        isRequired: true,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
                       ),
                       const SizedBox(height: 12),
@@ -200,6 +203,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         label: 'Password / PIN',
                         icon: Icons.lock_outline,
                         keyboardType: TextInputType.visiblePassword,
+                        isRequired: true,
                         validator: controller.validatePassword,
                       ),
                       const SizedBox(height: 20),
@@ -226,7 +230,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                               title: Text(r['name']?.toString() ?? 'Unknown', 
                                 style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
                               subtitle: Text(r['description']?.toString() ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-                              activeColor: theme.highlight,
+                              activeColor: theme.toggleActiveColor,
                               onChanged: (_) {
                                 controller.toggleRole(rid);
                                 setDialogState(() {});
@@ -285,7 +289,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                               scale: 0.7,
                               child: Switch.adaptive(
                                 value: controller.status == 1,
-                                activeColor: ThemeProvider.success,
+                                activeColor: theme.switchActiveColor,
                                 onChanged: (val) {
                                   controller.toggleStatus(val);
                                   setDialogState(() {});
@@ -366,6 +370,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     required String label,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    bool isRequired = false,
     String? Function(String?)? validator,
   }) {
     return TextFormField(
@@ -373,7 +378,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
       keyboardType: keyboardType,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
@@ -530,7 +535,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                 scale: 0.7,
                                 child: Switch(
                                   value: emp.isActive,
-                                  activeColor: ThemeProvider.success,
+                                  activeColor: theme.switchActiveColor,
                                   onChanged: (v) async {
                                     final empMap = {
                                       'id': emp.id,
