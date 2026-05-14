@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/models/product.dart';
+import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -11,8 +12,9 @@ import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, Tar
 
 class AddProductScreen extends StatefulWidget {
   final Product? product;
+  final Stock? initialStock;
 
-  const AddProductScreen({super.key, this.product});
+  const AddProductScreen({super.key, this.product, this.initialStock});
 
   @override
   State<AddProductScreen> createState() => _AddProductScreenState();
@@ -38,7 +40,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _audioPlayer = AudioPlayer();
       }
     } catch (_) {}
-    _controller = AddProductController(initialProduct: widget.product);
+    _controller = AddProductController(initialProduct: widget.product, initialStock: widget.initialStock);
     _controller.addListener(_updateUI);
     _controller.loadCategories();
   }

@@ -1177,6 +1177,9 @@ class SyncService {
 
         });
 
+        // Notify all open screens to reload their data from the updated local DB.
+        // This triggers DatabaseHelper.dataStream listeners (employee list, roles, etc.)
+        DatabaseHelper.notifyDataChanged();
 
         // REMOVED: await _storage.write(key: 'last_synced_at', value: serverTime);
         // We now return the full response to be processed (timerstamp saved after push).

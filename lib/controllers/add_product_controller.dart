@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:math';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/product.dart';
+import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/branch.dart';
 import 'package:mobile_app/models/brand.dart';
@@ -13,6 +14,7 @@ import 'package:mobile_app/services/sync_service.dart';
 
 class AddProductController with ChangeNotifier {
   final Product? initialProduct;
+  final Stock? initialStock;
 
   // Controllers
   late TextEditingController name;
@@ -58,16 +60,16 @@ class AddProductController with ChangeNotifier {
     _globalSelectedUnitIds.clear();
   }
 
-  AddProductController({this.initialProduct}) {
+  AddProductController({this.initialProduct, this.initialStock}) {
     name = TextEditingController(text: initialProduct?.name ?? '');
-    barcode = TextEditingController(text: initialProduct?.latestBarcode ?? '');
-    price = TextEditingController(text: initialProduct?.latestPrice.toString() ?? '');
-    purchasePrice = TextEditingController(text: initialProduct?.latestPurchasePrice.toString() ?? '');
-    wholesalePrice = TextEditingController(text: initialProduct?.latestWholesalePrice.toString() ?? '');
-    stock = TextEditingController(text: initialProduct?.latestStockQuantity.toString() ?? '');
+    barcode = TextEditingController(text: initialStock?.barcode ?? initialProduct?.latestBarcode ?? '');
+    price = TextEditingController(text: initialStock?.salePrice.toString() ?? initialProduct?.latestPrice.toString() ?? '');
+    purchasePrice = TextEditingController(text: initialStock?.costPrice.toString() ?? initialProduct?.latestPurchasePrice.toString() ?? '');
+    wholesalePrice = TextEditingController(text: initialStock?.wholesalePrice.toString() ?? initialProduct?.latestWholesalePrice.toString() ?? '');
+    stock = TextEditingController(text: initialStock?.quantity.toString() ?? initialProduct?.latestStockQuantity.toString() ?? '');
     stockLimit = TextEditingController(text: (initialProduct?.stockLimit ?? 5).toString());
-    discountLimit = TextEditingController(text: initialProduct?.discountLimit.toString() ?? ''); 
-    discountLimitType = initialProduct?.discountLimitType ?? 'percentage';
+    discountLimit = TextEditingController(text: initialStock?.discountLimit.toString() ?? initialProduct?.discountLimit.toString() ?? ''); 
+    discountLimitType = initialStock?.discountLimitType ?? initialProduct?.discountLimitType ?? 'percentage';
     description = TextEditingController(text: initialProduct?.description ?? '');
     piecesPerBox = TextEditingController(text: '1');
     boxPrice = TextEditingController();

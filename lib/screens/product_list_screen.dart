@@ -53,11 +53,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  Future<void> _openProductScreen({Product? product}) async {
+  Future<void> _openProductScreen({Product? product, Stock? stock}) async {
     final bool? result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => AddProductScreen(product: product),
+        builder: (_) => AddProductScreen(product: product, initialStock: stock),
       ),
     );
 
@@ -387,7 +387,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 6),
             child: InkWell(
-              onTap: () => _openProductScreen(product: p),
+              onTap: () => _openProductScreen(product: p, stock: s),
               borderRadius: BorderRadius.circular(8),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -454,7 +454,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     ),
                     IconButton(
                       icon: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 18),
-                      onPressed: () => _openProductScreen(product: p),
+                      onPressed: () => _openProductScreen(product: p, stock: s),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),

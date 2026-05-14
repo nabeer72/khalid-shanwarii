@@ -1,10 +1,11 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/controllers/add_employee_controller.dart';
-import 'dart:convert';
 
 class EmployeeListScreen extends StatefulWidget {
   const EmployeeListScreen({super.key});
@@ -19,11 +20,22 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   // ignore: unused_field
   Map<dynamic, String> _permissionLabels = {};
   Map<dynamic, String> _branchNames = {};
+  StreamSubscription<void>? _dbSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadEmployees();
+    // Auto-refresh when sync updates the local database
+    _dbSubscription = DatabaseHelper.dataStream.listen((_) {
+      if (mounted) _loadEmployees();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dbSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadEmployees() async {

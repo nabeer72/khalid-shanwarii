@@ -697,10 +697,9 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                             return Container(
                               margin: const EdgeInsets.only(bottom: 10),
                               padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: theme.highlight.withOpacity(0.05),
+                              decoration: theme.glassDecoration.copyWith(
+                                color: theme.whiteAlpha(0.05),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: theme.highlight.withOpacity(0.1)),
                               ),
                               child: Row(
                                 children: [

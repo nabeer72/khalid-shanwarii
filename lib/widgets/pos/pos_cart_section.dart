@@ -258,11 +258,30 @@ class _POSCartSectionState extends State<POSCartSection> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total Discount',
-                    style: TextStyle(
-                        color: theme.highlight,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700)),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Total Discount',
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700)),
+                    if (widget.controller.isDiscountRestricted)
+                      Container(
+                        margin: const EdgeInsets.only(left: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: ThemeProvider.error.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          'RESTRICTED',
+                          style: TextStyle(color: ThemeProvider.error, fontSize: 8, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                  ],
+                ),
                 Text(
                     '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.totalDiscount)}',
                     style: TextStyle(

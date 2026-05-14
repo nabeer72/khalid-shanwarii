@@ -27,7 +27,9 @@ class POSController with ChangeNotifier {
   int? _originalSaleId;
   Customer? _selectedCustomer;
   String _searchQuery = '';
+  bool get isDiscountRestricted => _isDiscountRestricted;
   bool _isManualDiscount = false;
+  bool _isDiscountRestricted = false;
 
   // Getters
   List<ProductCategory> get categories => _categories;
@@ -262,14 +264,50 @@ class POSController with ChangeNotifier {
     
     if (_isManualDiscount) {
       // Global manual discount
+      double calculatedDiscount = 0;
       if (_globalDiscountType == 'percentage') {
-        _discount = _subtotal * (_globalDiscountValue / 100);
+        calculatedDiscount = _subtotal * (_globalDiscountValue / 100);
       } else {
-        _discount = _globalDiscountValue;
+        calculatedDiscount = _globalDiscountValue;
+      }
+
+      // Calculate the maximum allowed remaining discount across all products
+      double totalRemainingAllowed = 0;
+      bool isFullyRestricted = true;
+
+      for (var item in _cart) {
+        double limit = item.stock.discountLimit;
+        if (limit <= 0) {
+          isFullyRestricted = false; // If any item has no limit, we can't restrict the total easily
+          break;
+        }
+
+        double itemMax;
+        if (item.stock.discountLimitType == 'percentage') {
+          itemMax = (item.price * item.quantity) * (limit / 100);
+        } else {
+          itemMax = limit;
+        }
+
+        // Remaining discount capacity for this item
+        double remaining = itemMax - item.discount;
+        if (remaining > 0) {
+          totalRemainingAllowed += remaining;
+        }
+      }
+
+      // Apply restriction only if all items have a limit set
+      if (isFullyRestricted && calculatedDiscount > totalRemainingAllowed) {
+        _discount = totalRemainingAllowed;
+        _isDiscountRestricted = true;
+      } else {
+        _discount = calculatedDiscount;
+        _isDiscountRestricted = false;
       }
     } else {
       // Bottom discount row stays 'empty' (0) for item-level discounts
       _discount = 0; 
+      _isDiscountRestricted = false;
     }
 
     _total = _subtotal + _tax - _discount;
@@ -420,5 +458,38 @@ class POSController with ChangeNotifier {
     _discount = 0; // We reset global discount for the return process
     debugPrint('loadReturnSale complete. Cart size: ${_cart.length}');
     calculateTotals();
+  }
+
+  double getMaxAllowedGlobalDiscount(String type) {
+    double totalRemainingAllowed = 0;
+    bool isFullyRestricted = true;
+
+    for (var item in _cart) {
+      double limit = item.stock.discountLimit;
+      if (limit <= 0) {
+        isFullyRestricted = false;
+        break;
+      }
+
+      double itemMax;
+      if (item.stock.discountLimitType == 'percentage') {
+        itemMax = (item.price * item.quantity) * (limit / 100);
+      } else {
+        itemMax = limit;
+      }
+
+      double remaining = itemMax - item.discount;
+      if (remaining > 0) {
+        totalRemainingAllowed += remaining;
+      }
+    }
+
+    if (!isFullyRestricted) return double.infinity;
+
+    if (type == 'percentage') {
+      if (_subtotal <= 0) return 0;
+      return (totalRemainingAllowed / _subtotal) * 100;
+    }
+    return totalRemainingAllowed;
   }
 }

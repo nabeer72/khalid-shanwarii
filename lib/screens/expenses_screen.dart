@@ -330,7 +330,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
 
   InputDecoration _buildDecoration(String label, {bool isRequired = false}) {
     return InputDecoration(
-      labelText: label,
+      labelText: isRequired ? null : label,
       labelStyle: TextStyle(color: Colors.black.withOpacity(0.6)),
       label: isRequired 
         ? RichText(

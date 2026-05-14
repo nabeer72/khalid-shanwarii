@@ -43,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isSyncing = false;
   String? _lastSync;
   Employee? _currentStaff;
+  Timer? _autoSyncTimer;
 
   int _productCount = 0;
   int _customerCount = 0;
@@ -72,6 +73,10 @@ class _HomeScreenState extends State<HomeScreen> {
         _performSync(silent: true);
         _checkFirstTimeWelcome();
       });
+      // Auto-sync every 60 seconds so web-dashboard changes reflect without logout
+      _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
+        if (mounted && !_isSyncing) _performSync(silent: true);
+      });
     }
   }
 
@@ -95,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _autoSyncTimer?.cancel();
     _dataSubscription?.cancel();
     super.dispose();
   }

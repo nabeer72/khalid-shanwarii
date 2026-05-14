@@ -734,6 +734,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   void _showDiscountDialog() {
     String dType = 'fixed';
+    String? dialogError;
     final discountCtrl = TextEditingController(text: _controller.discount > 0 ? _controller.discount.toString() : '');
     
     showDialog(
@@ -776,6 +777,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       onPressed: () {
                         setDialogState(() {
                           dType = dType == 'percentage' ? 'fixed' : 'percentage';
+                          dialogError = null;
                         });
                       },
                       child: Text(
@@ -790,7 +792,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   decoration: BoxDecoration(
                     color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.cardBorder),
+                    border: Border.all(color: dialogError != null ? ThemeProvider.error : theme.cardBorder),
                   ),
                   child: TextField(
                     controller: discountCtrl,
@@ -808,12 +810,33 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       border: InputBorder.none,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
                     ),
+                    onChanged: (v) => setDialogState(() {
+                      dialogError = null;
+                    }),
                     onSubmitted: (v) {
-                      _controller.setDiscount(double.tryParse(v) ?? 0, type: dType);
+                      final val = double.tryParse(v) ?? 0;
+                      final max = _controller.getMaxAllowedGlobalDiscount(dType);
+                      
+                      if (val > max && max != double.infinity) {
+                        setDialogState(() {
+                          dialogError = 'Exceeds max allowed (${max.toStringAsFixed(2)})';
+                        });
+                        return;
+                      }
+                      
+                      _controller.setDiscount(val, type: dType);
                       Navigator.pop(ctx);
                     },
                   ),
                 ),
+                if (dialogError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Text(
+                      dialogError!,
+                      style: const TextStyle(color: ThemeProvider.error, fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
                 const SizedBox(height: 30),
                 Row(
                   children: [
@@ -832,7 +855,17 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          _controller.setDiscount(double.tryParse(discountCtrl.text) ?? 0, type: dType);
+                          final val = double.tryParse(discountCtrl.text) ?? 0;
+                          final max = _controller.getMaxAllowedGlobalDiscount(dType);
+                          
+                          if (val > max && max != double.infinity) {
+                            setDialogState(() {
+                              dialogError = 'Exceeds max allowed (${max.toStringAsFixed(2)})';
+                            });
+                            return;
+                          }
+                          
+                          _controller.setDiscount(val, type: dType);
                           Navigator.pop(ctx);
                         },
                         style: ElevatedButton.styleFrom(

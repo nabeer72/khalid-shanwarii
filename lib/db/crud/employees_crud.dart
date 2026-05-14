@@ -107,15 +107,21 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getRoles() async {
     final db = await database;
+    // Roles belong to the business, not a specific user.
+    // Do NOT filter by user_id — roles are created on the web dashboard without a user_id.
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
     return await db.rawQuery(
-      'SELECT * FROM roles WHERE status = 1${getBusinessFilter()}',
-      getBusinessArgs()
+      'SELECT * FROM roles WHERE status = 1 AND business_id = ?',
+      [bid]
     );
   }
 
   Future<Map<String, dynamic>?> getRoleById(dynamic id) async {
     final db = await database;
-    final res = await db.query('roles', where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final res = await db.query('roles',
+      where: 'id = ? AND business_id = ?',
+      whereArgs: [id, bid]);
     return res.firstOrNull;
   }
 
@@ -148,9 +154,12 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<void> insertRolePermissions(dynamic roleId, List<dynamic> permissionIds) async {
     final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
     await db.transaction((txn) async {
-      // Security Check: Verify role belongs to business
-      final role = await txn.query('roles', where: 'id = ?${getBusinessFilter()}', whereArgs: [roleId, ...getBusinessArgs()]);
+      // Security Check: Verify role belongs to business (not user-scoped)
+      final role = await txn.query('roles',
+        where: 'id = ? AND business_id = ?',
+        whereArgs: [roleId, bid]);
       if (role.isEmpty) return;
 
       await txn.delete('role_permissions', where: 'role_id = ?', whereArgs: [roleId]);
