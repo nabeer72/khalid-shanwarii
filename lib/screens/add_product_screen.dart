@@ -190,16 +190,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
     }
 
     return Scaffold(
-      extendBodyBehindAppBar: false,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: theme.surface,
+        backgroundColor: Colors.transparent,
         foregroundColor: theme.textPrimary,
-        elevation: 1,
-        centerTitle: true,
+        elevation: 0,
         title: Text(
           _controller.screenTitle,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
         ),
+        leading: BackButton(color: theme.textPrimary),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _handleSave,
@@ -215,14 +215,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ),
         elevation: 8,
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: theme.bgGradient,
-          ),
-        ),
+      body: theme.glassBackground(
         child: Form(
           key: _formKey,
           child: SafeArea(
@@ -799,18 +792,30 @@ class _AddProductScreenState extends State<AddProductScreen> {
       height: 120,
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: theme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.highlight, width: 2),
+        border: Border.all(color: theme.highlight, width: 1.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
           children: [
-            if (_scannerController != null)
+            if (_scannerController != null && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS))
               MobileScanner(
                 controller: _scannerController!,
                 onDetect: _onDetectBarcode,
+              )
+            else
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.camera_enhance_outlined, color: theme.textSecondary.withOpacity(0.5), size: 32),
+                    const SizedBox(height: 8),
+                    Text('Camera not supported on desktop', 
+                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 10)),
+                  ],
+                ),
               ),
             Positioned(
               top: 8,

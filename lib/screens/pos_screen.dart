@@ -1074,7 +1074,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   // Inline camera barcode scanner
   void _openBarcodeScanner() {
     if (kIsWeb) {
-      // Web fallback - manual entry
       _showManualBarcodeEntry();
       return;
     }
@@ -1113,49 +1112,81 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   }
 
   Widget _buildInlineScanner() {
-    return Container(
-      height: 250,
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: theme.highlight, width: 2),
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Stack(
-          children: [
-            if (_scannerController != null)
-              MobileScanner(
-                controller: _scannerController!,
-                onDetect: _onDetectBarcode,
-              ),
-            Positioned(
-              top: 8,
-              right: 8,
-              child: IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
-                onPressed: _closeBarcodeScanner,
-                style: IconButton.styleFrom(backgroundColor: Colors.black54),
-              ),
-            ),
-            Positioned(
-              top: 8,
-              left: 8,
-              child: IconButton(
-                icon: const Icon(Icons.flash_on, color: Colors.white),
-                onPressed: () => _scannerController?.toggleTorch(),
-                style: IconButton.styleFrom(backgroundColor: Colors.black54),
-              ),
-            ),
-            const Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: EdgeInsets.only(bottom: 8.0),
-                child: Text('Scan Barcode', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              ),
-            )
+    return Align(
+      alignment: Alignment.center,
+      child: Container(
+        height: 120,
+        width: 400,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: theme.highlight.withOpacity(0.5), width: 1.5),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
+            children: [
+              if (_scannerController != null && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS))
+                MobileScanner(
+                  controller: _scannerController!,
+                  onDetect: _onDetectBarcode,
+                )
+              else
+                Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.camera_enhance_outlined, color: theme.textSecondary.withOpacity(0.5), size: 24),
+                      const SizedBox(width: 12),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Camera not available', 
+                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                          const SizedBox(height: 4),
+                          InkWell(
+                            onTap: () {
+                              _closeBarcodeScanner();
+                              _showManualBarcodeEntry();
+                            },
+                            child: Text('Click for Manual Entry', 
+                                style: TextStyle(color: theme.highlight, fontSize: 11, decoration: TextDecoration.underline)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: IconButton(
+                  icon: Icon(Icons.close_rounded, color: theme.textPrimary, size: 18),
+                  onPressed: _closeBarcodeScanner,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  style: IconButton.styleFrom(backgroundColor: theme.surface.withOpacity(0.5)),
+                ),
+              ),
+              if (_scannerController != null && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS))
+                Positioned(
+                  top: 4,
+                  left: 4,
+                  child: IconButton(
+                    icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
+                    onPressed: () => _scannerController?.toggleTorch(),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1832,13 +1863,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (_isScannerOpen) _buildInlineScanner(),
         Container(
           decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
           ),
           child: _buildPOSHeader(),
         ),
-        if (_isScannerOpen) _buildInlineScanner(),
         if (!_isScannerOpen) 
           Container(
             decoration: BoxDecoration(

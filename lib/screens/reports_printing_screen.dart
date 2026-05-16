@@ -884,8 +884,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         },
         {
           'title': 'SALES BY CATEGORY',
-          'headers': ['Category', 'Qty Sold', 'Gross', 'Discount', 'Net Sales'],
-          'keys': ['category_name', 'total_qty', 'total_amount', 'total_discount', 'total_net'],
+          'headers': ['Category', 'Qty Sold', 'Gross', 'Discount', 'Net Sales', 'Profit'],
+          'keys': ['category_name', 'total_qty', 'total_amount', 'total_discount', 'total_net', 'total_profit'],
           'data': categorySales,
         },
         if (categoryReturns.isNotEmpty) {
@@ -896,8 +896,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         },
         {
           'title': 'STAFF PERFORMANCE SUMMARY',
-          'headers': ['Employee', 'Sales Count', 'Net Amount Sold'],
-          'keys': ['employee_name', 'total_sales_count', 'total_amount'],
+          'headers': ['Employee', 'Sales Count', 'Net Amount Sold', 'Profit'],
+          'keys': ['employee_name', 'total_sales_count', 'total_amount', 'total_profit'],
           'data': employeeSales,
         },
         if (expenses.isNotEmpty) {
@@ -1004,8 +1004,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       final pdf = await _generateSummaryPdf(title, [
         {
           'title': 'SALES SUMMARY',
-          'headers': ['Employee', 'Count', 'Gross', 'Discount', 'Net Amount'], 
-          'keys': ['employee_name', 'total_sales_count', 'total_gross', 'total_discount', 'total_amount'],
+          'headers': ['Employee', 'Count', 'Gross', 'Discount', 'Net Amount', 'Profit'], 
+          'keys': ['employee_name', 'total_sales_count', 'total_gross', 'total_discount', 'total_amount', 'total_profit'],
           'data': salesSummary,
         },
         {
@@ -1274,6 +1274,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               subtotal.toStringAsFixed(2),
               discount.toStringAsFixed(2),
               net.toStringAsFixed(2),
+              profit.toStringAsFixed(2),
               '${profitPercent.toStringAsFixed(1)}%',
             ];
           }).toList();
@@ -1286,6 +1287,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             totalSalesGross.toStringAsFixed(2),
             totalSalesDiscount.toStringAsFixed(2),
             totalSalesNet.toStringAsFixed(2),
+            totalSalesProfit.toStringAsFixed(2),
             '',
           ]);
 
@@ -1329,6 +1331,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 gross.toStringAsFixed(2),
                 disc.toStringAsFixed(2),
                 net.toStringAsFixed(2),
+                profit.toStringAsFixed(2),
                 item['created_at']?.split('T')[0] ?? '',
               ];
             }).toList();
@@ -1341,6 +1344,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               retGross.toStringAsFixed(2),
               retDisc.toStringAsFixed(2),
               retNet.toStringAsFixed(2),
+              totalReturnsProfit.toStringAsFixed(2),
               '',
             ]);
           }
@@ -1351,7 +1355,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
           widgets.add(pw.Text('SALES DETAILS', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 12)));
           widgets.add(pw.SizedBox(height: 5));
           widgets.add(pw.TableHelper.fromTextArray(
-            headers: ['S#', 'Product Name', 'QTY', 'Price', 'Total', 'Discount', 'Amount', 'Profit %'],
+            headers: ['S#', 'Product Name', 'QTY', 'Price', 'Total', 'Discount', 'Amount', 'Profit', 'Profit %'],
             data: tableData,
             border: pw.TableBorder.all(width: 1, color: PdfColor.fromHex('#E2E8F0')),
             headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 8, color: PdfColors.white),
@@ -1365,6 +1369,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               5: pw.Alignment.center,
               6: pw.Alignment.center,
               7: pw.Alignment.center,
+              8: pw.Alignment.center,
             },
             cellAlignments: {
               2: pw.Alignment.center,
@@ -1373,6 +1378,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               5: pw.Alignment.center,
               6: pw.Alignment.center,
               7: pw.Alignment.center,
+              8: pw.Alignment.center,
             },
             headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
           ));
@@ -1383,7 +1389,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             widgets.add(pw.Text('RETURNS DETAILS', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 12)));
             widgets.add(pw.SizedBox(height: 5));
             widgets.add(pw.TableHelper.fromTextArray(
-              headers: ['S#', 'Product Name', 'QTY', 'Price', 'Gross', 'Discount', 'Net Refund', 'Date'],
+              headers: ['S#', 'Product Name', 'QTY', 'Price', 'Gross', 'Discount', 'Net Refund', 'Profit', 'Date'],
               data: returnTableData,
               border: pw.TableBorder.all(width: 1, color: PdfColor.fromHex('#E2E8F0')),
               headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 8, color: PdfColors.white),
@@ -1396,6 +1402,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 4: pw.Alignment.center,
                 5: pw.Alignment.center,
                 6: pw.Alignment.center,
+                7: pw.Alignment.center,
               },
               cellAlignments: {
                 2: pw.Alignment.center,
@@ -1403,6 +1410,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 4: pw.Alignment.center,
                 5: pw.Alignment.center,
                 6: pw.Alignment.center,
+                7: pw.Alignment.center,
               },
               headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
             ));

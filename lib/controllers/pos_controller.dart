@@ -271,17 +271,17 @@ class POSController with ChangeNotifier {
         calculatedDiscount = _globalDiscountValue;
       }
 
-      // Calculate the maximum allowed remaining discount across all products
+      // Calculate the combined maximum allowed discount across all LIMITED products.
+      // Items with no limit (discountLimit <= 0) are skipped — they don't restrict
+      // the global discount. Only if at least one item has a limit do we apply it.
       double totalRemainingAllowed = 0;
-      bool isFullyRestricted = true;
+      bool anyItemHasLimit = false;
 
       for (var item in _cart) {
         double limit = item.stock.discountLimit;
-        if (limit <= 0) {
-          isFullyRestricted = false; // If any item has no limit, we can't restrict the total easily
-          break;
-        }
+        if (limit <= 0) continue; // No limit on this item — skip it
 
+        anyItemHasLimit = true;
         double itemMax;
         if (item.stock.discountLimitType == 'percentage') {
           itemMax = (item.price * item.quantity) * (limit / 100);
@@ -289,15 +289,12 @@ class POSController with ChangeNotifier {
           itemMax = limit;
         }
 
-        // Remaining discount capacity for this item
         double remaining = itemMax - item.discount;
-        if (remaining > 0) {
-          totalRemainingAllowed += remaining;
-        }
+        if (remaining > 0) totalRemainingAllowed += remaining;
       }
 
-      // Apply restriction only if all items have a limit set
-      if (isFullyRestricted && calculatedDiscount > totalRemainingAllowed) {
+      // Apply restriction only if at least one item in the cart has a limit set
+      if (anyItemHasLimit && calculatedDiscount > totalRemainingAllowed) {
         _discount = totalRemainingAllowed;
         _isDiscountRestricted = true;
       } else {
@@ -462,15 +459,13 @@ class POSController with ChangeNotifier {
 
   double getMaxAllowedGlobalDiscount(String type) {
     double totalRemainingAllowed = 0;
-    bool isFullyRestricted = true;
+    bool anyItemHasLimit = false;
 
     for (var item in _cart) {
       double limit = item.stock.discountLimit;
-      if (limit <= 0) {
-        isFullyRestricted = false;
-        break;
-      }
+      if (limit <= 0) continue; // No limit — skip, don't break
 
+      anyItemHasLimit = true;
       double itemMax;
       if (item.stock.discountLimitType == 'percentage') {
         itemMax = (item.price * item.quantity) * (limit / 100);
@@ -479,12 +474,11 @@ class POSController with ChangeNotifier {
       }
 
       double remaining = itemMax - item.discount;
-      if (remaining > 0) {
-        totalRemainingAllowed += remaining;
-      }
+      if (remaining > 0) totalRemainingAllowed += remaining;
     }
 
-    if (!isFullyRestricted) return double.infinity;
+    // No items have a limit → no restriction
+    if (!anyItemHasLimit) return double.infinity;
 
     if (type == 'percentage') {
       if (_subtotal <= 0) return 0;

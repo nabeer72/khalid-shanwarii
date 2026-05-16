@@ -211,6 +211,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     icon: Icons.account_balance_outlined,
                     readOnly: selectedBank != null,
                     validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                    isRequired: true,
                   ),
                   const SizedBox(height: 12),
                   _buildDialogField(
@@ -219,6 +220,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     icon: Icons.person_rounded,
                     readOnly: selectedAccount != null,
                     validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                    isRequired: true,
                   ),
                   const SizedBox(height: 12),
                   _buildDialogField(ctrl: typeCtrl, label: 'Account Type', icon: Icons.category_rounded, readOnly: selectedAccount != null),
@@ -247,6 +249,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     label: 'Amount', 
                     icon: Icons.attach_money_rounded, 
                     isNumber: true,
+                    isRequired: true,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
                       if (double.tryParse(v.trim()) == null) return 'Must be a number';
@@ -401,6 +404,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     required IconData icon, 
     bool isNumber = false, 
     bool readOnly = false,
+    bool isRequired = false,
     String? Function(String?)? validator
   }) {
     return TextFormField(
@@ -410,7 +414,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
       inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
       style: TextStyle(color: readOnly ? theme.textHint : theme.textPrimary),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
         fillColor: readOnly ? theme.surface.withOpacity(0.3) : null,
         filled: readOnly,
       ),

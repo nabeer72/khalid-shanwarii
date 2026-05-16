@@ -209,7 +209,7 @@ mixin SalesCrud on CommonCrud {
         COALESCE(si.discount, 0) as discount,
         si.branch_id, si.is_synced,
         p.name as product_name, 
-        COALESCE(st.cost_price, 0) as purchase_price,
+        COALESCE(st.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) as purchase_price,
         COALESCE(c.name, 'Uncategorized') as category_name,
         s.created_at,
         COALESCE(u.name, 'Unknown') as employee_name
@@ -253,11 +253,13 @@ mixin SalesCrud on CommonCrud {
         SUM(si.quantity) as total_qty,
         SUM(CASE WHEN si.sub_total IS NULL OR si.sub_total = 0 THEN (si.price * si.quantity) ELSE si.sub_total END) as total_amount,
         SUM(COALESCE(si.discount, 0)) as total_discount,
-        SUM((CASE WHEN si.sub_total IS NULL OR si.sub_total = 0 THEN (si.price * si.quantity) ELSE si.sub_total END) - COALESCE(si.discount, 0)) as total_net
+        SUM((CASE WHEN si.sub_total IS NULL OR si.sub_total = 0 THEN (si.price * si.quantity) ELSE si.sub_total END) - COALESCE(si.discount, 0)) as total_net,
+        SUM((CASE WHEN si.sub_total IS NULL OR si.sub_total = 0 THEN (si.price * si.quantity) ELSE si.sub_total END) - COALESCE(si.discount, 0) - (COALESCE(st.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) * si.quantity)) as total_profit
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN stocks st ON si.stock_id = st.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$catFilter
         AND s.is_return = 0 AND s.status = 1
       GROUP BY c.id, c.name
@@ -290,7 +292,11 @@ mixin SalesCrud on CommonCrud {
         COUNT(DISTINCT s.id) as total_sales_count,
         SUM(COALESCE(s.sub_total, 0)) as total_gross,
         SUM(COALESCE(s.discount, 0)) as total_discount,
-        SUM(COALESCE(s.total, 0)) as total_amount
+        SUM(COALESCE(s.total, 0)) as total_amount,
+        SUM(COALESCE((SELECT SUM((CASE WHEN si2.sub_total IS NULL OR si2.sub_total = 0 THEN (si2.price * si2.quantity) ELSE si2.sub_total END) - COALESCE(si2.discount, 0) - (COALESCE(st2.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si2.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) * si2.quantity)) 
+             FROM sale_items si2 
+             LEFT JOIN stocks st2 ON si2.stock_id = st2.id 
+             WHERE si2.sale_id = s.id), 0)) as total_profit
       FROM sales s
       LEFT JOIN users u ON s.staff_id = u.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter
@@ -509,7 +515,7 @@ mixin SalesCrud on CommonCrud {
         c.name as category_name,
         r.created_at,
         u.name as employee_name,
-        COALESCE(st.cost_price, 0) as purchase_price
+        COALESCE(st.cost_price, (SELECT cost_price FROM stocks WHERE product_id = ri.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) as purchase_price
       FROM return_items ri
       JOIN returns r ON ri.return_id = r.id
       LEFT JOIN products p ON ri.product_id = p.id

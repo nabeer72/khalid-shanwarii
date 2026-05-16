@@ -120,18 +120,35 @@ class _SalesScreenState extends State<SalesScreen> {
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                child: MobileScanner(
-                  onDetect: (capture) {
-                    final barcodes = capture.barcodes;
-                    if (barcodes.isNotEmpty) {
-                      final code = barcodes.first.rawValue;
-                      if (code != null) {
-                        Navigator.pop(ctx);
-                        _processScan(code);
-                      }
-                    }
-                  },
-                ),
+                child: (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
+                  ? MobileScanner(
+                      onDetect: (capture) {
+                        final barcodes = capture.barcodes;
+                        if (barcodes.isNotEmpty) {
+                          final code = barcodes.first.rawValue;
+                          if (code != null) {
+                            Navigator.pop(ctx);
+                            _processScan(code);
+                          }
+                        }
+                      },
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.camera_enhance_outlined, color: Colors.white.withOpacity(0.5), size: 48),
+                          const SizedBox(height: 16),
+                          Text('Camera not supported on desktop', 
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                          const SizedBox(height: 16),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx),
+                            child: const Text('Close', style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ),
               ),
             ),
           ],

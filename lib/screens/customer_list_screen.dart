@@ -92,6 +92,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         label: 'Customer Name',
                         icon: Icons.person_outline,
                         validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                        isRequired: true,
                       ),
                       const SizedBox(height: 12),
                       _buildDialogTextField(
@@ -99,11 +100,11 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         label: 'Phone Number',
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
+                        isRequired: true,
                         validator: (v) {
-                          if (v != null && v.trim().isNotEmpty) {
-                            if (!RegExp(r'^[0-9+ ]+$').hasMatch(v.trim())) {
-                              return 'Invalid phone number';
-                            }
+                          if (v == null || v.trim().isEmpty) return 'Phone is required';
+                          if (!RegExp(r'^[0-9+ ]+$').hasMatch(v.trim())) {
+                            return 'Invalid phone number';
                           }
                           return null;
                         },
@@ -114,11 +115,11 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         label: 'Email Address',
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
+                        isRequired: true,
                         validator: (v) {
-                          if (v != null && v.trim().isNotEmpty) {
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
-                              return 'Invalid email format';
-                            }
+                          if (v == null || v.trim().isEmpty) return 'Email is required';
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v.trim())) {
+                            return 'Invalid email format';
                           }
                           return null;
                         },
@@ -246,6 +247,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
     int maxLines = 1,
+    bool isRequired = false,
   }) {
     return TextFormField(
       controller: controller,
@@ -253,7 +255,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
       maxLines: maxLines,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon).copyWith(
+      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),

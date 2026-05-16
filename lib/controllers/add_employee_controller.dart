@@ -232,9 +232,12 @@ class AddEmployeeController with ChangeNotifier {
   }
 
   String? validatePassword(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Password is required';
-    if (value.length < 4) {
-      return 'Password must be at least 4 characters';
+    if (value == null || value.trim().isEmpty) return 'PIN is required';
+    if (value.length != 4) {
+      return 'PIN must be exactly 4 digits';
+    }
+    if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+      return 'PIN must be numeric';
     }
     return null;
   }

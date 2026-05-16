@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
@@ -212,11 +213,15 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                       const SizedBox(height: 12),
                       _buildDialogTextField(
                         controller: controller.password,
-                        label: 'Password / PIN',
+                        label: 'PIN',
                         icon: Icons.lock_outline,
-                        keyboardType: TextInputType.visiblePassword,
+                        keyboardType: TextInputType.number,
                         isRequired: true,
                         validator: controller.validatePassword,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(4),
+                        ],
                       ),
                       const SizedBox(height: 20),
                       _buildDialogSectionHeader('Access Roles (Select Multiple)'),
@@ -384,10 +389,12 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     TextInputType keyboardType = TextInputType.text,
     bool isRequired = false,
     String? Function(String?)? validator,
+    List<TextInputFormatter>? inputFormatters,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
+      inputFormatters: inputFormatters,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
       decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(

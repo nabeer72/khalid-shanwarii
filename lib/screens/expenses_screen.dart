@@ -454,21 +454,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: theme.glassDecoration.copyWith(
-                    gradient: const LinearGradient(
-                      colors: ThemeProvider.gradientDanger,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  decoration: theme.glassDecoration,
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(color: Colors.black.withOpacity(0.2), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                        child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 32),
+                        decoration: BoxDecoration(color: ThemeProvider.error.withOpacity(0.1), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        child: const Icon(Icons.account_balance_wallet_rounded, color: ThemeProvider.error, size: 32),
                       ),
                       const SizedBox(width: 20),
                       Expanded(
@@ -477,12 +470,12 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           children: [
                             Text(
                               'TOTAL CASH FLOW OUT',
-                              style: TextStyle(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.8), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
+                              style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               _controller.formattedTotal,
-                              style: TextStyle(color: theme.isDark ? Colors.white : Colors.black, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
+                              style: TextStyle(color: theme.textPrimary, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
                             ),
                           ],
                         ),
@@ -492,7 +485,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         decoration: BoxDecoration(color: (theme.isDark ? Colors.white : Colors.black).withOpacity(0.1), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                         child: Text(
                           '${_controller.expenseCount} entries',
-                          style: TextStyle(color: theme.isDark ? Colors.white : Colors.black, fontSize: 12, fontWeight: FontWeight.w800),
+                          style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w800),
                         ),
                       ),
                     ],

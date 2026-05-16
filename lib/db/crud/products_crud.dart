@@ -107,6 +107,11 @@ mixin ProductsCrud on CommonCrud {
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     
+    // Build table-qualified filters to avoid ambiguity in the JOIN
+    final businessClause = getBusinessFilter()
+        .replaceAll('business_id', 'p.business_id')
+        .replaceAll('user_id', 'p.user_id');
+    final branchClause = getBranchFilter().replaceAll('branch_id', 'p.branch_id');
     final args = [...getBusinessArgs(), ...branchArgs];
 
     // Search by product name or stock barcode
@@ -114,7 +119,7 @@ mixin ProductsCrud on CommonCrud {
       '''
       SELECT DISTINCT p.* FROM products p
       LEFT JOIN stocks s ON p.id = s.product_id
-      WHERE p.status = 1${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('user_id', 'p.user_id')} $branchFilter 
+      WHERE p.status = 1$businessClause$branchClause
       AND (p.name LIKE ? OR s.barcode LIKE ?)
       ''',
       [...args, '%$query%', '%$query%'],
@@ -155,13 +160,16 @@ mixin ProductsCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getProductByBarcode(String barcode) async {
     final db = await database;
-    final branchFilter = getBranchFilter();
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'p.branch_id');
     final branchArgs = getBranchArgs();
-    
-    final args = [barcode, ...getBusinessArgs(), ...branchArgs];
+    final businessFilter = getBusinessFilter()
+        .replaceAll('business_id', 'p.business_id')
+        .replaceAll('user_id', 'p.user_id');
 
+    final args = [barcode, ...getBusinessArgs(), ...branchArgs];
     final results = await db.rawQuery(
-      'SELECT p.* FROM products p JOIN stocks s ON p.id = s.product_id WHERE s.barcode = ?${getBusinessFilter().replaceAll('business_id', 'p.business_id').replaceAll('user_id', 'p.user_id')}$branchFilter LIMIT 1',
+      'SELECT p.* FROM products p JOIN stocks s ON p.id = s.product_id'
+      ' WHERE s.barcode = ?$businessFilter$branchFilter LIMIT 1',
       args,
     );
     return results.isNotEmpty ? results.first : null;

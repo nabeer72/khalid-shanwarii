@@ -109,8 +109,8 @@ class _SignupScreenState extends State<SignupScreen>
       _showError('Please enter a valid email address');
       return;
     }
-    if (_passCtrl.text.isEmpty) {
-      _showError('Please enter a password');
+    if (_passCtrl.text.length < 8) {
+      _showError('Password must be at least 8 characters');
       return;
     }
     if (_passCtrl.text != _confirmPassCtrl.text) {

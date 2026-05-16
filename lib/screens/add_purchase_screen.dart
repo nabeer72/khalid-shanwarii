@@ -407,60 +407,78 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                           children: [
                             if (isScannerOpen)
                               Container(
-                                height: 180,
+                                height: 160,
                                 margin: const EdgeInsets.only(bottom: 12),
                                 decoration: BoxDecoration(
+                                  color: theme.surface,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(color: theme.highlight.withOpacity(0.3)),
                                 ),
                                 clipBehavior: Clip.antiAlias,
-                                child: MobileScanner(
-                                  controller: scannerController ??= MobileScannerController(),
-                                  onDetect: (capture) async {
-                                    final List<Barcode> barcodes = capture.barcodes;
-                                    if (barcodes.isNotEmpty) {
-                                      final code = barcodes.first.rawValue;
-                                      if (code != null) {
-                                        final now = DateTime.now();
-                                        if (lastScanTime == null || now.difference(lastScanTime!) > const Duration(seconds: 2)) {
-                                          lastScanTime = now;
-                                          try { audioPlayer?.play(AssetSource('beep.mp3')); } catch (_) {}
-                                          
-                                          final p = _controller.products.firstWhere(
-                                            (x) => x['barcode']?.toString() == code,
-                                            orElse: () => {},
-                                          );
-                                          if (p.isNotEmpty) {
-                                            setDialogState(() {
-                                              selectedProductId = p['id'] as int;
-                                              nameCtrl.text = p['name'] as String;
-                                              searchCtrl.text = p['name'] as String;
-                                              isScannerOpen = false;
-                                              isDropdownOpen = false;
+                                child: (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
+                                  ? MobileScanner(
+                                      controller: scannerController ??= MobileScannerController(),
+                                      onDetect: (capture) async {
+                                        final List<Barcode> barcodes = capture.barcodes;
+                                        if (barcodes.isNotEmpty) {
+                                          final code = barcodes.first.rawValue;
+                                          if (code != null) {
+                                            final now = DateTime.now();
+                                            if (lastScanTime == null || now.difference(lastScanTime!) > const Duration(seconds: 2)) {
+                                              lastScanTime = now;
+                                              try { audioPlayer?.play(AssetSource('beep.mp3')); } catch (_) {}
                                               
-                                              final stocks = p['stocks'] as List<dynamic>? ?? [];
-                                              if (stocks.isNotEmpty) {
-                                                final latestStock = stocks.last; 
-                                                currCost = (latestStock['cost_price'] as num? ?? 0).toDouble();
-                                                currWholesale = (latestStock['wholesale_price'] as num? ?? 0).toDouble();
-                                                currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
-                                                stock = (latestStock['quantity'] as num? ?? 0).toInt();
-                                              } else {
-                                                currCost = (p['purchase_price'] as num? ?? 0).toDouble();
-                                                currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
-                                                currPrice = (p['price'] as num? ?? 0).toDouble();
-                                                stock = 0;
+                                              final p = _controller.products.firstWhere(
+                                                (x) => x['barcode']?.toString() == code,
+                                                orElse: () => {},
+                                              );
+                                              if (p.isNotEmpty) {
+                                                setDialogState(() {
+                                                  selectedProductId = p['id'] as int;
+                                                  nameCtrl.text = p['name'] as String;
+                                                  searchCtrl.text = p['name'] as String;
+                                                  isScannerOpen = false;
+                                                  isDropdownOpen = false;
+                                                  
+                                                  final stocks = p['stocks'] as List<dynamic>? ?? [];
+                                                  if (stocks.isNotEmpty) {
+                                                    final latestStock = stocks.last; 
+                                                    currCost = (latestStock['cost_price'] as num? ?? 0).toDouble();
+                                                    currWholesale = (latestStock['wholesale_price'] as num? ?? 0).toDouble();
+                                                    currPrice = (latestStock['sale_price'] as num? ?? 0).toDouble();
+                                                    stock = (latestStock['quantity'] as num? ?? 0).toInt();
+                                                  } else {
+                                                    currCost = (p['purchase_price'] as num? ?? 0).toDouble();
+                                                    currWholesale = (p['wholesale_price'] as num? ?? 0).toDouble();
+                                                    currPrice = (p['price'] as num? ?? 0).toDouble();
+                                                    stock = 0;
+                                                  }
+                                                  costCtrl.text = currCost.toStringAsFixed(2);
+                                                  wholesaleCtrl.text = currWholesale.toStringAsFixed(2);
+                                                  priceCtrl.text = currPrice.toStringAsFixed(2);
+                                                });
                                               }
-                                              costCtrl.text = currCost.toStringAsFixed(2);
-                                              wholesaleCtrl.text = currWholesale.toStringAsFixed(2);
-                                              priceCtrl.text = currPrice.toStringAsFixed(2);
-                                            });
+                                            }
                                           }
                                         }
-                                      }
-                                    }
-                                  },
-                                ),
+                                      },
+                                    )
+                                  : Center(
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.camera_enhance_outlined, color: theme.textSecondary.withOpacity(0.5), size: 32),
+                                          const SizedBox(height: 12),
+                                          Text('Camera not available on desktop', 
+                                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                                          const SizedBox(height: 8),
+                                          TextButton(
+                                            onPressed: () => setDialogState(() => isScannerOpen = false),
+                                            child: Text('Close Scanner', style: TextStyle(color: theme.highlight)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                               ),
                             TextFormField(
                               controller: searchCtrl,

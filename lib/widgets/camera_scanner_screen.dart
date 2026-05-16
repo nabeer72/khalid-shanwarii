@@ -51,17 +51,35 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: (capture) {
-              if (_hasScanned) return;
-              final barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _hasScanned = true;
-                widget.onBarcodeDetected(barcodes.first.rawValue!);
-              }
-            },
-          ),
+          (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
+          ? MobileScanner(
+              controller: _controller,
+              onDetect: (capture) {
+                if (_hasScanned) return;
+                final barcodes = capture.barcodes;
+                if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                  _hasScanned = true;
+                  widget.onBarcodeDetected(barcodes.first.rawValue!);
+                }
+              },
+            )
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.camera_enhance_outlined, color: Colors.white.withOpacity(0.5), size: 64),
+                  const SizedBox(height: 24),
+                  const Text('Scanner not supported on this platform', 
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: ThemeProvider.success),
+                    child: const Text('Go Back', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
           // Scan overlay
           Center(
             child: Container(

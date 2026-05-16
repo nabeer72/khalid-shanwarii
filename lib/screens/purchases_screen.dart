@@ -498,48 +498,60 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                               border: Border.all(color: theme.highlight.withOpacity(0.3)),
                             ),
                             clipBehavior: Clip.antiAlias,
-                            child: MobileScanner(
-                              controller: scannerController ??= MobileScannerController(),
-                              onDetect: (capture) async {
-                                final List<Barcode> barcodes = capture.barcodes;
-                                if (barcodes.isNotEmpty) {
-                                  final code = barcodes.first.rawValue;
-                                  if (code != null) {
-                                    final now = DateTime.now();
-                                    if (lastScanTime == null || now.difference(lastScanTime!) > const Duration(seconds: 2)) {
-                                      lastScanTime = now;
-                                      try { audioPlayer?.play(AssetSource('beep.mp3')); } catch (_) {}
-                                      
-                                      final p = controller.products.firstWhere(
-                                        (x) => x['barcode']?.toString() == code,
-                                        orElse: () => {},
-                                      );
-                                      if (p.isNotEmpty) {
-                                        setDialogState(() {
-                                          selectedProductId = p['id'] as int;
-                                          searchCtrl.text = p['name'] as String;
-                                          isScannerOpen = false;
-                                          isDropdownOpen = false;
-                                          dialogError = null;
+                            child: (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
+                              ? MobileScanner(
+                                  controller: scannerController ??= MobileScannerController(),
+                                  onDetect: (capture) async {
+                                    final List<Barcode> barcodes = capture.barcodes;
+                                    if (barcodes.isNotEmpty) {
+                                      final code = barcodes.first.rawValue;
+                                      if (code != null) {
+                                        final now = DateTime.now();
+                                        if (lastScanTime == null || now.difference(lastScanTime!) > const Duration(seconds: 2)) {
+                                          lastScanTime = now;
+                                          try { audioPlayer?.play(AssetSource('beep.mp3')); } catch (_) {}
                                           
-                                          final stocks = p['stocks'] as List<dynamic>? ?? [];
-                                          if (stocks.isNotEmpty) {
-                                            final last = stocks.last;
-                                            cost = (last['cost_price'] as num? ?? 0).toDouble();
-                                            ws = (last['wholesale_price'] as num? ?? 0).toDouble();
-                                            sp = (last['sale_price'] as num? ?? 0).toDouble();
-                                            stk = (last['quantity'] as num? ?? 0).toDouble();
+                                          final p = controller.products.firstWhere(
+                                            (x) => x['barcode']?.toString() == code,
+                                            orElse: () => {},
+                                          );
+                                          if (p.isNotEmpty) {
+                                            setDialogState(() {
+                                              selectedProductId = p['id'] as int;
+                                              searchCtrl.text = p['name'] as String;
+                                              isScannerOpen = false;
+                                              isDropdownOpen = false;
+                                              dialogError = null;
+                                              
+                                              final stocks = p['stocks'] as List<dynamic>? ?? [];
+                                              if (stocks.isNotEmpty) {
+                                                final last = stocks.last;
+                                                cost = (last['cost_price'] as num? ?? 0).toDouble();
+                                                ws = (last['wholesale_price'] as num? ?? 0).toDouble();
+                                                sp = (last['sale_price'] as num? ?? 0).toDouble();
+                                                stk = (last['quantity'] as num? ?? 0).toDouble();
+                                              }
+                                              costCtrl.text = cost.toStringAsFixed(2);
+                                              wholesaleCtrl.text = ws.toStringAsFixed(2);
+                                              priceCtrl.text = sp.toStringAsFixed(2);
+                                            });
                                           }
-                                          costCtrl.text = cost.toStringAsFixed(2);
-                                          wholesaleCtrl.text = ws.toStringAsFixed(2);
-                                          priceCtrl.text = sp.toStringAsFixed(2);
-                                        });
+                                        }
                                       }
                                     }
-                                  }
-                                }
-                              },
-                            ),
+                                  },
+                                )
+                              : Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.camera_enhance_outlined, color: theme.textSecondary.withOpacity(0.5), size: 32),
+                                      const SizedBox(height: 8),
+                                      Text('Camera not available on desktop', 
+                                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 10)),
+                                    ],
+                                  ),
+                                ),
                           ),
                         TextFormField(
                           controller: searchCtrl,

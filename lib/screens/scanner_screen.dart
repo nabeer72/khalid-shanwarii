@@ -58,26 +58,44 @@ class _ScannerScreenState extends State<ScannerScreen> {
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: (capture) {
-              if (_isPopped) return;
-              final List<Barcode> barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty) {
-                final String? code = barcodes.first.rawValue;
-                if (code != null) {
-                  _isPopped = true;
-                  try {
-                    AudioCache.instance.prefix = '';
-                    _audioPlayer?.play(AssetSource('asset/beep.mpeg'));
-                  } catch (e) {
-                    // Ignore audio playback errors to ensure scanning completes
+          (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
+          ? MobileScanner(
+              controller: controller,
+              onDetect: (capture) {
+                if (_isPopped) return;
+                final List<Barcode> barcodes = capture.barcodes;
+                if (barcodes.isNotEmpty) {
+                  final String? code = barcodes.first.rawValue;
+                  if (code != null) {
+                    _isPopped = true;
+                    try {
+                      AudioCache.instance.prefix = '';
+                      _audioPlayer?.play(AssetSource('asset/beep.mpeg'));
+                    } catch (e) {
+                      // Ignore audio playback errors to ensure scanning completes
+                    }
+                    Navigator.pop(context, code);
                   }
-                  Navigator.pop(context, code);
                 }
-              }
-            },
-          ),
+              },
+            )
+          : Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.camera_enhance_outlined, color: Colors.white.withOpacity(0.5), size: 64),
+                  const SizedBox(height: 24),
+                  const Text('Scanner not supported on this platform', 
+                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
+                    child: const Text('Go Back', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              ),
+            ),
           // Dark overlay with transparent center
           IgnorePointer(
             child: Center(
