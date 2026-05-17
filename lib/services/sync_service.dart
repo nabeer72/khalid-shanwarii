@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -10,9 +11,19 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 class SyncService {
+  // Singleton pattern
+  static final SyncService _instance = SyncService._internal();
+  factory SyncService() => _instance;
+  SyncService._internal();
+
   final ApiService _api = ApiService();
   final DatabaseHelper _dbHelper = DatabaseHelper.instance;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
+
+  bool _isSyncing = false;
+  bool get isSyncing => _isSyncing;
+
+  Timer? _debounceTimer;
 
   double _parseNum(dynamic val) {
     if (val == null) return 0.0;
@@ -76,21 +87,28 @@ class SyncService {
 
   /// Full sync - pull then push 
   Future<SyncResult> syncAll() async {
+    if (_isSyncing) {
+      if (kDebugMode) print('⏳ [SYNC] Sync already in progress, skipping...');
+      return SyncResult();
+    }
+    _isSyncing = true;
+    
     final result = SyncResult();
     
     // Check if we have a token before syncing
     final hasToken = await _ensureToken();
     if (!hasToken) {
+      _isSyncing = false;
       result.pullError = 'Authentication token missing and re-auth failed. Please log in again.';
       result.pushError = 'Authentication token missing and re-auth failed. Please log in again.';
       return result;
     }
 
     try {
-      final pullResponse = await syncPull();
+      final pullResponse = await syncPull(internal: true);
       result.pullSuccess = true;
       
-      await syncPush();
+      await syncPush(internal: true);
       result.pushSuccess = true;
 
       // EXTREMELY CRITICAL: Only update the last sync timestamp AFTER push is complete.
@@ -102,11 +120,19 @@ class SyncService {
         if (kDebugMode) print('Sync Push Error Body: ${e.response?.data}');
       }
       result.pushError = e.toString();
+    } finally {
+      _isSyncing = false;
     }
     return result;
   }
 
-  Future<Map<String, dynamic>?> syncPull({bool forceFull = false, bool saveTimestamp = true}) async {
+  Future<Map<String, dynamic>?> syncPull({bool forceFull = false, bool saveTimestamp = true, bool internal = false}) async {
+    if (!internal && _isSyncing) {
+      if (kDebugMode) print('⏳ [SYNC] Sync already in progress, skipping pull...');
+      return null;
+    }
+    if (!internal) _isSyncing = true;
+
     try {
       final hasToken = await _ensureToken();
       if (!hasToken) throw Exception('Authentication failed');
@@ -209,8 +235,14 @@ class SyncService {
               await txn.insert('businesses', {
                 'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
                 'name': b['name'] ?? 'Unknown',
-                'business_type': b['business_type'],
+                'business_type_id': b['business_type_id'],
                 'owner_user_id': b['owner_user_id'] ?? b['admin_id'] ?? b['user_id'],
+                'subscription_status': b['subscription_status'],
+                'subscription_plan_id': b['subscription_plan_id'],
+                'subscription_plan_name': b['subscription_plan_name'],
+                'subscription_end_date': b['subscription_end_date'],
+                'max_branches': b['max_branches'],
+                'max_products': b['max_products'],
                 'status': _parseStatus(b['status']),
                 'is_synced': 1,
                 'created_at': b['created_at'],
@@ -1142,8 +1174,14 @@ class SyncService {
                 {
                   'id': b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
                   'name': b['name'] ?? 'Unknown',
-                  'business_type': b['business_type'],
+                  'business_type_id': b['business_type_id'],
                   'owner_user_id': b['owner_user_id'] is int ? b['owner_user_id'] : int.tryParse(b['owner_user_id']?.toString() ?? ''),
+                  'subscription_status': b['subscription_status'],
+                  'subscription_plan_id': b['subscription_plan_id'],
+                  'subscription_plan_name': b['subscription_plan_name'],
+                  'subscription_end_date': b['subscription_end_date'],
+                  'max_branches': b['max_branches'],
+                  'max_products': b['max_products'],
                   'status': _parseStatus(b['status']),
                   'is_synced': 1,
                   'created_at': b['created_at'],
@@ -1189,11 +1227,26 @@ class SyncService {
     } catch (e) {
       if (kDebugMode) print('Sync Pull Error: $e');
       rethrow;
+    } finally {
+      if (!internal) _isSyncing = false;
     }
   }
 
   /// Push local changes to server
-  Future<void> syncPush() async {
+  Future<void> syncPush({bool internal = false}) async {
+    if (!internal && _isSyncing) {
+      if (kDebugMode) print('⏳ [SYNC] Sync already in progress, skipping push...');
+      return;
+    }
+    
+    // Quick check before starting full sync logic
+    if (!await hasUnsyncedData()) {
+      if (kDebugMode) print('🔍 [SYNC] No changes to push');
+      return;
+    }
+
+    if (!internal) _isSyncing = true;
+
     try {
       final hasToken = await _ensureToken();
       if (!hasToken) throw Exception('Authentication failed');
@@ -2071,7 +2124,21 @@ class SyncService {
     } catch (e) {
       if (kDebugMode) print('Sync Push Error: $e');
       rethrow;
+    } finally {
+      if (!internal) _isSyncing = false;
     }
+  }
+
+  /// Trigger a debounced sync operation (suitable for DatabaseHelper.onDataChanged)
+  void triggerDebouncedSync({int delayMs = 2000}) {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(Duration(milliseconds: delayMs), () async {
+      if (_isSyncing) return;
+      
+      // We perform a syncAll to ensure bidirectional consistency
+      if (kDebugMode) print('🔄 [SYNC] Debounced sync triggered...');
+      await syncAll();
+    });
   }
 
   /// Check if there is any unsynced data locally

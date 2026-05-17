@@ -274,6 +274,7 @@ class _LoginScreenState extends State<LoginScreen>
                                 separatorBuilder: (_, __) => const SizedBox(height: 10),
                                 itemBuilder: (context, index) {
                                   final b = businesses[index];
+                                  final type = b['business_type_id']?.toString() ?? '1';
                                   return InkWell(
                                     onTap: () => Navigator.pop(context, b),
                                     borderRadius: BorderRadius.circular(16),
@@ -320,7 +321,7 @@ class _LoginScreenState extends State<LoginScreen>
                                                   ),
                                                 ),
                                                 Text(
-                                                  b['business_type'] ?? 'General Store',
+                                                  'Category ID: ${b['business_type_id'] ?? '1'}',
                                                   style: TextStyle(
                                                     color: theme.textSecondary.withOpacity(0.7),
                                                     fontSize: 11,
@@ -365,7 +366,7 @@ class _LoginScreenState extends State<LoginScreen>
         uid: aid,
         brid: mainBranch['id'],
         bName: selected['name'],
-        bType: selected['business_type'],
+        bType: selected['business_type_id']?.toString(),
         activeBranches: branches.map((b) => b['id']).toList(),
       );
 
@@ -429,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen>
                   uid: aid,
                   brid: savedBrid,
                   bName: b['name'],
-                  bType: b['business_type'],
+                  bType: b['business_type_id']?.toString(),
                   activeBranches: branches.map((br) => br['id']).toList(),
                 );
                 
@@ -469,7 +470,7 @@ class _LoginScreenState extends State<LoginScreen>
               uid: aid,
               brid: mainBranch['id'],
               bName: b['name'],
-              bType: b['business_type'],
+              bType: b['business_type_id']?.toString(),
               activeBranches: branches.map((br) => br['id']).toList(),
             );
 
@@ -495,7 +496,7 @@ class _LoginScreenState extends State<LoginScreen>
                   uid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
                   brid: mainBranch['id'],
                   bName: b['name'],
-                  bType: b['business_type'],
+                  bType: b['business_type_id']?.toString(),
                   activeBranches: branches.map((br) => br['id']).toList(),
                 );
                 
@@ -656,7 +657,7 @@ class _LoginScreenState extends State<LoginScreen>
         if (staff['business_id'] != null) {
           final business = await _dbHelper.getBusiness(staff['business_id']);
           if (business != null) {
-            BusinessConfig.instance.businessType = business['business_type'] ?? 'general';
+            await _dbHelper.setSetting('business_type_id', business['business_type_id']?.toString() ?? '1');
             BusinessConfig.instance.businessName = business['name'] ?? 'My Business';
           }
         }
@@ -689,7 +690,7 @@ class _LoginScreenState extends State<LoginScreen>
             final b = pullData['business'];
             BusinessConfig.instance.businessId = b['id'] is int ? (b['id'] as int) : int.tryParse(b['id']?.toString() ?? '');
             BusinessConfig.instance.businessName = b['name'];
-            BusinessConfig.instance.businessType = b['business_type'];
+            BusinessConfig.instance.businessType = b['business_type_id']?.toString() ?? '1';
             await _dbHelper.insertBusiness(b);
           }
 
@@ -820,8 +821,8 @@ class _LoginScreenState extends State<LoginScreen>
               businessName:
                   // ignore: dead_null_aware_expression
                   BusinessConfig.instance.businessName ?? 'My Business',
-              // ignore: dead_null_aware_expression
-              businessType: BusinessConfig.instance.businessType ?? 'general',
+              businessTypeId: int.tryParse(BusinessConfig.instance.businessType ?? '1') ?? 1,
+              planId: 1, // Default to Free Trial for auto-signup
             );
             print('✅ [LOGIN] Backend signup successful');
             await _dbHelper.updateUserSyncStatus(localUser['id'], 1);

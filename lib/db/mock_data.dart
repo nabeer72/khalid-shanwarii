@@ -27,6 +27,18 @@ class BusinessConfig {
   bool soundEnabled = true;
   bool hasSeenOnboarding = false;
 
+  // Subscription Info
+  String subscriptionStatus = 'none'; // none, active, expired, pending
+  int? subscriptionPlanId;
+  String subscriptionPlanName = 'No Plan';
+  DateTime? subscriptionEndDate;
+  int? maxBranches;
+  int? maxProducts;
+  
+  // App-wide cached data
+  List<dynamic> businessTypes = [];
+  List<dynamic> subscriptionPlans = [];
+
   
   final ValueNotifier<String> currencyNotifier = ValueNotifier<String>('\$');
   String get currency => currencyNotifier.value;
@@ -91,6 +103,13 @@ class BusinessConfig {
     weightUnit = 'kg';
     hasSeenOnboarding = false;
     enableShiftManagement = true;
+    
+    subscriptionStatus = 'none';
+    subscriptionPlanId = null;
+    subscriptionPlanName = 'No Plan';
+    subscriptionEndDate = null;
+    maxBranches = null;
+    maxProducts = null;
   }
 
 
@@ -113,6 +132,46 @@ class BusinessConfig {
     } else if (brid != null) {
       activeBranchIds = [brid];
     }
+
+    if (bid != null) {
+      // Logic to load subscription info from DB will be in loadSettings
+    }
+  }
+
+  void setSubscription({
+    required String status,
+    int? planId,
+    String? planName,
+    DateTime? endDate,
+    int? branches,
+    int? products,
+  }) {
+    subscriptionStatus = status;
+    subscriptionPlanId = planId;
+    subscriptionPlanName = planName ?? 'No Plan';
+    subscriptionEndDate = endDate;
+    maxBranches = branches;
+    maxProducts = products;
+  }
+
+  bool get isSubscriptionActive {
+    if (subscriptionStatus != 'active') return false;
+    if (subscriptionEndDate != null && subscriptionEndDate!.isBefore(DateTime.now())) {
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> canAddProduct(int currentCount) async {
+    if (!isSubscriptionActive) return false;
+    if (maxProducts == null) return true;
+    return currentCount < maxProducts!;
+  }
+
+  Future<bool> canAddBranch(int currentCount) async {
+    if (!isSubscriptionActive) return false;
+    if (maxBranches == null) return true;
+    return currentCount < maxBranches!;
   }
 }
 

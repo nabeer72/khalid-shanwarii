@@ -184,7 +184,7 @@ mixin CommonCrud {
     final sanitized = {
       'id': business['id'],
       'name': business['name'] ?? '',
-      'business_type': business['business_type'],
+      'business_type_id': business['business_type_id'],
       'owner_user_id': business['owner_user_id'],
       'status': (business['status'] == true || business['status'] == 1) ? 1 : 0,
       'is_synced': isSynced ?? (business['is_synced'] ?? 1),

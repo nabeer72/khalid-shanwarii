@@ -428,4 +428,13 @@ mixin ProductsCrud on CommonCrud {
     );
     return stockResults.isNotEmpty;
   }
+
+  Future<int> getProductCount() async {
+    final db = await database;
+    final results = await db.rawQuery(
+      'SELECT COUNT(*) as total FROM products WHERE status = 1 ${getBusinessFilter()}',
+      getBusinessArgs(),
+    );
+    return Sqflite.firstIntValue(results) ?? 0;
+  }
 }

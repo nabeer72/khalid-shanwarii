@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:io';
 
 class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
@@ -65,23 +66,45 @@ class ApiService {
     required String email,
     required String password,
     required String businessName,
-    required String businessType,
+    required int businessTypeId,
+    required int planId,
     String? pin,
+    File? receipt,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
     try {
-      final response = await _dio.post(
-        '/register',
-        data: {
+      dynamic requestData;
+      
+      if (receipt != null) {
+        requestData = FormData.fromMap({
           'email': cleanEmail,
           'password': password,
           'password_confirmation': password,
           'name': businessName,
           'business_name': businessName,
-          'business_type': businessType,
+          'business_type_id': businessTypeId,
+          'plan_id': planId,
           'device_name': 'mobile_app',
           if (pin != null) 'pin': pin,
-        },
+          'receipt': await MultipartFile.fromFile(receipt.path, filename: receipt.path.split('/').last),
+        });
+      } else {
+        requestData = {
+          'email': cleanEmail,
+          'password': password,
+          'password_confirmation': password,
+          'name': businessName,
+          'business_name': businessName,
+          'business_type_id': businessTypeId,
+          'plan_id': planId,
+          'device_name': 'mobile_app',
+          if (pin != null) 'pin': pin,
+        };
+      }
+
+      final response = await _dio.post(
+        '/register',
+        data: requestData,
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -164,6 +187,48 @@ class ApiService {
       return response.statusCode == 200 && response.data['success'] == true;
     } catch (e) {
       print('❌ [API] updateBankAccount failed: $e');
+      return false;
+    }
+  }
+
+  Future<Response?> getBusinessTypes() async {
+    try {
+      return await _dio.get('/business-types');
+    } catch (e) {
+      print('❌ [API] Failed to fetch business types: $e');
+      return null;
+    }
+  }
+
+  Future<Response?> uploadReceipt(int subscriptionId, File receipt) async {
+    try {
+      String fileName = receipt.path.split('/').last;
+      FormData formData = FormData.fromMap({
+        'receipt': await MultipartFile.fromFile(receipt.path, filename: fileName),
+      });
+
+      return await _dio.post('/user/subscription/$subscriptionId/upload-receipt', data: formData);
+    } catch (e) {
+      print('❌ [API] Receipt upload failed: $e');
+      return null;
+    }
+  }
+
+  Future<Response?> getSubscriptionPlans() async {
+    try {
+      return await _dio.get('/subscription-plans');
+    } catch (e) {
+      print('❌ [API] Failed to fetch subscription plans: $e');
+      return null;
+    }
+  }
+
+  Future<bool> checkSubscriptionStatus() async {
+    try {
+      final response = await _dio.get('/user/check-subscription-status');
+      return response.data['active'] == true;
+    } catch (e) {
+      print('❌ [API] Failed to check subscription status: $e');
       return false;
     }
   }

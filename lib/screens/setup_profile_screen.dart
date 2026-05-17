@@ -80,113 +80,114 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Premium Header
-                        Center(
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: LinearGradient(
-                                    colors: ThemeProvider.gradientOcean.map((c) => c.withOpacity(0.2)).toList(),
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  border: Border.all(color: theme.highlight.withOpacity(0.3), width: 1.5),
-                                ),
-                                child: Icon(Icons.person_pin_rounded, size: 32, color: theme.highlight),
+                    child: Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: theme.isDark ? theme.surface : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Premium Header
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                colors: ThemeProvider.gradientOcean.map((c) => c.withOpacity(0.2)).toList(),
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
                               ),
-                              const SizedBox(height: 12),
-                              Text(
-                                'PROFILE SETUP',
-                                style: TextStyle(
-                                  color: theme.textPrimary,
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Complete your account details',
-                                style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 24),
-                        
-                        // Glass Card for Form
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: theme.glassDecoration,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('ACCOUNT INFORMATION', 
-                                style: TextStyle(
-                                  color: theme.textSecondary, 
-                                  fontSize: 12, 
-                                  fontWeight: FontWeight.w800, 
-                                  letterSpacing: 2.0
-                                )),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: _phoneCtrl,
-                                keyboardType: TextInputType.phone,
-                                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
-                                decoration: theme.glassInputDecoration('Cell Number', Icons.phone_android_rounded),
-                              ),
-                              const SizedBox(height: 12),
-                              TextFormField(
-                                controller: _cnicCtrl,
-                                keyboardType: TextInputType.number,
-                                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
-                                decoration: theme.glassInputDecoration('CNIC Number', Icons.badge_rounded),
-                              ),
-                            ],
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 12),
-                        
-                        // Action Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 44,
-                          child: ElevatedButton(
-                            onPressed: _loading ? null : _saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.highlight,
-                              foregroundColor: Colors.white,
-                              elevation: 8,
-                              shadowColor: theme.highlight.withOpacity(0.4),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                              border: Border.all(color: theme.highlight.withOpacity(0.3), width: 1.5),
                             ),
-                            child: _loading 
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Text('CONTINUE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
-                                    SizedBox(width: 12),
-                                    Icon(Icons.arrow_forward_rounded, size: 20),
-                                  ],
-                                ),
+                            child: Icon(Icons.person_pin_rounded, size: 32, color: theme.highlight),
                           ),
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                          const SizedBox(height: 12),
+                          Text(
+                            'PROFILE SETUP',
+                            style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Complete your account details',
+                            style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                          
+                          const SizedBox(height: 32),
+                          
+                          // Form Fields
+                          TextFormField(
+                            controller: _phoneCtrl,
+                            keyboardType: TextInputType.phone,
+                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              labelText: 'Cell Number',
+                              prefixIcon: Icon(Icons.phone_android_rounded, color: theme.textSecondary),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.divider)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.divider)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.highlight)),
+                              filled: true,
+                              fillColor: theme.isDark ? theme.background : Colors.grey[50],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _cnicCtrl,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              labelText: 'CNIC Number',
+                              prefixIcon: Icon(Icons.badge_rounded, color: theme.textSecondary),
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.divider)),
+                              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.divider)),
+                              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: theme.highlight)),
+                              filled: true,
+                              fillColor: theme.isDark ? theme.background : Colors.grey[50],
+                            ),
+                          ),
+                          
+                          const SizedBox(height: 32),
+                          
+                          // Action Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: ElevatedButton(
+                              onPressed: _loading ? null : _saveProfile,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: theme.highlight,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: _loading 
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Text('CONTINUE', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                                      SizedBox(width: 8),
+                                      Icon(Icons.arrow_forward_rounded, size: 20),
+                                    ],
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),

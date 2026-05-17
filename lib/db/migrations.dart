@@ -19,6 +19,26 @@ class DbMigrations {
       }
     }
 
+    if (oldVersion < 82) {
+      if (kDebugMode) print('Upgrading DB to version 82: Adding business_type_id and subscription columns to businesses...');
+      final bizCols = [
+        'business_type_id INTEGER',
+        'subscription_status TEXT DEFAULT \'none\'',
+        'subscription_plan_id INTEGER',
+        'subscription_plan_name TEXT',
+        'subscription_end_date TEXT',
+        'max_branches INTEGER',
+        'max_products INTEGER',
+      ];
+      for (var col in bizCols) {
+        try {
+          await db.execute('ALTER TABLE businesses ADD COLUMN $col');
+        } catch (e) {
+          if (kDebugMode) print('Column already exists in businesses: $e');
+        }
+      }
+    }
+
     if (oldVersion < 81) {
       if (kDebugMode) print('Upgrading DB to version 81: Resetting bank_accounts sequence...');
       try {

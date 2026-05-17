@@ -246,7 +246,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     itemBuilder: (ctx, i) {
                       final b = businesses[i];
                       final isCurrent = b['id'] == BusinessConfig.instance.businessId;
-                      final type = b['business_type'] ?? 'general';
+                      final type = b['business_type_id']?.toString() ?? '1';
                       
                       String icon = '🏪';
                       if (type == 'garments') icon = '👕';
@@ -273,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             title: Text(b['name'] ?? 'Unnamed Business', 
                               style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 14)),
-                            subtitle: Text((b['business_type'] ?? 'General').toString().toUpperCase(), 
+                            subtitle: Text('Category ID: ${b['business_type_id'] ?? '1'}'.toUpperCase(), 
                               style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w600)),
                             trailing: isCurrent 
                               ? const Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 20)
@@ -332,7 +332,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       uid: business['owner_user_id'] ?? BusinessConfig.instance.userId, // Fallback to current admin if missing
       brid: mainBranch['id'],
       bName: business['name'],
-      bType: business['business_type'],
+      bType: business['business_type_id']?.toString(),
       activeBranches: branches.map((b) => b['id']).toList(),
     );
     
@@ -342,7 +342,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     
     // Update settings table for persistent offline access
     await db.setSetting('business_name', business['name']);
-    await db.setSetting('business_type', business['business_type'] ?? 'general');
+    await db.setSetting('business_type_id', business['business_type_id']?.toString() ?? '1');
 
     // Reload settings to refresh context (branch isolation, etc.)
     await db.loadSettings();
@@ -474,7 +474,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // 1. Insert business
                             final bid = await db.insertBusiness({
                               'name': nameCtrl.text,
-                              'business_type': selectedType,
+                              'business_type_id': 1, // Default to 1 (General/Retail)
                               'owner_user_id': userId,
                               'status': 1,
                               'is_synced': 0,

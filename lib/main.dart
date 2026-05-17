@@ -12,6 +12,7 @@ import 'package:mobile_app/db/db_init.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/services/sync_service.dart';
+import 'package:mobile_app/services/api_service.dart';
 
 // Global navigator key to allow navigation from anywhere (like a shake event)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -26,12 +27,42 @@ void main() async {
 
     // Data Change listener for immediate sync (Online-First)
     DatabaseHelper.onDataChanged = () async {
-      print('🔄 Data changed! Triggering background sync push...');
-      SyncService().syncPush();
+      SyncService().triggerDebouncedSync();
     };
   }
 
+  // Pre-fetch signup data (Business Types & Subscription Plans) on startup
+  _preFetchSignupData();
+
   runApp(const MyApp());
+}
+
+Future<void> _preFetchSignupData() async {
+  try {
+    final api = ApiService();
+    final config = BusinessConfig.instance;
+
+    // Fetch in parallel for speed
+    final results = await Future.wait([
+      api.getBusinessTypes(),
+      api.getSubscriptionPlans(),
+    ]);
+
+    final typesRes = results[0];
+    final plansRes = results[1];
+
+    if (typesRes != null && typesRes.statusCode == 200) {
+      config.businessTypes = typesRes.data;
+      print('✅ [INIT] Pre-fetched ${config.businessTypes.length} business types');
+    }
+
+    if (plansRes != null && plansRes.statusCode == 200) {
+      config.subscriptionPlans = plansRes.data;
+      print('✅ [INIT] Pre-fetched ${config.subscriptionPlans.length} subscription plans');
+    }
+  } catch (e) {
+    print('⚠️ [INIT] Failed to pre-fetch signup data: $e');
+  }
 }
 
 class MyApp extends StatefulWidget {

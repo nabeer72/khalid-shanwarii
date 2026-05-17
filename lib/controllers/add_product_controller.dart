@@ -622,6 +622,25 @@ class AddProductController with ChangeNotifier {
 
     final productId = isEditMode ? initialProduct!.id : null;
 
+    // [SUBSCRIPTION CHECK] Verify limits before saving new product
+    if (!isEditMode) {
+      final currentCount = await DatabaseHelper.instance.getProductCount();
+      final canAdd = await BusinessConfig.instance.canAddProduct(currentCount);
+      if (!canAdd) {
+        final plan = BusinessConfig.instance.subscriptionPlanName;
+        final max = BusinessConfig.instance.maxProducts;
+        final status = BusinessConfig.instance.subscriptionStatus;
+
+        if (status != 'active') {
+          _errorMessage = 'Your subscription is $status. Please renew to add products.';
+        } else {
+          _errorMessage = 'You have reached the limit of $max products for your $plan plan. Please upgrade to add more.';
+        }
+        notifyListeners();
+        return {'success': false, 'message': _errorMessage};
+      }
+    }
+
     final productMap = {
       'id': productId,
       'business_id': BusinessConfig.instance.businessId,

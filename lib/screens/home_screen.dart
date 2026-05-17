@@ -40,7 +40,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final theme = ThemeProvider.instance;
   final SyncService _syncService = SyncService();
-  bool _isSyncing = false;
+  bool get _isSyncing => _syncService.isSyncing;
   String? _lastSync;
   Employee? _currentStaff;
   Timer? _autoSyncTimer;
@@ -73,9 +73,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _performSync(silent: true);
         _checkFirstTimeWelcome();
       });
-      // Auto-sync every 60 seconds so web-dashboard changes reflect without logout
-      _autoSyncTimer = Timer.periodic(const Duration(seconds: 60), (_) {
-        if (mounted && !_isSyncing) _performSync(silent: true);
+      // Auto-sync every 5 minutes so web-dashboard changes reflect without logout
+      _autoSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+        if (mounted && !_isSyncing) _syncService.triggerDebouncedSync(delayMs: 0);
       });
     }
   }
@@ -301,7 +301,7 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    setState(() => _isSyncing = true);
+    if (!silent) setState(() {}); // Refresh to show syncing spinner
     try {
       final result = await _syncService.syncAll();
       if (mounted) {
@@ -329,7 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isSyncing = false);
+      if (mounted) setState(() {}); // Refresh to hide syncing spinner
     }
   }
 
@@ -451,11 +451,89 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 24),
 
+                    // Subscription Alert Banner
+                    if (!BusinessConfig.instance.isSubscriptionActive)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.error.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                          border: Border.all(color: ThemeProvider.error.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: ThemeProvider.error, size: 28),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    BusinessConfig.instance.subscriptionStatus == 'expired' 
+                                        ? 'Subscription Expired' 
+                                        : 'Subscription Inactive',
+                                    style: const TextStyle(color: ThemeProvider.error, fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  Text(
+                                    'Please renew your subscription to continue using the register and adding products.',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else if (BusinessConfig.instance.subscriptionEndDate != null && 
+                             BusinessConfig.instance.subscriptionEndDate!.difference(DateTime.now()).inDays <= 5)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: ThemeProvider.warning.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                          border: Border.all(color: ThemeProvider.warning.withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.timer_outlined, color: ThemeProvider.warning, size: 28),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Subscription Expiring Soon',
+                                    style: TextStyle(color: ThemeProvider.warning, fontWeight: FontWeight.bold, fontSize: 16),
+                                  ),
+                                  Text(
+                                    'Your ${BusinessConfig.instance.subscriptionPlanName} plan expires in ${BusinessConfig.instance.subscriptionEndDate!.difference(DateTime.now()).inDays} days.',
+                                    style: TextStyle(color: theme.textSecondary, fontSize: 13),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
                     // Hero - New Sale (Glass Style)
                     if (_hasPerm(AppPermissions.newSale) ||
                         _hasPerm(AppPermissions.posAccess))
                       GestureDetector(
                         onTap: () async {
+                          if (!BusinessConfig.instance.isSubscriptionActive) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Access Denied: Your subscription is inactive or expired.'),
+                                backgroundColor: ThemeProvider.error,
+                              ),
+                            );
+                            return;
+                          }
                           final activeShift = await DatabaseHelper.instance.getActiveShift();
                           final bool skipShift = !BusinessConfig.instance.enableShiftManagement;
 

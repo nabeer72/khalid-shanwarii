@@ -128,6 +128,27 @@ mixin SettingsCrud {
 
     print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, userId: ${BusinessConfig.instance.userId}, activeBranches: ${BusinessConfig.instance.activeBranchIds}');
 
+    // 3. Load Subscription Info from Businesses table
+    if (BusinessConfig.instance.businessId != null) {
+      final db = await database;
+      final bizResults = await db.query(
+        'businesses',
+        where: 'id = ?',
+        whereArgs: [BusinessConfig.instance.businessId],
+      );
+      if (bizResults.isNotEmpty) {
+        final biz = bizResults.first;
+        BusinessConfig.instance.setSubscription(
+          status: biz['subscription_status']?.toString() ?? 'none',
+          planId: biz['subscription_plan_id'] as int?,
+          planName: biz['subscription_plan_name']?.toString(),
+          endDate: biz['subscription_end_date'] != null ? DateTime.tryParse(biz['subscription_end_date'].toString()) : null,
+          branches: biz['max_branches'] as int?,
+          products: biz['max_products'] as int?,
+        );
+      }
+    }
+
     // Backfill NULL credit balances for legacy records
     if (BusinessConfig.instance.businessId != null && BusinessConfig.instance.userId != null) {
       final db = await database;

@@ -127,6 +127,24 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
               );
 
               if (branch == null) {
+                // [SUBSCRIPTION CHECK]
+                final currentCount = _branches.length;
+                final canAdd = await BusinessConfig.instance.canAddBranch(currentCount);
+                if (!canAdd) {
+                  final plan = BusinessConfig.instance.subscriptionPlanName;
+                  final max = BusinessConfig.instance.maxBranches;
+                  final status = BusinessConfig.instance.subscriptionStatus;
+                  String msg;
+                  if (status != 'active') {
+                    msg = 'Your subscription is $status. Please renew to add branches.';
+                  } else {
+                    msg = 'You have reached the limit of $max branches for your $plan plan.';
+                  }
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: ThemeProvider.error));
+                  }
+                  return;
+                }
                 await DatabaseHelper.instance.insertBranch(newBranch.toMap());
               } else {
                 await DatabaseHelper.instance.updateBranch(newBranch.id ?? 0, newBranch.toMap());
