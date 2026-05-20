@@ -640,12 +640,16 @@ class _LoginScreenState extends State<LoginScreen>
         print('👤 [LOGIN] Local Staff member found!');
         
         // Store staff session
-        await _storage.write(key: 'user_id', value: staff['admin_id']?.toString());
+        // [FIX] The employees table has a 'user_id' column (the owner/admin user ID),
+        // NOT 'admin_id'. Reading 'admin_id' always returns null, which broke all
+        // RBAC permission queries that filter on e.user_id in home_screen.
+        await _storage.write(key: 'user_id', value: staff['user_id']?.toString());
         await _storage.write(key: 'staff_id', value: staff['id']?.toString());
         await _storage.write(key: 'user_email', value: staff['email']);
         await _storage.write(key: 'business_id', value: staff['business_id']?.toString());
 
-        BusinessConfig.instance.userId = staff['admin_id'];
+        BusinessConfig.instance.businessId = staff['business_id'];
+        BusinessConfig.instance.userId = staff['user_id'];
         BusinessConfig.instance.staffId = staff['id'];
         BusinessConfig.instance.staffName = staff['name'] ?? 'Staff';
 
@@ -708,23 +712,36 @@ class _LoginScreenState extends State<LoginScreen>
             }
 
             if (uid != null) {
-              // [FIX] Robust staff detection using roles AND admin_id from server
               final String role = u['role']?.toString().toLowerCase() ?? '';
-              final isStaff = role == 'staff' || role == 'employee' || (aid != null && aid != uid);
-              
-              final effectiveUserId = isStaff ? (aid ?? uid) : uid;
-              
-              // [CRITICAL] staffId MUST be the ID from the employees table to match RBAC permissions.
-              // The User.id (uid) might not match Employee.id on the server.
+              final isStaff = role == 'staff' || role == 'employee';
+
               int? resolvedStaffId;
+              int? resolvedAdminUserId;
+
               if (isStaff) {
-                final staffRecord = await _dbHelper.getEmployeeByEmail(u['email']?.toString().toLowerCase() ?? '');
+                // [FIX] getEmployeeByEmail now only filters by email + business_id
+                // so it correctly finds the employee regardless of userId mismatch.
+                final staffRecord = await _dbHelper.getEmployeeByEmail(
+                    u['email']?.toString().toLowerCase() ?? '');
                 resolvedStaffId = staffRecord?['id'];
-                if (kDebugMode) print('👤 [LOGIN] Resolved Staff ID: $resolvedStaffId for email: ${u['email']}');
+                // The employee's user_id = admin's user ID (who created the employee).
+                // This is the value needed for all business-scoped DB queries.
+                resolvedAdminUserId = staffRecord?['user_id'] != null
+                    ? int.tryParse(staffRecord!['user_id'].toString())
+                    : null;
+                if (kDebugMode) {
+                  print('👤 [LOGIN] Resolved Staff ID: $resolvedStaffId, AdminUserId: $resolvedAdminUserId for email: ${u['email']}');
+                }
               }
 
-               BusinessConfig.instance.setContext(
-                bid: bid, 
+              // For the business context, use the admin's user_id from the employee
+              // record if available, otherwise fall back to uid (staff's own user ID).
+              final effectiveUserId = (isStaff && resolvedAdminUserId != null)
+                  ? resolvedAdminUserId
+                  : uid;
+
+              BusinessConfig.instance.setContext(
+                bid: bid,
                 uid: effectiveUserId,
                 brid: brid,
               );

@@ -11,8 +11,13 @@ mixin CommonCrud {
     final staffId = BusinessConfig.instance.staffId;
 
     // Staff are strictly isolated to their own branch
-    if (staffId != null && brid != null) {
-      return ' AND (branch_id = ?)';
+    if (staffId != null) {
+      if (brid != null && brid != 'NONE' && brid != 0) {
+        return ' AND (branch_id = ?)';
+      } else {
+        // If staff has no branch assigned, they should see NOTHING, not all branches.
+        return ' AND (1 = 0)';
+      }
     }
 
     // [FIX] Prioritize current branch ID over the list of all active branches.
@@ -35,8 +40,13 @@ mixin CommonCrud {
     final staffId = BusinessConfig.instance.staffId;
 
     // Staff are strictly isolated to their own branch
-    if (staffId != null && brid != null) {
-      return [getSafeInt(brid)];
+    if (staffId != null) {
+      if (brid != null && brid != 'NONE' && brid != 0) {
+        return [getSafeInt(brid)];
+      } else {
+        // If staff has no branch assigned, they see nothing.
+        return [];
+      }
     }
 
     // [FIX] Prioritize current branch ID over the list of all active branches.

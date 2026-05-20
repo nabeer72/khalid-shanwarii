@@ -61,9 +61,9 @@ class DatabaseHelper
   }
 
   /// Notify that data has changed (should be called by CRUD mixins)
-  static void notifyDataChanged() {
+  static void notifyDataChanged({bool triggerSync = true}) {
     _dataChangeController.add(null); // Notify UI listeners
-    if (onDataChanged != null) {
+    if (triggerSync && onDataChanged != null) {
       onDataChanged!();
     }
   }

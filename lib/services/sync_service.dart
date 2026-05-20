@@ -139,17 +139,18 @@ class SyncService {
 
       String? lastSyncedAt = await _storage.read(key: 'last_synced_at');
 
-      // CRITICAL: If the local database is missing essential transactional data (products),
-      // or if it has no users/businesses, we must ignore last_synced_at.
+      // CRITICAL: If the local database is missing essential transactional data (users/businesses),
+      // or if we have never synced before, we must ignore last_synced_at.
+      // We do NOT force full sync just because productCount is 0 if lastSyncedAt is not null, 
+      // as the user's business might legitimately have 0 products.
       final db = await _dbHelper.database;
       final userCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM users')) ?? 0;
       final bizCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM businesses')) ?? 0;
-      final productCount = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM products')) ?? 0;
       
-      if (userCount == 0 || bizCount == 0 || productCount == 0 || forceFull) {
+      if (userCount == 0 || bizCount == 0 || lastSyncedAt == null || forceFull) {
         lastSyncedAt = null;
         if (kDebugMode) {
-          String reason = forceFull ? 'Manual Force' : (productCount == 0 ? 'Empty Inventory' : 'Empty Identity');
+          String reason = forceFull ? 'Manual Force' : (lastSyncedAt == null ? 'First Sync' : 'Empty Identity');
           print('🔄 [SYNC] Forcing full sync ($reason)');
         }
       }
@@ -1217,7 +1218,8 @@ class SyncService {
 
         // Notify all open screens to reload their data from the updated local DB.
         // This triggers DatabaseHelper.dataStream listeners (employee list, roles, etc.)
-        DatabaseHelper.notifyDataChanged();
+        // [FIX] Pass triggerSync: false to avoid scheduling a new sync cycle from this pull.
+        DatabaseHelper.notifyDataChanged(triggerSync: false);
 
         // REMOVED: await _storage.write(key: 'last_synced_at', value: serverTime);
         // We now return the full response to be processed (timerstamp saved after push).

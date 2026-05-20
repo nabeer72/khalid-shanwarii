@@ -41,7 +41,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
 
   Future<void> _loadEmployees() async {
     try {
-      final data = await DatabaseHelper.instance.getAllEmployees();
+      final data = await DatabaseHelper.instance.getEmployees();
       // Load roles using the centralized method to ensure branch isolation
       final roles = await DatabaseHelper.instance.getRoles();
       final roleMap = <int, Map<String, dynamic>>{};

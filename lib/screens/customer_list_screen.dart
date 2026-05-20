@@ -25,7 +25,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
   }
 
   Future<void> _loadCustomers() async {
-    final data = await DatabaseHelper.instance.getAllCustomers();
+    final data = await DatabaseHelper.instance.getCustomers();
     if (mounted) {
       setState(() {
         _customers = data.map((c) => Customer.fromMap(c)).toList();

@@ -66,10 +66,13 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<Map<String, dynamic>?> getEmployeeByEmail(String email) async {
     final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // [FIX] Only filter by email + business_id. employees.user_id = admin's user ID
+    // which never matches BusinessConfig.userId (staff's own user ID).
     final results = await db.query(
-      'employees', 
-      where: 'email = ?${getBusinessFilter()}', 
-      whereArgs: [email, ...getBusinessArgs()], 
+      'employees',
+      where: 'LOWER(email) = ? AND business_id = ?',
+      whereArgs: [email.toLowerCase().trim(), bid],
       limit: 1
     );
     return results.isNotEmpty ? results.first : null;
@@ -78,14 +81,28 @@ mixin EmployeesCrud on CommonCrud {
   Future<Map<String, dynamic>?> getEmployeeByEmailAndPin(String email, String pin) async {
     final db = await database;
     final cleanEmail = email.toLowerCase().trim();
-    
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // [FIX] Only filter by email + pin + business_id. user_id is the admin's ID
+    // and causes a mismatch when BusinessConfig holds the staff's own user ID.
     final List<Map<String, dynamic>> results = await db.query(
       'employees',
-      where: 'LOWER(email) = ? AND pin = ? AND status = 1${getBusinessFilter()}',
-      whereArgs: [cleanEmail, pin, ...getBusinessArgs()],
+      where: 'LOWER(email) = ? AND pin = ? AND status = 1 AND business_id = ?',
+      whereArgs: [cleanEmail, pin, bid],
       limit: 1,
     );
-    
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  /// Look up an employee by their server ID without user_id scoping.
+  Future<Map<String, dynamic>?> getEmployeeById(dynamic id) async {
+    final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final results = await db.query(
+      'employees',
+      where: 'id = ? AND business_id = ?',
+      whereArgs: [id, bid],
+      limit: 1
+    );
     return results.isNotEmpty ? results.first : null;
   }
 
@@ -230,26 +247,31 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<List<String>> getEmployeePermissions(dynamic employeeId) async {
     final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // [FIX] Only filter by employee_id + business_id. Filtering by user_id was fragile
+    // and caused zero results if userId was null or mismatched after login.
     final List<Map<String, dynamic>> res = await db.rawQuery('''
       SELECT DISTINCT p.name 
       FROM employee_roles er
       JOIN role_permissions rp ON er.role_id = rp.role_id
       JOIN permissions p ON rp.permission_id = p.id
       JOIN employees e ON er.employee_id = e.id
-      WHERE er.employee_id = ? ${getBusinessFilter().replaceAll('business_id', 'e.business_id').replaceAll('user_id', 'e.user_id')}
-    ''', [employeeId, ...getBusinessArgs()]);
+      WHERE er.employee_id = ? AND e.business_id = ?
+    ''', [employeeId, bid]);
     
     return res.map((r) => r['name'].toString()).toList();
   }
 
   Future<List<int>> getEmployeeRoleIds(dynamic employeeId) async {
     final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    // [FIX] Only filter by employee_id + business_id for consistency.
     final res = await db.rawQuery('''
       SELECT er.role_id 
       FROM employee_roles er
       JOIN employees e ON er.employee_id = e.id
-      WHERE er.employee_id = ? ${getBusinessFilter().replaceAll('business_id', 'e.business_id').replaceAll('user_id', 'e.user_id')}
-    ''', [employeeId, ...getBusinessArgs()]);
+      WHERE er.employee_id = ? AND e.business_id = ?
+    ''', [employeeId, bid]);
     return res.map((r) => int.tryParse(r['role_id'].toString()) ?? 0).where((id) => id > 0).toList();
   }
 

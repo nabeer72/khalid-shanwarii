@@ -63,9 +63,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadStats();
     _loadCurrentStaff();
     
-    // Listen for real-time data changes across the app
+    // Listen for real-time data changes across the app (including after background sync)
     _dataSubscription = DatabaseHelper.dataStream.listen((_) {
-      if (mounted) _loadStats();
+      if (mounted) {
+        _loadStats();
+        _loadCurrentStaff(); // [FIX] Re-check permissions after every sync/data change
+      }
     });
 
     if (!kIsWeb) {
@@ -114,13 +117,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadCurrentStaff() async {
     dynamic sid = BusinessConfig.instance.staffId;
     if (sid != null) {
-      // [FIX] Staff identity resolution. We favor loading by ID but fallback to email 
-      // if the session ID doesn't match an Employee record (e.g. if it was a User.id).
       final db = DatabaseHelper.instance;
-      final dbData = await db.getEmployees();
-      var staffData = dbData.where((e) => e['id'] == sid).firstOrNull;
-      
+
+      // [FIX] Use getEmployeeById (only filters by id + business_id).
+      // The old getEmployees() filtered by user_id which is the ADMIN's user ID,
+      // but BusinessConfig.userId held the staff's own user ID — mismatch meant
+      // the employee was never found and _currentStaff stayed null.
+      Map<String, dynamic>? staffData = await db.getEmployeeById(sid);
+
       if (staffData == null) {
+        // Fallback: staffId in storage may be from users table, not employees table.
         final String? userEmail = await (const FlutterSecureStorage()).read(key: 'user_email');
         if (userEmail != null) {
           staffData = await db.getEmployeeByEmail(userEmail.toLowerCase());
@@ -131,37 +137,43 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
 
+      // Backfill userId from the employee record so subsequent DB queries
+      // (which filter by user_id) use the correct admin-scoped user ID.
+      if (staffData != null && staffData['user_id'] != null) {
+        BusinessConfig.instance.userId = staffData['user_id'];
+      }
+
       final finalStaff = staffData;
       if (finalStaff != null) {
         List<String> perms = [];
-        
-        // 1. Load legacy permissions if present
+
+        // 1. Load legacy permissions column if present
         if (finalStaff['permissions'] != null) {
           try {
             perms = List<String>.from(jsonDecode(finalStaff['permissions']));
           } catch (e) {}
         }
 
-        // 2. Load RBAC permissions from all assigned roles
+        // 2. Load RBAC permissions from assigned roles
         final rbacPerms = await DatabaseHelper.instance.getEmployeePermissions(sid);
-        
-        // Union of legacy and RBAC for safety during transition
         for (var p in rbacPerms) {
           if (!perms.contains(p)) perms.add(p);
         }
 
-        setState(() {
-          _currentStaff = Employee(
-            id: finalStaff['id'],
-            name: finalStaff['name'],
-            role: finalStaff['role'] ?? 'cashier',
-            email: finalStaff['email'],
-            phone: finalStaff['phone'],
-            pin: finalStaff['pin'],
-            isActive: finalStaff['status'] == 1,
-            permissions: perms,
-          );
-        });
+        if (mounted) {
+          setState(() {
+            _currentStaff = Employee(
+              id: finalStaff['id'],
+              name: finalStaff['name'],
+              role: finalStaff['role'] ?? 'cashier',
+              email: finalStaff['email'],
+              phone: finalStaff['phone'],
+              pin: finalStaff['pin'],
+              isActive: finalStaff['status'] == 1,
+              permissions: perms,
+            );
+          });
+        }
         BusinessConfig.instance.staffName = finalStaff['name'] ?? '';
       }
     }
@@ -177,72 +189,77 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadStats() async {
+    if (kIsWeb) return;
     try {
       final db = DatabaseHelper.instance;
-      // [FIX] Consistently use async/await for all db calls to prevent UI lag or missing stats
-      final products = await db.getProducts();
-      final customers = await db.getCustomers();
-      final heldOrders = await db.getHeldOrders();
+      final rawDb = await db.database;
+
+      final bFilter = db.getBusinessFilter();
+      final bArgs = db.getBusinessArgs();
+      final brFilter = db.getBranchFilter();
+      final brArgs = db.getBranchArgs();
+      
+      final queryArgs = [...bArgs, ...brArgs];
+
+      // 1. Optimized Product Count (distinct names)
+      final prodCountRes = await rawDb.rawQuery(
+        'SELECT COUNT(DISTINCT name) as total FROM products WHERE status = 1$bFilter$brFilter',
+        queryArgs,
+      );
+      final productCount = (prodCountRes.isNotEmpty ? prodCountRes.first.values.first as num? : 0)?.toInt() ?? 0;
+
+      // 2. Optimized Favorites Count
+      final favCountRes = await rawDb.rawQuery(
+        'SELECT COUNT(DISTINCT name) as total FROM products WHERE status = 1 AND is_favorite = 1$bFilter$brFilter',
+        queryArgs,
+      );
+      final favoritesCount = (favCountRes.isNotEmpty ? favCountRes.first.values.first as num? : 0)?.toInt() ?? 0;
+
+      // 3. Optimized Customer Count
+      final customerCountRes = await rawDb.rawQuery(
+        'SELECT COUNT(*) as total FROM customers WHERE status = 1$bFilter$brFilter',
+        queryArgs,
+      );
+      final customerCount = (customerCountRes.isNotEmpty ? customerCountRes.first.values.first as num? : 0)?.toInt() ?? 0;
+
+      // 4. Optimized Held Orders Count
+      final heldCountRes = await rawDb.rawQuery(
+        'SELECT COUNT(*) as total FROM held_orders WHERE 1=1$bFilter$brFilter',
+        queryArgs,
+      );
+      final heldCount = (heldCountRes.isNotEmpty ? heldCountRes.first.values.first as num? : 0)?.toInt() ?? 0;
 
       if (mounted) {
         setState(() {
-          final uniqueProductNames = products.map((p) => (p['name'] ?? '').toString()).toSet();
-          _productCount = uniqueProductNames.length;
-          _customerCount = customers.length;
-          _heldCount = heldOrders.length;
-          _favoritesCount = products
-              .where((p) => (p['is_favorite'] ?? 0) == 1)
-              .map((p) => (p['name'] ?? '').toString())
-              .toSet()
-              .length;
+          _productCount = productCount;
+          _customerCount = customerCount;
+          _heldCount = heldCount;
+          _favoritesCount = favoritesCount;
         });
       }
 
-      // Sales query is isolated so a failure doesn't zero out product/customer counts
-        try {
-        final sales = await db.getSales();
-        final returns = await db.getReturns();
+      // Sales query is isolated so a failure doesn't zero out other counts
+      try {
+        final now = DateTime.now();
+        final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+        final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).toIso8601String();
+
+        // Retrieve only today's sales and returns
+        final todaySales = await db.getSales(startTime: todayStart, endTime: todayEnd);
         
         double todayTotal = 0;
         int todaySaleCount = 0;
-        final now = DateTime.now();
-
-        for (var s in sales) {
-          final String dateStr = (s['created_at'] ?? s['date'] ?? '').toString();
-          if (dateStr.isEmpty) continue;
-
-          final parsedDate = DateTime.tryParse(dateStr);
-          if (parsedDate != null) {
-            final ts = parsedDate.toLocal();
-            final isToday = ts.day == now.day && ts.month == now.month && ts.year == now.year;
-            
-            if (isToday) {
-              final isReturn = (s['is_return'] ?? 0) == 1;
-              final amt = (s['total'] as num? ?? 0).toDouble();
-              
-              if (!isReturn) {
-                todayTotal += amt;
-                todaySaleCount++;
-              }
-            }
-          }
-        }
-
         double returnTotal = 0;
-        for (var r in returns) {
-          final String dateStr = (r['created_at'] ?? r['date'] ?? '').toString();
-          if (dateStr.isEmpty) continue;
 
-          final parsedDate = DateTime.tryParse(dateStr);
-          if (parsedDate != null) {
-            final ts = parsedDate.toLocal();
-            if (ts.day == now.day &&
-                ts.month == now.month &&
-                ts.year == now.year) {
-              // Note: Column is 'total' in returns table, not 'total_amount'
-              final amt = (r['total'] as num? ?? 0).toDouble();
-              returnTotal += amt;
-            }
+        for (var s in todaySales) {
+          final isReturn = (s['is_return'] ?? 0) == 1;
+          final amt = (s['total'] as num? ?? 0).toDouble();
+          
+          if (isReturn) {
+            returnTotal += amt;
+          } else {
+            todayTotal += amt;
+            todaySaleCount++;
           }
         }
 
@@ -258,24 +275,17 @@ class _HomeScreenState extends State<HomeScreen> {
       }
 
       try {
-        double recoveryTotal = 0;
         final now = DateTime.now();
-        final payments = await db.getCreditPayments();
-        for (var p in payments) {
-          final String dateStr = (p['payment_date'] ?? p['date'] ?? '').toString();
-          if (dateStr.isEmpty) continue;
+        final todayStart = DateTime(now.year, now.month, now.day).toIso8601String();
+        final todayEnd = DateTime(now.year, now.month, now.day, 23, 59, 59, 999).toIso8601String();
 
-          final parsedDate = DateTime.tryParse(dateStr);
-          if (parsedDate != null) {
-            // [FIX] Use toLocal() to ensure comparison is in the current timezone
-            final ts = parsedDate.toLocal(); 
-            if (ts.day == now.day &&
-                ts.month == now.month &&
-                ts.year == now.year) {
-              recoveryTotal += (p['amount'] as num? ?? 0).toDouble();
-            }
-          }
-        }
+        // Query today's credit payments recovery amount
+        final recoveryRes = await rawDb.rawQuery(
+          'SELECT SUM(amount) as total FROM credit_payments WHERE payment_date >= ? AND payment_date <= ?$bFilter$brFilter',
+          [todayStart, todayEnd, ...queryArgs],
+        );
+        final recoveryTotal = (recoveryRes.isNotEmpty && recoveryRes.first['total'] != null ? recoveryRes.first['total'] as num : 0.0).toDouble();
+
         if (mounted) {
           setState(() {
             _todayRecoveryAmount = recoveryTotal;
@@ -307,6 +317,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         await _loadLastSync();
         await _loadStats();
+        await _loadCurrentStaff(); // [FIX] Refresh permissions after manual sync
         if (!silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -395,22 +406,22 @@ class _HomeScreenState extends State<HomeScreen> {
                                                     .instance.businessType]
                                             ?.withOpacity(0.15),
                                         borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                                    child: Text(
-                                      BusinessConfig.instance.businessType
-                                          .toUpperCase(),
-                                      style: TextStyle(
-                                          color: ThemeProvider.businessColors[
-                                              BusinessConfig
-                                                  .instance.businessType],
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold),
-                                    ),
+                                    // child: Text(
+                                    //   BusinessConfig.instance.businessType
+                                    //       .toUpperCase(),
+                                    //   style: TextStyle(
+                                    //       color: ThemeProvider.businessColors[
+                                    //           BusinessConfig
+                                    //               .instance.businessType],
+                                    //       fontSize: 12,
+                                    //       fontWeight: FontWeight.bold),
+                                    // ),
                                   ),
-                                  if (_lastSync != null) ...[
-                                    const SizedBox(width: 6),
-                                    Icon(Icons.cloud_done,
-                                        size: 12, color: ThemeProvider.success),
-                                  ],
+                                  // if (_lastSync != null) ...[
+                                  //   const SizedBox(width: 6),
+                                  //   Icon(Icons.cloud_done,
+                                  //       size: 12, color: ThemeProvider.success),
+                                  // ],
                                 ],
                               ),
                             ],
@@ -1069,7 +1080,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (confirmed != true) return;
 
-    setState(() => _isSyncing = true); // Visual feedback
+    setState(() {}); // Visual feedback
 
     try {
       // 1. Invalidate session on server
@@ -1093,7 +1104,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Logout error: $e'),
             backgroundColor: ThemeProvider.error));
-        setState(() => _isSyncing = false);
+        setState(() {});
       }
     }
   }
