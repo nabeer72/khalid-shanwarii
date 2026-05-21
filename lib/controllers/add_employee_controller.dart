@@ -80,9 +80,22 @@ class AddEmployeeController with ChangeNotifier {
   Future<void> _loadBranches() async {
     try {
       final data = await DatabaseHelper.instance.getAllBranches();
-      // Show ALL active branches for the business so the admin can assign any branch
+      // Ensure the currently selected branch (including main) is present in the list.
+      final currentId = BusinessConfig.instance.branchId;
+      if (currentId != null && !data.any((b) => b['id'] == currentId)) {
+        // Fetch the branch explicitly by ID and prepend it.
+        final mainBranch = await DatabaseHelper.instance.getBranchById(currentId);
+        if (mainBranch != null) {
+          data.insert(0, mainBranch);
+        }
+      }
       branches = data.map((b) => Branch.fromMap(b)).toList();
       
+      // Default to business branch if nothing is currently selected
+      if (selectedBranchId == null && currentId != null) {
+        selectedBranchId = currentId;
+      }
+
       // If the pre-selected branch no longer exists, clear the selection
       if (selectedBranchId != null) {
         if (!branches.any((b) => b.id == selectedBranchId)) {

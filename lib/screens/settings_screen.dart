@@ -339,6 +339,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // Persist to storage
     await storage.write(key: 'business_id', value: business['id'].toString());
     await storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
+    BusinessConfig.instance.branchId = mainBranch['id'];
+
     
     // Update settings table for persistent offline access
     await db.setSetting('business_name', business['name']);

@@ -374,6 +374,8 @@ class _LoginScreenState extends State<LoginScreen>
       await storage.write(key: 'business_id', value: bid.toString());
       if (aid != null) await storage.write(key: 'user_id', value: aid.toString());
       if (mainBranch['id'] != null) await storage.write(key: 'branch_id', value: mainBranch['id'].toString());
+      // Ensure BusinessConfig also reflects the branch ID
+      BusinessConfig.instance.branchId = mainBranch['id'];
 
       // Sync and load settings - CRITICAL: await this so products are loaded before home
       print('🔄 [LOGIN] Performing full sync for business $bid...');
@@ -618,6 +620,9 @@ class _LoginScreenState extends State<LoginScreen>
           uid: aid,
           brid: user['branch_id'],
         );
+        // Ensure latest permissions and data are synced after setting context
+        SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after admin login failed: $e'));
+        
         BusinessConfig.instance.staffName = user['name'] ?? 'Admin';
         
         await _storage.write(key: 'user_id', value: uid.toString());
@@ -652,6 +657,8 @@ class _LoginScreenState extends State<LoginScreen>
         BusinessConfig.instance.userId = staff['user_id'];
         BusinessConfig.instance.staffId = staff['id'];
         BusinessConfig.instance.staffName = staff['name'] ?? 'Staff';
+        // Sync permissions and related data after staff context is set
+        SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after staff login failed: $e'));
 
         if (staff['branch_id'] != null) {
           BusinessConfig.instance.branchId = staff['branch_id'];

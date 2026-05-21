@@ -37,6 +37,23 @@ mixin BranchesCrud on CommonCrud {
     );
   }
 
+  Future<List<Map<String, dynamic>>> getAllBranchesForAssignment() async {
+    final db = await database;
+    // Return all active branches for the current business without branch isolation.
+    return await db.query('branches', where: 'status = 1${getBusinessFilter()}', whereArgs: getBusinessArgs());
+  }
+
+  Future<Map<String, dynamic>?> getBranchById(int id) async {
+    final db = await database;
+    // Fetch branch with business context and active status
+    final result = await db.query(
+      'branches',
+      where: 'status = 1${getBusinessFilter()} AND id = ?',
+      whereArgs: [...getBusinessArgs(), id],
+    );
+    return result.isNotEmpty ? result.first : null;
+  }
+
   Future<List<Map<String, dynamic>>> getAllBranches() async {
     final db = await database;
     return await db.query(
