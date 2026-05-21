@@ -30,7 +30,7 @@ class RolesController with ChangeNotifier {
 
       print('🔍 [Roles] Found ${roles.length} role(s)');
 
-      final data = await DatabaseHelper.instance.getBranches();
+      final data = await DatabaseHelper.instance.getAllBranches();
       branches = data.where((b) => b['status'] == 1).toList();
     } catch (e) {
       errorMessage = e.toString();

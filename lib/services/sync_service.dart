@@ -2198,6 +2198,20 @@ class SyncService {
   Future<void> _applyMappings(Transaction txn, Map<String, dynamic> allMappings) async {
     // Note: server sends mappings like {"categories": {"1": 105}, "products": {"2": 106}}
     
+    // Helper to safely update a local ID, handling potential duplicates/conflicts
+    Future<void> updateOrDelete(String table, int oldId, int newId, {bool hasSyncedCol = true}) async {
+      final exists = (await txn.query(table, where: 'id = ?', whereArgs: [newId], limit: 1)).isNotEmpty;
+      if (exists) {
+        await txn.delete(table, where: 'id = ?', whereArgs: [oldId]);
+      } else {
+        final updateData = {'id': newId};
+        if (hasSyncedCol) {
+          updateData['is_synced'] = 1;
+        }
+        await txn.update(table, updateData, where: 'id = ?', whereArgs: [oldId]);
+      }
+    }
+
     // 1. Categories
     if (allMappings['categories'] != null && allMappings['categories'] is Map) {
       final map = allMappings['categories'] as Map<String, dynamic>;
@@ -2205,7 +2219,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Category: $oldId -> $newId');
-        await txn.update('categories', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('categories', oldId, newId);
         await txn.update('products', {'category_id': newId}, where: 'category_id = ?', whereArgs: [oldId]);
         await txn.update('subcategories', {'category_id': newId}, where: 'category_id = ?', whereArgs: [oldId]);
         await txn.update('categories', {'parent_id': newId}, where: 'parent_id = ?', whereArgs: [oldId]);
@@ -2219,7 +2233,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] SubCategory: $oldId -> $newId');
-        await txn.update('subcategories', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('subcategories', oldId, newId);
         await txn.update('products', {'sub_category_id': newId}, where: 'sub_category_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2231,7 +2245,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Brand: $oldId -> $newId');
-        await txn.update('brands', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('brands', oldId, newId);
         await txn.update('products', {'brand_id': newId}, where: 'brand_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2243,7 +2257,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Product: $oldId -> $newId');
-        await txn.update('products', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('products', oldId, newId);
         await txn.update('stocks', {'product_id': newId}, where: 'product_id = ?', whereArgs: [oldId]);
         await txn.update('sale_items', {'product_id': newId}, where: 'product_id = ?', whereArgs: [oldId]);
         await txn.update('purchase_items', {'product_id': newId}, where: 'product_id = ?', whereArgs: [oldId]);
@@ -2257,7 +2271,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Customer: $oldId -> $newId');
-        await txn.update('customers', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('customers', oldId, newId);
         await txn.update('sales', {'customer_id': newId}, where: 'customer_id = ?', whereArgs: [oldId]);
         await txn.update('credit_sales', {'customer_id': newId}, where: 'customer_id = ?', whereArgs: [oldId]);
         await txn.update('credit_payments', {'customer_id': newId}, where: 'customer_id = ?', whereArgs: [oldId]);
@@ -2271,7 +2285,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Sale: $oldId -> $newId');
-        await txn.update('sales', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('sales', oldId, newId);
         await txn.update('sale_items', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
         await txn.update('credit_sales', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
         await txn.update('returns', {'sale_id': newId}, where: 'sale_id = ?', whereArgs: [oldId]);
@@ -2284,7 +2298,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('stocks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('stocks', oldId, newId);
       }
     }
 
@@ -2294,7 +2308,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('suppliers', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('suppliers', oldId, newId);
         await txn.update('purchases', {'supplier_id': newId}, where: 'supplier_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2306,7 +2320,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Role: $oldId -> $newId');
-        await txn.update('roles', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('roles', oldId, newId);
         await txn.update('employees', {'role_id': newId}, where: 'role_id = ?', whereArgs: [oldId]);
         // [FIX] Update role_permissions pivot table
         await txn.update('role_permissions', {'role_id': newId}, where: 'role_id = ?', whereArgs: [oldId]);
@@ -2320,7 +2334,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Employee: $oldId -> $newId');
-        await txn.update('employees', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('employees', oldId, newId);
         // [FIX] Update employee pivot tables
         // Note: employee_permissions doesn't exist on mobile (stored in 'permissions' column of employees)
         await txn.update('employee_roles', {'employee_id': newId}, where: 'employee_id = ?', whereArgs: [oldId]);
@@ -2334,7 +2348,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Purchase: $oldId -> $newId');
-        await txn.update('purchases', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('purchases', oldId, newId);
         await txn.update('purchase_items', {'purchase_id': newId}, where: 'purchase_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2346,7 +2360,7 @@ class SyncService {
         final oldId = int.tryParse(entry.key);
         if (oldId == null) continue;
         final newId = entry.value as int;
-        await txn.update('purchase_items', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('purchase_items', oldId, newId);
       }
     }
 
@@ -2357,7 +2371,7 @@ class SyncService {
         final oldId = int.tryParse(entry.key);
         if (oldId == null) continue;
         final newId = entry.value as int;
-        await txn.update('sale_items', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('sale_items', oldId, newId);
       }
     }
 
@@ -2367,7 +2381,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('credit_sales', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('credit_sales', oldId, newId);
         await txn.update('credit_payments', {'credit_sale_id': newId}, where: 'credit_sale_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2378,7 +2392,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('credit_payments', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('credit_payments', oldId, newId);
       }
     }
 
@@ -2388,7 +2402,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('expenses', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('expenses', oldId, newId);
       }
     }
 
@@ -2398,7 +2412,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('shifts', {'id': newId}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('shifts', oldId, newId, hasSyncedCol: false);
       }
     }
 
@@ -2408,7 +2422,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('expense_heads', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('expense_heads', oldId, newId);
         await txn.update('expenses', {'expense_head_id': newId}, where: 'expense_head_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2419,7 +2433,7 @@ class SyncService {
       for (var entry in map.entries) {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
-        await txn.update('branches', {'id': newId}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('branches', oldId, newId, hasSyncedCol: false);
       }
     }
 
@@ -2430,7 +2444,7 @@ class SyncService {
         final oldId = int.parse(entry.key);
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Return: $oldId -> $newId');
-        await txn.update('returns', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('returns', oldId, newId);
         await txn.update('return_items', {'return_id': newId}, where: 'return_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2442,7 +2456,7 @@ class SyncService {
         final oldId = int.tryParse(entry.key);
         if (oldId == null) continue;
         final newId = entry.value as int;
-        await txn.update('supplier_credit_purchases', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('supplier_credit_purchases', oldId, newId);
         await txn.update('supplier_paybacks', {'supplier_credit_purchase_id': newId}, where: 'supplier_credit_purchase_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2454,7 +2468,7 @@ class SyncService {
         final oldId = int.tryParse(entry.key);
         if (oldId == null) continue;
         final newId = entry.value as int;
-        await txn.update('supplier_paybacks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('supplier_paybacks', oldId, newId);
       }
     }
 
@@ -2466,7 +2480,7 @@ class SyncService {
         if (oldId == null) continue;
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Business: $oldId -> $newId');
-        await txn.update('businesses', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('businesses', oldId, newId);
         await txn.update('user_businesses', {'business_id': newId}, where: 'business_id = ?', whereArgs: [oldId]);
       }
     }
@@ -2478,7 +2492,7 @@ class SyncService {
         final oldId = int.tryParse(entry.key);
         if (oldId == null) continue;
         final newId = entry.value as int;
-        await txn.update('units', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('units', oldId, newId);
       }
     }
 
@@ -2489,7 +2503,7 @@ class SyncService {
         final oldId = int.tryParse(entry.key);
         if (oldId == null) continue;
         final newId = entry.value as int;
-        await txn.update('payment_types', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('payment_types', oldId, newId);
       }
     }
 
@@ -2501,7 +2515,7 @@ class SyncService {
         if (oldId == null) continue;
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Currency Note: $oldId -> $newId');
-        await txn.update('currency_notes', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('currency_notes', oldId, newId);
       }
     }
 
@@ -2513,7 +2527,7 @@ class SyncService {
         if (oldId == null) continue;
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Stock Audit: $oldId -> $newId');
-        await txn.update('stock_audits', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('stock_audits', oldId, newId);
       }
     }
 
@@ -2525,7 +2539,7 @@ class SyncService {
         if (oldId == null) continue;
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Bank: $oldId -> $newId');
-        await txn.update('banks', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('banks', oldId, newId);
         await txn.update('bank_details', {'bank_id': newId}, where: 'bank_id = ?', whereArgs: [oldId]);
         await txn.update('bank_accounts', {'bank_id': newId}, where: 'bank_id = ?', whereArgs: [oldId]);
       }
@@ -2539,7 +2553,7 @@ class SyncService {
         if (oldId == null) continue;
         final newId = entry.value as int;
         if (kDebugMode) print('🔄 [MAPPING] Bank Detail: $oldId -> $newId');
-        await txn.update('bank_details', {'id': newId, 'is_synced': 1}, where: 'id = ?', whereArgs: [oldId]);
+        await updateOrDelete('bank_details', oldId, newId);
       }
     }
   }

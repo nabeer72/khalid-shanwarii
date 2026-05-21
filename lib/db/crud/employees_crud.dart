@@ -21,9 +21,10 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getAllEmployees() async {
     final db = await database;
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
     return await db.rawQuery(
-      'SELECT * FROM employees WHERE 1=1 ${getBusinessFilter()}',
-      getBusinessArgs(),
+      'SELECT * FROM employees WHERE 1=1 AND business_id = ?',
+      [bid],
     );
   }
 
@@ -146,15 +147,14 @@ mixin EmployeesCrud on CommonCrud {
   Future<int> insertRole(Map<String, dynamic> role) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
-    final uid = getSafeInt(BusinessConfig.instance.userId);
-    
+
     final insertData = Map<String, dynamic>.from(role);
     if (insertData['id'] == null || insertData['id'] == 0 || insertData['id'] == 'null') {
       insertData.remove('id');
     }
 
     insertData['business_id'] = bid;
-    insertData['user_id'] = uid;
+    // Removed user_id assignment because roles are scoped to business, not user.
     if (insertData['branch_id'] != null && insertData['branch_id'] is String) {
       insertData['branch_id'] = int.tryParse(insertData['branch_id']);
     }

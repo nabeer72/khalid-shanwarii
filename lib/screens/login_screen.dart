@@ -386,7 +386,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  Future<void> _proceedToHome(bool isQuickLogin, String email) async {
+  Future<void> _proceedToHome(bool isQuickLogin, String email, {bool isPinLogin = false}) async {
     if (!mounted) return;
     
     print('🏠 [LOGIN] Auth successful, checking saved credentials...');
@@ -630,7 +630,7 @@ class _LoginScreenState extends State<LoginScreen>
         _syncLoginToBackend();
         SyncService().syncPull().catchError((e) => print('⚠️ Background sync failed: $e'));
         
-        await _proceedToHome(isQuickLogin, cleanEmail);
+        await _proceedToHome(isQuickLogin, cleanEmail, isPinLogin: false);
         return;
       }
 
@@ -670,7 +670,8 @@ class _LoginScreenState extends State<LoginScreen>
         _syncLoginToBackend();
         SyncService().syncPull().catchError((e) => print('⚠️ Background sync failed: $e'));
 
-        await _proceedToHome(isQuickLogin, email);
+        // When logging in via Quick Login (PIN), indicate that this is a PIN login to avoid showing PIN setup again
+        await _proceedToHome(isQuickLogin, email, isPinLogin: true);
         return;
       }
       }

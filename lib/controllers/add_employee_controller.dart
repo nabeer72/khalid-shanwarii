@@ -79,7 +79,7 @@ class AddEmployeeController with ChangeNotifier {
 
   Future<void> _loadBranches() async {
     try {
-      final data = await DatabaseHelper.instance.getBranches();
+      final data = await DatabaseHelper.instance.getAllBranches();
       // Show ALL active branches for the business so the admin can assign any branch
       branches = data.map((b) => Branch.fromMap(b)).toList();
       
