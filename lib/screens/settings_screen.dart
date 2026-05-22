@@ -13,6 +13,9 @@ import 'package:mobile_app/screens/units_screen.dart';
 import 'package:mobile_app/screens/payment_types_screen.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
+import 'package:mobile_app/services/api_service.dart';
+
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -25,8 +28,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final theme = ThemeProvider.instance;
   final SyncService _syncService = SyncService();
   
-  // Settings state
-  // Settings state
+  List<Map<String, dynamic>> _businessTypes = [];
+  bool _businessTypesLoading = false;
+  // Business and config state
   String _businessName = BusinessConfig.instance.businessName;
   String _businessAddress = BusinessConfig.instance.businessAddress;
   String _businessPhone = BusinessConfig.instance.businessPhone;
@@ -37,6 +41,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
   bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBusinessTypes();
+  }
+
+  Future<void> _loadBusinessTypes() async {
+    _businessTypesLoading = true;
+    try {
+      final response = await ApiService().getBusinessTypes();
+      if (response != null && response.statusCode == 200) {
+        // Assume response data is a list of business type objects with id, name, icon fields
+        final List data = response.data is List ? response.data : [];
+        _businessTypes = data.map((e) => {
+          'id': e['id']?.toString() ?? '',
+          'name': e['name']?.toString() ?? '',
+          'icon': e['icon']?.toString() ?? '🏪',
+        }).toList();
+      } else {
+        _businessTypes = [
+          {'id': 'general', 'name': 'General', 'icon': '🏪'},
+          {'id': 'garments', 'name': 'Garments', 'icon': '👕'},
+          {'id': 'produce', 'name': 'Produce', 'icon': '🥬'},
+          {'id': 'restaurant', 'name': 'Restaurant', 'icon': '🍽️'},
+          {'id': 'electronics', 'name': 'Electronics', 'icon': '📱'},
+        ];
+      }
+    } catch (e) {
+      // Fallback to static list on error
+      _businessTypes = [
+        {'id': 'general', 'name': 'General', 'icon': '🏪'},
+        {'id': 'garments', 'name': 'Garments', 'icon': '👕'},
+        {'id': 'produce', 'name': 'Produce', 'icon': '🥬'},
+        {'id': 'restaurant', 'name': 'Restaurant', 'icon': '🍽️'},
+        {'id': 'electronics', 'name': 'Electronics', 'icon': '📱'},
+      ];
+    }
+    _businessTypesLoading = false;
+    if (mounted) setState(() {});
+  }
 
   Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {bool isRequired = false}) {
     return TextField(
@@ -364,13 +409,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showAddBusinessDialog() {
     final nameCtrl = TextEditingController();
     String selectedType = 'general';
-    final List<Map<String, dynamic>> businessTypes = [
-      {'id': 'general', 'name': 'General', 'icon': '🏪'},
-      {'id': 'garments', 'name': 'Garments', 'icon': '👕'},
-      {'id': 'produce', 'name': 'Produce', 'icon': '🥬'},
-      {'id': 'restaurant', 'name': 'Restaurant', 'icon': '🍽️'},
-      {'id': 'electronics', 'name': 'Electronics', 'icon': '📱'},
-    ];
+    final List<Map<String, dynamic>> businessTypes = _businessTypes;
+    final ScrollController typeScrollCtrl = ScrollController();
 
     showDialog(
       context: context,
@@ -406,43 +446,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 70,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: businessTypes.length,
-                      itemBuilder: (ctx, i) {
-                        final type = businessTypes[i];
-                        final isSelected = selectedType == type['id'];
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: InkWell(
-                            onTap: () {
-                              setDialogState(() {
-                                selectedType = type['id'];
-                                nameCtrl.text = type['name'];
-                              });
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios),
+                          onPressed: () {
+                            if (!typeScrollCtrl.hasClients) return;
+                            final newOffset = typeScrollCtrl.offset - 100;
+                            typeScrollCtrl.animateTo(
+                              newOffset < 0 ? 0 : newOffset,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          },
+                        ),
+                        Expanded(
+                          child: ListView.builder(
+                            controller: typeScrollCtrl,
+                            scrollDirection: Axis.horizontal,
+                            itemCount: businessTypes.length,
+                            itemBuilder: (ctx, i) {
+                              final type = businessTypes[i];
+                              final isSelected = selectedType == type['id'];
+                              return Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: InkWell(
+                                  onTap: () {
+                                    setDialogState(() {
+                                      selectedType = type['id'];
+                                      nameCtrl.text = type['name'];
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? theme.highlight : const Color(0xFFF3F4F6),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: isSelected ? theme.highlight : Colors.transparent),
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(type['icon'], style: const TextStyle(fontSize: 18)),
+                                        const SizedBox(height: 2),
+                                        Text(type['name'],
+                                            style: TextStyle(
+                                              color: isSelected ? Colors.white : const Color(0xFF4B5563),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w800,
+                                            )),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
                             },
-                            borderRadius: BorderRadius.circular(12),
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSelected ? theme.highlight : const Color(0xFFF3F4F6),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: isSelected ? theme.highlight : Colors.transparent),
-                              ),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(type['icon'], style: const TextStyle(fontSize: 18)),
-                                  const SizedBox(height: 2),
-                                  Text(type['name'], style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF4B5563), fontSize: 10, fontWeight: FontWeight.w800)),
-                                ],
-                              ),
-                            ),
                           ),
-                        );
-                      },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.arrow_forward_ios),
+                          onPressed: () {
+                            if (!typeScrollCtrl.hasClients) return;
+                            final max = typeScrollCtrl.position.maxScrollExtent;
+                            final newOffset = typeScrollCtrl.offset + 100;
+                            typeScrollCtrl.animateTo(
+                              newOffset > max ? max : newOffset,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeOut,
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 32),
