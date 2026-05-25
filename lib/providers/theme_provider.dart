@@ -81,7 +81,7 @@ class ThemeProvider extends ChangeNotifier {
   Color get secondary => _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
   Color get cardBorder => _isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04);
   Color get iconColor => _isDark ? Colors.white : Colors.black;
-  Color get toggleActiveColor => _isDark ? success : highlight;
+  Color get toggleActiveColor => _isDark ? success : const Color(0xFF02401E);
   Color get switchActiveColor => toggleActiveColor; // Backward compatibility
 
   // Responsive UI Helpers

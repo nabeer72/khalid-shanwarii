@@ -424,310 +424,355 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1000, maxHeight: 540),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 700;
-    
-                  if (isWide) {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          flex: 1,
-                          child: _buildPaymentMethods(isMobile: false),
-                        ),
-                        const SizedBox(width: 24),
-                        Expanded(
-                          flex: 1,
-                          child: _buildSummary(true),
-                        ),
-                      ],
-                    );
-                  } else {
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        children: [
-                          _buildPaymentMethods(isMobile: true),
-                          const SizedBox(height: 12),
-                          _buildSummary(false),
-                        ],
-                      ),
-                    );
-                  }
-                },
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethods({bool isMobile = false}) {
-    return Container(
-      constraints: isMobile ? null : const BoxConstraints.expand(),
-      padding: const EdgeInsets.all(16),
-      decoration: theme.glassDecoration.copyWith(
-        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-      ),
-      child: SingleChildScrollView(
-        child: IntrinsicHeight(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                flex: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildAmountField(),
-                    const SizedBox(height: 8),
-                    _buildUniversalDialPad(),
-                    if (_amountTendered < _grandTotal && _selectedPayment != 'Credit') ...[
-                      const SizedBox(height: 8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 820;
+              if (isWide) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // COMBINED LEFT CARD (Amount + Payment Methods)
                       Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: ThemeProvider.warning.withOpacity(0.1),
+                        decoration: theme.glassDecoration.copyWith(
                           borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                          border: Border.all(color: ThemeProvider.warning.withOpacity(0.3), width: 1.5),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.info_outline_rounded, color: ThemeProvider.warning, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Remaining ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_grandTotal - _amountTendered)} added to credit.',
-                                style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w600),
+                        child: IntrinsicWidth(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              SizedBox(
+                                width: 280,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: _buildLeftPanelContent(),
+                                ),
                               ),
+                              VerticalDivider(
+                                width: 1,
+                                thickness: 1,
+                                color: theme.cardBorder,
+                              ),
+                              SizedBox(
+                                width: 230,
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16),
+                                  child: _buildMiddlePanelContent(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      // RIGHT: Order Summary
+                      Expanded(
+                        child: _buildSummary(true),
+                      ),
+                    ],
+                  ),
+                );
+              } else {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: theme.glassDecoration.copyWith(
+                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                        ),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: _buildLeftPanelContent(),
+                            ),
+                            Divider(height: 1, thickness: 1, color: theme.cardBorder),
+                            Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: _buildMiddlePanelContent(),
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 12),
+                      _buildSummary(false),
                     ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 1,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Payment Method',
-                        style: TextStyle(
-                            color: theme.textPrimary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5)),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _dynamicPaymentMethods
-                          .map(
-                            (pm) => _PaymentMethodButton(
-                              name: pm.name,
-                              iconName: pm.icon,
-                              selected: _selectedPayment == pm.name,
-                              onTap: () {
-                                setState(() {
-                                  _selectedPayment = pm.name;
-                                  if (pm.name == 'Credit') {
-                                    _amountTendered = 0;
-                                    _cashController.text = '0.00';
-                                    _partialController.text = '0.00';
-                                  } else if (pm.name == 'Cash') {
-                                    _amountTendered = _grandTotal;
-                                    _cashController.text = BusinessConfig.instance.formatAmount(_grandTotal);
-                                  }
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    const SizedBox(height: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildOptionToggle(
-                          label: 'Receipt',
-                          icon: Icons.receipt_long_rounded,
-                          value: _generateReceipt,
-                          onChanged: (v) => setState(() => _generateReceipt = v ?? false),
-                        ),
-                        _buildOptionToggle(
-                          label: 'Cash Drawer',
-                          icon: Icons.door_sliding_rounded,
-                          value: _openCashDrawer,
-                          onChanged: (v) => setState(() => _openCashDrawer = v ?? false),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
+                  ),
+                );
+              }
+            },
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSummary(bool isWide) {
-    return Container(
-      constraints: isWide ? const BoxConstraints.expand() : null,
-      padding: const EdgeInsets.all(16),
-      decoration: theme.glassDecoration,
+  Widget _buildLeftPanelContent() {
+    return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: isWide ? MainAxisSize.max : MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Order Summary',
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5)),
+          _buildAmountField(),
+          const SizedBox(height: 10),
+            _buildUniversalDialPad(),
+            if (_amountTendered < _grandTotal && _selectedPayment != 'Credit') ...[
+              const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: theme.whiteAlpha(0.05),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                  color: ThemeProvider.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                  border: Border.all(color: ThemeProvider.warning.withOpacity(0.3), width: 1.5),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.person_rounded, size: 14, color: theme.highlight),
-                    const SizedBox(width: 6),
-                    Text(
-                      _selectedCustomer?.name ?? 'Walk-in Guest',
-                      style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w900),
+                    Icon(Icons.info_outline_rounded, color: ThemeProvider.warning, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Remaining ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_grandTotal - _amountTendered)} added to credit.',
+                        style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ],
                 ),
               ),
-              if (_selectedCustomer == null && (_amountTendered < _grandTotal || _selectedPayment == 'Credit'))
-                IconButton(
-                  icon: Icon(Icons.add_circle_outline_rounded, size: 20, color: theme.highlight),
-                  onPressed: () async {
-                    final customer = await _showCustomerSelectionDialog();
-                    if (customer != null) setState(() => _selectedCustomer = customer);
-                  },
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
             ],
+          ],
+        ),
+      );
+  }
+
+  Widget _buildMiddlePanelContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('Payment Method',
+            style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.3)),
+        const SizedBox(height: 10),
+          // 2x2 grid of payment methods
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 0.95,
+            children: _dynamicPaymentMethods.take(4).map((pm) => _PaymentMethodButton(
+              name: pm.name,
+              iconName: pm.icon,
+              selected: _selectedPayment == pm.name,
+              onTap: () {
+                setState(() {
+                  _selectedPayment = pm.name;
+                  if (pm.name == 'Credit') {
+                    _amountTendered = 0;
+                    _cashController.text = '0.00';
+                    _partialController.text = '0.00';
+                  } else if (pm.name == 'Cash') {
+                    _amountTendered = _grandTotal;
+                    _cashController.text = BusinessConfig.instance.formatAmount(_grandTotal);
+                  }
+                });
+              },
+            )).toList(),
           ),
           const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: theme.cardBorder)),
+            ),
+            padding: const EdgeInsets.only(top: 10),
+            child: Column(
+              children: [
+                _buildOptionToggle(
+                  label: 'Receipt',
+                  icon: Icons.receipt_long_rounded,
+                  value: _generateReceipt,
+                  onChanged: (v) => setState(() => _generateReceipt = v ?? false),
+                ),
+                const SizedBox(height: 4),
+                _buildOptionToggle(
+                  label: 'Cash Drawer',
+                  icon: Icons.door_sliding_rounded,
+                  value: _openCashDrawer,
+                  onChanged: (v) => setState(() => _openCashDrawer = v ?? false),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+  }
 
+  // Keep old method for compat — now unused but left to avoid removing any referenced code
+  Widget _buildPaymentMethods({bool isMobile = false}) => _buildMiddlePanelContent();
+
+  Widget _buildSummary(bool isWide) {
+    return Container(
+      constraints: isWide ? const BoxConstraints.expand() : null,
+      decoration: theme.glassDecoration.copyWith(
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: isWide ? MainAxisSize.max : MainAxisSize.min,
+        children: [
+          // Header
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Order Summary',
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: theme.whiteAlpha(0.05),
+                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.person_rounded, size: 13, color: theme.highlight),
+                      const SizedBox(width: 5),
+                      Text(
+                        _selectedCustomer?.name ?? 'Walk-in Guest',
+                        style: TextStyle(color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.w900),
+                      ),
+                      if (_selectedCustomer == null && (_amountTendered < _grandTotal || _selectedPayment == 'Credit')) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () async {
+                            final customer = await _showCustomerSelectionDialog();
+                            if (customer != null) setState(() => _selectedCustomer = customer);
+                          },
+                          child: Icon(Icons.add_circle_outline_rounded, size: 16, color: theme.highlight),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+
+          // Item list
           if (isWide)
             Expanded(
-              child: SingleChildScrollView(
-                child: _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: SingleChildScrollView(
+                  child: _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
+                ),
               ),
             )
           else
-            _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
+            ),
 
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
-            child: Divider(height: 1),
+          // Totals section with top divider
+          Container(
+            decoration: BoxDecoration(
+              border: Border(top: BorderSide(color: theme.cardBorder)),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: Column(
+              children: [
+                _SummaryRow(
+                    label: 'Subtotal',
+                    value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.subtotal)}'),
+                _SummaryRow(
+                    label: 'Tax',
+                    value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
+                if (widget.discount > 0)
+                  _SummaryRow(
+                      label: 'Discount',
+                      value: '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.discount)}',
+                      valueColor: ThemeProvider.warning),
+                if (_tipAmount > 0)
+                  _SummaryRow(
+                      label: 'Tip',
+                      value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_tipAmount)}',
+                      valueColor: ThemeProvider.success),
+              ],
+            ),
           ),
 
-          _SummaryRow(
-              label: 'Subtotal',
-              value:
-                  '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.subtotal)}'),
-          _SummaryRow(
-              label: 'Tax',
-              value:
-                  '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
-          if (widget.discount > 0)
-            _SummaryRow(
-                label: 'Discount',
-                value:
-                    '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.discount)}',
-                valueColor: ThemeProvider.warning),
-          if (_tipAmount > 0)
-            _SummaryRow(
-                label: 'Tip',
-                value:
-                    '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_tipAmount)}',
-                valueColor: ThemeProvider.success),
-
-          const SizedBox(height: 10),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('GRAND TOTAL',
-                  style: TextStyle(
-                      color: theme.textHint,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1)),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_grandTotal)}',
+          // Grand Total highlighted row
+          Container(
+            margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: theme.highlight.withOpacity(0.15)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('GRAND TOTAL',
                     style: TextStyle(
                         color: theme.highlight,
-                        fontSize: 20,
+                        fontSize: 12,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -1),
+                        letterSpacing: 1)),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_grandTotal)}',
+                      style: TextStyle(
+                          color: theme.highlight,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
 
-          const SizedBox(height: 10),
-
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              onPressed: (_processing || (_selectedPayment == 'Cash' &&
-                      _amountTendered < _grandTotal))
-                  ? null
-                  : _processPayment,
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    widget.isReturn ? ThemeProvider.warning : ThemeProvider.success,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                elevation: 4,
-                shadowColor: (widget.isReturn ? ThemeProvider.warning : ThemeProvider.success).withOpacity(0.3),
+          // Complete button
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
+                label: Text(
+                  widget.isReturn
+                      ? 'PROCESS REFUND'
+                      : (_amountTendered < _grandTotal ? 'COMPLETE & ADD TO CREDIT' : 'COMPLETE TRANSACTION'),
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                ),
+                onPressed: (_processing || (_selectedPayment == 'Cash' && _amountTendered < _grandTotal))
+                    ? null
+                    : _processPayment,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.isReturn ? ThemeProvider.warning : ThemeProvider.success,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                  elevation: 4,
+                  shadowColor: (widget.isReturn ? ThemeProvider.warning : ThemeProvider.success).withOpacity(0.3),
+                ),
               ),
-              child: _processing
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
-                    )
-                  : Text(
-                      widget.isReturn 
-                        ? 'PROCESS REFUND' 
-                        : (_amountTendered < _grandTotal ? 'COMPLETE & ADD TO CREDIT' : 'COMPLETE TRANSACTION'),
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                    ),
             ),
           ),
         ],
@@ -916,26 +961,30 @@ class _PaymentScreenState extends State<PaymentScreen> {
       itemBuilder: (context, index) {
         final item = widget.cart[index];
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+          padding: const EdgeInsets.symmetric(vertical: 5),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(4)),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: theme.highlight.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: theme.highlight.withOpacity(0.25)),
+                ),
                 child: Text('${item['quantity']}x',
                     style: TextStyle(
-                        color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900)),
+                        color: theme.highlight, fontSize: 12, fontWeight: FontWeight.w900)),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(item['name'],
                     style: TextStyle(
-                        color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+                        color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
               ),
               Text(
                 '${BusinessConfig.instance.currencyDisplay} ${(item['subtotal'] as double).toStringAsFixed(2)}',
                 style: TextStyle(
-                    color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w800),
+                    color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -954,26 +1003,37 @@ class _PaymentScreenState extends State<PaymentScreen> {
         Text(label,
             style: TextStyle(
                 color: theme.textPrimary,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: FontWeight.w800)),
-        const SizedBox(height: 4),
-        TextField(
-          controller: _activeController,
-          readOnly: true,
-          style: TextStyle(
-              color: theme.textPrimary,
-              fontSize: 15,
-              fontWeight: FontWeight.w900),
-          decoration: theme.glassInputDecoration('Amount', Icons.payments_rounded).copyWith(
-            prefixText: '${BusinessConfig.instance.currencyDisplay} ',
-            prefixStyle: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 14),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            suffixIcon: IconButton(
-              icon: Icon(Icons.refresh_rounded, color: theme.highlight, size: 16),
-              onPressed: () => _setCash(_grandTotal),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
-            ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: theme.highlight.withOpacity(0.06),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: theme.highlight.withOpacity(0.2)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          child: Row(
+            children: [
+              Icon(Icons.payments_rounded, color: theme.highlight, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  '${BusinessConfig.instance.currencyDisplay} ${_activeController.text}',
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: Icon(Icons.refresh_rounded, color: theme.highlight, size: 18),
+                onPressed: () => _setCash(_grandTotal),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
           ),
         ),
       ],
@@ -1033,41 +1093,39 @@ class _PaymentScreenState extends State<PaymentScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        Center(
+        // Full-width EXACT TOTAL button
+        SizedBox(
+          width: double.infinity,
           child: _QuickCashButton(
-              amount: _grandTotal,
-              label: 'EXACT TOTAL',
-              onTap: () => _setCash(_grandTotal)),
+            amount: _grandTotal,
+            label: 'EXACT TOTAL',
+            onTap: () => _setCash(_grandTotal),
+          ),
         ),
         if (!widget.isReturn) ...[
           const SizedBox(height: 8),
           Text('Gratuity (Tip)',
+              textAlign: TextAlign.center,
               style: TextStyle(
                   color: theme.textPrimary,
                   fontSize: 11,
                   fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.center,
+          // Row 1: NO TIP, 5%, 10%
+          Row(
             children: [
-              _TipButton(
-                  percent: 0,
-                  selected: _tipPercent == 0,
-                  onTap: () => setState(() => _tipPercent = 0)),
-              _TipButton(
-                  percent: 5,
-                  selected: _tipPercent == 5,
-                  onTap: () => setState(() => _tipPercent = 5)),
-              _TipButton(
-                  percent: 10,
-                  selected: _tipPercent == 10,
-                  onTap: () => setState(() => _tipPercent = 10)),
-              _TipButton(
-                  percent: 15,
-                  selected: _tipPercent == 15,
-                  onTap: () => setState(() => _tipPercent = 15)),
+              Expanded(child: _TipButton(percent: 0, selected: _tipPercent == 0, onTap: () => setState(() => _tipPercent = 0))),
+              const SizedBox(width: 6),
+              Expanded(child: _TipButton(percent: 5, selected: _tipPercent == 5, onTap: () => setState(() => _tipPercent = 5))),
+              const SizedBox(width: 6),
+              Expanded(child: _TipButton(percent: 10, selected: _tipPercent == 10, onTap: () => setState(() => _tipPercent = 10))),
+            ],
+          ),
+          const SizedBox(height: 6),
+          // Row 2: 15% alone centered
+          Row(
+            children: [
+              Expanded(child: _TipButton(percent: 15, selected: _tipPercent == 15, onTap: () => setState(() => _tipPercent = 15))),
             ],
           ),
         ],
@@ -1245,13 +1303,12 @@ class _PaymentMethodButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 75,
-        height: 90,
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         decoration: theme.glassDecoration.copyWith(
-          color: selected ? theme.highlight : theme.whiteAlpha(0.05),
+          color: selected ? theme.highlight : theme.whiteAlpha(0.03),
           border: Border.all(
-              color: selected ? theme.highlight : theme.whiteAlpha(0.1), width: 1.5),
+              color: selected ? theme.highlight : theme.cardBorder, width: 1.5),
+          borderRadius: BorderRadius.circular(10),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1259,24 +1316,23 @@ class _PaymentMethodButton extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: selected ? Colors.white.withOpacity(0.2) : theme.whiteAlpha(0.05),
+                color: selected ? Colors.white.withOpacity(0.2) : theme.whiteAlpha(0.06),
                 shape: BoxShape.circle,
               ),
               child: Icon(_icon,
                   color: selected ? Colors.white : theme.iconColor,
-                  size: 17),
+                  size: 18),
             ),
-            const SizedBox(height: 6),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(name.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: selected ? Colors.white : theme.textPrimary,
-                      fontSize: 9,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5)),
-            ),
+            const SizedBox(height: 5),
+            Text(name.toUpperCase(),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    color: selected ? Colors.white : theme.textPrimary,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5)),
           ],
         ),
       ),
@@ -1298,16 +1354,18 @@ class _QuickCashButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: theme.glassDecoration.copyWith(
-          color: theme.whiteAlpha(0.05),
-          border: Border.all(color: theme.whiteAlpha(0.1), width: 1.5),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: theme.highlight.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: theme.highlight.withOpacity(0.25), width: 1.5),
         ),
-        child: Text(
-          label ??
-              '${BusinessConfig.instance.currencyDisplay} ${amount.toStringAsFixed(0)}',
-          style: TextStyle(
-              color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 13),
+        child: Center(
+          child: Text(
+            label ?? '${BusinessConfig.instance.currencyDisplay} ${amount.toStringAsFixed(0)}',
+            style: TextStyle(
+                color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+          ),
         ),
       ),
     );
@@ -1328,19 +1386,21 @@ class _TipButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? theme.highlight : theme.whiteAlpha(0.05),
-          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+          color: selected ? theme.highlight : theme.whiteAlpha(0.04),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
-              color: selected ? theme.highlight : theme.whiteAlpha(0.1)),
+              color: selected ? theme.highlight : theme.cardBorder, width: 1.5),
         ),
-        child: Text(
-          percent == 0 ? 'NO TIP' : '$percent%',
-          style: TextStyle(
-              color: selected ? Colors.white : theme.textPrimary,
-              fontWeight: FontWeight.w900,
-              fontSize: 10),
+        child: Center(
+          child: Text(
+            percent == 0 ? 'NO TIP' : '$percent%',
+            style: TextStyle(
+                color: selected ? Colors.white : theme.textPrimary,
+                fontWeight: FontWeight.w900,
+                fontSize: 11),
+          ),
         ),
       ),
     );

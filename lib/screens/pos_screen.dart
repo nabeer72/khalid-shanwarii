@@ -48,6 +48,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   bool _showQuickAddProduct = false;
   late AnimationController _quickAddController;
   late Animation<Offset> _quickAddSlideAnimation;
+  
+  double _searchBoxWidth = 300;
 
   @override
   void initState() {
@@ -1873,6 +1875,28 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
+  void _handleProductTap(Product product) {
+    final variants = _controller.getVariantsByName(product.name);
+    final bool hasMultipleBatches = variants.expand((v) => v.stocks).length > 1;
+
+    if (hasMultipleBatches) {
+      _showStockBatchDialog(variants);
+    } else {
+      final targetV = variants.isNotEmpty ? variants.first : product;
+      if (targetV.stocks.isEmpty) return;
+      
+      final stock = targetV.stocks.first;
+      if (stock.quantity <= 0) {
+        _showStockNotFoundDialog(targetV, stock);
+      } else {
+        final success = _controller.addToCart(targetV, stock);
+        if (!success) {
+          _showStockNotFoundDialog(targetV, stock);
+        }
+      }
+    }
+  }
+
   Widget _buildProductPanel() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1894,29 +1918,87 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             ),
           ),
         Expanded(
-          child: POSProductGrid(
-            controller: _controller,
-            onProductTap: (product) {
-              final variants = _controller.getVariantsByName(product.name);
-              final bool hasMultipleBatches = variants.expand((v) => v.stocks).length > 1;
-
-              if (hasMultipleBatches) {
-                _showStockBatchDialog(variants);
-              } else {
-                final targetV = variants.isNotEmpty ? variants.first : product;
-                if (targetV.stocks.isEmpty) return;
-                
-                final stock = targetV.stocks.first;
-                if (stock.quantity <= 0) {
-                  _showStockNotFoundDialog(targetV, stock);
-                } else {
-                  final success = _controller.addToCart(targetV, stock);
-                  if (!success) {
-                    _showStockNotFoundDialog(targetV, stock);
-                  }
-                }
-              }
-            },
+          child: Stack(
+            children: [
+              POSProductGrid(
+                controller: _controller,
+                onProductTap: _handleProductTap,
+              ),
+              if (_searchCtrl.text.isNotEmpty && _searchFocusNode.hasFocus)
+                Positioned(
+                  top: 0,
+                  right: 16,
+                  width: _searchBoxWidth,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 280),
+                    child: Material(
+                      elevation: 12,
+                      color: Colors.transparent,
+                      child: Container(
+                        decoration: theme.glassDecoration.copyWith(
+                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                          border: Border.all(color: theme.cardBorder),
+                          color: theme.surface,
+                        ),
+                        child: ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.all(4),
+                          itemCount: _controller.filteredProducts.length,
+                          separatorBuilder: (ctx, i) => Divider(height: 1, color: theme.cardBorder),
+                          itemBuilder: (ctx, i) {
+                            final product = _controller.filteredProducts[i];
+                            final isInCart = _controller.cart.any((item) => item.product.id == product.id);
+                            
+                            return ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                              leading: Checkbox(
+                                value: isInCart,
+                                onChanged: (bool? checked) {
+                                  if (checked == true) {
+                                    _handleProductTap(product);
+                                  } else {
+                                    final indices = <int>[];
+                                    for(int j = 0; j < _controller.cart.length; j++) {
+                                      if (_controller.cart[j].product.id == product.id) {
+                                        indices.add(j);
+                                      }
+                                    }
+                                    for(final idx in indices.reversed) {
+                                      _controller.removeFromCart(idx);
+                                    }
+                                  }
+                                  _searchFocusNode.requestFocus();
+                                },
+                                activeColor: theme.highlight,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                              ),
+                              title: Text(product.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
+                              subtitle: Text('Stock: ${product.latestStockQuantity}', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+                              trailing: Text(BusinessConfig.instance.formatAmount(product.latestPrice), style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900)),
+                              onTap: () {
+                                if (!isInCart) {
+                                  _handleProductTap(product);
+                                } else {
+                                  final indices = <int>[];
+                                  for(int j = 0; j < _controller.cart.length; j++) {
+                                    if (_controller.cart[j].product.id == product.id) {
+                                      indices.add(j);
+                                    }
+                                  }
+                                  for(final idx in indices.reversed) {
+                                    _controller.removeFromCart(idx);
+                                  }
+                                }
+                                _searchFocusNode.requestFocus();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ],
@@ -2058,65 +2140,71 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               ),
         ];
 
-        final searchWidget = ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
-          child: Container(
-            decoration: theme.glassDecoration.copyWith(
-              borderRadius: BorderRadius.circular(8),
-              color: theme.isDark
-                  ? Colors.white.withOpacity(0.05)
-                  : Colors.white.withOpacity(0.2),
-            ),
-            child: TextField(
-              controller: _searchCtrl,
-              focusNode: _searchFocusNode,
-              onChanged: (v) => _controller.setSearchQuery(v),
-              onSubmitted: (v) {
-                if (v.isNotEmpty) {
-                  _processBarcode(v);
-                  _searchCtrl.clear();
-                  _controller.setSearchQuery('');
-                }
-              },
-              style: TextStyle(
-                  color: theme.textPrimary, fontWeight: FontWeight.w500),
-              decoration: InputDecoration(
-                hintText: showLabel
-                    ? 'Search product or scan barcode...'
-                    : 'Search...',
-                hintStyle: TextStyle(
-                    color: theme.textHint, fontWeight: FontWeight.w400),
-                prefixIcon:
-                    Icon(Icons.search_rounded, color: theme.iconColor),
-                suffixIcon: _controller.searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: Icon(Icons.close_rounded,
-                            size: 18, color: theme.iconColor),
-                        onPressed: () {
-                          _searchCtrl.clear();
-                          _controller.setSearchQuery('');
-                        })
-                    : IconButton(
-                        icon: Icon(Icons.qr_code_scanner_rounded,
-                            color: theme.iconColor),
-                        onPressed: _openBarcodeScanner),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16, vertical: 12),
+        final searchWidget = LayoutBuilder(
+          builder: (context, fieldConstraints) {
+            if (_searchBoxWidth != fieldConstraints.maxWidth) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) setState(() => _searchBoxWidth = fieldConstraints.maxWidth);
+              });
+            }
+            return Container(
+              decoration: theme.glassDecoration.copyWith(
+                borderRadius: BorderRadius.circular(8),
+                color: theme.isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.white.withOpacity(0.2),
               ),
+              child: TextField(
+                controller: _searchCtrl,
+                focusNode: _searchFocusNode,
+                onChanged: (v) => _controller.setSearchQuery(v),
+                onSubmitted: (v) {
+                  if (v.isNotEmpty) {
+                    _processBarcode(v);
+                    _searchCtrl.clear();
+                    _controller.setSearchQuery('');
+                  }
+                },
+                style: TextStyle(
+                    color: theme.textPrimary, fontWeight: FontWeight.w500),
+                decoration: InputDecoration(
+              hintText: showLabel
+                  ? 'Search product or scan barcode...'
+                  : 'Search...',
+              hintStyle: TextStyle(
+                  color: theme.textHint, fontWeight: FontWeight.w400),
+              prefixIcon:
+                  Icon(Icons.search_rounded, color: theme.iconColor),
+              suffixIcon: _controller.searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.close_rounded,
+                          size: 18, color: theme.iconColor),
+                      onPressed: () {
+                        _searchCtrl.clear();
+                        _controller.setSearchQuery('');
+                      })
+                  : IconButton(
+                      icon: Icon(Icons.barcode_reader,
+                          color: theme.iconColor),
+                      onPressed: _openBarcodeScanner),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 12),
             ),
           ),
         );
+      },
+    );
 
-        if (showLabel) {
+    if (showLabel) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
                 ...buttons,
                 const SizedBox(width: 12),
-                const Spacer(),
-                Flexible(child: searchWidget),
+                Expanded(child: searchWidget),
+
               ],
             ),
           );

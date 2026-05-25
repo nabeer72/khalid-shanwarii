@@ -695,7 +695,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       const SizedBox(height: 12),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: Text('PENDING ITEMS (${queuedItems.length})', 
+                        child: Text('LISTED ITEMS (${queuedItems.length})', 
                           style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1)),
                       ),
                       const SizedBox(height: 8),
