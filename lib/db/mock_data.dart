@@ -21,6 +21,7 @@ class BusinessConfig {
   List<dynamic> inactiveBranchIds = [];
   String receiptFooter = 'Thank you!';
   double taxRate = 0.0;
+  bool enableTax = false;
   bool requireCustomer = false;
   bool autoReceipt = true;
   bool openCashDrawer = true;
@@ -95,6 +96,7 @@ class BusinessConfig {
     receiptFooter = 'Thank you!';
     currency = '\$';
     taxRate = 0.0;
+    enableTax = false;
     requireCustomer = false;
     autoReceipt = true;
     openCashDrawer = true;

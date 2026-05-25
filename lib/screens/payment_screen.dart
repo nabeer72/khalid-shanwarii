@@ -63,9 +63,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   @override
   void initState() {
     super.initState();
-    _amountTendered = widget.total;
-    _cashController.text = BusinessConfig.instance.formatAmount(widget.total);
-    _partialController.text = BusinessConfig.instance.formatAmount(widget.total);
+    _amountTendered = 0;
+    _cashController.text = '0.00';
+    _partialController.text = '0.00';
     _selectedCustomer = widget.customer;
     _loadCurrencyNotes();
     _loadPaymentMethods();
@@ -577,8 +577,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     _cashController.text = '0.00';
                     _partialController.text = '0.00';
                   } else if (pm.name == 'Cash') {
-                    _amountTendered = _grandTotal;
-                    _cashController.text = BusinessConfig.instance.formatAmount(_grandTotal);
+                    _amountTendered = 0;
+                    _cashController.text = '0.00';
                   }
                 });
               },
@@ -708,6 +708,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   _SummaryRow(
                       label: 'Tip',
                       value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_tipAmount)}',
+                      valueColor: ThemeProvider.success),
+                if (_change > 0)
+                  _SummaryRow(
+                      label: 'Returnable Amount',
+                      value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_change)}',
                       valueColor: ThemeProvider.success),
               ],
             ),
@@ -1134,10 +1139,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _setCash(double amount) {
-    final finalAmount = amount > _grandTotal ? _grandTotal : amount;
     setState(() {
-      _amountTendered = finalAmount;
-      _activeController.text = finalAmount.toStringAsFixed(2);
+      _amountTendered = amount;
+      _activeController.text = amount.toStringAsFixed(2);
     });
   }
 
@@ -1181,10 +1185,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     
     setState(() {
       double val = double.tryParse(current) ?? 0;
-      if (val > _grandTotal) {
-        val = _grandTotal;
-        current = val.toStringAsFixed(2);
-      }
       _activeController.text = current;
       _amountTendered = val;
     });

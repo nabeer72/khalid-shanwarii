@@ -41,6 +41,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
   bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
+  bool _enableTax = BusinessConfig.instance.enableTax;
 
   @override
   void initState() {
@@ -1038,12 +1039,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 24),
               const _SectionHeader(title: 'FINANCIAL CONFIG'),
-              _SettingsTile(
-                icon: Icons.receipt_long_rounded,
-                title: 'Universal Tax Rate',
-                subtitle: '$_taxRate%',
-                onTap: _showTaxDialog,
+              _SettingsSwitch(
+                icon: Icons.percent_rounded,
+                title: 'Enable Tax',
+                subtitle: 'Apply GST/tax to all purchases',
+                value: _enableTax,
+                onChanged: (v) async {
+                  setState(() => _enableTax = v);
+                  BusinessConfig.instance.enableTax = v;
+                  await DatabaseHelper.instance.setSetting('enable_tax', v ? '1' : '0');
+                },
               ),
+              if (_enableTax)
+                _SettingsTile(
+                  icon: Icons.receipt_long_rounded,
+                  title: 'Universal Tax Rate',
+                  subtitle: '$_taxRate%',
+                  onTap: _showTaxDialog,
+                ),
               _SettingsTile(
                 icon: Icons.money_rounded,
                 title: 'Currency Notes',
@@ -1511,7 +1524,7 @@ class _SettingsTile extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
           leading: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
             child: Icon(icon, color: theme.highlight, size: 22),
           ),
           title: Text(title, style: TextStyle(color: titleColor ?? theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),

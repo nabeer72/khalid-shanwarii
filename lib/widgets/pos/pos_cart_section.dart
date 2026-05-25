@@ -42,6 +42,10 @@ class _POSCartSectionState extends State<POSCartSection> {
   bool _isLoadingCustomers = false;
   String _customerSearchQuery = '';
 
+  bool _isEditingDiscount = false;
+  final TextEditingController _discountCtrl = TextEditingController();
+  String _discountType = 'fixed';
+
   Future<void> _toggleCustomerDropdown() async {
     if (_isCustomerDropdownOpen) {
       setState(() => _isCustomerDropdownOpen = false);
@@ -426,44 +430,99 @@ class _POSCartSectionState extends State<POSCartSection> {
             child: Divider(height: 1),
           ),
           _totalRow(theme, 'Subtotal', widget.controller.subtotal),
-          const SizedBox(height: 6),
-          _totalRow(theme, 'Tax', widget.controller.tax),
-          if (widget.controller.totalDiscount > 0) ...[
+          if (BusinessConfig.instance.enableTax) ...[
             const SizedBox(height: 6),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Total Discount',
-                        style: TextStyle(
-                            color: theme.highlight,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
-                    if (widget.controller.isDiscountRestricted)
-                      Container(
-                        margin: const EdgeInsets.only(left: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: ThemeProvider.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: ThemeProvider.error.withOpacity(0.3)),
+            _totalRow(theme, 'Tax', widget.controller.tax),
+          ],
+          if (_isEditingDiscount) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.highlight.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: theme.highlight.withOpacity(0.3)),
+              ),
+              child: Row(
+                children: [
+                   IconButton(
+                     icon: Text(_discountType == 'percentage' ? '%' : BusinessConfig.instance.currencyDisplay, style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold, fontSize: 16)),
+                     onPressed: () => setState(() => _discountType = _discountType == 'fixed' ? 'percentage' : 'fixed'),
+                     constraints: const BoxConstraints(),
+                     padding: EdgeInsets.zero,
+                   ),
+                   const SizedBox(width: 12),
+                   Expanded(
+                     child: TextField(
+                       controller: _discountCtrl,
+                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 16),
+                       decoration: InputDecoration(
+                         hintText: 'Enter discount...',
+                         hintStyle: TextStyle(color: theme.textHint, fontSize: 13),
+                         border: InputBorder.none,
+                         isDense: true,
+                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                       ),
+                       onChanged: (v) {
+                          final val = double.tryParse(v) ?? 0;
+                          widget.controller.setDiscount(val, type: _discountType);
+                       },
+                     ),
+                   ),
+                   IconButton(
+                     icon: Icon(Icons.check_circle_rounded, color: theme.highlight, size: 20),
+                     onPressed: () => setState(() => _isEditingDiscount = false),
+                     constraints: const BoxConstraints(),
+                     padding: EdgeInsets.zero,
+                   ),
+                ],
+              ),
+            ),
+          ] else if (widget.controller.totalDiscount > 0) ...[
+            const SizedBox(height: 6),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _isEditingDiscount = true;
+                  _discountCtrl.text = widget.controller.discount > 0 ? widget.controller.discount.toString() : '';
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Total Discount',
+                          style: TextStyle(
+                              color: theme.highlight,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                      if (widget.controller.isDiscountRestricted)
+                        Container(
+                          margin: const EdgeInsets.only(left: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: ThemeProvider.error.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: ThemeProvider.error.withOpacity(0.3)),
+                          ),
+                          child: Text(
+                            'RESTRICTED',
+                            style: TextStyle(color: ThemeProvider.error, fontSize: 8, fontWeight: FontWeight.bold),
+                          ),
                         ),
-                        child: Text(
-                          'RESTRICTED',
-                          style: TextStyle(color: ThemeProvider.error, fontSize: 8, fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                  ],
-                ),
-                Text(
-                    '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.totalDiscount)}',
-                    style: TextStyle(
-                        color: theme.highlight,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w900)),
-              ],
+                    ],
+                  ),
+                  Text(
+                      '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.controller.totalDiscount)}',
+                      style: TextStyle(
+                          color: theme.highlight,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900)),
+                ],
+              ),
             ),
           ],
           const Padding(
@@ -506,7 +565,14 @@ class _POSCartSectionState extends State<POSCartSection> {
                     icon: Icons.discount_rounded,
                     label: 'Discount',
                     color: theme.highlight,
-                    onTap: widget.onApplyDiscount,
+                    onTap: () {
+                      setState(() {
+                         _isEditingDiscount = !_isEditingDiscount;
+                         if (_isEditingDiscount) {
+                            _discountCtrl.text = widget.controller.discount > 0 ? widget.controller.discount.toString() : '';
+                         }
+                      });
+                    },
                   ),
                 ),
               ),

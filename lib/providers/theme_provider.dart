@@ -89,7 +89,7 @@ class ThemeProvider extends ChangeNotifier {
 
   // Glassmorphism effect
   BoxDecoration get glassDecoration => BoxDecoration(
-    color: whiteAlpha(0.05),
+    color: Colors.white.withOpacity(0.5),
     borderRadius: BorderRadius.circular(radiusGlass),
     border: Border.all(color: whiteAlpha(0.1), width: 1.5),
     boxShadow: [

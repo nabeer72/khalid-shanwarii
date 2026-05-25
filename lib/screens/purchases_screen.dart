@@ -415,6 +415,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     } catch (_) {}
 
     String? dialogError;
+    int? editingIndex;
     showDialog(
       context: parentCtx,
       builder: (ctx) => StatefulBuilder(
@@ -422,6 +423,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           void clearInputs() {
             setDialogState(() {
               selectedProductId = null;
+              editingIndex = null;
               searchCtrl.clear();
               qtyCtrl.text = '1';
               costCtrl.text = '0.00';
@@ -449,8 +451,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     final qty = double.tryParse(qtyCtrl.text) ?? 0;
                     final pieces = double.tryParse(piecesCtrl.text) ?? 1.0;
                     if (selectedProductId != null && qty > 0) {
-                      if (controller.items.any((item) => item['product_id'] == selectedProductId) ||
-                          queuedItems.any((item) => item['productId'] == selectedProductId)) {
+                      final isDuplicate = controller.items.any((item) => item['product_id'] == selectedProductId) ||
+                          (queuedItems.any((item) => item['productId'] == selectedProductId) &&
+                          (editingIndex == null || queuedItems[editingIndex!]['productId'] != selectedProductId));
+                      
+                      if (isDuplicate) {
                         setDialogState(() {
                           dialogError = 'Item already added';
                         });
@@ -459,7 +464,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                       final p = controller.products.firstWhere((x) => x['id'] == selectedProductId);
                       setDialogState(() {
                         dialogError = null;
-                        queuedItems.add({
+                        final itemData = {
                           'productId': selectedProductId!,
                           'productName': p['name'],
                           'barcode': p['barcode'],
@@ -470,13 +475,19 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           'sellingPrice': double.tryParse(priceCtrl.text) ?? 0,
                           'unitId': selectedUnitId,
                           'piecesPerBox': pieces,
-                        });
+                        };
+                        
+                        if (editingIndex != null) {
+                          queuedItems[editingIndex!] = itemData;
+                        } else {
+                          queuedItems.add(itemData);
+                        }
                       });
                       clearInputs();
                     }
                   },
-                  icon: const Icon(Icons.add_rounded, size: 16),
-                  label: const Text('ADD MORE', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                  icon: Icon(editingIndex != null ? Icons.save_rounded : Icons.add_rounded, size: 16),
+                  label: Text(editingIndex != null ? 'UPDATE' : 'ADD MORE', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
                 ),
               ],
             ),
@@ -572,7 +583,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                     },
                                   ),
                                 IconButton(
-                                  icon: Icon(isScannerOpen ? Icons.close_rounded : Icons.qr_code_scanner_rounded, color: theme.highlight, size: 20),
+                                  icon: Icon(isScannerOpen ? Icons.close_rounded : Icons.barcode_reader, color: theme.highlight, size: 20),
                                   onPressed: () {
                                     setDialogState(() {
                                       isScannerOpen = !isScannerOpen;
@@ -619,10 +630,15 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                               shrinkWrap: true,
                               padding: EdgeInsets.zero,
                               children: controller.products
-                                  .where((p) => 
-                                      searchCtrl.text.isEmpty ||
-                                      p['name'].toString().toLowerCase().contains(searchCtrl.text.toLowerCase()) ||
-                                      p['barcode'].toString().contains(searchCtrl.text))
+                                  .where((p) {
+                                    final isAdded = controller.items.any((item) => item['product_id'] == p['id']) ||
+                                                    (queuedItems.any((item) => item['productId'] == p['id']) &&
+                                                    (editingIndex == null || queuedItems[editingIndex!]['productId'] != p['id']));
+                                    if (isAdded) return false;
+                                    return searchCtrl.text.isEmpty ||
+                                        p['name'].toString().toLowerCase().contains(searchCtrl.text.toLowerCase()) ||
+                                        p['barcode'].toString().contains(searchCtrl.text);
+                                  })
                                   .map((p) => ListTile(
                                         title: Text(p['name'], style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
                                         subtitle: (p['barcode'] == null || p['barcode'].toString() == 'null' || p['barcode'].toString().isEmpty) 
@@ -706,14 +722,32 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                           itemCount: queuedItems.length,
                           itemBuilder: (context, index) {
                             final item = queuedItems[index];
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(12),
-                              decoration: theme.glassDecoration.copyWith(
-                                color: theme.whiteAlpha(0.05),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Row(
+                            return GestureDetector(
+                              onTap: () {
+                                setDialogState(() {
+                                  editingIndex = index;
+                                  selectedProductId = item['productId'];
+                                  searchCtrl.text = item['productName'];
+                                  qtyCtrl.text = item['quantity'].toStringAsFixed(0);
+                                  costCtrl.text = item['purchasePrice']?.toStringAsFixed(2) ?? '0.00';
+                                  wholesaleCtrl.text = item['wholesalePrice']?.toStringAsFixed(2) ?? '0.00';
+                                  priceCtrl.text = item['sellingPrice']?.toStringAsFixed(2) ?? '0.00';
+                                  stk = item['existingStock']?.toDouble() ?? 0.0;
+                                  selectedUnitId = item['unitId'];
+                                  piecesCtrl.text = item['piecesPerBox']?.toStringAsFixed(0) ?? '1';
+                                  dialogError = null;
+                                  isDropdownOpen = false;
+                                });
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 10),
+                                padding: const EdgeInsets.all(12),
+                                decoration: theme.glassDecoration.copyWith(
+                                  color: editingIndex == index ? theme.highlight.withOpacity(0.1) : theme.whiteAlpha(0.05),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: editingIndex == index ? Border.all(color: theme.highlight, width: 1.5) : null,
+                                ),
+                                child: Row(
                                 children: [
                                   Expanded(
                                     child: Column(
@@ -773,12 +807,22 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                   const SizedBox(width: 8),
                                   IconButton(
                                     icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 20),
-                                    onPressed: () => setDialogState(() => queuedItems.removeAt(index)),
+                                    onPressed: () => setDialogState(() {
+                                      if (editingIndex == index) {
+                                        selectedProductId = null;
+                                        editingIndex = null;
+                                        searchCtrl.clear();
+                                      } else if (editingIndex != null && editingIndex! > index) {
+                                        editingIndex = editingIndex! - 1;
+                                      }
+                                      queuedItems.removeAt(index);
+                                    }),
                                     padding: EdgeInsets.zero,
                                     constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                                   ),
                                 ],
                               ),
+                             ),
                             );
                           },
                         ),

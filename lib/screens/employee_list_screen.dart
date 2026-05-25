@@ -593,7 +593,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: theme.glassDecoration.copyWith(
-        color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+        color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.5),
       ),
       child: Row(
         children: [

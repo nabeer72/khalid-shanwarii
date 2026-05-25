@@ -267,7 +267,11 @@ class POSController with ChangeNotifier {
       itemDiscounts += item.discount;
     }
 
-    _tax = _subtotal * (BusinessConfig.instance.taxRate / 100);
+    if (BusinessConfig.instance.enableTax) {
+      _tax = _subtotal * (BusinessConfig.instance.taxRate / 100);
+    } else {
+      _tax = 0.0;
+    }
     
     if (_isManualDiscount) {
       // Global manual discount
