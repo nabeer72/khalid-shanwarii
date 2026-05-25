@@ -15,6 +15,7 @@ class POSCartItem {
   String discountType = 'fixed'; // 'fixed' or 'percentage'
   double discountValue = 0; // The rate (%) or amount ($) entered
   bool isManual = false;
+  bool isNew = false; // true briefly after first being added to cart
 
   double get discount => _discount;
   set discount(double value) {

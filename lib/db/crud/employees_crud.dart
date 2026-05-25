@@ -21,10 +21,14 @@ mixin EmployeesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getAllEmployees() async {
     final db = await database;
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    final branchFilter = getBranchFilter();
+    final branchArgs = getBranchArgs();
+    
+    final args = [...getBusinessArgs(), ...branchArgs];
+
     return await db.rawQuery(
-      'SELECT * FROM employees WHERE 1=1 AND business_id = ?',
-      [bid],
+      'SELECT * FROM employees WHERE 1=1 ${getBusinessFilter()} $branchFilter',
+      args,
     );
   }
 

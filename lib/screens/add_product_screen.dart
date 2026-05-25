@@ -751,7 +751,19 @@ class _AddProductScreenState extends State<AddProductScreen> {
     setState(() {
       if (!_isScannerOpen) {
         _isScannerOpen = true;
-        _scannerController = MobileScannerController();
+        _scannerController = MobileScannerController(
+          formats: [
+            BarcodeFormat.code128,
+            BarcodeFormat.code39,
+            BarcodeFormat.code93,
+            BarcodeFormat.codabar,
+            BarcodeFormat.ean13,
+            BarcodeFormat.ean8,
+            BarcodeFormat.itf,
+            BarcodeFormat.upcA,
+            BarcodeFormat.upcE,
+          ],
+        );
       } else {
         _closeBarcodeScanner();
       }
@@ -857,7 +869,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: _buildTextField(
                 controller: _controller.barcode,
                 label: 'Barcode',
-                icon: Icons.qr_code,
+                icon: Icons.barcode_reader,
                 validator: (v) {
                   if (_controller.barcodeValidationError != null) {
                     return _controller.barcodeValidationError;
@@ -883,7 +895,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                   color: theme.highlight.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                 ),
-                child: Icon(Icons.qr_code_scanner, color: theme.highlight, size: 20),
+                child: Icon(Icons.barcode_reader, color: theme.highlight, size: 20),
               ),
             ),
           ],

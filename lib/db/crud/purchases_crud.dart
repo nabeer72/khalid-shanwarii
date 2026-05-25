@@ -175,14 +175,19 @@ mixin PurchasesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getPurchaseItems(dynamic purchaseId) async {
     final db = await database;
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'pur.branch_id');
+    final branchArgs = getBranchArgs();
+    
     return await db.rawQuery('''
       SELECT pi.*, p.name as product_name 
       FROM purchase_items pi
+      INNER JOIN purchases pur ON pi.purchase_id = pur.id
       LEFT JOIN products p ON pi.product_id = p.id
       WHERE pi.purchase_id = ? 
       AND pi.business_id = ? AND pi.user_id = ?
       AND (p.id IS NULL OR (p.business_id = ? AND p.user_id = ?))
-    ''', [purchaseId, ...getBusinessArgs(), ...getBusinessArgs()]);
+      $branchFilter
+    ''', [purchaseId, ...getBusinessArgs(), ...getBusinessArgs(), ...branchArgs]);
   }
 
   Future<void> deletePurchase(dynamic id) async {

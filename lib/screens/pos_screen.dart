@@ -39,6 +39,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _keyboardFocusNode = FocusNode();
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
@@ -88,6 +89,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     _audioPlayer?.dispose();
     _searchCtrl.dispose();
     _searchFocusNode.dispose();
+    _keyboardFocusNode.dispose();
     _scannerController?.dispose();
     _quickAddController.dispose();
     super.dispose();
@@ -1784,8 +1786,18 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 return Stack(
                   children: [
                     Focus(
+                      focusNode: _keyboardFocusNode,
                       autofocus: true,
                       onKeyEvent: (node, event) {
+                        // Let child textfields handle characters first
+                        final currentFocus = FocusManager.instance.primaryFocus;
+                        final isBackgroundOrSearch = currentFocus == _keyboardFocusNode || currentFocus == _searchFocusNode;
+                        
+                        if (!isBackgroundOrSearch) {
+                          // The user is actively typing in a specific text field out on the screen (qty, discount, etc)
+                          return KeyEventResult.ignored;
+                        }
+
                         if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
                           if (_searchCtrl.text.isNotEmpty) {
                             _processBarcode(_searchCtrl.text);
@@ -1796,13 +1808,15 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         }
                         if (event is KeyDownEvent && 
                             event.character != null && 
-                            event.character!.isNotEmpty && 
-                            !_searchFocusNode.hasFocus) {
-                          _searchFocusNode.requestFocus();
-                          _searchCtrl.text += event.character!;
-                          _searchCtrl.selection = TextSelection.collapsed(offset: _searchCtrl.text.length);
-                          _controller.setSearchQuery(_searchCtrl.text);
-                          return KeyEventResult.handled;
+                            event.character!.isNotEmpty) {
+                          
+                          if (!_searchFocusNode.hasFocus) {
+                            _searchFocusNode.requestFocus();
+                            _searchCtrl.text += event.character!;
+                            _searchCtrl.selection = TextSelection.collapsed(offset: _searchCtrl.text.length);
+                            _controller.setSearchQuery(_searchCtrl.text);
+                            return KeyEventResult.handled;
+                          }
                         }
                         return KeyEventResult.ignored;
                       },

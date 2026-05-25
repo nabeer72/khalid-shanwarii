@@ -159,26 +159,33 @@ class POSController with ChangeNotifier {
   bool addToCart(Product product, Stock stock, {double qty = 1, bool isWeight = false}) {
     final cartItemId = '${product.id}_${stock.id}';
     final existingIndex = _cart.indexWhere((item) => item.cartItemId == cartItemId);
-    
+
     final double currentCartQty = existingIndex >= 0 ? _cart[existingIndex].quantity : 0;
     if (currentCartQty + qty > stock.quantity) return false;
 
     MockDataStore.instance.addToRecent(product.id);
 
     if (existingIndex >= 0 && !isWeight) {
+      // Quantity bump on existing row — keep the green on whichever row is already marked
       _cart[existingIndex].quantity += qty;
       _cart[existingIndex].updateSubtotal();
     } else {
-      _cart.add(POSCartItem(
+      // Brand new row: clear isNew on all existing items, then mark the new one
+      for (final item in _cart) {
+        item.isNew = false;
+      }
+      final newItem = POSCartItem(
         cartItemId: cartItemId,
         product: product,
         stock: stock,
         quantity: qty,
         price: stock.salePrice,
         isWeight: isWeight,
-        discountType: 'fixed', // Default for manual entry in cart
+        discountType: 'fixed',
         discountValue: 0,
-      ));
+      );
+      newItem.isNew = true;
+      _cart.add(newItem);
     }
     calculateTotals();
     return true;

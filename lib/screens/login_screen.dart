@@ -620,8 +620,9 @@ class _LoginScreenState extends State<LoginScreen>
           uid: aid,
           brid: user['branch_id'],
         );
-        // Ensure latest permissions and data are synced after setting context
-        SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after admin login failed: $e'));
+        // [FIX] Await the sync so that subscription data is written to the local
+        // businesses table BEFORE loadSettings() reads it.
+        await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after admin login failed: $e'));
         
         BusinessConfig.instance.staffName = user['name'] ?? 'Admin';
         
@@ -657,8 +658,10 @@ class _LoginScreenState extends State<LoginScreen>
         BusinessConfig.instance.userId = staff['user_id'];
         BusinessConfig.instance.staffId = staff['id'];
         BusinessConfig.instance.staffName = staff['name'] ?? 'Staff';
-        // Sync permissions and related data after staff context is set
-        SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after staff login failed: $e'));
+        // [FIX] Await the sync so that subscription data is written to the local
+        // businesses table BEFORE loadSettings() reads it. Without this await,
+        // subscriptionStatus stays 'none' and triggers a false "please renew" error.
+        await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after staff login failed: $e'));
 
         if (staff['branch_id'] != null) {
           BusinessConfig.instance.branchId = staff['branch_id'];

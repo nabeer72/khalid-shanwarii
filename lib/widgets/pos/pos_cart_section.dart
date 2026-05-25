@@ -242,6 +242,12 @@ class _POSCartSectionState extends State<POSCartSection> {
   }
 
   Widget _buildTotals(ThemeProvider theme) {
+    final int productCount = widget.controller.cart.length;
+    final double totalQuantity = widget.controller.cart.fold(0.0, (sum, item) => sum + item.quantity);
+    final String qtyDisplay = totalQuantity.truncateToDouble() == totalQuantity 
+        ? totalQuantity.toInt().toString() 
+        : totalQuantity.toStringAsFixed(2);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -250,6 +256,29 @@ class _POSCartSectionState extends State<POSCartSection> {
       ),
       child: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Products',
+                  style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text('$productCount',
+                  style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Total Quantity',
+                  style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+              Text(qtyDisplay,
+                  style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w800)),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(height: 1),
+          ),
           _totalRow(theme, 'Subtotal', widget.controller.subtotal),
           const SizedBox(height: 6),
           _totalRow(theme, 'Tax', widget.controller.tax),

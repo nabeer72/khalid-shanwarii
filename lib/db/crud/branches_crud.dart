@@ -97,7 +97,7 @@ mixin BranchesCrud on CommonCrud {
       ...branch,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [id]);
+    }, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     
     DatabaseHelper.notifyDataChanged();
   }

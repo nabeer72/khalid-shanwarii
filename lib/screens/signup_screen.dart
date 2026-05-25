@@ -23,6 +23,8 @@ class _SignupScreenState extends State<SignupScreen>
     with SingleTickerProviderStateMixin {
   final theme = ThemeProvider.instance;
   final _businessNameCtrl = TextEditingController(text: 'General Store');
+  final _ownerNameCtrl = TextEditingController();
+  final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
@@ -89,6 +91,8 @@ class _SignupScreenState extends State<SignupScreen>
     _scrollController.dispose();
     _plansScrollController.dispose();
     _businessNameCtrl.dispose();
+    _ownerNameCtrl.dispose();
+    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmPassCtrl.dispose();
@@ -165,10 +169,10 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   void _signup() async {
-    if (_businessNameCtrl.text.isEmpty) { _showError('Please enter a business name'); return; }
+    if (_businessNameCtrl.text.trim().isEmpty) { _showError('Please enter a business name'); return; }
+    if (_ownerNameCtrl.text.trim().length < 3) { _showError('Owner name must be at least 3 characters'); return; }
     if (_selectedBusinessTypeId == null) { _showError('Please select a business type'); return; }
     if (_selectedPlanId == null) { _showError('Please select a subscription plan'); return; }
-    
     
     final email = _emailCtrl.text.trim();
     final cleanEmail = email.toLowerCase();
@@ -235,7 +239,9 @@ class _SignupScreenState extends State<SignupScreen>
         response = await _api.signup(
           email: cleanEmail,
           password: _passCtrl.text,
-          businessName: _businessNameCtrl.text,
+          name: _ownerNameCtrl.text.trim(),
+          phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+          businessName: _businessNameCtrl.text.trim(),
           businessTypeId: _selectedBusinessTypeId!,
           planId: _selectedPlanId!,
           pin: pin,
@@ -297,8 +303,9 @@ class _SignupScreenState extends State<SignupScreen>
       final userData = {
         if (userId != null) 'id': userId,
         'business_id': businessId,
-        'name': _businessNameCtrl.text,
+        'name': _ownerNameCtrl.text.trim(),
         'email': cleanEmail,
+        'phone': _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
         'password': _passCtrl.text,
         'pin': pin,
         'role': 'admin',
@@ -328,6 +335,7 @@ class _SignupScreenState extends State<SignupScreen>
       await _storage.write(key: 'user_id', value: userId.toString());
       await _storage.write(key: 'user_email', value: cleanEmail);
       await _storage.write(key: 'business_id', value: businessId.toString());
+      await _storage.delete(key: 'staff_id');
 
       BusinessConfig.instance.setContext(
         bid: businessId,
@@ -337,6 +345,7 @@ class _SignupScreenState extends State<SignupScreen>
         bType: _selectedBusinessTypeId.toString(),
         activeBranches: [branchId],
       );
+      BusinessConfig.instance.staffId = null;
 
       if (mounted) {
         // If it was a paid plan, navigate to Invoice Payment screen
@@ -640,6 +649,34 @@ class _SignupScreenState extends State<SignupScreen>
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             isDense: true,
             hintText: 'Enter your business name',
+            hintStyle: TextStyle(color: theme.textHint),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text('Owner / Admin Name', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+        const SizedBox(height: 2),
+        TextField(
+          controller: _ownerNameCtrl,
+          style: TextStyle(color: theme.textPrimary),
+          textCapitalization: TextCapitalization.words,
+          decoration: theme.glassInputDecoration('Owner Name', Icons.person_outlined, isRequired: true).copyWith(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            isDense: true,
+            hintText: 'Your full name',
+            hintStyle: TextStyle(color: theme.textHint),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text('Phone (optional)', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+        const SizedBox(height: 2),
+        TextField(
+          controller: _phoneCtrl,
+          keyboardType: TextInputType.phone,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: theme.glassInputDecoration('Phone', Icons.phone_outlined).copyWith(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            isDense: true,
+            hintText: '+92 300 0000000',
             hintStyle: TextStyle(color: theme.textHint),
           ),
         ),

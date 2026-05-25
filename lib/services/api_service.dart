@@ -68,6 +68,8 @@ class ApiService {
     required String businessName,
     required int businessTypeId,
     required int planId,
+    String? name,
+    String? phone,
     String? pin,
     File? receipt,
   }) async {
@@ -80,11 +82,12 @@ class ApiService {
           'email': cleanEmail,
           'password': password,
           'password_confirmation': password,
-          'name': businessName,
+          'name': name ?? businessName,
           'business_name': businessName,
           'business_type_id': businessTypeId,
           'plan_id': planId,
           'device_name': 'mobile_app',
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
           if (pin != null) 'pin': pin,
           'receipt': await MultipartFile.fromFile(receipt.path, filename: receipt.path.split('/').last),
         });
@@ -93,11 +96,12 @@ class ApiService {
           'email': cleanEmail,
           'password': password,
           'password_confirmation': password,
-          'name': businessName,
+          'name': name ?? businessName,
           'business_name': businessName,
           'business_type_id': businessTypeId,
           'plan_id': planId,
           'device_name': 'mobile_app',
+          if (phone != null && phone.isNotEmpty) 'phone': phone,
           if (pin != null) 'pin': pin,
         };
       }

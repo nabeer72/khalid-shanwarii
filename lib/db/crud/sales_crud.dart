@@ -164,14 +164,19 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getSaleItems(dynamic saleId) async {
     final db = await database;
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+    
     return await db.rawQuery('''
       SELECT si.*, si.sub_total as subtotal, p.name as product_name
       FROM sale_items si
+      INNER JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       WHERE si.sale_id = ? 
       AND si.business_id = ? AND si.user_id = ?
       AND (p.id IS NULL OR (p.business_id = ? AND p.user_id = ?))
-    ''', [saleId, ...getBusinessArgs(), ...getBusinessArgs()]);
+      $branchFilter
+    ''', [saleId, ...getBusinessArgs(), ...getBusinessArgs(), ...branchArgs]);
   }
 
   // --- Reporting Methods ---

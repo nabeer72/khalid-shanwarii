@@ -41,7 +41,7 @@ mixin PaymentTypesCrud on CommonCrud {
       'status': 0,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
-    }, where: 'id = ?', whereArgs: [getSafeInt(id)]);
+    }, where: 'id = ?${getBusinessFilter()}', whereArgs: [getSafeInt(id), ...getBusinessArgs()]);
     
     DatabaseHelper.notifyDataChanged();
     return result;

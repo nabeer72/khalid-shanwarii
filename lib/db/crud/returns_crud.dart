@@ -76,6 +76,17 @@ mixin ReturnsCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getReturnItems(dynamic returnId) async {
     final db = await database;
-    return await db.query('return_items', where: 'return_id = ?', whereArgs: [returnId]);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchArgs = getBranchArgs();
+    final businessArgs = getBusinessArgs();
+
+    return await db.rawQuery('''
+      SELECT ri.*
+      FROM return_items ri
+      INNER JOIN returns r ON ri.return_id = r.id
+      WHERE ri.return_id = ?
+      ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id')}
+      $branchFilter
+    ''', [returnId, ...businessArgs, ...branchArgs]);
   }
 }

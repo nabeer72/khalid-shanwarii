@@ -20,9 +20,14 @@ mixin CustomersCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getAllCustomers() async {
     final db = await database;
+    final branchFilter = getBranchFilter();
+    final branchArgs = getBranchArgs();
+    
+    final args = [...getBusinessArgs(), ...branchArgs];
+
     return await db.rawQuery(
-      'SELECT * FROM customers WHERE status = 1${getBusinessFilter()} ORDER BY name ASC',
-      getBusinessArgs(),
+      'SELECT * FROM customers WHERE status = 1${getBusinessFilter()}$branchFilter ORDER BY name ASC',
+      args,
     );
   }
 

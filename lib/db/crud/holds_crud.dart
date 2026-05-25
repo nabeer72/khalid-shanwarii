@@ -59,6 +59,17 @@ mixin HoldsCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getHeldOrderItems(dynamic heldOrderId) async {
     final db = await database;
-    return await db.query('held_order_items', where: 'held_order_id = ?', whereArgs: [heldOrderId]);
+    final branchFilter = getBranchFilter().replaceAll('branch_id', 'ho.branch_id');
+    final branchArgs = getBranchArgs();
+    final businessArgs = getBusinessArgs();
+
+    return await db.rawQuery('''
+      SELECT hoi.* 
+      FROM held_order_items hoi
+      INNER JOIN held_orders ho ON hoi.held_order_id = ho.id
+      WHERE hoi.held_order_id = ? 
+      ${getBusinessFilter().replaceAll('business_id', 'ho.business_id').replaceAll('user_id', 'ho.user_id')}
+      $branchFilter
+    ''', [heldOrderId, ...businessArgs, ...branchArgs]);
   }
 }

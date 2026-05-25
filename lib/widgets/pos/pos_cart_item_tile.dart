@@ -3,7 +3,7 @@ import 'package:mobile_app/models/pos_cart_item.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
 
-class POSCartItemTile extends StatelessWidget {
+class POSCartItemTile extends StatefulWidget {
   final POSCartItem item;
   final bool isExpanded;
   final VoidCallback onToggleExpand;
@@ -30,20 +30,177 @@ class POSCartItemTile extends StatelessWidget {
   });
 
   @override
+  State<POSCartItemTile> createState() => _POSCartItemTileState();
+}
+
+class _POSCartItemTileState extends State<POSCartItemTile> {
+  TextEditingController? _qtyCtrl;
+  TextEditingController? _priceCtrl;
+  TextEditingController? _discCtrl;
+  final FocusNode _qtyFocusNode = FocusNode();
+  final FocusNode _priceFocusNode = FocusNode();
+  final FocusNode _discFocusNode = FocusNode();
+  String _discType = 'fixed';
+
+  // Lazy initializer — safe to call multiple times.
+  void _ensureControllers() {
+    _qtyCtrl ??= TextEditingController(text: _qtyText());
+    _priceCtrl ??= TextEditingController(text: widget.item.price.toStringAsFixed(2));
+    _discCtrl ??= TextEditingController(text: widget.item.discountValue.toStringAsFixed(2));
+    _discType = widget.item.discountType;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _ensureControllers();
+  }
+
+  @override
+  void didUpdateWidget(POSCartItemTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _ensureControllers(); // guards against hot-reload edge cases
+
+    // Sync qty field
+    final newQtyText = _qtyText();
+    if (_qtyCtrl!.text != newQtyText) {
+      _qtyCtrl!.value = _qtyCtrl!.value.copyWith(text: newQtyText);
+    }
+    // Sync price field
+    final newPriceText = widget.item.price.toStringAsFixed(2);
+    if (_priceCtrl!.text != newPriceText) {
+      _priceCtrl!.value = _priceCtrl!.value.copyWith(text: newPriceText);
+    }
+    // Sync disc field
+    final newDiscText = widget.item.discountValue.toStringAsFixed(2);
+    if (_discCtrl!.text != newDiscText) {
+      _discCtrl!.value = _discCtrl!.value.copyWith(text: newDiscText);
+    }
+    if (_discType != widget.item.discountType) {
+      _discType = widget.item.discountType;
+    }
+  }
+
+  @override
+  void dispose() {
+    _qtyCtrl?.dispose();
+    _priceCtrl?.dispose();
+    _discCtrl?.dispose();
+    _qtyFocusNode.dispose();
+    _priceFocusNode.dispose();
+    _discFocusNode.dispose();
+    super.dispose();
+  }
+
+  String _qtyText() => widget.item.isWeight
+      ? BusinessConfig.instance.formatAmount(widget.item.quantity)
+      : '${widget.item.quantity.toInt()}';
+
+  void _submitQty() {
+    _ensureControllers();
+    final val = double.tryParse(_qtyCtrl!.text);
+    if (val != null && val > 0) {
+      widget.onQuantityChanged(val);
+    } else {
+      _qtyCtrl!.text = _qtyText();
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _submitPrice() {
+    _ensureControllers();
+    final val = double.tryParse(_priceCtrl!.text);
+    if (val != null && val >= 0) {
+      widget.onPriceChanged(val);
+    } else {
+      _priceCtrl!.text = widget.item.price.toStringAsFixed(2);
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+  void _submitDiscount() {
+    _ensureControllers();
+    final val = double.tryParse(_discCtrl!.text) ?? 0.0;
+    final item = widget.item;
+    double limitValue = item.stock.discountLimit;
+    String limitType = item.stock.discountLimitType;
+
+    bool isAllowed = true;
+    if (limitValue > 0) {
+      if (_discType == limitType) {
+        if (val > limitValue) isAllowed = false;
+      } else {
+        if (_discType == 'percentage') {
+          double amount = (item.price * item.quantity) * (val / 100);
+          if (amount > limitValue) isAllowed = false;
+        } else {
+          double percent = (item.price * item.quantity) > 0
+              ? (val / (item.price * item.quantity)) * 100
+              : 0;
+          if (percent > limitValue) isAllowed = false;
+        }
+      }
+    }
+
+    if (!isAllowed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Discount exceeds max allowed limit of $limitValue${limitType == "percentage" ? "%" : BusinessConfig.instance.currencyDisplay}!'),
+          backgroundColor: ThemeProvider.error,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      _discCtrl!.text = item.discountValue.toStringAsFixed(2);
+      FocusManager.instance.primaryFocus?.unfocus();
+      return;
+    }
+
+    item.isManual = true;
+    item.discountType = _discType;
+    item.discountValue = val;
+    item.updateSubtotal();
+    widget.onDiscountChanged(item.discount);
+    FocusManager.instance.primaryFocus?.unfocus();
+  }
+
+
+  @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
-    final qty = item.isWeight
-        ? BusinessConfig.instance.formatAmount(item.quantity)
-        : '${item.quantity.toInt()}';
+    final item = widget.item;
+    final isReturn = widget.isReturn;
+    final qty = _qtyText();
+
+    // Visual highlight state
+    final bool isNewItem = item.isNew;
+    final bool isMultiQty = !item.isNew && item.quantity >= 2;
+
+    Color? rowBg;
+    Color? accentColor;
+    if (isNewItem) {
+      rowBg = ThemeProvider.success.withValues(alpha: 0.08);
+      accentColor = ThemeProvider.success;
+    } else if (isMultiQty) {
+      rowBg = const Color(0xFFFFA726).withValues(alpha: 0.08); // amber
+      accentColor = const Color(0xFFFFA726);
+    }
 
     return Column(
       children: [
         InkWell(
-          onTap: onToggleExpand,
+          onTap: widget.onToggleExpand,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: theme.whiteAlpha(0.05)))),
+              color: rowBg,
+              border: Border(
+                bottom: BorderSide(color: theme.whiteAlpha(0.05)),
+                left: accentColor != null
+                    ? BorderSide(color: accentColor, width: 3)
+                    : BorderSide.none,
+              ),
+            ),
             child: Row(
               children: [
                 Expanded(
@@ -120,7 +277,7 @@ class POSCartItemTile extends StatelessWidget {
           ),
         ),
         
-        if (isExpanded)
+        if (widget.isExpanded)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
@@ -129,55 +286,167 @@ class POSCartItemTile extends StatelessWidget {
             ),
             child: Row(
               children: [
-                _POSActionButton(
-                  icon: Icons.edit_rounded,
-                  label: '',
-                  onTap: () => _showEditValueDialog(
-                    context,
-                    title: 'Edit Price',
-                    initialValue: item.price,
-                    onChanged: onPriceChanged,
+                // Inline Price field
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Price',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5)),
+                      const SizedBox(height: 4),
+                      TextField(
+                        controller: _priceCtrl,
+                        focusNode: _priceFocusNode,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(
+                            color: theme.textPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: theme.cardBorder)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: theme.cardBorder)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide:
+                                  BorderSide(color: theme.highlight, width: 1.5)),
+                        ),
+                        onSubmitted: (_) => _submitPrice(),
+                        onEditingComplete: _submitPrice,
+                        onTapOutside: (_) => _submitPrice(),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(width: 8),
 
-                _POSActionButton(
-                  icon: Icons.discount_rounded,
-                  label: 'Disc',
-                  onTap: () => _showEditDiscountDialog(context),
-                ),
-                
-                const Spacer(),
-
-                _qtyBtn(Icons.remove_rounded, onDecrement, theme.textSecondary),
-                InkWell(
-                  onTap: () => _showEditValueDialog(
-                    context,
-                    title: 'Edit Quantity',
-                    initialValue: item.quantity,
-                    onChanged: onQuantityChanged,
+                // Inline Discount field with type toggle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Text('Discount',
+                              style: TextStyle(
+                                  color: theme.textSecondary,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.5)),
+                          const Spacer(),
+                          GestureDetector(
+                            onTap: () => setState(() {
+                              _discType =
+                                  _discType == 'percentage' ? 'fixed' : 'percentage';
+                            }),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: theme.highlight.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                _discType == 'percentage'
+                                    ? '%'
+                                    : BusinessConfig.instance.currencyDisplay,
+                                style: TextStyle(
+                                    color: theme.highlight,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      TextField(
+                        controller: _discCtrl,
+                        focusNode: _discFocusNode,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: theme.cardBorder)),
+                          enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide: BorderSide(color: theme.cardBorder)),
+                          focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                              borderSide:
+                                  BorderSide(color: theme.highlight, width: 1.5)),
+                        ),
+                        onSubmitted: (_) => _submitDiscount(),
+                        onEditingComplete: _submitDiscount,
+                        onTapOutside: (_) => _submitDiscount(),
+                      ),
+                    ],
                   ),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Text(
-                      qty,
-                      style: TextStyle(
-                        color: theme.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
+                ),
+                const SizedBox(width: 8),
+                _qtyBtn(Icons.remove_rounded, widget.onDecrement, theme.textSecondary),
+                // Inline editable qty field
+                SizedBox(
+                  width: 52,
+                  child: TextField(
+                    controller: _qtyCtrl,
+                    focusNode: _qtyFocusNode,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: theme.cardBorder),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: theme.cardBorder),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(6),
+                        borderSide: BorderSide(color: theme.highlight, width: 1.5),
                       ),
                     ),
+                    onSubmitted: (_) => _submitQty(),
+                    onEditingComplete: _submitQty,
+                    onTapOutside: (_) => _submitQty(),
                   ),
                 ),
-                _qtyBtn(Icons.add_rounded, onIncrement, theme.highlight),
+                _qtyBtn(Icons.add_rounded, widget.onIncrement, theme.highlight),
                 
                 const SizedBox(width: 8),
 
                 _POSActionButton(
-                  icon: Icons.delete_outline_rounded,
+                  icon: Icons.close_rounded,
                   label: '',
                   color: ThemeProvider.error,
-                  onTap: onRemove,
+                  onTap: widget.onRemove,
                 ),
               ],
             ),
@@ -203,154 +472,6 @@ class POSCartItemTile extends StatelessWidget {
     );
   }
 
-  void _showEditValueDialog(BuildContext context,
-      {required String title,
-      required double initialValue,
-      required Function(double) onChanged}) {
-    final theme = ThemeProvider.instance;
-    final ctrl = TextEditingController(text: initialValue.toString());
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Text(title, style: TextStyle(color: theme.textPrimary)),
-        content: TextField(
-          controller: ctrl,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textAlign: TextAlign.center,
-          style: TextStyle(color: theme.textPrimary, fontSize: 24, fontWeight: FontWeight.bold),
-          autofocus: true,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: theme.whiteAlpha(0.05),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              final val = double.tryParse(ctrl.text);
-              if (val != null) {
-                onChanged(val);
-                Navigator.pop(ctx);
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
-            child: const Text('Update'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showEditDiscountDialog(BuildContext context) {
-    final theme = ThemeProvider.instance;
-    String dType = item.discountType;
-    final ctrl = TextEditingController(text: item.discountValue.toString());
-    
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          backgroundColor: theme.surface,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Item Discount', style: TextStyle(color: theme.textPrimary)),
-              TextButton(
-                onPressed: () {
-                  setDialogState(() {
-                    dType = dType == 'percentage' ? 'fixed' : 'percentage';
-                  });
-                },
-                child: Text(
-                  dType == 'percentage' ? '%' : BusinessConfig.instance.currencyDisplay,
-                  style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: ctrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                textAlign: TextAlign.center,
-                style: TextStyle(color: theme.textPrimary, fontSize: 32, fontWeight: FontWeight.bold),
-                autofocus: true,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: theme.whiteAlpha(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  hintText: '0.00',
-                  prefixIcon: Icon(dType == 'percentage' ? Icons.percent_outlined : Icons.monetization_on_outlined, color: theme.highlight),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Max allowed: ${item.stock.discountLimit}${item.stock.discountLimitType == "percentage" ? "%" : BusinessConfig.instance.currencyDisplay}',
-                style: TextStyle(color: theme.textSecondary, fontSize: 11),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final val = double.tryParse(ctrl.text) ?? 0.0;
-                
-                // Enforcement
-                double limitValue = item.stock.discountLimit;
-                String limitType = item.stock.discountLimitType;
-                
-                bool isAllowed = true;
-                if (limitValue > 0) {
-                  if (dType == limitType) {
-                    if (val > limitValue) isAllowed = false;
-                  } else {
-                    // Mixed types - approximate check or convert
-                    if (dType == 'percentage') {
-                      // entered % but limit is fixed
-                      double amount = (item.price * item.quantity) * (val / 100);
-                      if (amount > limitValue) isAllowed = false;
-                    } else {
-                      // entered fixed but limit is %
-                      double percent = (item.price * item.quantity) > 0 ? (val / (item.price * item.quantity)) * 100 : 0;
-                      if (percent > limitValue) isAllowed = false;
-                    }
-                  }
-                }
-
-                if (!isAllowed) {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                     SnackBar(content: Text('Discount exceeds allowed limit!'), backgroundColor: ThemeProvider.error),
-                   );
-                   return;
-                }
-
-                item.isManual = true;
-                item.discountType = dType;
-                item.discountValue = val;
-                item.updateSubtotal();
-                onDiscountChanged(item.discount);
-                Navigator.pop(ctx);
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
-              child: const Text('Update'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _POSActionButton extends StatelessWidget {
