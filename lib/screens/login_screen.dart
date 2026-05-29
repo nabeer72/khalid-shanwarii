@@ -381,6 +381,24 @@ class _LoginScreenState extends State<LoginScreen>
       print('🔄 [LOGIN] Performing full sync for business $bid...');
       // ignore: invalid_return_type_for_catch_error
       await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Quick sync failed: $e'));
+      
+      // [FIX] We MUST re-fetch branches after sync, because the newly selected 
+      // business might not have had its branches synced during the initial login pull
+      final branchesAfterSync = await _dbHelper.getBranchesForBusiness(bid);
+      final mainBranchAfter = branchesAfterSync.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branchesAfterSync.isNotEmpty ? branchesAfterSync.first : {'id': null});
+
+      BusinessConfig.instance.setContext(
+        bid: bid,
+        uid: aid,
+        brid: mainBranchAfter['id'],
+        bName: selected['name'],
+        bType: selected['business_type_id']?.toString(),
+        activeBranches: branchesAfterSync.map((b) => b['id']).toList(),
+      );
+
+      if (mainBranchAfter['id'] != null) await storage.write(key: 'branch_id', value: mainBranchAfter['id'].toString());
+      BusinessConfig.instance.branchId = mainBranchAfter['id'];
+
       await _dbHelper.loadSettings();
     } else {
       // If they somehow cancelled a non-cancellable dialog, we must stay on login
@@ -447,7 +465,7 @@ class _LoginScreenState extends State<LoginScreen>
           }
 
         // If context was not restored (or not Quick Login), proceed with standard selection
-        if (BusinessConfig.instance.businessId == null) {
+        if (!isQuickLogin || BusinessConfig.instance.businessId == null) {
           if (businesses.length > 1) {
             try {
               await _showBusinessSelectionDialog(userId, businesses);

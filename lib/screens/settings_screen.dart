@@ -42,11 +42,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
   bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
   bool _enableTax = BusinessConfig.instance.enableTax;
+  late final TextEditingController _taxRateCtrl;
 
   @override
   void initState() {
     super.initState();
+    _taxRateCtrl = TextEditingController(
+      text: _taxRate > 0 ? _taxRate.toString() : '',
+    );
     _loadBusinessTypes();
+  }
+
+  @override
+  void dispose() {
+    _taxRateCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveTaxRateFromField() async {
+    final rate = double.tryParse(_taxRateCtrl.text.trim()) ?? 0.0;
+    setState(() => _taxRate = rate);
+    BusinessConfig.instance.taxRate = rate;
+    await DatabaseHelper.instance.setSetting('tax_rate', rate.toString());
   }
 
   Future<void> _loadBusinessTypes() async {
@@ -1045,17 +1062,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: 'Apply GST/tax to all purchases',
                 value: _enableTax,
                 onChanged: (v) async {
-                  setState(() => _enableTax = v);
+                  setState(() {
+                    _enableTax = v;
+                    if (v && _taxRateCtrl.text.trim().isEmpty && _taxRate > 0) {
+                      _taxRateCtrl.text = _taxRate.toString();
+                    }
+                  });
                   BusinessConfig.instance.enableTax = v;
                   await DatabaseHelper.instance.setSetting('enable_tax', v ? '1' : '0');
+                  if (v) await _saveTaxRateFromField();
                 },
               ),
               if (_enableTax)
-                _SettingsTile(
-                  icon: Icons.receipt_long_rounded,
-                  title: 'Universal Tax Rate',
-                  subtitle: '$_taxRate%',
-                  onTap: _showTaxDialog,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: TextField(
+                    controller: _taxRateCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      labelText: 'Tax Rate (%)',
+                      prefixIcon: Icon(Icons.percent_rounded, color: theme.highlight),
+                      filled: true,
+                      fillColor: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onEditingComplete: _saveTaxRateFromField,
+                    onSubmitted: (_) => _saveTaxRateFromField(),
+                  ),
                 ),
               _SettingsTile(
                 icon: Icons.money_rounded,

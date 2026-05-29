@@ -32,6 +32,13 @@ class SyncService {
     return 0.0;
   }
 
+  double _productStockTax(Map<String, dynamic> product, Map<String, dynamic> stock) {
+    final stockTax = _parseNum(stock['tax']);
+    if (stockTax > 0) return stockTax;
+    final enabled = product['tax_enabled'] == true || product['tax_enabled'] == 1;
+    return enabled ? _parseNum(product['tax_rate']) : 0.0;
+  }
+
   /// Ensures we have a valid auth token by attempting background re-auth if missing
   Future<bool> _ensureToken() async {
     final token = await _storage.read(key: 'auth_token');
@@ -331,9 +338,16 @@ class SyncService {
                 'staff_id': p['user_id'] is int ? p['user_id'] : int.tryParse(p['user_id']?.toString() ?? ''),
                 'category_id': p['category_id'] is int ? p['category_id'] : int.tryParse(p['category_id']?.toString() ?? ''),
                 'sub_category_id': p['sub_category_id'] is int ? p['sub_category_id'] : int.tryParse(p['sub_category_id']?.toString() ?? ''),
+                'brand_id': p['brand_id'] is int ? p['brand_id'] : int.tryParse(p['brand_id']?.toString() ?? ''),
+                'unit_id': p['unit_id'] is int ? p['unit_id'] : int.tryParse(p['unit_id']?.toString() ?? ''),
                 'name': p['name'] ?? 'Unknown',
                 'image': p['image'],
                 'description': p['description'],
+                'stock_limit': p['stock_limit'] ?? 5,
+                'discount_limit': _parseNum(p['discount_limit']),
+                'discount_limit_type': p['discount_limit_type']?.toString() ?? 'percentage',
+                'tax_enabled': (p['tax_enabled'] == true || p['tax_enabled'] == 1) ? 1 : 0,
+                'tax_rate': _parseNum(p['tax_rate']),
                 'is_favorite': (p['is_favorite'] == true || p['is_favorite'] == 1) ? 1 : 0,
                 'status': _parseStatus(p['status']),
                 'is_synced': 1,
@@ -358,6 +372,7 @@ class SyncService {
                     'alert_quantity': _parseNum(s['alert_quantity'] ?? s['alert_limit'] ?? s['stock_limit']),
                     'discount_limit': _parseNum(s['discount_limit'] ?? s['discount']),
                     'discount_limit_type': s['discount_limit_type']?.toString() ?? 'percentage',
+                    'tax': _parseNum(s['tax'] ?? _productStockTax(p, s)),
                     'status': _parseStatus(s['status'] ?? 1),
                     'is_synced': 1,
                     'updated_at': s['updated_at'] ?? productRow['updated_at'],
@@ -979,6 +994,18 @@ class SyncService {
              for (var s in data['stocks']) {
                final sId = s['id'] is int ? s['id'] : int.tryParse(s['id']?.toString() ?? '');
                final productId = s['product_id'] is int ? s['product_id'] : int.tryParse(s['product_id']?.toString() ?? '');
+               var stockTax = _parseNum(s['tax']);
+               if (stockTax == 0 && productId != null) {
+                 final prodRows = await txn.query(
+                   'products',
+                   columns: ['tax_enabled', 'tax_rate'],
+                   where: 'id = ?',
+                   whereArgs: [productId],
+                 );
+                 if (prodRows.isNotEmpty && prodRows.first['tax_enabled'] == 1) {
+                   stockTax = _parseNum(prodRows.first['tax_rate']);
+                 }
+               }
                
                await txn.insert('stocks', {
                  'id': sId,
@@ -994,6 +1021,7 @@ class SyncService {
                  'alert_quantity': _parseNum(s['alert_quantity'] ?? s['alert_limit'] ?? s['stock_limit']),
                  'discount_limit': _parseNum(s['discount_limit'] ?? s['discount']),
                  'discount_limit_type': s['discount_limit_type']?.toString() ?? 'percentage',
+                 'tax': stockTax,
                  'status': _parseStatus(s['status'] ?? 1),
                  'is_synced': 1,
                  'updated_at': s['updated_at'],
@@ -1446,9 +1474,9 @@ class SyncService {
            
            // Map local IDs to server keys
            productMap['user_id'] = productMap['user_id'] ?? uid;
-           // productMap.remove('user_id');
-           // productMap['user_id'] = productMap['staff_id'];
-           // productMap.remove('staff_id');
+           productMap['admin_id'] = productMap['user_id'];
+           productMap['tax_enabled'] = (productMap['tax_enabled'] == 1 || productMap['tax_enabled'] == true) ? 1 : 0;
+           productMap['tax_rate'] = (productMap['tax_rate'] as num?)?.toDouble() ?? 0.0;
            
            // CRITICAL: Inject legacy stock/pricing fields for the server's sync logic.
            // These are calculated on-the-fly and not stored in the local products table.
@@ -1461,6 +1489,24 @@ class SyncService {
            productMap['purchase_price'] = (stockResult.first['max_cost'] as num? ?? 0).toDouble();
            productMap['wholesale_price'] = 0.0; // Minimal default
            productMap['barcode'] ??= ''; // Ensure barcode exists
+
+           // Attach stock batches so live DB stocks.tax is updated with the product
+           final productStocks = await db.query(
+             'stocks',
+             where: 'product_id = ? AND business_id = ?',
+             whereArgs: [p['id'], bid],
+           );
+           productMap['stocks'] = productStocks.map((s) {
+             final sm = Map<String, dynamic>.from(s);
+             sm.remove('is_synced');
+             sm['user_id'] = sm['user_id'] ?? uid;
+             var tax = _parseNum(sm['tax']);
+             if (tax == 0 && (productMap['tax_enabled'] == 1 || productMap['tax_enabled'] == true)) {
+               tax = (productMap['tax_rate'] as num?)?.toDouble() ?? 0.0;
+             }
+             sm['tax'] = tax;
+             return sm;
+           }).toList();
            
            productsList.add(productMap);
         }
@@ -1476,13 +1522,26 @@ class SyncService {
       );
       
        if (unsyncedStocks.isNotEmpty) {
-         changes['stocks'] = unsyncedStocks.map((s) {
+         final stocksList = <Map<String, dynamic>>[];
+         for (var s in unsyncedStocks) {
            var m = Map<String, dynamic>.from(s);
            m.remove('is_synced');
            m['business_id'] ??= bid;
            m['user_id'] = m['user_id'] ?? uid;
-           return m;
-         }).toList();
+           if (_parseNum(m['tax']) == 0 && m['product_id'] != null) {
+             final rows = await db.query(
+               'products',
+               columns: ['tax_enabled', 'tax_rate'],
+               where: 'id = ?',
+               whereArgs: [m['product_id']],
+             );
+             if (rows.isNotEmpty && rows.first['tax_enabled'] == 1) {
+               m['tax'] = _parseNum(rows.first['tax_rate']);
+             }
+           }
+           stocksList.add(m);
+         }
+         changes['stocks'] = stocksList;
          if (kDebugMode) print('📤 [SYNC] Pushing ${unsyncedStocks.length} total price/stock entries');
        }
 

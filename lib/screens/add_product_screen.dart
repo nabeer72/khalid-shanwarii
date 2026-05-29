@@ -129,7 +129,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       return;
     }
 
-    // Capture category ID before dialog opens so it can't drift during async operations
     final parentCategoryId = _controller.selectedCategory;
 
     final catCtrl = TextEditingController();
@@ -164,7 +163,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
               if (catCtrl.text.trim().isNotEmpty) {
                 final success = await _controller.addCategory(
                   catCtrl.text.trim(),
-                  parentId: parentCategoryId, // Use pre-captured ID
+                  parentId: parentCategoryId,
                 );
                 if (success && mounted) {
                   Navigator.pop(c);
@@ -176,9 +175,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
         ],
       ),
     );
-
-    // The controller handles reloading and selection during addCategory
-    // and also listens to background sync mappings via DatabaseHelper.dataStream.
   }
 
   @override
@@ -325,7 +321,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                 final unitName = _controller.getSelectedUnitName();
                                 return Column(
                                   children: [
-                                    // Pricing Row 1
                                     Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -353,7 +348,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    // Pricing Row 2
                                     Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -381,7 +375,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                                       ],
                                     ),
                                     const SizedBox(height: 16),
-                                    // Stock Row
                                     Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
@@ -404,7 +397,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               }
                             ),
                             const SizedBox(height: 12),
-                            // Calculation Result Badge
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               decoration: BoxDecoration(
@@ -563,6 +555,48 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 20),
+
+                    // === TAX FIELD WITH TOGGLE (only when enabled in Settings) ===
+                    if (BusinessConfig.instance.enableTax) ...[
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: _buildTextField(
+                              controller: _controller.taxRate,
+                              label: 'Tax Rate (%)',
+                              icon: Icons.percent_outlined,
+                              keyboardType: TextInputType.number,
+                              enabled: _controller.taxEnabled ?? false,
+                              validator: (v) {
+                                if (_controller.taxEnabled != true) return null;
+                                if (v == null || v.trim().isEmpty) return 'Required';
+                                final val = num.tryParse(v);
+                                if (val == null || val < 0) return 'Invalid tax rate';
+                                return null;
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Switch(
+                            value: _controller.taxEnabled ?? false,
+                            activeColor: theme.highlight,
+                            onChanged: (val) {
+                              setState(() {
+                                _controller.taxEnabled = val;
+                                if (val &&
+                                    (_controller.taxRate.text.trim().isEmpty ||
+                                        _controller.taxRate.text == '0')) {
+                                  _controller.taxRate.text =
+                                      BusinessConfig.instance.taxRate.toString();
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
                   ]),
                   const SizedBox(height: 100),
                 ],
@@ -573,6 +607,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
     );
   }
+
+  // ====================== ALL OTHER METHODS UNCHANGED ======================
 
   Widget _buildSectionHeader(String title) {
     return Padding(
@@ -619,12 +655,11 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  // Custom compact dropdown: fixed max-width popup, anchored below the field
   Widget _buildDropdownField({
     required dynamic value,
     required String label,
     required IconData icon,
-    required List<Map<String, dynamic>> items, // [{'value': v, 'label': l}]
+    required List<Map<String, dynamic>> items,
     required void Function(dynamic) onChanged,
   }) {
     final key = GlobalKey();
@@ -642,10 +677,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
         final size = box.size;
         final screenWidth = MediaQuery.of(context).size.width;
         
-        // Make it wider but responsive
         final dropdownWidth = (size.width > 300) ? size.width : 300.0;
         
-        // Ensure it doesn't go off the right edge
         double left = pos.dx;
         if (left + dropdownWidth > screenWidth - 16) {
           left = screenWidth - dropdownWidth - 16;
@@ -689,9 +722,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
           )).toList(),
         );
         if (result != null && result != value) onChanged(result);
-        if (result == null && value != null) {
-          // allow clearing by tapping "No X" which has value=null sentinel
-        }
       },
       child: InputDecorator(
         decoration: theme.glassInputDecoration(label, icon, isRequired: label == 'Category' || label == 'Unit').copyWith(
@@ -744,7 +774,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ],
     );
   }
-
 
   void _openBarcodeScanner() {
     if (kIsWeb) return;
@@ -1034,7 +1063,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.max,
                 children: [
-                  // Premium Header
                   Container(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
                     decoration: BoxDecoration(
@@ -1082,7 +1110,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                   ),
 
-                  // Search Bar
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
                     child: TextField(
@@ -1101,7 +1128,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     ),
                   ),
 
-                  // Hierarchical List (Refactored to Flat)
                   Expanded(
                     child: _controller.units.isEmpty 
                       ? Center(
@@ -1203,7 +1229,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                         ),
                   ),
 
-                  // Confirmation Button
                   Container(
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                     decoration: BoxDecoration(
@@ -1215,7 +1240,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(context);
-                        setState(() {}); // Refresh main screen to show new dropdown items
+                        setState(() {});
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.highlight,

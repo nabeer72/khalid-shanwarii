@@ -5,6 +5,20 @@ import 'tables.dart';
 
 class DbMigrations {
   static Future<void> upgradeDB(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 83) {
+      if (kDebugMode) print('Upgrading DB to version 83: Adding tax_enabled and tax_rate to products...');
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN tax_enabled INTEGER DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('tax_enabled column already exists in products: $e');
+      }
+      try {
+        await db.execute('ALTER TABLE products ADD COLUMN tax_rate REAL DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode) print('tax_rate column already exists in products: $e');
+      }
+    }
+
     if (oldVersion < 80) {
       if (kDebugMode) print('Upgrading DB to version 80: Adding person_name and receipt_image to bank_accounts...');
       try {

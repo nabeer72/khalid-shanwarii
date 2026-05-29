@@ -4,6 +4,11 @@ import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin ProductsCrud on CommonCrud {
+  double _stockTaxFromMetadata(Map<String, dynamic> metadata) {
+    final enabled = metadata['tax_enabled'] == 1 || metadata['tax_enabled'] == true;
+    return enabled ? ((metadata['tax_rate'] as num?)?.toDouble() ?? 0.0) : 0.0;
+  }
+
   // Products
   Future<List<Map<String, dynamic>>> getProducts({dynamic categoryId, bool includeInactive = false}) async {
     final db = await database;
@@ -33,6 +38,26 @@ mixin ProductsCrud on CommonCrud {
     }
     if (!prodCols.any((c) => c['name'] == 'discount_limit')) {
       await db.execute("ALTER TABLE products ADD COLUMN discount_limit REAL DEFAULT 0");
+    }
+    if (!prodCols.any((c) => c['name'] == 'tax_enabled')) {
+      await db.execute("ALTER TABLE products ADD COLUMN tax_enabled INTEGER DEFAULT 0");
+    }
+    if (!prodCols.any((c) => c['name'] == 'tax_rate')) {
+      await db.execute("ALTER TABLE products ADD COLUMN tax_rate REAL DEFAULT 0");
+    }
+
+    // Backfill stock.tax from product tax when missing
+    final bid = getSafeInt(BusinessConfig.instance.businessId);
+    if (bid != null) {
+      await db.rawUpdate('''
+        UPDATE stocks SET tax = (
+          SELECT CASE WHEN products.tax_enabled = 1 THEN products.tax_rate ELSE 0 END
+          FROM products WHERE products.id = stocks.product_id
+        ), is_synced = 0
+        WHERE (tax IS NULL OR tax = 0)
+        AND product_id IN (SELECT id FROM products WHERE tax_enabled = 1 AND business_id = ?)
+        AND business_id = ?
+      ''', [bid, bid]);
     }
 
     List<Map<String, dynamic>> productMaps;
@@ -187,6 +212,7 @@ mixin ProductsCrud on CommonCrud {
       whereArgs: [bid]);
 
     final metadata = Map<String, dynamic>.from(product);
+    final stockTax = _stockTaxFromMetadata(metadata);
 
     await db.transaction((txn) async {
       final productId = metadata['id'];
@@ -211,7 +237,9 @@ mixin ProductsCrud on CommonCrud {
             existing['is_favorite']?.toString()      != metadata['is_favorite']?.toString() ||
             existing['stock_limit']?.toString()      != metadata['stock_limit']?.toString() ||
             existing['discount_limit']?.toString()   != metadata['discount_limit']?.toString() ||
-            existing['discount_limit_type']?.toString() != metadata['discount_limit_type']?.toString();
+            existing['discount_limit_type']?.toString() != metadata['discount_limit_type']?.toString() ||
+            existing['tax_enabled']?.toString()      != metadata['tax_enabled']?.toString() ||
+            existing['tax_rate']?.toString()         != metadata['tax_rate']?.toString();
 
         if (metadataChanged) {
           await txn.update(
@@ -232,11 +260,23 @@ mixin ProductsCrud on CommonCrud {
               'stock_limit':      metadata['stock_limit'] ?? 5,
               'discount_limit':   metadata['discount_limit'] ?? 0.0,
               'discount_limit_type': metadata['discount_limit_type'] ?? 'percentage',
+              'tax_enabled':      metadata['tax_enabled'] ?? 0,
+              'tax_rate':         metadata['tax_rate'] ?? 0.0,
               'is_synced':        0,
               'updated_at':       DateTime.now().toIso8601String(),
             },
             where: 'id = ?',
             whereArgs: [productId],
+          );
+          await txn.update(
+            'stocks',
+            {
+              'tax': stockTax,
+              'is_synced': 0,
+              'updated_at': DateTime.now().toIso8601String(),
+            },
+            where: 'product_id = ? AND business_id = ?',
+            whereArgs: [productId, bid],
           );
         }
         generatedProductId = productId;
@@ -259,6 +299,8 @@ mixin ProductsCrud on CommonCrud {
           'stock_limit':    metadata['stock_limit'] ?? 5,
           'discount_limit': metadata['discount_limit'] ?? 0.0,
           'discount_limit_type': metadata['discount_limit_type'] ?? 'percentage',
+          'tax_enabled':    metadata['tax_enabled'] ?? 0,
+          'tax_rate':       metadata['tax_rate'] ?? 0.0,
           'is_synced':      0,
           'updated_at':     DateTime.now().toIso8601String(),
         });
@@ -323,6 +365,7 @@ mixin ProductsCrud on CommonCrud {
             'alert_quantity': alertQty,
             'discount_limit': discountLimit,
             'discount_limit_type': discountLimitType,
+            'tax': stockTax,
             'pieces_per_pack': piecesPerPack ?? matchingStocks.first['pieces_per_pack'],
             'packing':    packing ?? matchingStocks.first['packing'],
             'user_id':    uid,
@@ -349,6 +392,7 @@ mixin ProductsCrud on CommonCrud {
           'alert_quantity':  alertQty,
           'discount_limit':  discountLimit,
           'discount_limit_type': discountLimitType,
+          'tax':             stockTax,
           'pieces_per_pack': piecesPerPack,
           'packing':         packing,
           'status':          1,

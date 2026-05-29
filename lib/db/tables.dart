@@ -96,6 +96,8 @@ class DbTables {
         stock_limit INTEGER DEFAULT 5,
         discount_limit REAL DEFAULT 0,
         discount_limit_type TEXT DEFAULT 'percentage',
+        tax_enabled INTEGER DEFAULT 0,
+        tax_rate REAL DEFAULT 0,
         is_favorite INTEGER DEFAULT 0,
         status INTEGER DEFAULT 1,
         is_synced INTEGER DEFAULT 0,

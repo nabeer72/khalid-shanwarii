@@ -416,6 +416,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 fontSize: 10,
                                 decoration: s.status == 0 ? TextDecoration.lineThrough : null,
                               )),
+                          if (s.tax > 0 || p.taxEnabled)
+                            Text(
+                              'Tax: ${(s.tax > 0 ? s.tax : p.taxRate).toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                color: theme.highlight,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                decoration: s.status == 0 ? TextDecoration.lineThrough : null,
+                              ),
+                            ),
                         ],
                       ),
                     ),

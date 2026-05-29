@@ -32,6 +32,10 @@ class AddProductController with ChangeNotifier {
   late TextEditingController boxPurchasePrice;
   late TextEditingController boxWholesalePrice;
 
+  // NEW: Tax fields
+  bool? taxEnabled;
+  late TextEditingController taxRate;
+
   // State
   dynamic selectedCategory;
   List<ProductCategory> categories = [];
@@ -75,6 +79,25 @@ class AddProductController with ChangeNotifier {
     boxPrice = TextEditingController();
     boxPurchasePrice = TextEditingController();
     boxWholesalePrice = TextEditingController();
+
+    // Tax follows global settings; per-product only when tax is enabled in settings
+    final globalTaxOn = BusinessConfig.instance.enableTax;
+    final settingsRate = BusinessConfig.instance.taxRate;
+    if (initialProduct != null) {
+      final stockTax = initialStock?.tax ?? 0.0;
+      final productRate = initialProduct!.taxRate > 0 ? initialProduct!.taxRate : stockTax;
+      taxEnabled = globalTaxOn && (initialProduct!.taxEnabled || stockTax > 0);
+      taxRate = TextEditingController(
+        text: globalTaxOn
+            ? (productRate > 0 ? productRate : settingsRate).toString()
+            : '0',
+      );
+    } else {
+      taxEnabled = globalTaxOn;
+      taxRate = TextEditingController(
+        text: globalTaxOn ? settingsRate.toString() : '0',
+      );
+    }
 
     selectedCategory = initialProduct?.categoryId;
     selectedSubCategoryId = initialProduct?.subCategoryId;
@@ -238,7 +261,7 @@ class AddProductController with ChangeNotifier {
   Future<void> _fetchUnits() async {
     List<Map<String, dynamic>> allUnits = await DatabaseHelper.instance.getAllUnitsWithBusiness();
     
-    // FAIL-SAFE: If database is empty, auto-seed standard units locally
+    // FAIL-SAFE: If database is empty, auto-seeding standard units locally
     if (allUnits.isEmpty) {
       if (kDebugMode) print('📦 [UI] Local units empty, auto-seeding standard units...');
       final standardUnits = [
@@ -666,6 +689,10 @@ class AddProductController with ChangeNotifier {
       'is_favorite': isFavorite ? 1 : 0,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
+      'tax_enabled': BusinessConfig.instance.enableTax && (taxEnabled ?? false) ? 1 : 0,
+      'tax_rate': BusinessConfig.instance.enableTax && (taxEnabled ?? false)
+          ? (double.tryParse(taxRate.text) ?? BusinessConfig.instance.taxRate)
+          : 0.0,
     };
 
     try {
@@ -702,6 +729,7 @@ class AddProductController with ChangeNotifier {
     boxPrice.dispose();
     boxPurchasePrice.dispose();
     boxWholesalePrice.dispose();
+    taxRate.dispose(); // NEW
     super.dispose();
   }
 }

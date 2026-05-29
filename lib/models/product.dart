@@ -20,7 +20,11 @@ class Product {
   final String? updatedAt;
   final String? deletedAt;
   final dynamic unitId;
-  
+
+  // NEW: Tax fields
+  final bool taxEnabled;
+  final double taxRate;
+
   // Batches/Stocks
   final List<Stock> stocks;
 
@@ -43,6 +47,8 @@ class Product {
     this.updatedAt,
     this.deletedAt,
     this.unitId,
+    this.taxEnabled = false,      // NEW
+    this.taxRate = 0.0,           // NEW
     this.stocks = const [],
   });
 
@@ -66,6 +72,11 @@ class Product {
       updatedAt: map['updated_at'],
       deletedAt: map['deleted_at'],
       unitId: map['unit_id'],
+      
+      // NEW: Tax fields from database
+      taxEnabled: (map['tax_enabled'] ?? 0) == 1,
+      taxRate: (map['tax_rate'] ?? 0.0).toDouble(),
+
       stocks: stocks,
     );
   }
@@ -90,6 +101,10 @@ class Product {
       'updated_at': updatedAt,
       'deleted_at': deletedAt,
       'unit_id': unitId,
+      
+      // NEW: Tax fields
+      'tax_enabled': taxEnabled ? 1 : 0,
+      'tax_rate': taxRate,
     };
   }
 
@@ -112,8 +127,8 @@ class Product {
   double get latestPurchasePrice => (stocks.isNotEmpty) ? (latestStock?.costPrice ?? 0.0) : 0.0;
   double get latestWholesalePrice => (stocks.isNotEmpty) ? (latestStock?.wholesalePrice ?? 0.0) : 0.0;
   double get latestStockQuantity => totalStock;
-
-  // Get the "primary" or "latest" stock (e.g. for default selection)
+  
+  // Get the "primary" or "latest" stock
   Stock? get latestStock => stocks.isNotEmpty ? stocks.last : null;
 }
 
