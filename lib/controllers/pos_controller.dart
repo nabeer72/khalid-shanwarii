@@ -11,6 +11,7 @@ class POSController with ChangeNotifier {
   List<ProductCategory> _categories = [];
   List<ProductCategory> _subCategories = [];
   List<Product> _products = [];
+  List<dynamic> _topSellingProductIds = [];
   List<POSCartItem> _cart = [];
   
   String _selectedCategory = 'all';
@@ -75,6 +76,15 @@ class POSController with ChangeNotifier {
       
       // We can also store them in a separate list if we want to show a subcategory selector
       _subCategories = subCats;
+
+      _topSellingProductIds = [];
+      try {
+        final topItems = await DatabaseHelper.instance.getTopSellingItems(limit: 30);
+        for (final item in topItems) {
+          final id = item['product_id'];
+          if (id != null) _topSellingProductIds.add(id);
+        }
+      } catch (_) {}
       
     } catch (e) {
       debugPrint('Error loading POS data: $e');
@@ -92,8 +102,18 @@ class POSController with ChangeNotifier {
               p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
               (p.stocks.any((s) => s.barcode?.contains(_searchQuery) ?? false)))
           .toList();
-    } else if (_selectedCategory == 'favorites') {
-      filtered = _products.where((p) => p.isFavorite).toList();
+    } else if (_selectedCategory == 'top_selling') {
+      filtered = _products
+          .where((p) => _topSellingProductIds
+              .any((id) => id.toString() == p.id.toString()))
+          .toList();
+      filtered.sort((a, b) {
+        final ai = _topSellingProductIds
+            .indexWhere((id) => id.toString() == a.id.toString());
+        final bi = _topSellingProductIds
+            .indexWhere((id) => id.toString() == b.id.toString());
+        return ai.compareTo(bi);
+      });
     } else if (_selectedCategory == 'recent') {
       final recentIds = MockDataStore.instance.recentProductIds;
       filtered = _products.where((p) => recentIds.contains(p.id)).toList();

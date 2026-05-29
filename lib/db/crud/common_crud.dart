@@ -195,7 +195,7 @@ mixin CommonCrud {
       'id': business['id'],
       'name': business['name'] ?? '',
       'business_type_id': business['business_type_id'],
-      'owner_user_id': business['owner_user_id'],
+      'owner_user_id': business['owner_user_id'] ?? business['user_id'],
       'status': (business['status'] == true || business['status'] == 1) ? 1 : 0,
       'is_synced': isSynced ?? (business['is_synced'] ?? 1),
       'created_at': business['created_at'],
@@ -232,9 +232,46 @@ mixin CommonCrud {
     final db = await database;
     return await db.rawQuery('''
       SELECT DISTINCT b.* FROM businesses b
-      INNER JOIN user_businesses ub ON b.id = ub.business_id
-      WHERE ub.user_id = ? AND b.status = 1
-    ''', [userId]);
+      LEFT JOIN user_businesses ub ON b.id = ub.business_id AND ub.user_id = ?
+      WHERE b.status = 1
+        AND (ub.user_id IS NOT NULL OR b.owner_user_id = ?)
+    ''', [userId, userId]);
+  }
+
+  /// Persist a business row from API/sync and link it to the admin user.
+  Future<void> saveBusinessFromServer(Map<String, dynamic> b, dynamic userId) async {
+    final db = await database;
+    final id = b['id'];
+    if (id == null) return;
+
+    final status = b['status'];
+    final active = status == null || status == true || status == 1 || status.toString() == '1';
+
+    await db.insert(
+      'businesses',
+      {
+        'id': id is int ? id : int.tryParse(id.toString()),
+        'name': b['name'] ?? 'Unknown',
+        'business_type_id': b['business_type_id'],
+        'owner_user_id': b['owner_user_id'] ?? b['user_id'],
+        'subscription_status': b['subscription_status'],
+        'subscription_plan_id': b['subscription_plan_id'],
+        'subscription_plan_name': b['subscription_plan_name'],
+        'subscription_end_date': b['subscription_end_date'],
+        'max_branches': b['max_branches'],
+        'max_products': b['max_products'],
+        'status': active ? 1 : 0,
+        'is_synced': 1,
+        'created_at': b['created_at'],
+        'updated_at': b['updated_at'],
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+
+    if (userId != null) {
+      await addUserBusiness(userId, id);
+    }
+    DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> addUserBusiness(dynamic userId, dynamic businessId) async {

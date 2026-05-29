@@ -193,219 +193,170 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  String _businessTypeIcon(String? type) {
+    if (type == 'garments') return '👕';
+    if (type == 'produce') return '🥬';
+    if (type == 'restaurant') return '🍽️';
+    if (type == 'electronics') return '📱';
+    return '🏪';
+  }
+
+  Future<void> _activateSelectedBusiness(Map<String, dynamic> selected, dynamic userId) async {
+    print('🔄 [LOGIN] Activating business ${selected['id']}...');
+    await _dbHelper.activateBusiness(selected, userId: userId);
+  }
+
   Future<void> _showBusinessSelectionDialog(dynamic userId, List<Map<String, dynamic>> businesses) async {
     if (!mounted) return;
 
-    final selected = await showGeneralDialog<Map<String, dynamic>>(
+    final selected = await showDialog<Map<String, dynamic>>(
       context: context,
       barrierDismissible: false,
-      barrierLabel: 'Business Selection',
-      barrierColor: Colors.black.withOpacity(0.5),
-      transitionDuration: const Duration(milliseconds: 400),
-      pageBuilder: (ctx, anim1, anim2) => const SizedBox(),
-      transitionBuilder: (ctx, anim1, anim2, child) {
-        final curve = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
-        return ScaleTransition(
-          scale: curve,
-          child: FadeTransition(
-            opacity: anim1,
-            child: PopScope(
-              canPop: false,
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Center(
-                  child: Container(
-                    width: 320, // More compact width
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: theme.surface.withOpacity(0.85),
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(color: Colors.white.withOpacity(0.2), width: 1),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 20,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Elegant Icon & Header
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: theme.highlight.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(Icons.store_rounded, color: theme.highlight, size: 32),
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Business Profile',
-                            style: TextStyle(
-                              color: theme.textPrimary,
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Select a store to manage',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: theme.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          // List of businesses
-                          Flexible(
-                            child: Container(
-                              constraints: const BoxConstraints(maxHeight: 300),
-                              child: ListView.separated(
-                                shrinkWrap: true,
-                                itemCount: businesses.length,
-                                separatorBuilder: (_, __) => const SizedBox(height: 10),
-                                itemBuilder: (context, index) {
-                                  final b = businesses[index];
-                                  final type = b['business_type_id']?.toString() ?? '1';
-                                  return InkWell(
-                                    onTap: () => Navigator.pop(context, b),
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.05),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: Colors.white.withOpacity(0.1)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [theme.highlight, theme.highlight.withOpacity(0.7)],
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                              ),
-                                              borderRadius: BorderRadius.circular(12),
-                                            ),
-                                            child: Center(
-                                              child: Text(
-                                                (b['name'] ?? 'B').toString().substring(0, 1).toUpperCase(),
-                                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 14),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  b['name'] ?? 'Business',
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: TextStyle(
-                                                    color: theme.textPrimary,
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  'Category ID: ${b['business_type_id'] ?? '1'}',
-                                                  style: TextStyle(
-                                                    color: theme.textSecondary.withOpacity(0.7),
-                                                    fontSize: 11,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Icon(Icons.chevron_right_rounded, color: theme.textSecondary.withOpacity(0.5), size: 20),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        contentPadding: EdgeInsets.zero,
+        content: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+          ),
+          width: 450,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Select Business',
+                style: TextStyle(
+                  color: Color(0xFF1F2937),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.5,
                 ),
               ),
-            ),
+              const SizedBox(height: 8),
+              const Text(
+                'Choose which business to open',
+                style: TextStyle(color: Color(0xFF6B7280), fontSize: 13, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 20),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: businesses.length,
+                  itemBuilder: (context, index) {
+                    final b = businesses[index];
+                    final type = b['business_type_id']?.toString() ?? '1';
+                    final icon = _businessTypeIcon(type);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: ListTile(
+                          onTap: () => Navigator.pop(ctx, b),
+                          leading: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(icon, style: const TextStyle(fontSize: 18)),
+                          ),
+                          title: Text(
+                            b['name'] ?? 'Unnamed Business',
+                            style: const TextStyle(
+                              color: Color(0xFF1F2937),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: Icon(Icons.chevron_right_rounded, color: theme.highlight, size: 22),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
 
     if (selected != null) {
-      final storage = const FlutterSecureStorage();
-      final bid = selected['id'];
-      final aid = selected['owner_user_id'] ?? selected['admin_id'];
-      
-      // Fetch branches for this business to set initial context
-      final branches = await _dbHelper.getBranchesForBusiness(bid);
-      final mainBranch = branches.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
-      
-      BusinessConfig.instance.setContext(
-        bid: bid,
-        uid: aid,
-        brid: mainBranch['id'],
-        bName: selected['name'],
-        bType: selected['business_type_id']?.toString(),
-        activeBranches: branches.map((b) => b['id']).toList(),
-      );
-
-      // Persist to storage
-      await storage.write(key: 'business_id', value: bid.toString());
-      if (aid != null) await storage.write(key: 'user_id', value: aid.toString());
-      if (mainBranch['id'] != null) await storage.write(key: 'branch_id', value: mainBranch['id'].toString());
-      // Ensure BusinessConfig also reflects the branch ID
-      BusinessConfig.instance.branchId = mainBranch['id'];
-
-      // Sync and load settings - CRITICAL: await this so products are loaded before home
-      print('🔄 [LOGIN] Performing full sync for business $bid...');
-      // ignore: invalid_return_type_for_catch_error
-      await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Quick sync failed: $e'));
-      
-      // [FIX] We MUST re-fetch branches after sync, because the newly selected 
-      // business might not have had its branches synced during the initial login pull
-      final branchesAfterSync = await _dbHelper.getBranchesForBusiness(bid);
-      final mainBranchAfter = branchesAfterSync.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branchesAfterSync.isNotEmpty ? branchesAfterSync.first : {'id': null});
-
-      BusinessConfig.instance.setContext(
-        bid: bid,
-        uid: aid,
-        brid: mainBranchAfter['id'],
-        bName: selected['name'],
-        bType: selected['business_type_id']?.toString(),
-        activeBranches: branchesAfterSync.map((b) => b['id']).toList(),
-      );
-
-      if (mainBranchAfter['id'] != null) await storage.write(key: 'branch_id', value: mainBranchAfter['id'].toString());
-      BusinessConfig.instance.branchId = mainBranchAfter['id'];
-
-      await _dbHelper.loadSettings();
+      await _activateSelectedBusiness(selected, userId);
     } else {
-      // If they somehow cancelled a non-cancellable dialog, we must stay on login
       throw Exception('Business selection required');
     }
   }
 
+  /// Load businesses from live API first, then fall back to local DB.
+  Future<List<Map<String, dynamic>>> _fetchAdminBusinessesFromApi(dynamic userId) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+      if (token == null || token.isEmpty) {
+        print('⚠️ [LOGIN] No auth token — skipping API business fetch');
+        return [];
+      }
+
+      final response = await _api.getUserBusinesses();
+      if (response?.statusCode != 200) return [];
+
+      final raw = response!.data['businesses'];
+      if (raw is! List || raw.isEmpty) return [];
+
+      final businesses = <Map<String, dynamic>>[];
+      for (final item in raw) {
+        if (item is! Map) continue;
+        final b = Map<String, dynamic>.from(item);
+        await _dbHelper.saveBusinessFromServer(b, userId);
+        businesses.add(b);
+      }
+
+      print('🌐 [LOGIN] Fetched ${businesses.length} businesses from API for user $userId');
+      return businesses;
+    } catch (e) {
+      print('⚠️ [LOGIN] API business fetch failed: $e');
+      return [];
+    }
+  }
+
+  Future<void> _handleAdminBusinessSelection(dynamic userId) async {
+    final fallbackBid = BusinessConfig.instance.businessId;
+    BusinessConfig.instance.businessId = null;
+    BusinessConfig.instance.branchId = null;
+
+    var businesses = await _fetchAdminBusinessesFromApi(userId);
+    if (businesses.isEmpty) {
+      businesses = await _dbHelper.getBusinessesForUser(userId);
+    }
+    print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
+
+    if (businesses.length > 1) {
+      try {
+        await _showBusinessSelectionDialog(userId, businesses);
+      } catch (e) {
+        print('⚠️ Business selection cancelled or failed: $e');
+        rethrow;
+      }
+    } else if (businesses.length == 1) {
+      await _activateSelectedBusiness(businesses.first, userId);
+    } else if (fallbackBid != null) {
+      final b = await _dbHelper.getBusiness(fallbackBid);
+      if (b != null) {
+        await _activateSelectedBusiness(b, userId);
+      }
+    }
+  }
+
+  /// FIXED: Business selection only for admins, not employees
   Future<void> _proceedToHome(bool isQuickLogin, String email, {bool isPinLogin = false}) async {
     if (!mounted) return;
     
@@ -425,107 +376,11 @@ class _LoginScreenState extends State<LoginScreen>
           await _dbHelper.loadSettings();
         }
       } else {
-        // Admin login logic
-        final businesses = await _dbHelper.getBusinessesForUser(userId);
-        print('🏢 [LOGIN] Found ${businesses.length} businesses for user $userId');
-        
-          // [FIX] For Quick Login, try to restore the last used business and branch automatically
-          if (isQuickLogin) {
-            final savedAcc = _savedAccounts.firstWhere(
-              (acc) => acc['email'].toString().toLowerCase().trim() == email.toLowerCase().trim(),
-              orElse: () => {},
-            );
-            final savedBid = savedAcc['business_id'];
-            final savedBrid = savedAcc['branch_id'];
-
-            if (savedBid != null) {
-              print('🚀 [LOGIN] Quick Login: Restoring saved business $savedBid and branch $savedBrid');
-              final b = businesses.firstWhere((eb) => eb['id'] == savedBid, orElse: () => {});
-              if (b.isNotEmpty) {
-                final branches = await _dbHelper.getBranchesForBusiness(savedBid);
-                final aid = b['owner_user_id'] ?? b['admin_id'] ?? userId;
-                
-                BusinessConfig.instance.setContext(
-                  bid: savedBid, 
-                  uid: aid,
-                  brid: savedBrid,
-                  bName: b['name'],
-                  bType: b['business_type_id']?.toString(),
-                  activeBranches: branches.map((br) => br['id']).toList(),
-                );
-                
-                await _storage.write(key: 'branch_id', value: savedBrid?.toString() ?? '');
-                await _dbHelper.loadSettings();
-
-                // [FIX] Perform a standard sync. We no longer wipe data on logout,
-                // but we trigger a sync here to ensure the session is up-to-date.
-                await SyncService().syncPull().catchError((e) => print('⚠️ Quick sync failed: $e'));
-              }
-            }
-          }
-
-        // If context was not restored (or not Quick Login), proceed with standard selection
-        if (!isQuickLogin || BusinessConfig.instance.businessId == null) {
-          if (businesses.length > 1) {
-            try {
-              await _showBusinessSelectionDialog(userId, businesses);
-            } catch (e) {
-              print('⚠️ Business selection cancelled or failed: $e');
-              return; // Stay on login screen
-            }
-          } else if (businesses.length == 1) {
-            // Auto-select the only business
-            final b = businesses.first;
-            final bid = b['id'];
-            final aid = b['owner_user_id'] ?? b['admin_id'];
-            
-            final branches = await _dbHelper.getBranchesForBusiness(bid);
-            final mainBranch = branches.firstWhere(
-              (br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', 
-              orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
-            );
-
-            BusinessConfig.instance.setContext(
-              bid: bid, 
-              uid: aid,
-              brid: mainBranch['id'],
-              bName: b['name'],
-              bType: b['business_type_id']?.toString(),
-              activeBranches: branches.map((br) => br['id']).toList(),
-            );
-
-            await _storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
-
-            print('🔄 [LOGIN] Pulling business data for ${b['name']}...');
-            await SyncService().syncPull(forceFull: true);
-            await _dbHelper.loadSettings();
-          } else {
-            // Fallback if no businesses found
-            final bidFromConfig = BusinessConfig.instance.businessId;
-            if (bidFromConfig != null) {
-              final b = await _dbHelper.getBusiness(bidFromConfig);
-              if (b != null) {
-                final branches = await _dbHelper.getBranchesForBusiness(bidFromConfig);
-                final mainBranch = branches.firstWhere(
-                  (br) => br['is_main_branch'] == 1 || br['is_main_branch'] == '1', 
-                  orElse: () => branches.isNotEmpty ? branches.first : {'id': null},
-                );
-                
-                BusinessConfig.instance.setContext(
-                  bid: bidFromConfig, 
-                  uid: b['owner_user_id'] ?? b['admin_id'] ?? userId,
-                  brid: mainBranch['id'],
-                  bName: b['name'],
-                  bType: b['business_type_id']?.toString(),
-                  activeBranches: branches.map((br) => br['id']).toList(),
-                );
-                
-                print('🔄 [LOGIN] Fallback: Pulling business data for ${b['name']}...');
-                await SyncService().syncPull(forceFull: true);
-                await _dbHelper.loadSettings();
-              }
-            }
-          }
+        try {
+          await _handleAdminBusinessSelection(userId);
+        } catch (e) {
+          print('⚠️ Business selection cancelled or failed: $e');
+          return;
         }
       }
     }
@@ -643,15 +498,14 @@ class _LoginScreenState extends State<LoginScreen>
         await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after admin login failed: $e'));
         
         BusinessConfig.instance.staffName = user['name'] ?? 'Admin';
+        BusinessConfig.instance.userId = uid;
+        if (bid != null) await _dbHelper.addUserBusiness(uid, bid);
         
         await _storage.write(key: 'user_id', value: uid.toString());
-        await _storage.write(key: 'business_id', value: bid?.toString());
         await _storage.write(key: 'user_email', value: user['email']);
         
-        await _dbHelper.loadSettings();
-        
-        // Background sync to verify/update
-        _syncLoginToBackend();
+        // Ensure API token exists so business list can be fetched from server
+        await _syncLoginToBackend();
         SyncService().syncPull().catchError((e) => print('⚠️ Background sync failed: $e'));
         
         await _proceedToHome(isQuickLogin, cleanEmail, isPinLogin: false);
@@ -717,6 +571,7 @@ class _LoginScreenState extends State<LoginScreen>
 
         if (pullData != null) {
           final storage = const FlutterSecureStorage();
+          dynamic loginUserId;
           
           // CRITICAL: Update BusinessConfig IMMEDIATELY so UI has access to IDs
           if (pullData['business'] != null) {
@@ -731,6 +586,7 @@ class _LoginScreenState extends State<LoginScreen>
             final u = pullData['user'];
             await _dbHelper.insertUser(u);
             final uid = u['id'] is int ? (u['id'] as int) : int.tryParse(u['id']?.toString() ?? '');
+            loginUserId = uid;
             final bid = u['business_id'] is int ? (u['business_id'] as int) : int.tryParse(u['business_id']?.toString() ?? '');
             final brid = u['branch_id'] is int ? (u['branch_id'] as int) : int.tryParse(u['branch_id']?.toString() ?? '');
             final aid = u['admin_id'] is int ? (u['admin_id'] as int) : int.tryParse(u['admin_id']?.toString() ?? '');
@@ -787,19 +643,29 @@ class _LoginScreenState extends State<LoginScreen>
               if (brid != null) await storage.write(key: 'branch_id', value: brid.toString());
             }
 
-            if (bid != null) {
-              BusinessConfig.instance.businessId = bid;
-              await storage.write(key: 'business_id', value: bid.toString());
-              
-              // [FIX] Ensure user-business link exists locally after sync
-              if (uid != null) {
-                await _dbHelper.addUserBusiness(uid, bid);
-              }
+            if (uid != null && bid != null) {
+              await _dbHelper.addUserBusiness(uid, bid);
             }
             await storage.write(key: 'user_email', value: u['email']);
           }
 
-          await _dbHelper.loadSettings();
+          // Link all synced businesses to this admin user
+          final changes = pullData['changes'];
+          if (changes != null && changes['businesses'] != null && loginUserId != null) {
+            for (final b in changes['businesses'] as List) {
+              final bId = b['id'];
+              if (bId != null) {
+                await _dbHelper.addUserBusiness(loginUserId, bId);
+              }
+            }
+          }
+
+          // Let business selection choose the active business (admin only)
+          if (BusinessConfig.instance.staffId == null) {
+            BusinessConfig.instance.businessId = null;
+            BusinessConfig.instance.branchId = null;
+          }
+
           print('✅ [LOGIN] Initial setup complete!');
         }
 

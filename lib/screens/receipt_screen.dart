@@ -22,14 +22,40 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   bool _loadingItems = false;
   final theme = ThemeProvider.instance;
   final GlobalKey _receiptKey = GlobalKey();
+  String _storeName = '';
+  String _storeAddress = '';
+  String _storePhone = '';
+  String _receiptFooter = '';
 
   @override
   void initState() {
     super.initState();
+    _storeName = BusinessConfig.instance.businessName;
+    _storeAddress = BusinessConfig.instance.businessAddress;
+    _storePhone = BusinessConfig.instance.businessPhone;
+    _receiptFooter = BusinessConfig.instance.receiptFooter;
     _initData();
   }
 
+  Future<void> _loadStoreInfo() async {
+    try {
+      final db = DatabaseHelper.instance;
+      final name = await db.getSetting('business_name');
+      final address = await db.getSetting('business_address');
+      final phone = await db.getSetting('business_phone');
+      final footer = await db.getSetting('receipt_footer');
+      if (!mounted) return;
+      setState(() {
+        if (name != null && name.isNotEmpty) _storeName = name;
+        if (address != null && address.isNotEmpty) _storeAddress = address;
+        if (phone != null && phone.isNotEmpty) _storePhone = phone;
+        if (footer != null && footer.isNotEmpty) _receiptFooter = footer;
+      });
+    } catch (_) {}
+  }
+
   Future<void> _initData() async {
+    await _loadStoreInfo();
     // If items are already passed (from POS), use them
     if (widget.sale['items'] != null && (widget.sale['items'] as List).isNotEmpty) {
       setState(() {
@@ -182,46 +208,123 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             width: 380,
             decoration: BoxDecoration(
               color: Colors.white,
-              boxShadow: [
-                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              boxShadow: const [
+                BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 6)),
               ],
             ),
             child: Column(
               children: [
-                // Top "Paper Cut" effect or just padding
-                const SizedBox(height: 20),
-                
-                // Content
+                Container(
+                  height: 5,
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Color(0xFF1A73E8), Color(0xFF667eea)],
+                    ),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
+                  ),
+                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                   child: Column(
                     children: [
-                      // Header
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF1A73E8), Color(0xFF764ba2)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF1A73E8).withOpacity(0.35),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.storefront_rounded, color: Colors.white, size: 28),
+                      ),
+                      const SizedBox(height: 12),
                       Text(
-                        BusinessConfig.instance.businessName.toUpperCase(),
+                        _storeName.toUpperCase(),
                         style: const TextStyle(
-                          color: Colors.black,
+                          color: Color(0xFF111827),
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                          height: 1.2,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      if (BusinessConfig.instance.businessAddress.isNotEmpty)
-                        Text(
-                          BusinessConfig.instance.businessAddress,
-                          style: const TextStyle(color: Colors.black87, fontSize: 13),
-                          textAlign: TextAlign.center,
+                      if (_storeAddress.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.only(top: 2),
+                              child: Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                _storeAddress,
+                                style: const TextStyle(
+                                  color: Color(0xFF4B5563),
+                                  fontSize: 12,
+                                  height: 1.35,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ],
                         ),
-                      if (BusinessConfig.instance.businessPhone.isNotEmpty)
-                        Text(
-                          BusinessConfig.instance.businessPhone,
-                          style: const TextStyle(color: Colors.black87, fontSize: 13),
-                          textAlign: TextAlign.center,
+                      ],
+                      if (_storePhone.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.phone_outlined, size: 13, color: Color(0xFF6B7280)),
+                            const SizedBox(width: 5),
+                            Text(
+                              _storePhone,
+                              style: const TextStyle(
+                                color: Color(0xFF374151),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                      
-                      const SizedBox(height: 8),
-                      const Divider(color: Colors.black, thickness: 1),
-                      const SizedBox(height: 8),
+                      ],
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF3F4F6),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: const Text(
+                          'SALES RECEIPT',
+                          style: TextStyle(
+                            color: Color(0xFF1A73E8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      const Divider(color: Color(0xFF111827), thickness: 1.2, height: 1),
+                      const SizedBox(height: 12),
 
                       // Meta Info Row 1: Bill No & Date
                       Row(
@@ -431,17 +534,47 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         const _DottedLine(),
                       ],
                       const SizedBox(height: 16),
-
-                      const Text(
-                        '*** Thanks For Your Kind Visit ***',
-                        style: TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              const Color(0xFF1A73E8).withOpacity(0.08),
+                              const Color(0xFF764ba2).withOpacity(0.06),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Column(
+                          children: [
+                            Text(
+                              _receiptFooter.isNotEmpty
+                                  ? _receiptFooter
+                                  : '*** Thanks For Your Kind Visit ***',
+                              style: const TextStyle(
+                                color: Color(0xFF111827),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Powered by SATA Technologies',
+                              style: TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontSize: 9,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: 0.3,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Copyright Powered by SATA Technologies',
-                        style: TextStyle(color: Colors.black54, fontSize: 10, fontWeight: FontWeight.w600),
-                      ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                     ],
                   ),
                 ),

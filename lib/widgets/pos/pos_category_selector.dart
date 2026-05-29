@@ -24,7 +24,7 @@ class POSCategorySelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
     final categories = [
-      ProductCategory(id: -1, name: 'Favorites', icon: '⭐', businessId: 0),
+      ProductCategory(id: -1, name: 'Top Selling', icon: '📈', businessId: 0),
       ProductCategory(id: -2, name: 'Recent', icon: '🕐', businessId: 0),
       ProductCategory(id: 0, name: 'All Items', icon: '📝', businessId: 0),
       ...controller.categories.where((c) => c.parentId == null),
@@ -41,7 +41,7 @@ class POSCategorySelector extends StatelessWidget {
             runSpacing: 8,
             children: [
               ...categories.map((cat) {
-                final catIdStr = cat.id == -1 ? 'favorites' : (cat.id == -2 ? 'recent' : (cat.id == 0 ? 'all' : cat.id.toString()));
+                final catIdStr = cat.id == -1 ? 'top_selling' : (cat.id == -2 ? 'recent' : (cat.id == 0 ? 'all' : cat.id.toString()));
                 final isSelected = controller.selectedCategory == catIdStr;
                 
                 return Material(
@@ -92,7 +92,7 @@ class POSCategorySelector extends StatelessWidget {
           
           // Sub-categories row
           if (controller.selectedCategory != 'all' && 
-              controller.selectedCategory != 'favorites' && 
+              controller.selectedCategory != 'top_selling' && 
               controller.selectedCategory != 'recent')
             ...[
               const SizedBox(height: 12),

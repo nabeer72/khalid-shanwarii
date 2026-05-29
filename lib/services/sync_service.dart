@@ -22,8 +22,15 @@ class SyncService {
 
   bool _isSyncing = false;
   bool get isSyncing => _isSyncing;
+  final ValueNotifier<bool> isSyncingNotifier = ValueNotifier<bool>(false);
 
   Timer? _debounceTimer;
+
+  void _setSyncing(bool value) {
+    if (_isSyncing == value) return;
+    _isSyncing = value;
+    isSyncingNotifier.value = value;
+  }
 
   double _parseNum(dynamic val) {
     if (val == null) return 0.0;
@@ -98,14 +105,14 @@ class SyncService {
       if (kDebugMode) print('⏳ [SYNC] Sync already in progress, skipping...');
       return SyncResult();
     }
-    _isSyncing = true;
+    _setSyncing(true);
     
     final result = SyncResult();
     
     // Check if we have a token before syncing
     final hasToken = await _ensureToken();
     if (!hasToken) {
-      _isSyncing = false;
+      _setSyncing(false);
       result.pullError = 'Authentication token missing and re-auth failed. Please log in again.';
       result.pushError = 'Authentication token missing and re-auth failed. Please log in again.';
       return result;
@@ -128,7 +135,7 @@ class SyncService {
       }
       result.pushError = e.toString();
     } finally {
-      _isSyncing = false;
+      _setSyncing(false);
     }
     return result;
   }
@@ -138,7 +145,7 @@ class SyncService {
       if (kDebugMode) print('⏳ [SYNC] Sync already in progress, skipping pull...');
       return null;
     }
-    if (!internal) _isSyncing = true;
+    if (!internal) _setSyncing(true);
 
     try {
       final hasToken = await _ensureToken();
@@ -1258,7 +1265,7 @@ class SyncService {
       if (kDebugMode) print('Sync Pull Error: $e');
       rethrow;
     } finally {
-      if (!internal) _isSyncing = false;
+      if (!internal) _setSyncing(false);
     }
   }
 
@@ -1275,7 +1282,7 @@ class SyncService {
       return;
     }
 
-    if (!internal) _isSyncing = true;
+    if (!internal) _setSyncing(true);
 
     try {
       final hasToken = await _ensureToken();
@@ -1560,9 +1567,14 @@ class SyncService {
       unsyncedBusinesses = await _dbHelper.getUnsyncedBusinesses();
       if (unsyncedBusinesses.isNotEmpty) {
         changes['businesses'] = unsyncedBusinesses.map((b) {
-          var m = Map.from(b);
+          var m = Map<String, dynamic>.from(b);
           m.remove('is_synced');
-          
+          m.remove('business_type'); // legacy SQLite column — server uses business_type_id
+
+          final typeFromRow = b['business_type_id'];
+          final typeFromConfig = int.tryParse(BusinessConfig.instance.businessType);
+          m['business_type_id'] = typeFromRow ?? typeFromConfig ?? 1;
+
           // Inject local settings into the business payload 
           // so the backend can update the business profile correctly.
           m['business_name'] = BusinessConfig.instance.businessName;
@@ -1573,7 +1585,7 @@ class SyncService {
           m['business_phone'] = BusinessConfig.instance.businessPhone;
           m['contact_number'] = BusinessConfig.instance.businessPhone;
           m['receipt_footer'] = BusinessConfig.instance.receiptFooter;
-          
+
           return m;
         }).toList();
       }
@@ -2186,7 +2198,7 @@ class SyncService {
       if (kDebugMode) print('Sync Push Error: $e');
       rethrow;
     } finally {
-      if (!internal) _isSyncing = false;
+      if (!internal) _setSyncing(false);
     }
   }
 
@@ -2631,6 +2643,7 @@ class SyncService {
   }
   /// Clear all sync state (for logout)
   Future<void> logout() async {
+    _setSyncing(false);
     await _api.logout();
     // KEEP last_synced_at to avoid full re-sync on next login,
     // which would replace local unsynced data.

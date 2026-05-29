@@ -230,51 +230,38 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     LayoutBuilder(builder: (context, constraints) {
                       final isWide = ThemeProvider.isWideScreen(context);
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (isWide) ...[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: _buildCategorySelector()),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildSubCategorySelector()),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: _buildBrandSelector()),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildUnitSelector()),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                    child: _buildTextField(
-                                      controller: _controller.name,
-                                      label: 'Product Name',
-                                      icon: Icons.inventory_2_outlined,
-                                      validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
-                                      isRequired: true,
-                                    ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(child: _buildBarcodeScanner()),
-                              ],
-                            ),
+                            _buildFormRow([
+                              _buildCategorySelector(),
+                              _buildSubCategorySelector(),
+                            ]),
+                            _formSpacer(),
+                            _buildFormRow([
+                              _buildBrandSelector(),
+                              _buildUnitSelector(),
+                            ]),
+                            _formSpacer(),
+                            _buildFormRow([
+                              _buildTextField(
+                                controller: _controller.name,
+                                label: 'Product Name',
+                                icon: Icons.inventory_2_outlined,
+                                validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                                isRequired: true,
+                              ),
+                              _buildBarcodeScanner(),
+                            ]),
                           ] else ...[
                             _buildCategorySelector(),
-                            const SizedBox(height: 16),
+                            _formSpacer(),
                             _buildSubCategorySelector(),
-                            const SizedBox(height: 16),
+                            _formSpacer(),
                             _buildBrandSelector(),
-                            const SizedBox(height: 16),
+                            _formSpacer(),
                             _buildUnitSelector(),
-                            const SizedBox(height: 16),
+                            _formSpacer(),
                             _buildTextField(
                               controller: _controller.name,
                               label: 'Product Name',
@@ -282,7 +269,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
                               isRequired: true,
                             ),
-                            const SizedBox(height: 16),
+                            _formSpacer(),
                             _buildBarcodeScanner(),
                           ],
                         ],
@@ -314,83 +301,56 @@ class _AddProductScreenState extends State<AddProductScreen> {
                       }
 
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (_controller.isBoxUnit) ...[
                             Builder(
                               builder: (context) {
                                 final unitName = _controller.getSelectedUnitName();
                                 return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: _buildTextField(
-                                            controller: _controller.boxPurchasePrice,
-                                            label: 'Purchase $unitName Price',
-                                            icon: Icons.inventory_2_outlined,
-                                            keyboardType: TextInputType.number,
-                                            validator: (v) => validateInt(v, true),
-                                            isRequired: true,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: _buildTextField(
-                                            controller: _controller.boxWholesalePrice,
-                                            label: '$unitName Wholesale Price',
-                                            icon: Icons.local_offer_outlined,
-                                            keyboardType: TextInputType.number,
-                                            validator: (v) => validateInt(v, true),
-                                            isRequired: true,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: _buildTextField(
-                                            controller: _controller.boxPrice,
-                                            label: '$unitName Sale Price',
-                                            icon: Icons.account_balance_wallet_outlined,
-                                            keyboardType: TextInputType.number,
-                                            validator: (v) => validateInt(v, true),
-                                            isRequired: true,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: _buildTextField(
-                                            controller: _controller.piecesPerBox,
-                                            label: '$unitName Quantity',
-                                            icon: Icons.grid_view_rounded,
-                                            keyboardType: TextInputType.number,
-                                            validator: (v) => validateInt(v, true),
-                                            isRequired: true,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(
-                                          child: _buildTextField(
-                                            controller: _controller.stock,
-                                            label: 'Total ${unitName}s',
-                                            icon: Icons.warehouse_outlined,
-                                            keyboardType: TextInputType.number,
-                                            isRequired: true,
-                                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : validateStock(v),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        const Expanded(child: SizedBox()),
-                                      ],
+                                    _buildFormRow([
+                                      _buildTextField(
+                                        controller: _controller.boxPurchasePrice,
+                                        label: 'Purchase $unitName Price',
+                                        icon: Icons.inventory_2_outlined,
+                                        keyboardType: TextInputType.number,
+                                        validator: (v) => validateInt(v, true),
+                                        isRequired: true,
+                                      ),
+                                      _buildTextField(
+                                        controller: _controller.boxPrice,
+                                        label: '$unitName Sale Price',
+                                        icon: Icons.account_balance_wallet_outlined,
+                                        keyboardType: TextInputType.number,
+                                        validator: (v) => validateInt(v, true),
+                                        isRequired: true,
+                                      ),
+                                    ]),
+                                    _formSpacer(),
+                                    _buildFormRow([
+                                      _buildTextField(
+                                        controller: _controller.piecesPerBox,
+                                        label: '$unitName Quantity',
+                                        icon: Icons.grid_view_rounded,
+                                        keyboardType: TextInputType.number,
+                                        validator: (v) => validateInt(v, true),
+                                        isRequired: true,
+                                      ),
+                                      const SizedBox.shrink(),
+                                    ]),
+                                    _formSpacer(),
+                                    _buildStockAndWholesaleRow(
+                                      isWide: isWide,
+                                      stockLabel: 'Total ${unitName}s',
+                                      wholesaleField: _buildTextField(
+                                        controller: _controller.boxWholesalePrice,
+                                        label: '$unitName Wholesale Price',
+                                        icon: Icons.local_offer_outlined,
+                                        keyboardType: TextInputType.number,
+                                        validator: (v) => validateInt(v, false),
+                                      ),
                                     ),
                                   ],
                                 );
@@ -427,59 +387,26 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               ),
                             ),
                           ] else if (isWide) ...[
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.purchasePrice,
-                                    label: 'Cost Price',
-                                    icon: Icons.shopping_bag_outlined,
-                                    keyboardType: TextInputType.number,
-                                    isRequired: true,
-                                    validator: (v) => validateInt(v, true),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.price,
-                                    label: 'Sale Price',
-                                    icon: Icons.monetization_on_outlined,
-                                    keyboardType: TextInputType.number,
-                                    validator: (v) => validateInt(v, true),
-                                    isRequired: true,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.wholesalePrice,
-                                    label: 'Wholesale Price',
-                                    icon: Icons.business_center_outlined,
-                                    keyboardType: TextInputType.number,
-                                    isRequired: true,
-                                    validator: (v) => validateInt(v, true),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: _buildTextField(
-                                    controller: _controller.stock,
-                                    label: 'Stock Quantity',
-                                    icon: Icons.warehouse_outlined,
-                                    keyboardType: TextInputType.number,
-                                    isRequired: true,
-                                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : validateStock(v),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            _buildFormRow([
+                              _buildTextField(
+                                controller: _controller.purchasePrice,
+                                label: 'Cost Price',
+                                icon: Icons.shopping_bag_outlined,
+                                keyboardType: TextInputType.number,
+                                isRequired: true,
+                                validator: (v) => validateInt(v, true),
+                              ),
+                              _buildTextField(
+                                controller: _controller.price,
+                                label: 'Sale Price',
+                                icon: Icons.monetization_on_outlined,
+                                keyboardType: TextInputType.number,
+                                validator: (v) => validateInt(v, true),
+                                isRequired: true,
+                              ),
+                            ]),
+                            _formSpacer(),
+                            _buildStockAndWholesaleRow(isWide: true),
                           ] else ...[
                             _buildTextField(
                               controller: _controller.purchasePrice,
@@ -489,7 +416,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               isRequired: true,
                               validator: (v) => validateInt(v, true),
                             ),
-                            const SizedBox(height: 16),
+                            _formSpacer(),
                             _buildTextField(
                               controller: _controller.price,
                               label: 'Sale Price',
@@ -498,105 +425,28 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               validator: (v) => validateInt(v, true),
                               isRequired: true,
                             ),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              controller: _controller.wholesalePrice,
-                              label: 'Wholesale Price',
-                              icon: Icons.business_center_outlined,
-                              keyboardType: TextInputType.number,
-                              isRequired: true,
-                              validator: (v) => validateInt(v, true),
-                            ),
-                            const SizedBox(height: 16),
-                            _buildTextField(
-                              controller: _controller.stock,
-                              label: 'Stock Quantity',
-                              icon: Icons.warehouse_outlined,
-                              keyboardType: TextInputType.number,
-                              isRequired: true,
-                              validator: (v) => v == null || v.trim().isEmpty ? 'Required' : validateStock(v),
-                            ),
+                            _formSpacer(),
+                            _buildStockAndWholesaleRow(isWide: false),
                           ],
                         ],
                       );
                     }),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _controller.stockLimit,
-                            label: 'Stock Alert Limit',
-                            icon: Icons.notifications_active_outlined,
-                            keyboardType: TextInputType.number,
-                            validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                            isRequired: true,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildTextField(
-                            controller: _controller.discountLimit,
-                            label: 'Max Discount',
-                            icon: _controller.discountLimitType == 'percentage' ? Icons.percent_outlined : Icons.monetization_on_outlined,
-                            keyboardType: TextInputType.number,
-                            suffixIcon: TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _controller.discountLimitType = _controller.discountLimitType == 'percentage' ? 'fixed' : 'percentage';
-                                });
-                              },
-                              child: Text(
-                                _controller.discountLimitType == 'percentage' ? '%' : BusinessConfig.instance.currencyDisplay,
-                                style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
+                    _formSpacer(),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = ThemeProvider.isWideScreen(context);
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildStockAlertAndDiscountRow(isWide: isWide),
+                            if (BusinessConfig.instance.enableTax) ...[
+                              _formSpacer(),
+                              _buildTaxWithToggle(isWide: isWide),
+                            ],
+                          ],
+                        );
+                      },
                     ),
-                    const SizedBox(height: 20),
-
-                    // === TAX FIELD WITH TOGGLE (only when enabled in Settings) ===
-                    if (BusinessConfig.instance.enableTax) ...[
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: _buildTextField(
-                              controller: _controller.taxRate,
-                              label: 'Tax Rate (%)',
-                              icon: Icons.percent_outlined,
-                              keyboardType: TextInputType.number,
-                              enabled: _controller.taxEnabled ?? false,
-                              validator: (v) {
-                                if (_controller.taxEnabled != true) return null;
-                                if (v == null || v.trim().isEmpty) return 'Required';
-                                final val = num.tryParse(v);
-                                if (val == null || val < 0) return 'Invalid tax rate';
-                                return null;
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Switch(
-                            value: _controller.taxEnabled ?? false,
-                            activeColor: theme.highlight,
-                            onChanged: (val) {
-                              setState(() {
-                                _controller.taxEnabled = val;
-                                if (val &&
-                                    (_controller.taxRate.text.trim().isEmpty ||
-                                        _controller.taxRate.text == '0')) {
-                                  _controller.taxRate.text =
-                                      BusinessConfig.instance.taxRate.toString();
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
                   ]),
                   const SizedBox(height: 100),
                 ],
@@ -629,7 +479,69 @@ class _AddProductScreenState extends State<AddProductScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: theme.glassDecoration,
-      child: Column(children: children),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+
+  static const double _formFieldHeight = 56;
+  static const double _formGap = 16;
+  static const EdgeInsets _formFieldPadding = EdgeInsets.symmetric(horizontal: 12, vertical: 16);
+
+  Widget _formSpacer() => const SizedBox(height: _formGap);
+
+  Widget _buildFormRow(List<Widget> children) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < children.length; i++) ...[
+          if (i > 0) const SizedBox(width: _formGap),
+          Expanded(child: children[i]),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildFieldActionButton({
+    required VoidCallback onPressed,
+    required IconData icon,
+  }) {
+    return SizedBox(
+      height: _formFieldHeight,
+      width: 48,
+      child: Center(
+        child: IconButton(
+          onPressed: onPressed,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.highlight.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+            ),
+            child: Icon(icon, color: theme.highlight, size: 20),
+          ),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _formInputDecoration(
+    String label,
+    IconData icon, {
+    bool isRequired = false,
+    Widget? suffixIcon,
+    Widget? prefix,
+  }) {
+    return theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
+      suffixIcon: suffixIcon,
+      prefix: prefix,
+      prefixIcon: prefix != null ? null : Icon(icon, color: theme.iconColor),
+      contentPadding: _formFieldPadding,
+      isDense: true,
     );
   }
 
@@ -649,9 +561,188 @@ class _AddProductScreenState extends State<AddProductScreen> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       enabled: enabled,
-      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
+      style: TextStyle(
+        color: enabled ? theme.textPrimary : theme.textSecondary,
+        fontWeight: FontWeight.w500,
+        fontSize: ThemeProvider.fontLabel,
+        decoration: TextDecoration.none,
+        decorationColor: Colors.transparent,
+      ),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(suffixIcon: suffixIcon),
+      decoration: _formInputDecoration(label, icon, isRequired: isRequired, suffixIcon: suffixIcon),
+    );
+  }
+
+  Widget _buildStockQuantityField({String label = 'Stock Quantity'}) {
+    return _buildTextField(
+      controller: _controller.stock,
+      label: label,
+      icon: Icons.warehouse_outlined,
+      keyboardType: TextInputType.number,
+      isRequired: true,
+      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : _validateStockQuantity(v),
+    );
+  }
+
+  Widget _buildStockAlertField() {
+    return _buildTextField(
+      controller: _controller.stockLimit,
+      label: 'Stock Alert Limit',
+      icon: Icons.notifications_active_outlined,
+      keyboardType: TextInputType.number,
+      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+      isRequired: true,
+    );
+  }
+
+  Widget _buildStockAndWholesaleRow({
+    required bool isWide,
+    String stockLabel = 'Stock Quantity',
+    Widget? wholesaleField,
+  }) {
+    final stockField = _buildStockQuantityField(label: stockLabel);
+    final wholesale = wholesaleField ??
+        _buildTextField(
+          controller: _controller.wholesalePrice,
+          label: 'Wholesale Price',
+          icon: Icons.business_center_outlined,
+          keyboardType: TextInputType.number,
+          validator: (v) {
+            if (v == null || v.trim().isEmpty) return null;
+            final parsed = num.tryParse(v);
+            if (parsed == null) return 'Must be a number';
+            if (parsed < 0) return 'Cannot be negative';
+            if (parsed != parsed.toInt()) return 'Must be a whole number';
+            return null;
+          },
+        );
+
+    if (isWide) {
+      return _buildFormRow([wholesale, stockField]);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        wholesale,
+        _formSpacer(),
+        stockField,
+      ],
+    );
+  }
+
+  Widget _buildStockAlertAndDiscountRow({required bool isWide}) {
+    final alertField = _buildStockAlertField();
+    final discountField = _buildDiscountField();
+
+    if (isWide) {
+      return _buildFormRow([alertField, discountField]);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        alertField,
+        _formSpacer(),
+        discountField,
+      ],
+    );
+  }
+
+  String? _validateStockQuantity(String? v) {
+    if (v == null || v.trim().isEmpty) return null;
+    final val = num.tryParse(v);
+    if (val == null) return 'Must be a number';
+    if (val < 0) return 'Cannot be negative';
+    return null;
+  }
+
+  Widget _buildDiscountField() {
+    return _buildTextField(
+      controller: _controller.discountLimit,
+      label: 'Max Discount',
+      icon: _controller.discountLimitType == 'percentage'
+          ? Icons.percent_outlined
+          : Icons.monetization_on_outlined,
+      keyboardType: TextInputType.number,
+      suffixIcon: TextButton(
+        onPressed: () {
+          setState(() {
+            _controller.discountLimitType =
+                _controller.discountLimitType == 'percentage' ? 'fixed' : 'percentage';
+          });
+        },
+        child: Text(
+          _controller.discountLimitType == 'percentage'
+              ? '%'
+              : BusinessConfig.instance.currencyDisplay,
+          style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaxToggle() {
+    return SizedBox(
+      height: _formFieldHeight,
+      child: Align(
+        alignment: Alignment.center,
+        child: Switch(
+          value: _controller.taxEnabled ?? false,
+          activeColor: theme.highlight,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          onChanged: (val) {
+            setState(() {
+              _controller.taxEnabled = val;
+              if (val &&
+                  (_controller.taxRate.text.trim().isEmpty || _controller.taxRate.text == '0')) {
+                _controller.taxRate.text = BusinessConfig.instance.taxRate.toString();
+              }
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaxField() {
+    final enabled = _controller.taxEnabled ?? false;
+    return _buildTextField(
+      controller: _controller.taxRate,
+      label: 'Tax %',
+      icon: Icons.percent_outlined,
+      keyboardType: TextInputType.number,
+      enabled: enabled,
+      validator: (v) {
+        if (_controller.taxEnabled != true) return null;
+        if (v == null || v.trim().isEmpty) return 'Required';
+        final val = num.tryParse(v);
+        if (val == null || val < 0) return 'Invalid tax rate';
+        return null;
+      },
+    );
+  }
+
+  Widget _buildTaxWithToggle({required bool isWide}) {
+    const toggleSlot = 48.0;
+    const gapAfterField = 8.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final fieldWidth = isWide
+            ? (constraints.maxWidth - _formGap) / 2
+            : constraints.maxWidth - toggleSlot - gapAfterField;
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: fieldWidth,
+              child: _buildTaxField(),
+            ),
+            const SizedBox(width: gapAfterField),
+            _buildTaxToggle(),
+          ],
+        );
+      },
     );
   }
 
@@ -724,14 +815,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
         if (result != null && result != value) onChanged(result);
       },
       child: InputDecorator(
-        decoration: theme.glassInputDecoration(label, icon, isRequired: label == 'Category' || label == 'Unit').copyWith(
+        decoration: _formInputDecoration(
+          label,
+          icon,
+          isRequired: label == 'Category' || label == 'Unit',
           suffixIcon: Icon(Icons.arrow_drop_down_rounded, color: theme.iconColor),
         ),
         child: Text(
           displayLabel,
           style: TextStyle(
             color: value != null ? theme.textPrimary : theme.textHint,
-            fontSize: 13,
+            fontSize: ThemeProvider.fontLabel,
             fontWeight: FontWeight.w500,
           ),
           overflow: TextOverflow.ellipsis,
@@ -742,6 +836,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _buildCategorySelector() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: _buildDropdownField(
@@ -760,17 +855,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          onPressed: _showAddCategoryDialog,
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.highlight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-            ),
-            child: Icon(Icons.add, color: theme.highlight, size: 20),
-          ),
-        ),
+        _buildFieldActionButton(onPressed: _showAddCategoryDialog, icon: Icons.add),
       ],
     );
   }
@@ -890,51 +975,39 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Widget _buildBarcodeScanner() {
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildTextField(
-                controller: _controller.barcode,
-                label: 'Barcode',
-                icon: Icons.barcode_reader,
-                validator: (v) {
-                  if (_controller.barcodeValidationError != null) {
-                    return _controller.barcodeValidationError;
-                  }
-                  if (v != null && v.isNotEmpty && _controller.errorMessage != null && _controller.errorMessage!.contains('barcode')) {
-                    return _controller.errorMessage;
-                  }
-                  return null;
-                },
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.auto_fix_high_rounded, color: theme.highlight, size: 20),
-                  onPressed: _controller.generateUniqueBarcode,
-                  tooltip: 'Generate Unique Barcode',
-                ),
-              ),
+        Expanded(
+          child: _buildTextField(
+            controller: _controller.barcode,
+            label: 'Barcode',
+            icon: Icons.barcode_reader,
+            validator: (v) {
+              if (_controller.barcodeValidationError != null) {
+                return _controller.barcodeValidationError;
+              }
+              if (v != null && v.isNotEmpty && _controller.errorMessage != null && _controller.errorMessage!.contains('barcode')) {
+                return _controller.errorMessage;
+              }
+              return null;
+            },
+            suffixIcon: IconButton(
+              icon: Icon(Icons.auto_fix_high_rounded, color: theme.highlight, size: 20),
+              onPressed: _controller.generateUniqueBarcode,
+              tooltip: 'Generate Unique Barcode',
             ),
-            const SizedBox(width: 8),
-            IconButton(
-              onPressed: _openBarcodeScanner,
-              icon: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.highlight.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                ),
-                child: Icon(Icons.barcode_reader, color: theme.highlight, size: 20),
-              ),
-            ),
-          ],
+          ),
         ),
+        const SizedBox(width: 8),
+        _buildFieldActionButton(onPressed: _openBarcodeScanner, icon: Icons.barcode_reader),
       ],
     );
   }
 
   Widget _buildSubCategorySelector() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: _buildDropdownField(
@@ -951,23 +1024,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          onPressed: _showAddSubCategoryDialog,
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.highlight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-            ),
-            child: Icon(Icons.add, color: theme.highlight, size: 20),
-          ),
-        ),
+        _buildFieldActionButton(onPressed: _showAddSubCategoryDialog, icon: Icons.add),
       ],
     );
   }
 
   Widget _buildBrandSelector() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: _buildDropdownField(
@@ -984,23 +1048,14 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          onPressed: _showAddBrandDialog,
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.highlight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-            ),
-            child: Icon(Icons.add, color: theme.highlight, size: 20),
-          ),
-        ),
+        _buildFieldActionButton(onPressed: _showAddBrandDialog, icon: Icons.add),
       ],
     );
   }
 
   Widget _buildUnitSelector() {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: _buildDropdownField(
@@ -1025,17 +1080,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        IconButton(
-          onPressed: _showUnitSelectionPopup,
-          icon: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.highlight.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-            ),
-            child: Icon(Icons.add, color: theme.highlight, size: 20),
-          ),
-        ),
+        _buildFieldActionButton(onPressed: _showUnitSelectionPopup, icon: Icons.add),
       ],
     );
   }

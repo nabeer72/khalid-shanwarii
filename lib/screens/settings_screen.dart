@@ -383,35 +383,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _switchBusiness(Map<String, dynamic> business) async {
     final db = DatabaseHelper.instance;
-    final storage = const FlutterSecureStorage();
-    
-    // Fetch branches for this business to set initial context
-    final branches = await db.getBranchesForBusiness(business['id']);
-    final mainBranch = branches.firstWhere((b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1', orElse: () => branches.isNotEmpty ? branches.first : {'id': null});
 
-    // Update local config using centralized setContext
-    BusinessConfig.instance.setContext(
-      bid: business['id'],
-      uid: business['owner_user_id'] ?? BusinessConfig.instance.userId, // Fallback to current admin if missing
-      brid: mainBranch['id'],
-      bName: business['name'],
-      bType: business['business_type_id']?.toString(),
-      activeBranches: branches.map((b) => b['id']).toList(),
-    );
-    
-    // Persist to storage
-    await storage.write(key: 'business_id', value: business['id'].toString());
-    await storage.write(key: 'branch_id', value: mainBranch['id']?.toString() ?? '');
-    BusinessConfig.instance.branchId = mainBranch['id'];
+    try {
+      await db.activateBusiness(
+        business,
+        userId: BusinessConfig.instance.userId,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to switch business: $e'),
+            backgroundColor: ThemeProvider.error,
+          ),
+        );
+      }
+      return;
+    }
 
-    
-    // Update settings table for persistent offline access
-    await db.setSetting('business_name', business['name']);
-    await db.setSetting('business_type_id', business['business_type_id']?.toString() ?? '1');
-
-    // Reload settings to refresh context (branch isolation, etc.)
-    await db.loadSettings();
-    
     if (mounted) {
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const HomeScreen()),

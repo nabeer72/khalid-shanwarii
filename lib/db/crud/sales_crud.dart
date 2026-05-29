@@ -326,6 +326,7 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery('''
       SELECT 
+        p.id as product_id,
         COALESCE(p.name, 'Unknown Product') as product_name,
         SUM(si.quantity) as total_qty,
         SUM(COALESCE(si.sub_total, si.price * si.quantity)) as total_amount

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:mobile_app/services/sync_service.dart';
 import '../database_helper.dart';
 
 mixin SettingsCrud {
@@ -121,9 +122,18 @@ mixin SettingsCrud {
     if (inactiveStr == null || brIdString == null || brIdString == 'NONE') {
       try {
         final db = await database;
-        final allBranches = await db.query('branches', columns: ['id']);
-        final allBranchIds = allBranches.map((b) => b['id'] as int).toList();
-        BusinessConfig.instance.activeBranchIds = allBranchIds.where((id) => !inactiveIds.contains(id)).toList();
+        final bid = BusinessConfig.instance.businessId;
+        if (bid != null) {
+          final allBranches = await db.query(
+            'branches',
+            columns: ['id'],
+            where: 'status = 1 AND business_id = ?',
+            whereArgs: [bid],
+          );
+          final allBranchIds = allBranches.map((b) => b['id'] as int).toList();
+          BusinessConfig.instance.activeBranchIds =
+              allBranchIds.where((id) => !inactiveIds.contains(id)).toList();
+        }
       } catch (e) {
         // Ignore if before migration
       }
@@ -159,6 +169,100 @@ mixin SettingsCrud {
     }
 
     print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, userId: ${BusinessConfig.instance.userId}');
+  }
+
+  /// Switch active business: persist context, pull server data, reload settings.
+  Future<void> activateBusiness(
+    Map<String, dynamic> business, {
+    dynamic? userId,
+    bool syncFromServer = true,
+  }) async {
+    const storage = FlutterSecureStorage();
+    final bid = business['id'];
+    if (bid == null) return;
+
+    final aid = business['owner_user_id'] ??
+        business['admin_id'] ??
+        userId ??
+        BusinessConfig.instance.userId;
+
+    Future<List<Map<String, dynamic>>> loadBranches(dynamic businessId) async {
+      final db = await database;
+      return db.query(
+        'branches',
+        where: 'status = 1 AND business_id = ?',
+        whereArgs: [businessId],
+      );
+    }
+
+    Map<String, dynamic> pickMainBranch(List<Map<String, dynamic>> branches) {
+      if (branches.isEmpty) return {'id': null};
+      return branches.firstWhere(
+        (b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1',
+        orElse: () => branches.first,
+      );
+    }
+
+    var branches = await loadBranches(bid);
+    var mainBranch = pickMainBranch(branches);
+
+    BusinessConfig.instance.setContext(
+      bid: bid,
+      uid: aid,
+      brid: mainBranch['id'],
+      bName: business['name']?.toString(),
+      bType: business['business_type_id']?.toString(),
+      activeBranches: branches.map((b) => b['id']).toList(),
+    );
+
+    await storage.write(key: 'business_id', value: bid.toString());
+    if (aid != null) {
+      await storage.write(key: 'user_id', value: aid.toString());
+    }
+    if (mainBranch['id'] != null) {
+      await storage.write(
+        key: 'branch_id',
+        value: mainBranch['id'].toString(),
+      );
+    }
+    BusinessConfig.instance.branchId = mainBranch['id'];
+
+    if (business['name'] != null) {
+      await setSetting('business_name', business['name'].toString());
+    }
+    await setSetting(
+      'business_type_id',
+      business['business_type_id']?.toString() ?? '1',
+    );
+
+    if (syncFromServer) {
+      try {
+        await SyncService().syncPull(forceFull: true);
+      } catch (e) {
+        print('⚠️ [DB] activateBusiness sync failed: $e');
+      }
+
+      branches = await loadBranches(bid);
+      mainBranch = pickMainBranch(branches);
+      BusinessConfig.instance.setContext(
+        bid: bid,
+        uid: aid,
+        brid: mainBranch['id'],
+        bName: business['name']?.toString(),
+        bType: business['business_type_id']?.toString(),
+        activeBranches: branches.map((b) => b['id']).toList(),
+      );
+      if (mainBranch['id'] != null) {
+        await storage.write(
+          key: 'branch_id',
+          value: mainBranch['id'].toString(),
+        );
+        BusinessConfig.instance.branchId = mainBranch['id'];
+      }
+    }
+
+    await loadSettings();
+    DatabaseHelper.notifyDataChanged(triggerSync: false);
   }
 
   // Clears session-specific context from storage and memory without wiping the database

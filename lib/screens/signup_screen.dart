@@ -25,6 +25,7 @@ class _SignupScreenState extends State<SignupScreen>
   final _businessNameCtrl = TextEditingController(text: 'General Store');
   final _ownerNameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
+  final _addressCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
   final _confirmPassCtrl = TextEditingController();
@@ -93,6 +94,7 @@ class _SignupScreenState extends State<SignupScreen>
     _businessNameCtrl.dispose();
     _ownerNameCtrl.dispose();
     _phoneCtrl.dispose();
+    _addressCtrl.dispose();
     _emailCtrl.dispose();
     _passCtrl.dispose();
     _confirmPassCtrl.dispose();
@@ -241,6 +243,7 @@ class _SignupScreenState extends State<SignupScreen>
           password: _passCtrl.text,
           name: _ownerNameCtrl.text.trim(),
           phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+          address: _addressCtrl.text.trim().isEmpty ? null : _addressCtrl.text.trim(),
           businessName: _businessNameCtrl.text.trim(),
           businessTypeId: _selectedBusinessTypeId!,
           planId: _selectedPlanId!,
@@ -316,6 +319,10 @@ class _SignupScreenState extends State<SignupScreen>
       final insertedUserId = await _dbHelper.insertUser(userData, isSynced: isSynced);
       userId ??= insertedUserId;
 
+      final businessName = _businessNameCtrl.text.trim();
+      final storeAddress = _addressCtrl.text.trim();
+      final storePhone = _phoneCtrl.text.trim();
+
       branchId ??= 1;
       final branchData = {
         'id': branchId,
@@ -324,6 +331,8 @@ class _SignupScreenState extends State<SignupScreen>
         'name': 'Main Branch',
         'branch_title': 'Main Branch',
         'branch_code': 'MAIN',
+        if (storeAddress.isNotEmpty) 'branch_address': storeAddress,
+        if (storePhone.isNotEmpty) 'contact_number': storePhone,
         'status': 1,
         'is_main_branch': '1',
         'created_at': now,
@@ -341,11 +350,22 @@ class _SignupScreenState extends State<SignupScreen>
         bid: businessId,
         uid: userId,
         brid: branchId,
-        bName: _businessNameCtrl.text,
+        bName: businessName,
         bType: _selectedBusinessTypeId.toString(),
         activeBranches: [branchId],
       );
       BusinessConfig.instance.staffId = null;
+      BusinessConfig.instance.businessName = businessName;
+      BusinessConfig.instance.businessAddress = storeAddress;
+      BusinessConfig.instance.businessPhone = storePhone;
+
+      await _dbHelper.setSetting('business_name', businessName);
+      if (storeAddress.isNotEmpty) {
+        await _dbHelper.setSetting('business_address', storeAddress);
+      }
+      if (storePhone.isNotEmpty) {
+        await _dbHelper.setSetting('business_phone', storePhone);
+      }
 
       if (mounted) {
         // If it was a paid plan, navigate to Invoice Payment screen
@@ -677,6 +697,21 @@ class _SignupScreenState extends State<SignupScreen>
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             isDense: true,
             hintText: '+92 300 0000000',
+            hintStyle: TextStyle(color: theme.textHint),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text('Store Address', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+        const SizedBox(height: 2),
+        TextField(
+          controller: _addressCtrl,
+          keyboardType: TextInputType.streetAddress,
+          maxLines: 2,
+          style: TextStyle(color: theme.textPrimary),
+          decoration: theme.glassInputDecoration('Store Address', Icons.location_on_outlined).copyWith(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            isDense: true,
+            hintText: 'Shop #, Street, City',
             hintStyle: TextStyle(color: theme.textHint),
           ),
         ),

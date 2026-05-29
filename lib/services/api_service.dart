@@ -6,7 +6,7 @@ class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
   // or your machine's LAN IP if running on physical device (e.g., 192.168.1.X).
   // Current IP: 192.168.137.202 (from ipconfig - Wi-Fi adapter)
-  static const String baseUrl = 'http://192.168.137.1:8000/api';
+  static const String baseUrl = 'http://192.168.18.47:8000/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
@@ -70,6 +70,7 @@ class ApiService {
     required int planId,
     String? name,
     String? phone,
+    String? address,
     String? pin,
     File? receipt,
   }) async {
@@ -88,6 +89,7 @@ class ApiService {
           'plan_id': planId,
           'device_name': 'mobile_app',
           if (phone != null && phone.isNotEmpty) 'phone': phone,
+          if (address != null && address.isNotEmpty) 'address': address,
           if (pin != null) 'pin': pin,
           'receipt': await MultipartFile.fromFile(receipt.path, filename: receipt.path.split('/').last),
         });
@@ -102,6 +104,7 @@ class ApiService {
           'plan_id': planId,
           'device_name': 'mobile_app',
           if (phone != null && phone.isNotEmpty) 'phone': phone,
+          if (address != null && address.isNotEmpty) 'address': address,
           if (pin != null) 'pin': pin,
         };
       }
@@ -234,6 +237,16 @@ class ApiService {
     } catch (e) {
       print('❌ [API] Failed to check subscription status: $e');
       return false;
+    }
+  }
+
+  /// Businesses linked to the logged-in admin (user_businesses + owned).
+  Future<Response?> getUserBusinesses() async {
+    try {
+      return await _dio.get('/user/businesses');
+    } catch (e) {
+      print('❌ [API] Failed to fetch user businesses: $e');
+      rethrow;
     }
   }
 }

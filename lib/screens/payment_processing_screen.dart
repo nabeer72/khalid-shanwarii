@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/screens/setup_profile_screen.dart';
-import 'package:mobile_app/screens/login_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/utils/logout_helper.dart';
 import 'package:provider/provider.dart';
 
 class PaymentProcessingScreen extends StatefulWidget {
@@ -194,15 +194,7 @@ class _PaymentProcessingScreenState extends State<PaymentProcessingScreen> with 
                           SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              onPressed: () async {
-                                await _api.logout();
-                                if (mounted) {
-                                  Navigator.of(context).pushAndRemoveUntil(
-                                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                                    (route) => false,
-                                  );
-                                }
-                              },
+                              onPressed: () => LogoutHelper.handleLogout(context),
                               icon: Icon(Icons.logout_rounded, size: 20, color: theme.textSecondary),
                               label: Text('Sign Out', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
                               style: OutlinedButton.styleFrom(

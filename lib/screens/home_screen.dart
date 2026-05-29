@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:async';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
-import 'package:mobile_app/screens/login_screen.dart';
+import 'package:mobile_app/utils/logout_helper.dart';
 import 'package:mobile_app/screens/product_list_screen.dart';
 import 'package:mobile_app/screens/customer_list_screen.dart';
 import 'package:mobile_app/screens/sales_history_screen.dart';
@@ -18,7 +18,6 @@ import 'package:mobile_app/screens/loyalty_screen.dart';
 import 'package:mobile_app/screens/expenses_screen.dart';
 import 'package:mobile_app/screens/suppliers_screen.dart';
 import 'package:mobile_app/screens/purchases_screen.dart';
-import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/screens/recovery_screen.dart';
 import 'package:mobile_app/screens/supplier_payback_screen.dart';
 import 'package:mobile_app/screens/branch_management_screen.dart';
@@ -40,7 +39,6 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final theme = ThemeProvider.instance;
   final SyncService _syncService = SyncService();
-  bool get _isSyncing => _syncService.isSyncing;
   String? _lastSync;
   Employee? _currentStaff;
   Timer? _autoSyncTimer;
@@ -48,11 +46,16 @@ class _HomeScreenState extends State<HomeScreen> {
   int _productCount = 0;
   int _customerCount = 0;
   int _saleCount = 0;
-  int _favoritesCount = 0;
+  String _topSellingName = '';
+  int _topSellingQty = 0;
   double _todaySalesAmount = 0.0;
   double _todayRecoveryAmount = 0.0;
   double _todayReturnsAmount = 0.0;
   int _heldCount = 0;
+
+  List<Map<String, dynamic>> _branches = [];
+  String? _currentBranchName;
+  String _storeAddress = '';
 
   StreamSubscription<void>? _dataSubscription;
 
@@ -61,12 +64,14 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadLastSync();
     _loadStats();
+    _loadBranches();
     _loadCurrentStaff();
     
     // Listen for real-time data changes across the app (including after background sync)
     _dataSubscription = DatabaseHelper.dataStream.listen((_) {
       if (mounted) {
         _loadStats();
+        _loadBranches();
         _loadCurrentStaff(); // [FIX] Re-check permissions after every sync/data change
       }
     });
@@ -78,7 +83,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       // Auto-sync every 5 minutes so web-dashboard changes reflect without logout
       _autoSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-        if (mounted && !_isSyncing) _syncService.triggerDebouncedSync(delayMs: 0);
+        if (mounted && !_syncService.isSyncing) {
+          _syncService.triggerDebouncedSync(delayMs: 0);
+        }
       });
     }
   }
@@ -188,6 +195,193 @@ class _HomeScreenState extends State<HomeScreen> {
     return _currentStaff?.permissions.contains(perm) ?? false;
   }
 
+  String? _branchDisplayName(Map<String, dynamic> branch) {
+    final title = branch['branch_title']?.toString().trim();
+    if (title != null && title.isNotEmpty) return title;
+    final name = branch['name']?.toString().trim();
+    if (name != null && name.isNotEmpty) return name;
+    return null;
+  }
+
+  String? _branchAddress(Map<String, dynamic> branch) {
+    final addr = branch['branch_address']?.toString().trim();
+    if (addr != null && addr.isNotEmpty) return addr;
+    return null;
+  }
+
+  Future<String> _resolveStoreAddress({Map<String, dynamic>? branch}) async {
+    final branchAddr = branch != null ? _branchAddress(branch) : null;
+    if (branchAddr != null) return branchAddr;
+
+    var address = BusinessConfig.instance.businessAddress.trim();
+    if (address.isEmpty) {
+      final fromDb = await DatabaseHelper.instance.getSetting('business_address');
+      address = fromDb?.trim() ?? '';
+      if (address.isNotEmpty) {
+        BusinessConfig.instance.businessAddress = address;
+      }
+    }
+    return address;
+  }
+
+  Future<String?> _fetchBranchNameById(dynamic businessId, dynamic branchId) async {
+    if (businessId == null || branchId == null) return null;
+    final rawDb = await DatabaseHelper.instance.database;
+    final rows = await rawDb.query(
+      'branches',
+      where: 'business_id = ? AND id = ? AND status = 1',
+      whereArgs: [businessId, branchId],
+      limit: 1,
+    );
+    if (rows.isEmpty) return null;
+    return _branchDisplayName(rows.first);
+  }
+
+  Future<void> _loadBranches() async {
+    if (kIsWeb) return;
+    final bid = BusinessConfig.instance.businessId;
+    if (bid == null) return;
+
+    try {
+      var brid = BusinessConfig.instance.branchId;
+      if (brid == null) {
+        const storage = FlutterSecureStorage();
+        final stored = await storage.read(key: 'branch_id');
+        if (stored != null && stored.isNotEmpty && stored != 'NONE') {
+          brid = int.tryParse(stored) ?? stored;
+          BusinessConfig.instance.branchId = brid;
+        }
+      }
+
+      final list = await DatabaseHelper.instance.getBranchesForBusiness(bid);
+      String? name;
+      Map<String, dynamic>? currentBranch;
+      for (final b in list) {
+        if (b['id'].toString() == brid?.toString()) {
+          name = _branchDisplayName(b);
+          currentBranch = b;
+          break;
+        }
+      }
+      name ??= await _fetchBranchNameById(bid, brid);
+      if (currentBranch == null && name != null && list.isNotEmpty) {
+        currentBranch = list.firstWhere(
+          (b) => _branchDisplayName(b) == name,
+          orElse: () => list.first,
+        );
+      }
+      name ??= list.isNotEmpty ? _branchDisplayName(list.first) : null;
+      currentBranch ??= list.isNotEmpty ? list.first : null;
+      final address = await _resolveStoreAddress(branch: currentBranch);
+
+      if (mounted) {
+        setState(() {
+          _branches = list;
+          _currentBranchName = name;
+          _storeAddress = address;
+        });
+      }
+    } catch (e) {
+      if (kDebugMode) print('⚠️ [HOME] Failed to load branches: $e');
+    }
+  }
+
+  Future<void> _switchBranch(Map<String, dynamic> branch) async {
+    final id = branch['id'];
+    if (id == null) return;
+
+    BusinessConfig.instance.branchId = id;
+    const storage = FlutterSecureStorage();
+    await storage.write(key: 'branch_id', value: id.toString());
+
+    if (mounted) {
+      final address = await _resolveStoreAddress(branch: branch);
+      setState(() {
+        _currentBranchName = _branchDisplayName(branch);
+        _storeAddress = address;
+      });
+      await _loadStats();
+      DatabaseHelper.notifyDataChanged(triggerSync: false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Switched to ${_branchDisplayName(branch) ?? 'branch'}'),
+          backgroundColor: ThemeProvider.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  Widget _buildBranchHeaderIcon() {
+    final isAdmin = BusinessConfig.instance.staffId == null;
+    final showDropdown = isAdmin && _branches.length > 1;
+
+    final iconBox = Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.surface,
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        border: Border.all(color: theme.divider, width: 1.0),
+      ),
+      child: Icon(Icons.store_rounded, color: theme.primary, size: 24),
+    );
+
+    if (!showDropdown) {
+      return iconBox;
+    }
+
+    return PopupMenuButton<Map<String, dynamic>>(
+      offset: const Offset(0, 48),
+      tooltip: 'Switch branch',
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      onSelected: _switchBranch,
+      itemBuilder: (context) {
+        return _branches.map((b) {
+          final selected = b['id'].toString() == BusinessConfig.instance.branchId?.toString();
+          final isMain = b['is_main_branch'] == 1 || b['is_main_branch'] == '1';
+          return PopupMenuItem<Map<String, dynamic>>(
+            value: b,
+            child: Row(
+              children: [
+                if (selected)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Icon(Icons.check_circle_rounded, color: theme.highlight, size: 18),
+                  )
+                else
+                  const SizedBox(width: 26),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _branchDisplayName(b) ?? 'Branch',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      ),
+                      if (isMain)
+                        Text(
+                          'Main branch',
+                          style: TextStyle(fontSize: 11, color: theme.textSecondary),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList();
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          iconBox,
+          Icon(Icons.arrow_drop_down_rounded, color: theme.textSecondary, size: 22),
+        ],
+      ),
+    );
+  }
+
   Future<void> _loadStats() async {
     if (kIsWeb) return;
     try {
@@ -208,12 +402,14 @@ class _HomeScreenState extends State<HomeScreen> {
       );
       final productCount = (prodCountRes.isNotEmpty ? prodCountRes.first.values.first as num? : 0)?.toInt() ?? 0;
 
-      // 2. Optimized Favorites Count
-      final favCountRes = await rawDb.rawQuery(
-        'SELECT COUNT(DISTINCT name) as total FROM products WHERE status = 1 AND is_favorite = 1$bFilter$brFilter',
-        queryArgs,
-      );
-      final favoritesCount = (favCountRes.isNotEmpty ? favCountRes.first.values.first as num? : 0)?.toInt() ?? 0;
+      // 2. Top selling item (by quantity sold)
+      final topItems = await db.getTopSellingItems(limit: 1);
+      String topName = '';
+      int topQty = 0;
+      if (topItems.isNotEmpty) {
+        topName = topItems.first['product_name']?.toString().trim() ?? '';
+        topQty = (topItems.first['total_qty'] as num?)?.toInt() ?? 0;
+      }
 
       // 3. Optimized Customer Count
       final customerCountRes = await rawDb.rawQuery(
@@ -234,7 +430,8 @@ class _HomeScreenState extends State<HomeScreen> {
           _productCount = productCount;
           _customerCount = customerCount;
           _heldCount = heldCount;
-          _favoritesCount = favoritesCount;
+          _topSellingName = topName;
+          _topSellingQty = topQty;
         });
       }
 
@@ -311,7 +508,6 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    if (!silent) setState(() {}); // Refresh to show syncing spinner
     try {
       final result = await _syncService.syncAll();
       if (mounted) {
@@ -340,7 +536,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } finally {
-      if (mounted) setState(() {}); // Refresh to hide syncing spinner
+      if (mounted) setState(() {}); // Refresh last-sync icon color after sync
     }
   }
 
@@ -369,19 +565,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // Header with sync
                     Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: theme.surface,
-                            borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                            border: Border.all(
-                              color: theme.divider,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Icon(Icons.store_rounded,
-                              color: theme.primary, size: 24),
-                        ),
+                        _buildBranchHeaderIcon(),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
@@ -395,56 +579,78 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: theme.textPrimary),
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(
-                                        color: ThemeProvider.businessColors[
-                                                BusinessConfig
-                                                    .instance.businessType]
-                                            ?.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                                    // child: Text(
-                                    //   BusinessConfig.instance.businessType
-                                    //       .toUpperCase(),
-                                    //   style: TextStyle(
-                                    //       color: ThemeProvider.businessColors[
-                                    //           BusinessConfig
-                                    //               .instance.businessType],
-                                    //       fontSize: 12,
-                                    //       fontWeight: FontWeight.bold),
-                                    // ),
+                              if (_currentBranchName != null &&
+                                  _currentBranchName!.isNotEmpty)
+                                Text(
+                                  _currentBranchName!,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.textSecondary,
                                   ),
-                                  // if (_lastSync != null) ...[
-                                  //   const SizedBox(width: 6),
-                                  //   Icon(Icons.cloud_done,
-                                  //       size: 12, color: ThemeProvider.success),
-                                  // ],
-                                ],
-                              ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              if (_storeAddress.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 1),
+                                        child: Icon(
+                                          Icons.location_on_outlined,
+                                          size: 13,
+                                          color: theme.textSecondary.withOpacity(0.85),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          _storeAddress,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: theme.textSecondary.withOpacity(0.9),
+                                            height: 1.3,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ),
-                        if (_isSyncing)
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            child: SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: theme.highlight)),
-                          )
-                        else
-                          IconButton(
-                            icon: Icon(Icons.sync_rounded,
+                        ListenableBuilder(
+                          listenable: _syncService.isSyncingNotifier,
+                          builder: (context, _) {
+                            if (_syncService.isSyncing) {
+                              return Container(
+                                padding: const EdgeInsets.all(8),
+                                child: SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: theme.highlight,
+                                  ),
+                                ),
+                              );
+                            }
+                            return IconButton(
+                              icon: Icon(
+                                Icons.sync_rounded,
                                 color: _lastSync != null
                                     ? ThemeProvider.success
                                     : theme.iconColor,
-                                size: 22),
-                            onPressed: _performSync,
-                          ),
+                                size: 22,
+                              ),
+                              onPressed: _performSync,
+                            );
+                          },
+                        ),
                         IconButton(
                           icon: Icon(
                               theme.isDark ? Icons.light_mode : Icons.dark_mode,
@@ -681,15 +887,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: _StatCard(
-                            icon: Icons.star,
-                            value: '$_favoritesCount',
-                            label: 'Favorites',
+                            icon: Icons.trending_up_rounded,
+                            value: _topSellingQty > 0 ? '$_topSellingQty' : '—',
+                            label: _topSellingName.isNotEmpty
+                                ? (_topSellingName.length > 18
+                                    ? '${_topSellingName.substring(0, 17)}…'
+                                    : _topSellingName)
+                                : 'Top Selling',
                             color: ThemeProvider.warning,
                             onTap: () => Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) =>
-                                            const ProductListScreen()))
+                                        builder: (_) => const ReportsScreen()))
                                 .then((_) => _loadStats()),
                           ),
                         ),
@@ -1055,58 +1264,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _logout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Logout', style: TextStyle(color: theme.textPrimary)),
-        content: Text(
-            'Are you sure you want to logout? Your local data will remain saved on this device.',
-            style: TextStyle(color: theme.textSecondary)),
-        backgroundColor: theme.surface,
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child:
-                  Text('Cancel', style: TextStyle(color: theme.textSecondary))),
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: Text('LOGOUT',
-                  style: TextStyle(
-                      color: ThemeProvider.error,
-                      fontWeight: FontWeight.bold))),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    setState(() {}); // Visual feedback
-
-    try {
-      // 1. Invalidate session on server
-      await _syncService.logout();
-
-      // 2. Clear in-memory static state so it cannot leak to the next account
-      AddProductController.clearGlobalState();
-      MockDataStore.instance.clear();
-
-      // 3. Clear local session context only (DO NOT wipe database)
-      await DatabaseHelper.instance.clearSessionContext();
-
-      if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-          (route) => false,
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Logout error: $e'),
-            backgroundColor: ThemeProvider.error));
-        setState(() {});
-      }
-    }
+    await LogoutHelper.handleLogout(context);
   }
 }
 

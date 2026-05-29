@@ -50,7 +50,7 @@ class POSProductGrid extends StatelessWidget {
     int count = products.length;
     if (controller.selectedSubCategoryId != null) {
       count += 1; // Back button
-    } else if (controller.selectedCategory != 'favorites' && 
+    } else if (controller.selectedCategory != 'top_selling' && 
                controller.selectedCategory != 'recent' && 
                controller.selectedCategory != 'all') {
       final subCats = controller.subCategories.where((c) {
@@ -74,7 +74,7 @@ class POSProductGrid extends StatelessWidget {
 
     // 2. Subcategories
     if (controller.selectedSubCategoryId == null && 
-        controller.selectedCategory != 'favorites' && 
+        controller.selectedCategory != 'top_selling' && 
         controller.selectedCategory != 'recent' && 
         controller.selectedCategory != 'all') {
       final subCats = controller.subCategories.where((c) {
@@ -184,13 +184,13 @@ class POSProductGrid extends StatelessWidget {
               padding: const EdgeInsets.all(32),
               decoration: theme.glassCircleDecoration,
               child: Text(
-                  controller.selectedCategory == 'favorites' ? '⭐' : '📦',
+                  controller.selectedCategory == 'top_selling' ? '📈' : '📦',
                   style: const TextStyle(fontSize: 48)),
             ),
             const SizedBox(height: 16),
             Text(
-                controller.selectedCategory == 'favorites'
-                    ? 'No favorites yet'
+                controller.selectedCategory == 'top_selling'
+                    ? 'No sales yet'
                     : 'No products found',
                 style: TextStyle(
                     color: theme.textPrimary,
