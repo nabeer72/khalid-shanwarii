@@ -100,6 +100,15 @@ mixin SettingsCrud {
     final enableT = await getSetting('enable_tax');
     if (enableT != null) BusinessConfig.instance.enableTax = enableT == '1';
 
+    final enableGD = await getSetting('enable_global_discount');
+    if (enableGD != null) BusinessConfig.instance.enableGlobalDiscount = enableGD == '1';
+
+    final gdLimit = await getSetting('global_discount_limit');
+    if (gdLimit != null) BusinessConfig.instance.globalDiscountLimit = double.tryParse(gdLimit) ?? 0;
+
+    final gdLimitType = await getSetting('global_discount_limit_type');
+    if (gdLimitType != null) BusinessConfig.instance.globalDiscountLimitType = gdLimitType;
+
     final reqCust = await getSetting('require_customer');
     if (reqCust != null) BusinessConfig.instance.requireCustomer = reqCust == '1';
 

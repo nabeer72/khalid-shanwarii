@@ -43,6 +43,8 @@ class POSController with ChangeNotifier {
   double get subtotal => _subtotal;
   double get tax => _tax;
   double get discount => _discount;
+  String get globalDiscountType => _globalDiscountType;
+  double get globalDiscountValue => _globalDiscountValue;
   double get totalDiscount => _cart.fold(0.0, (sum, item) => sum + item.discount) + _discount;
   double get total => _total;
   bool get isReturn => _isReturn;
@@ -293,8 +295,7 @@ class POSController with ChangeNotifier {
       _tax = 0.0;
     }
     
-    if (_isManualDiscount) {
-      // Global manual discount
+    if (_isManualDiscount && BusinessConfig.instance.enableGlobalDiscount) {
       double calculatedDiscount = 0;
       if (_globalDiscountType == 'percentage') {
         calculatedDiscount = _subtotal * (_globalDiscountValue / 100);
@@ -302,31 +303,9 @@ class POSController with ChangeNotifier {
         calculatedDiscount = _globalDiscountValue;
       }
 
-      // Calculate the combined maximum allowed discount across all LIMITED products.
-      // Items with no limit (discountLimit <= 0) are skipped — they don't restrict
-      // the global discount. Only if at least one item has a limit do we apply it.
-      double totalRemainingAllowed = 0;
-      bool anyItemHasLimit = false;
-
-      for (var item in _cart) {
-        double limit = item.stock.discountLimit;
-        if (limit <= 0) continue; // No limit on this item — skip it
-
-        anyItemHasLimit = true;
-        double itemMax;
-        if (item.stock.discountLimitType == 'percentage') {
-          itemMax = (item.price * item.quantity) * (limit / 100);
-        } else {
-          itemMax = limit;
-        }
-
-        double remaining = itemMax - item.discount;
-        if (remaining > 0) totalRemainingAllowed += remaining;
-      }
-
-      // Apply restriction only if at least one item in the cart has a limit set
-      if (anyItemHasLimit && calculatedDiscount > totalRemainingAllowed) {
-        _discount = totalRemainingAllowed;
+      final maxAllowed = _adminMaxGlobalDiscountFixed();
+      if (maxAllowed != double.infinity && calculatedDiscount > maxAllowed + 0.009) {
+        _discount = maxAllowed;
         _isDiscountRestricted = true;
       } else {
         _discount = calculatedDiscount;
@@ -355,6 +334,22 @@ class POSController with ChangeNotifier {
     _globalDiscountType = type;
     _isManualDiscount = true;
     calculateTotals();
+  }
+
+  bool isGlobalDiscountOverLimit(double value, String type) {
+    if (!BusinessConfig.instance.enableGlobalDiscount) return false;
+    if (BusinessConfig.instance.globalDiscountLimit <= 0) return false;
+
+    double calculatedDiscount;
+    if (type == 'percentage') {
+      calculatedDiscount = _subtotal * (value / 100);
+    } else {
+      calculatedDiscount = value;
+    }
+
+    final maxAllowed = _adminMaxGlobalDiscountFixed();
+    return maxAllowed != double.infinity &&
+        calculatedDiscount > maxAllowed + 0.009;
   }
 
   void clearCart() {
@@ -488,33 +483,26 @@ class POSController with ChangeNotifier {
     calculateTotals();
   }
 
-  double getMaxAllowedGlobalDiscount(String type) {
-    double totalRemainingAllowed = 0;
-    bool anyItemHasLimit = false;
+  double _adminMaxGlobalDiscountFixed() {
+    if (!BusinessConfig.instance.enableGlobalDiscount) return double.infinity;
 
-    for (var item in _cart) {
-      double limit = item.stock.discountLimit;
-      if (limit <= 0) continue; // No limit — skip, don't break
+    final limit = BusinessConfig.instance.globalDiscountLimit;
+    if (limit <= 0) return double.infinity;
 
-      anyItemHasLimit = true;
-      double itemMax;
-      if (item.stock.discountLimitType == 'percentage') {
-        itemMax = (item.price * item.quantity) * (limit / 100);
-      } else {
-        itemMax = limit;
-      }
-
-      double remaining = itemMax - item.discount;
-      if (remaining > 0) totalRemainingAllowed += remaining;
+    if (BusinessConfig.instance.globalDiscountLimitType == 'percentage') {
+      return _subtotal * (limit / 100);
     }
+    return limit;
+  }
 
-    // No items have a limit → no restriction
-    if (!anyItemHasLimit) return double.infinity;
+  double getMaxAllowedGlobalDiscount(String type) {
+    final maxFixed = _adminMaxGlobalDiscountFixed();
+    if (maxFixed == double.infinity) return double.infinity;
 
     if (type == 'percentage') {
       if (_subtotal <= 0) return 0;
-      return (totalRemainingAllowed / _subtotal) * 100;
+      return (maxFixed / _subtotal) * 100;
     }
-    return totalRemainingAllowed;
+    return maxFixed;
   }
 }

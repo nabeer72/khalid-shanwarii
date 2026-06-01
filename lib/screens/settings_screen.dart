@@ -42,7 +42,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
   bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
   bool _enableTax = BusinessConfig.instance.enableTax;
+  bool _enableGlobalDiscount = BusinessConfig.instance.enableGlobalDiscount;
+  double _globalDiscountLimit = BusinessConfig.instance.globalDiscountLimit;
+  String _globalDiscountLimitType = BusinessConfig.instance.globalDiscountLimitType;
   late final TextEditingController _taxRateCtrl;
+  late final TextEditingController _globalDiscountLimitCtrl;
 
   @override
   void initState() {
@@ -50,12 +54,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _taxRateCtrl = TextEditingController(
       text: _taxRate > 0 ? _taxRate.toString() : '',
     );
+    _globalDiscountLimitCtrl = TextEditingController(
+      text: _globalDiscountLimit > 0 ? _globalDiscountLimit.toString() : '',
+    );
     _loadBusinessTypes();
   }
 
   @override
   void dispose() {
     _taxRateCtrl.dispose();
+    _globalDiscountLimitCtrl.dispose();
     super.dispose();
   }
 
@@ -64,6 +72,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _taxRate = rate);
     BusinessConfig.instance.taxRate = rate;
     await DatabaseHelper.instance.setSetting('tax_rate', rate.toString());
+  }
+
+  Future<void> _saveGlobalDiscountLimitFromField() async {
+    final limit = double.tryParse(_globalDiscountLimitCtrl.text.trim()) ?? 0.0;
+    setState(() => _globalDiscountLimit = limit);
+    BusinessConfig.instance.globalDiscountLimit = limit;
+    await DatabaseHelper.instance.setSetting('global_discount_limit', limit.toString());
   }
 
   Future<void> _loadBusinessTypes() async {
@@ -1078,6 +1093,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     onEditingComplete: _saveTaxRateFromField,
                     onSubmitted: (_) => _saveTaxRateFromField(),
+                  ),
+                ),
+              _SettingsSwitch(
+                icon: Icons.discount_rounded,
+                title: 'Enable All-Over Discount',
+                subtitle: 'Show cart-wide discount option in POS',
+                value: _enableGlobalDiscount,
+                onChanged: (v) async {
+                  setState(() {
+                    _enableGlobalDiscount = v;
+                    if (v && _globalDiscountLimitCtrl.text.trim().isEmpty && _globalDiscountLimit > 0) {
+                      _globalDiscountLimitCtrl.text = _globalDiscountLimit.toString();
+                    }
+                  });
+                  BusinessConfig.instance.enableGlobalDiscount = v;
+                  await DatabaseHelper.instance.setSetting('enable_global_discount', v ? '1' : '0');
+                  if (v) await _saveGlobalDiscountLimitFromField();
+                },
+              ),
+              if (_enableGlobalDiscount)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: TextField(
+                    controller: _globalDiscountLimitCtrl,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      labelText: 'Max Discount Limit',
+                      prefixIcon: Icon(
+                        _globalDiscountLimitType == 'percentage'
+                            ? Icons.percent_rounded
+                            : Icons.monetization_on_outlined,
+                        color: theme.highlight,
+                      ),
+                      suffixIcon: TextButton(
+                        onPressed: () async {
+                          setState(() {
+                            _globalDiscountLimitType =
+                                _globalDiscountLimitType == 'percentage' ? 'fixed' : 'percentage';
+                          });
+                          BusinessConfig.instance.globalDiscountLimitType = _globalDiscountLimitType;
+                          await DatabaseHelper.instance.setSetting(
+                            'global_discount_limit_type',
+                            _globalDiscountLimitType,
+                          );
+                        },
+                        child: Text(
+                          _globalDiscountLimitType == 'percentage'
+                              ? '%'
+                              : BusinessConfig.instance.currencyDisplay,
+                          style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      filled: true,
+                      fillColor: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    onEditingComplete: _saveGlobalDiscountLimitFromField,
+                    onSubmitted: (_) => _saveGlobalDiscountLimitFromField(),
+                    onChanged: (_) => _saveGlobalDiscountLimitFromField(),
                   ),
                 ),
               _SettingsTile(

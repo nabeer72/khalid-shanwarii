@@ -22,6 +22,9 @@ class BusinessConfig {
   String receiptFooter = 'Thank you!';
   double taxRate = 0.0;
   bool enableTax = false;
+  bool enableGlobalDiscount = true;
+  double globalDiscountLimit = 0;
+  String globalDiscountLimitType = 'percentage'; // 'fixed' or 'percentage'
   bool requireCustomer = false;
   bool autoReceipt = true;
   bool openCashDrawer = true;
@@ -77,7 +80,7 @@ class BusinessConfig {
 
   bool weightMode = false;
   String weightUnit = 'kg'; // kg, lb
-  bool enableShiftManagement = true;
+  bool enableShiftManagement = false;
 
   void reset({bool keepContext = false}) {
     if (!keepContext) {
@@ -97,6 +100,9 @@ class BusinessConfig {
     currency = '\$';
     taxRate = 0.0;
     enableTax = false;
+    enableGlobalDiscount = true;
+    globalDiscountLimit = 0;
+    globalDiscountLimitType = 'percentage';
     requireCustomer = false;
     autoReceipt = true;
     openCashDrawer = true;
@@ -104,7 +110,7 @@ class BusinessConfig {
     weightMode = false;
     weightUnit = 'kg';
     hasSeenOnboarding = false;
-    enableShiftManagement = true;
+    enableShiftManagement = false;
     
     subscriptionStatus = 'none';
     subscriptionPlanId = null;

@@ -894,6 +894,12 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _goToPayment() async {
     if (_controller.cart.isEmpty) return;
 
+    if (BusinessConfig.instance.enableGlobalDiscount &&
+        _controller.isDiscountRestricted) {
+      await _showDiscountExceededDialog();
+      return;
+    }
+
     if (mounted) {
       Navigator.push(
         context,
@@ -915,6 +921,64 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         setState(() {});
       });
     }
+  }
+
+  Future<void> _showDiscountExceededDialog() async {
+    final config = BusinessConfig.instance;
+    final limitText = config.globalDiscountLimitType == 'percentage'
+        ? '${config.globalDiscountLimit}%'
+        : '${config.currencyDisplay} ${config.formatAmount(config.globalDiscountLimit)}';
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        backgroundColor: theme.surface,
+        child: Container(
+          width: 300,
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded, color: ThemeProvider.error),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Discount Exceeded',
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Your entered discount exceeds the maximum allowed limit of $limitText. Please adjust the discount before proceeding to payment.',
+                style: TextStyle(color: theme.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 20),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.highlight,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                  ),
+                  child: const Text('OK', style: TextStyle(color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<Customer?> _showCustomerSelectionDialog() async {
