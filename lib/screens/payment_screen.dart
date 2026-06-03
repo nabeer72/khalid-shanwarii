@@ -6,6 +6,7 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/receipt_screen.dart';
 import 'package:mobile_app/screens/customer_list_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
+import 'package:mobile_app/utils/keyboard_shortcuts.dart';
 
 class PaymentScreen extends StatefulWidget {
   final List<Map<String, dynamic>> cart;
@@ -457,10 +458,37 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
+  void _cyclePaymentMethod(int step) {
+    if (_dynamicPaymentMethods.isEmpty) return;
+    final currentIndex = _dynamicPaymentMethods.indexWhere((m) => m.name == _selectedPayment);
+    if (currentIndex == -1) return;
+    
+    int nextIndex = (currentIndex + step) % _dynamicPaymentMethods.length;
+    if (nextIndex < 0) nextIndex = _dynamicPaymentMethods.length - 1;
+    
+    setState(() {
+      _selectedPayment = _dynamicPaymentMethods[nextIndex].name;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
+    return CallbackShortcuts(
+      bindings: POSKeyboardShortcuts.getPaymentBindings(
+        onEscape: () => Navigator.of(context).pop(),
+        onF8: () {
+          if (_isTenderedMethod) {
+            setState(() {
+              _amountTendered = _grandTotal;
+              _cashController.text = _grandTotal.toStringAsFixed(2);
+            });
+          }
+        },
+        onF9: () => setState(() => _generateReceipt = !_generateReceipt),
+        onF10: () => setState(() => _openCashDrawer = !_openCashDrawer),
+      ),
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -479,6 +507,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
               _onDialTap(event.character!);
             } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
               _onDialTap('⌫');
+            } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+              _processPayment();
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.arrowRight) {
+              _cyclePaymentMethod(1);
+            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+              _cyclePaymentMethod(-1);
             }
           }
         },
@@ -563,6 +597,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 );
               }
             },
+          ),
           ),
         ),
       ),

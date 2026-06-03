@@ -889,17 +889,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: _StatCard(
                             icon: Icons.trending_up_rounded,
                             value: _topSellingQty > 0 ? '$_topSellingQty' : '—',
-                            label: _topSellingName.isNotEmpty
-                                ? (_topSellingName.length > 18
-                                    ? '${_topSellingName.substring(0, 17)}…'
-                                    : _topSellingName)
-                                : 'Top Selling',
+                            label: 'Top Selling',
                             color: ThemeProvider.warning,
-                            onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => const ReportsScreen()))
-                                .then((_) => _loadStats()),
                           ),
                         ),
                       ],

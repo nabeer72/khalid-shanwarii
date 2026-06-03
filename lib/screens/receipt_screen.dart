@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
+import 'package:mobile_app/utils/keyboard_shortcuts.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
@@ -181,8 +183,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     // Check if any item has a discount
     final hasItemDiscounts = _items.any((item) => (item['discount'] as num? ?? 0) > 0);
 
-    return Scaffold(
-      backgroundColor: theme.isDark ? Colors.black : Colors.grey[200],
+    return CallbackShortcuts(
+      bindings: POSKeyboardShortcuts.getReceiptBindings(
+        onEscape: () => Navigator.of(context).pop(),
+      ),
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: theme.isDark ? Colors.black : Colors.grey[200],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -360,11 +368,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             // Header Row
                             Table(
                               columnWidths: {
-                                0: const FlexColumnWidth(4.5),
+                                0: const FlexColumnWidth(3),
                                 1: const FlexColumnWidth(1),
-                                2: const FlexColumnWidth(2),
-                                if (hasItemDiscounts) 3: const FlexColumnWidth(1.5),
-                                4: const FlexColumnWidth(2.5),
+                                2: const FlexColumnWidth(1.5),
+                                if (hasItemDiscounts) 3: const FlexColumnWidth(1),
+                                4: const FlexColumnWidth(1.5),
                               },
                               children: [
                                 TableRow(
@@ -395,11 +403,11 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             // Items Table
                             Table(
                               columnWidths: {
-                                0: const FlexColumnWidth(4.5),
+                                0: const FlexColumnWidth(3),
                                 1: const FlexColumnWidth(1),
-                                2: const FlexColumnWidth(2),
-                                if (hasItemDiscounts) 3: const FlexColumnWidth(1.5),
-                                4: const FlexColumnWidth(2.5),
+                                2: const FlexColumnWidth(1.5),
+                                if (hasItemDiscounts) 3: const FlexColumnWidth(1),
+                                4: const FlexColumnWidth(1.5),
                               },
                               children: _items.map((item) {
                                 final name = item['product_name'] ?? item['name'] ?? 'Item';
@@ -411,8 +419,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                 return TableRow(
                                   children: [
                                     Padding(
-                                      padding: const EdgeInsets.only(bottom: 6),
+                                      padding: const EdgeInsets.only(bottom: 6, right: 4),
                                       child: Text(name.toUpperCase(),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                               color: Colors.black, fontSize: 11, fontWeight: FontWeight.w600)),
                                     ),
@@ -583,6 +593,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             ),
           ),
         ),
+      ),
+      ),
       ),
     );
   }

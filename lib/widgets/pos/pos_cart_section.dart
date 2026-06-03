@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_app/controllers/pos_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/pos/pos_cart_item_tile.dart';
@@ -32,17 +33,23 @@ class POSCartSection extends StatefulWidget {
   });
 
   @override
-  State<POSCartSection> createState() => _POSCartSectionState();
+  State<POSCartSection> createState() => POSCartSectionState();
 }
 
-class _POSCartSectionState extends State<POSCartSection> {
+class POSCartSectionState extends State<POSCartSection> {
   int? _expandedIndex;
   bool _isCustomerDropdownOpen = false;
+  int _customerSelectedIndex = 0;
   List<Customer> _customers = [];
   bool _isLoadingCustomers = false;
   String _customerSearchQuery = '';
+  
+  bool get isCustomerDropdownOpen => _isCustomerDropdownOpen;
   final ScrollController _cartScrollController = ScrollController();
   int _lastCartLength = 0;
+
+  final TextEditingController _customerSearchCtrl = TextEditingController();
+  final FocusNode _customerSearchFocus = FocusNode();
 
   bool _isEditingDiscount = false;
   final TextEditingController _discountCtrl = TextEditingController();
@@ -62,6 +69,8 @@ class _POSCartSectionState extends State<POSCartSection> {
     _cartScrollController.dispose();
     _discountCtrl.dispose();
     _discountFocusNode.dispose();
+    _customerSearchCtrl.dispose();
+    _customerSearchFocus.dispose();
     super.dispose();
   }
 
@@ -96,7 +105,7 @@ class _POSCartSectionState extends State<POSCartSection> {
     }
   }
 
-  void _openDiscountEditor() {
+  void openDiscountEditor() {
     setState(() {
       _isEditingDiscount = true;
       _syncDiscountEditorFromController();
@@ -144,11 +153,12 @@ class _POSCartSectionState extends State<POSCartSection> {
     widget.controller.setDiscount(val, type: _discountType);
   }
 
-  Future<void> _toggleCustomerDropdown() async {
+  Future<void> toggleCustomerDropdown() async {
     if (_isCustomerDropdownOpen) {
       setState(() => _isCustomerDropdownOpen = false);
       return;
     }
+    _customerSelectedIndex = 0;
 
     setState(() => _isLoadingCustomers = true);
     final data = await DatabaseHelper.instance.getCustomers();
@@ -164,8 +174,16 @@ class _POSCartSectionState extends State<POSCartSection> {
     setState(() {
       _customers = data.map((c) => Customer.fromMap(c)).toList();
       _isLoadingCustomers = false;
-      _customerSearchQuery = ''; // Reset search on open
+      _customerSearchQuery = ''; 
+      _customerSearchCtrl.clear();
+      _customerSelectedIndex = 0;
       _isCustomerDropdownOpen = true;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _isCustomerDropdownOpen) {
+        _customerSearchFocus.requestFocus();
+      }
     });
   }
 
@@ -278,7 +296,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                 icon: widget.controller.selectedCustomer != null ? Icons.person_rounded : Icons.person_add_rounded,
                 label: 'Customer',
                 color: widget.controller.selectedCustomer != null ? theme.highlight : theme.textSecondary,
-                onTap: _toggleCustomerDropdown,
+                onTap: toggleCustomerDropdown,
                 tooltip: '',
                 theme: theme,
               ),
@@ -318,6 +336,17 @@ class _POSCartSectionState extends State<POSCartSection> {
       return c.name.toLowerCase().contains(q) || 
              (c.phone?.contains(q) ?? false);
     }).toList();
+
+    List<dynamic> options = [];
+    if (!BusinessConfig.instance.requireCustomer && _customerSearchQuery.isEmpty) {
+      options.add("Walk-in Guest");
+    }
+    options.addAll(filtered);
+
+    // ensure index safety
+    if (_customerSelectedIndex >= options.length) {
+      _customerSelectedIndex = options.length > 0 ? options.length - 1 : 0;
+    }
     
     return Positioned(
       top: 0,
@@ -338,55 +367,105 @@ class _POSCartSectionState extends State<POSCartSection> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: TextField(
-                  autofocus: true,
-                  style: TextStyle(color: theme.textPrimary, fontSize: 14),
-                  decoration: InputDecoration(
-                    hintText: 'Search customer...',
-                    hintStyle: TextStyle(color: theme.textHint),
-                    prefixIcon: Icon(Icons.search, color: theme.iconColor, size: 20),
-                    isDense: true,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                child: Focus(
+                  onKeyEvent: (node, event) {
+                    if (event is KeyDownEvent) {
+                      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                        setState(() {
+                          if (_customerSelectedIndex < options.length - 1) {
+                            _customerSelectedIndex++;
+                          }
+                        });
+                        return KeyEventResult.handled;
+                      }
+                      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+                        setState(() {
+                          if (_customerSelectedIndex > 0) _customerSelectedIndex--;
+                        });
+                        return KeyEventResult.handled;
+                      }
+                      if (event.logicalKey == LogicalKeyboardKey.enter) {
+                        if (options.isNotEmpty) {
+                          final selected = options[_customerSelectedIndex];
+                          if (selected == "Walk-in Guest") {
+                            widget.controller.setSelectedCustomer(null);
+                          } else {
+                            widget.controller.setSelectedCustomer(selected as Customer);
+                          }
+                          setState(() => _isCustomerDropdownOpen = false);
+                        }
+                        return KeyEventResult.handled;
+                      }
+                    }
+                    return KeyEventResult.ignored;
+                  },
+                  child: TextField(
+                    controller: _customerSearchCtrl,
+                    focusNode: _customerSearchFocus,
+                    autofocus: true,
+                    style: TextStyle(color: theme.textPrimary, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Search customer...',
+                      hintStyle: TextStyle(color: theme.textHint),
+                      prefixIcon: Icon(Icons.search, color: theme.iconColor, size: 20),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onChanged: (v) => setState(() {
+                      _customerSearchQuery = v;
+                      _customerSelectedIndex = 0;
+                    }),
+                    onSubmitted: (_) {}, // Handled by Focus wrapper now
                   ),
-                  onChanged: (v) => setState(() => _customerSearchQuery = v),
                 ),
               ),
               if (_isLoadingCustomers)
                 const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator())
               else
                 Flexible(
-                  child: ListView(
+                  child: ListView.builder(
                     shrinkWrap: true,
                     padding: EdgeInsets.zero,
-                    children: [
-                      if (!BusinessConfig.instance.requireCustomer && _customerSearchQuery.isEmpty)
-                        ListTile(
+                    itemCount: options.length,
+                    itemBuilder: (context, index) {
+                      final item = options[index];
+                      final isSelected = index == _customerSelectedIndex;
+                      
+                      if (item == "Walk-in Guest") {
+                        return ListTile(
                           dense: true,
+                          selected: isSelected,
+                          selectedTileColor: theme.highlight.withOpacity(0.15),
                           leading: Icon(Icons.person_outline_rounded, color: theme.highlight),
                           title: Text('Walk-in Guest', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
                           onTap: () {
                             widget.controller.setSelectedCustomer(null);
                             setState(() => _isCustomerDropdownOpen = false);
                           },
-                        ),
-                      ...filtered.map((c) => ListTile(
-                            dense: true,
-                            leading: Icon(Icons.person_rounded, color: theme.textSecondary),
-                            title: Text(c.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                            subtitle: c.phone != null && c.phone!.isNotEmpty ? Text(c.phone!, style: TextStyle(color: theme.textSecondary, fontSize: 11)) : null,
-                            onTap: () {
-                              widget.controller.setSelectedCustomer(c);
-                              setState(() => _isCustomerDropdownOpen = false);
-                            },
-                          )),
-                      if (filtered.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Text('No matching customers found.', textAlign: TextAlign.center, style: TextStyle(color: theme.textSecondary))
-                        ),
-                    ],
+                        );
+                      } else {
+                        final c = item as Customer;
+                        return ListTile(
+                          dense: true,
+                          selected: isSelected,
+                          selectedTileColor: theme.highlight.withOpacity(0.15),
+                          leading: Icon(Icons.person_rounded, color: theme.textSecondary),
+                          title: Text(c.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                          subtitle: c.phone != null && c.phone!.isNotEmpty ? Text(c.phone!, style: TextStyle(color: theme.textSecondary, fontSize: 11)) : null,
+                          onTap: () {
+                            widget.controller.setSelectedCustomer(c);
+                            setState(() => _isCustomerDropdownOpen = false);
+                          },
+                        );
+                      }
+                    },
                   ),
+                ),
+              if (options.isEmpty && !_isLoadingCustomers)
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Text('No matching customers found.', textAlign: TextAlign.center, style: TextStyle(color: theme.textSecondary))
                 ),
               Container(
                 decoration: BoxDecoration(border: Border(top: BorderSide(color: theme.cardBorder))),
@@ -414,6 +493,7 @@ class _POSCartSectionState extends State<POSCartSection> {
       child: Row(
         children: [
           Expanded(
+            flex: 3,
             child: Text('PRODUCTS',
                 style: TextStyle(
                     color: theme.textSecondary,
@@ -625,7 +705,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                   widget.controller.globalDiscountValue > 0)) ...[
             const SizedBox(height: 6),
             InkWell(
-              onTap: _openDiscountEditor,
+              onTap: openDiscountEditor,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -732,7 +812,7 @@ class _POSCartSectionState extends State<POSCartSection> {
                           _applyDiscountFromField();
                           setState(() => _isEditingDiscount = false);
                         } else {
-                          _openDiscountEditor();
+                          openDiscountEditor();
                         }
                       },
                     ),

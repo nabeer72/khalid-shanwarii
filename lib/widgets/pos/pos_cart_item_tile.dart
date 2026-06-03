@@ -204,6 +204,7 @@ class _POSCartItemTileState extends State<POSCartItemTile> {
             child: Row(
               children: [
                 Expanded(
+                  flex: 3,
                   child: Text(
                     item.product.name,
                     style: TextStyle(

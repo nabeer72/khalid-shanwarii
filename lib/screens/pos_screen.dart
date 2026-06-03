@@ -22,12 +22,14 @@ import 'package:mobile_app/widgets/pos/pos_product_grid.dart';
 import 'package:mobile_app/widgets/pos/pos_cart_section.dart';
 import 'package:mobile_app/widgets/pos/pos_quick_add_panel.dart';
 import 'package:mobile_app/widgets/add_customer_dialog.dart';
+import 'package:mobile_app/utils/keyboard_shortcuts.dart';
 
 class POSScreen extends StatefulWidget {
   final HeldOrder? resumeOrder;
   final Map<String, dynamic>? returnSale;
+  final String? initialCategory;
   static bool isActive = false;
-  const POSScreen({super.key, this.resumeOrder, this.returnSale});
+  const POSScreen({super.key, this.resumeOrder, this.returnSale, this.initialCategory});
 
   @override
   State<POSScreen> createState() => _POSScreenState();
@@ -40,6 +42,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _keyboardFocusNode = FocusNode();
+  final GlobalKey<POSCartSectionState> _cartKey = GlobalKey<POSCartSectionState>();
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
@@ -68,6 +71,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       WidgetsBinding.instance.addPostFrameCallback((_) => _controller.resumeOrder(widget.resumeOrder!));
     } else if (widget.returnSale != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _controller.loadReturnSale(widget.returnSale!));
+    }
+
+    if (widget.initialCategory != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _controller.setCategory(widget.initialCategory!));
     }
     
     _quickAddController = AnimationController(
@@ -504,30 +511,43 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   Future<void> _promptClearCart() async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        backgroundColor: theme.surface,
-        title: Row(
-          children: [
-            const Icon(Icons.warning_amber_rounded, color: ThemeProvider.error),
-            const SizedBox(width: 8),
-            Text('Clear Cart', style: TextStyle(color: theme.textPrimary)),
-          ],
-        ),
-        content: Text('Are you sure you want to clear all items from the cart?',
-            style: TextStyle(color: theme.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+      builder: (ctx) {
+        return Focus(
+          autofocus: true,
+          onKeyEvent: (node, event) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.enter) {
+              Navigator.pop(ctx, true);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          },
+          child: AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: theme.surface,
+            title: Row(
+              children: [
+                const Icon(Icons.warning_amber_rounded, color: ThemeProvider.error),
+                const SizedBox(width: 8),
+                Text('Clear Cart', style: TextStyle(color: theme.textPrimary)),
+              ],
+            ),
+            content: Text('Are you sure you want to clear all items from the cart?',
+                style: TextStyle(color: theme.textSecondary)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                style: ElevatedButton.styleFrom(backgroundColor: ThemeProvider.error),
+                child: const Text('Clear', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: ThemeProvider.error),
-            child: const Text('Clear', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
+        );
+      },
     );
 
     if (confirm == true) {
@@ -1833,7 +1853,23 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
+    return CallbackShortcuts(
+      bindings: POSKeyboardShortcuts.getPosBindings(
+        onEscape: () async {
+          final shouldPop = await _showBackConfirmDialog(context);
+          if (shouldPop == true && context.mounted) {
+            Navigator.pop(context);
+          }
+        },
+        onF1: _promptClearCart,
+        onF2: () => _cartKey.currentState?.toggleCustomerDropdown(),
+        onF3: () => _controller.toggleReturn(!_controller.isReturn),
+        onF4: _toggleQuickAddProduct,
+        onF5: () => _cartKey.currentState?.openDiscountEditor(),
+        onF6: _showAllHistory,
+        onF7: () => setState(() => theme.toggleTheme()),
+      ),
+      child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
@@ -1854,37 +1890,75 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     Focus(
                       focusNode: _keyboardFocusNode,
                       autofocus: true,
+                      canRequestFocus: true,
+                      descendantsAreFocusable: true,
                       onKeyEvent: (node, event) {
-                        // Let child textfields handle characters first
-                        final currentFocus = FocusManager.instance.primaryFocus;
-                        final isBackgroundOrSearch = currentFocus == _keyboardFocusNode || currentFocus == _searchFocusNode;
-                        
-                        if (!isBackgroundOrSearch) {
-                          // The user is actively typing in a specific text field out on the screen (qty, discount, etc)
-                          return KeyEventResult.ignored;
-                        }
-
-                        if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
-                          if (_searchCtrl.text.isNotEmpty) {
-                            _processBarcode(_searchCtrl.text);
+                        final result = POSKeyboardShortcuts.handleKeyEvent(
+                          keyboardFocusNode: _keyboardFocusNode,
+                          searchFocusNode: _searchFocusNode,
+                          searchCtrl: _searchCtrl,
+                          event: event,
+                          onExit: () async {
+                            final shouldPop = await _showBackConfirmDialog(context);
+                            if (shouldPop == true && mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
+                          onPay: _goToPayment,
+                          onHold: _handleParkCart,
+                          onUnhold: _showHeldOrdersDialog,
+                          onClearCart: _promptClearCart,
+                          onAddCustomer: () async {
+                            final customer = await _showCustomerSelectionDialog();
+                            if (customer != null) _controller.setSelectedCustomer(customer);
+                          },
+                          onSwitchReturnMode: () => _controller.toggleReturn(!_controller.isReturn),
+                          onQuickAdd: _toggleQuickAddProduct,
+                          onAddDiscount: _showDiscountDialog,
+                          onHistory: _showAllHistory,
+                          onSwitchTheme: () => setState(() => theme.toggleTheme()),
+                          onSearchSubmit: (text) {
+                            _processBarcode(text);
                             _searchCtrl.clear();
                             _controller.setSearchQuery('');
-                            return KeyEventResult.handled;
-                          }
-                        }
-                        if (event is KeyDownEvent && 
-                            event.character != null && 
-                            event.character!.isNotEmpty) {
+                          },
+                          onSearchUpdate: (text) {
+                            _controller.setSearchQuery(text);
+                          },
+                        );
+
+                        if (result == KeyEventResult.ignored &&
+                            event is KeyDownEvent &&
+                            _cartKey.currentState?.isCustomerDropdownOpen != true) {
+                          final key = event.logicalKey;
                           
-                          if (!_searchFocusNode.hasFocus) {
-                            _searchFocusNode.requestFocus();
-                            _searchCtrl.text += event.character!;
-                            _searchCtrl.selection = TextSelection.collapsed(offset: _searchCtrl.text.length);
-                            _controller.setSearchQuery(_searchCtrl.text);
+                          if (key == LogicalKeyboardKey.enter) {
+                            if (_searchCtrl.text.isNotEmpty) {
+                              _processBarcode(_searchCtrl.text);
+                              _searchCtrl.clear();
+                              _controller.setSearchQuery('');
+                            } else {
+                              _goToPayment();
+                            }
+                            return KeyEventResult.handled;
+                          }
+                          
+                          if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowRight) {
+                            if (_controller.cart.isNotEmpty) {
+                              _controller.updateQuantity(_controller.cart.length - 1, 1);
+                            }
+                            return KeyEventResult.handled;
+                          }
+                          
+                          if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowLeft) {
+                            if (_controller.cart.isNotEmpty) {
+                              _controller.updateQuantity(_controller.cart.length - 1, -1);
+                            }
                             return KeyEventResult.handled;
                           }
                         }
-                        return KeyEventResult.ignored;
+                        
+                        return result;
                       },
                       child: Row(
                         children: [
@@ -1936,7 +2010,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           ),
         ),
       ),
-    );
+    ));
   }
 
   void _handleProductTap(Product product) {
@@ -2076,6 +2150,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         border: Border(left: BorderSide(color: theme.whiteAlpha(0.1))),
       ),
       child: POSCartSection(
+        key: _cartKey,
         controller: _controller,
         onPay: _goToPayment,
         onHold: _handleParkCart,
@@ -2365,24 +2440,39 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   Future<bool?> _showBackConfirmDialog(BuildContext context) {
     return showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: theme.surface,
-        title: Text('Exit POS?', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-        content: Text('Are you sure you want to go back? Your current cart will be lost.', style: TextStyle(color: theme.textSecondary)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Stay', style: TextStyle(color: theme.textSecondary)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.highlight,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      builder: (ctx) => Focus(
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent) {
+            if (event.logicalKey == LogicalKeyboardKey.enter) {
+              Navigator.pop(ctx, true);
+              return KeyEventResult.handled;
+            } else if (event.logicalKey == LogicalKeyboardKey.escape) {
+              Navigator.pop(ctx, false);
+              return KeyEventResult.handled;
+            }
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AlertDialog(
+          backgroundColor: theme.surface,
+          title: Text('Exit POS?', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+          content: Text('Are you sure you want to go back? Your current cart will be lost.', style: TextStyle(color: theme.textSecondary)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Stay', style: TextStyle(color: theme.textSecondary)),
             ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Yes', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.highlight,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Yes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
       ),
     );
   }
