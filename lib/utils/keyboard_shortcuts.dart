@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/db/database_helper.dart';
 
 class POSKeyboardShortcuts {
   static KeyEventResult handleKeyEvent({
@@ -27,11 +29,10 @@ class POSKeyboardShortcuts {
     if (event is KeyDownEvent) {
       final key = event.logicalKey;
       
-
       // F-Keys and Escape are now handled globally via CallbackShortcuts generator methods
       // to forcefully suppress default operating system actions (Browser help, search, refresh, etc).
 
-      // Actions that should ONLY trigger if the user isn't actively focused on another specific widget (like a textfield or a button)
+      // Actions that should ONLY trigger if the user isn't actively focused on another specific widget
       if (isBackgroundOrSearch) {
         if (key == LogicalKeyboardKey.enter) {
           if (searchCtrl.text.isNotEmpty) {
@@ -66,6 +67,8 @@ class POSKeyboardShortcuts {
     
     return KeyEventResult.ignored;
   }
+
+  // ─── Binding Generators ─────────────────────────────────────────────
 
   static Map<ShortcutActivator, VoidCallback> getPosBindings({
     required VoidCallback onEscape,

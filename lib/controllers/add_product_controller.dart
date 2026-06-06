@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
 import 'package:flutter/foundation.dart';
 import 'dart:math';
 import 'package:mobile_app/db/database_helper.dart';
@@ -11,7 +10,6 @@ import 'package:mobile_app/models/branch.dart';
 import 'package:mobile_app/models/brand.dart';
 import 'package:mobile_app/db/crud/units_crud.dart';
 import 'package:mobile_app/services/sync_service.dart';
-
 class AddProductController with ChangeNotifier {
   final Product? initialProduct;
   final Stock? initialStock;
@@ -31,6 +29,10 @@ class AddProductController with ChangeNotifier {
   late TextEditingController boxPrice;
   late TextEditingController boxPurchasePrice;
   late TextEditingController boxWholesalePrice;
+  late TextEditingController expireDate;
+  late TextEditingController manufactureDate;
+
+
 
   // NEW: Tax fields
   bool? taxEnabled;
@@ -79,6 +81,10 @@ class AddProductController with ChangeNotifier {
     boxPrice = TextEditingController();
     boxPurchasePrice = TextEditingController();
     boxWholesalePrice = TextEditingController();
+    expireDate = TextEditingController(text: initialStock?.expireDate ?? '');
+    manufactureDate = TextEditingController(text: initialStock?.manufactureDate ?? '');
+
+
 
     // Tax follows global settings; per-product only when tax is enabled in settings
     final globalTaxOn = BusinessConfig.instance.enableTax;
@@ -689,7 +695,11 @@ class AddProductController with ChangeNotifier {
       'is_favorite': isFavorite ? 1 : 0,
       'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
+      'expire_date': expireDate.text.trim().isEmpty ? null : expireDate.text.trim(),
+      'manufacture_date': manufactureDate.text.trim().isEmpty ? null : manufactureDate.text.trim(),
       'tax_enabled': BusinessConfig.instance.enableTax && (taxEnabled ?? false) ? 1 : 0,
+
+
       'tax_rate': BusinessConfig.instance.enableTax && (taxEnabled ?? false)
           ? (double.tryParse(taxRate.text) ?? BusinessConfig.instance.taxRate)
           : 0.0,
@@ -729,6 +739,8 @@ class AddProductController with ChangeNotifier {
     boxPrice.dispose();
     boxPurchasePrice.dispose();
     boxWholesalePrice.dispose();
+    expireDate.dispose();
+    manufactureDate.dispose();
     taxRate.dispose(); // NEW
     super.dispose();
   }

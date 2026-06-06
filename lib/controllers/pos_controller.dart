@@ -319,7 +319,7 @@ class POSController with ChangeNotifier {
 
     _total = _subtotal + _tax - _discount;
     
-    if (_total < 0) _total = 0;
+    if (!_isReturn && _total < 0) _total = 0;
     notifyListeners();
   }
 
@@ -455,7 +455,7 @@ class POSController with ChangeNotifier {
           saleItemId: itemMap['id'], // ID from sale_items table
           product: product,
           stock: stock,
-          quantity: (itemMap['quantity'] as num).toDouble(),
+          quantity: -((itemMap['quantity'] as num).toDouble().abs()),
           price: (itemMap['price'] as num).toDouble(),
           discount: (itemMap['discount'] as num? ?? 0).toDouble(),
           isWeight: itemMap['isWeight'] == 1,

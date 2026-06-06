@@ -630,12 +630,99 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
+  Widget _buildExpireDateField() {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 3650)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: theme.highlight,
+                  onPrimary: Colors.white,
+                  surface: theme.surface,
+                  onSurface: theme.textPrimary,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (date != null) {
+          setState(() {
+            _controller.expireDate.text = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          });
+        }
+      },
+      child: IgnorePointer(
+        child: _buildTextField(
+          controller: _controller.expireDate,
+          label: 'Expiry Date',
+          icon: Icons.calendar_today_outlined,
+          validator: (v) => null, // Optional
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManufactureDateField() {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+          lastDate: DateTime.now().add(const Duration(days: 3650)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: theme.highlight,
+                  onPrimary: Colors.white,
+                  surface: theme.surface,
+                  onSurface: theme.textPrimary,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (date != null) {
+          setState(() {
+            _controller.manufactureDate.text = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          });
+        }
+      },
+      child: IgnorePointer(
+        child: _buildTextField(
+          controller: _controller.manufactureDate,
+          label: 'Manufacture Date',
+          icon: Icons.precision_manufacturing_outlined,
+          validator: (v) => null,
+        ),
+      ),
+    );
+  }
+
   Widget _buildStockAlertAndDiscountRow({required bool isWide}) {
     final alertField = _buildStockAlertField();
     final discountField = _buildDiscountField();
+    final mfgField = _buildManufactureDateField();
+    final expireField = _buildExpireDateField();
 
     if (isWide) {
-      return _buildFormRow([alertField, discountField]);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildFormRow([alertField, discountField]),
+          _formSpacer(),
+          _buildFormRow([mfgField, expireField]),
+        ],
+      );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -643,6 +730,10 @@ class _AddProductScreenState extends State<AddProductScreen> {
         alertField,
         _formSpacer(),
         discountField,
+        _formSpacer(),
+        mfgField,
+        _formSpacer(),
+        expireField,
       ],
     );
   }

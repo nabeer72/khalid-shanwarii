@@ -42,17 +42,19 @@ mixin ReturnsCrud on CommonCrud {
         });
 
         // Update Stock (Batch-specific): Returns add back to stock
+        // Use only primary key (id) to match stock — business filter can
+        // prevent the row from being found when user_id is NULL or mismatched.
         if (stockId != null) {
           final List<Map<String, dynamic>> stocks = await txn.query(
             'stocks',
             columns: ['quantity'],
-            where: 'id = ?${getBusinessFilter()}',
-            whereArgs: [stockId, ...businessArgs],
+            where: 'id = ?',
+            whereArgs: [stockId],
           );
 
           if (stocks.isNotEmpty) {
             final currentStock = (stocks.first['quantity'] as num? ?? 0).toDouble();
-            final newStock = currentStock + quantity;
+            final newStock = currentStock + quantity.abs();
 
             await txn.update(
               'stocks',
@@ -61,8 +63,8 @@ mixin ReturnsCrud on CommonCrud {
                 'is_synced': 0,
                 'updated_at': DateTime.now().toIso8601String(),
               },
-              where: 'id = ?${getBusinessFilter()}',
-              whereArgs: [stockId, ...businessArgs],
+              where: 'id = ?',
+              whereArgs: [stockId],
             );
           }
         }

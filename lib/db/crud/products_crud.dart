@@ -309,8 +309,12 @@ mixin ProductsCrud on CommonCrud {
       // ── Step 2: Resolve current prices & qty ─────────────────────────────
       final pid          = isEdit ? productId : generatedProductId;
       final barcode      = product['barcode']?.toString();
+      final expireDate   = product['expire_date']?.toString();
+      final manufactureDate = product['manufacture_date']?.toString();
       final currentPrice = (product['price']          as num?)?.toDouble() ?? 0.0;
+
       final currentCost  = (product['purchase_price'] as num?)?.toDouble() ?? 0.0;
+
       final currentWholesale = (product['wholesale_price'] as num?)?.toDouble() ?? 0.0;
       final newQty       = (product['stock_quantity'] as num?)?.toDouble() ?? 0;
       final alertQty     = (product['stock_limit'] as num?)?.toDouble() ?? 0.0;
@@ -361,9 +365,13 @@ mixin ProductsCrud on CommonCrud {
           'stocks',
           {
             'barcode':    barcode ?? matchingStocks.first['barcode'],
+            'expire_date': expireDate ?? matchingStocks.first['expire_date'],
+            'manufacture_date': manufactureDate ?? matchingStocks.first['manufacture_date'],
             'quantity':   newQty,
             'alert_quantity': alertQty,
+
             'discount_limit': discountLimit,
+
             'discount_limit_type': discountLimitType,
             'tax': stockTax,
             'pieces_per_pack': piecesPerPack ?? matchingStocks.first['pieces_per_pack'],
@@ -385,9 +393,13 @@ mixin ProductsCrud on CommonCrud {
           'branch_id':       brid,
           'product_id':      pid,
           'barcode':         barcode,
+          'expire_date':     expireDate,
+          'manufacture_date': manufactureDate,
           'quantity':        newQty,
           'sale_price':      currentPrice,
+
           'cost_price':      currentCost,
+
           'wholesale_price': currentWholesale,
           'alert_quantity':  alertQty,
           'discount_limit':  discountLimit,

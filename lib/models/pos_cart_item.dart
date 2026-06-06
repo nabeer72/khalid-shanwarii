@@ -60,7 +60,7 @@ class POSCartItem {
       _discount = discountValue;
     }
     subtotal = (quantity * price) - _discount;
-    if (subtotal < 0) subtotal = 0;
+    if (quantity >= 0 && subtotal < 0) subtotal = 0;
   }
 
   // Update quantity and scale discount proportionally

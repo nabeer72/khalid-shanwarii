@@ -111,6 +111,7 @@ mixin SalesCrud on CommonCrud {
         await txn.insert('sale_items', {
           ...item,
           'sale_id': sid,
+          'business_id': bid,
           'user_id': uid,
           'branch_id': brid,
           'is_synced': 0
@@ -127,9 +128,10 @@ mixin SalesCrud on CommonCrud {
 
           if (stocks.isNotEmpty) {
             final currentStock = (stocks.first['quantity'] as num? ?? 0).toDouble();
+            final absQty = quantity.abs();
             final newStock = isReturn 
-                ? currentStock + quantity 
-                : currentStock - quantity;
+                ? currentStock + absQty 
+                : currentStock - absQty;
 
             await txn.update(
               'stocks',
@@ -173,7 +175,7 @@ mixin SalesCrud on CommonCrud {
       INNER JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
       WHERE si.sale_id = ? 
-      AND si.business_id = ? AND si.user_id = ?
+      AND (si.business_id IS NULL OR (si.business_id = ? AND si.user_id = ?))
       AND (p.id IS NULL OR (p.business_id = ? AND p.user_id = ?))
       $branchFilter
     ''', [saleId, ...getBusinessArgs(), ...getBusinessArgs(), ...branchArgs]);

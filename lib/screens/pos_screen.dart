@@ -23,6 +23,7 @@ import 'package:mobile_app/widgets/pos/pos_cart_section.dart';
 import 'package:mobile_app/widgets/pos/pos_quick_add_panel.dart';
 import 'package:mobile_app/widgets/add_customer_dialog.dart';
 import 'package:mobile_app/utils/keyboard_shortcuts.dart';
+import 'package:mobile_app/widgets/shortcuts_help_dialog.dart';
 
 class POSScreen extends StatefulWidget {
   final HeldOrder? resumeOrder;
@@ -2247,6 +2248,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 ),
               ],
               const SizedBox(width: 12),
+              const ShortcutHelpIcon(),
+              const SizedBox(width: 8),
               Container(
                 decoration: theme.glassCircleDecoration,
                 child: IconButton(
