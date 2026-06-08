@@ -950,6 +950,11 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         startTime: start,
         endTime: end,
       );
+      final expenses = await DatabaseHelper.instance.getExpenses(
+        startTime: start,
+        endTime: end,
+      );
+      final totalPeriodExpenses = expenses.fold<double>(0.0, (sum, e) => sum + (e['amount'] as num? ?? 0).toDouble());
       
       String filterInfo = 'Period: ${start.split('T')[0]} to ${end.split('T')[0]}';
       if (selectedCategory != null && selectedCategory['id'] != null) {
@@ -960,7 +965,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       }
 
       final title = 'Sales Report';
-      final pdf = await _generateSalesPdf(items, title, subtitle: filterInfo, returnItems: returns, paymentMethodSummary: paymentSummary);
+      final pdf = await _generateSalesPdf(items, title, subtitle: filterInfo, returnItems: returns, paymentMethodSummary: paymentSummary, periodExpenses: totalPeriodExpenses);
       _showPreview(pdf, title);
     } finally {
       setState(() => _generatingReportTitle = null);
@@ -1042,8 +1047,13 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         startTime: start,
         endTime: end,
       );
+      final expenses = await DatabaseHelper.instance.getExpenses(
+        startTime: start,
+        endTime: end,
+      );
+      final totalPeriodExpenses = expenses.fold<double>(0.0, (sum, e) => sum + (e['amount'] as num? ?? 0).toDouble());
       final title = 'Detailed Sales & Returns Report';
-      final pdf = await _generateSalesPdf(items, title, returnItems: returns);
+      final pdf = await _generateSalesPdf(items, title, returnItems: returns, periodExpenses: totalPeriodExpenses);
       _showPreview(pdf, title);
     } finally {
       setState(() => _generatingReportTitle = null);
@@ -1215,7 +1225,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     return 0.0;
   }
 
-  Future<pw.Document> _generateSalesPdf(List<Map<String, dynamic>> items, String title, {List<Map<String, dynamic>>? returnItems, String? subtitle, List<Map<String, dynamic>>? paymentMethodSummary}) async {
+  Future<pw.Document> _generateSalesPdf(List<Map<String, dynamic>> items, String title, {List<Map<String, dynamic>>? returnItems, String? subtitle, List<Map<String, dynamic>>? paymentMethodSummary, double? periodExpenses}) async {
     await _ensureFontsLoaded();
     final font = _cachedFont!;
     final boldFont = _cachedBoldFont!;
@@ -1455,7 +1465,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
           }
 
           final finalNetAmount = totalSalesNet - retNet;
-          final finalProfit = totalSalesProfit - totalReturnsProfit; // Simple profit - refund subtraction
+          final expensesToSubtract = periodExpenses ?? 0.0;
+          final finalProfit = totalSalesProfit - totalReturnsProfit - expensesToSubtract; // Simple profit - refund - expenses subtraction
           
           final summaryContent = pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -1472,6 +1483,12 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               if (retNet > 0) ...[
                 pw.SizedBox(height: 4),
                 summaryRow('Total Returns (Net)', '${business.currency} ${retNet.toStringAsFixed(2)}', color: PdfColors.red700),
+              ],
+              if (expensesToSubtract > 0) ...[
+                pw.SizedBox(height: 4),
+                summaryRow('Total Expenses', '${business.currency} ${expensesToSubtract.toStringAsFixed(2)}', color: PdfColors.red700),
+              ],
+              if (retNet > 0 || expensesToSubtract > 0) ...[
                 pw.SizedBox(height: 4),
                 summaryRow('GRAND TOTAL (NET)', '${business.currency} ${finalNetAmount.toStringAsFixed(2)}', bold: true, color: PdfColor.fromHex('#1E3A8A')),
               ],

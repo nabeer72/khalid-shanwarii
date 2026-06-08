@@ -17,6 +17,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<Map<String, dynamic>> _sales = [];
   List<Map<String, dynamic>> _saleItems = [];
   List<Map<String, dynamic>> _returnItems = [];
+  List<Map<String, dynamic>> _expenses = [];
   bool _isLoading = true;
 
   @override
@@ -33,12 +34,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
         db.getSales(),
         db.getDetailedSaleItems(),
         db.getDetailedReturnItems(),
+        db.getExpenses(),
       ]);
       if (mounted) {
         setState(() {
           _sales = results[0];
           _saleItems = results[1];
           _returnItems = results[2];
+          _expenses = results[3];
           _isLoading = false;
         });
       }
@@ -140,7 +143,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
       _saleItemsForPeriod.fold(0.0, (sum, item) => sum + _lineItemProfit(item));
   double get _returnsProfit =>
       _returnItemsForPeriod.fold(0.0, (sum, item) => sum + _lineItemProfit(item));
-  double get _netProfit => _salesProfit - _returnsProfit;
+      
+  List<Map<String, dynamic>> get _expensesForPeriod {
+    return _expenses.where((item) {
+      final ts = DateTime.tryParse(item['expense_date']?.toString() ?? item['created_at']?.toString() ?? '')?.toLocal();
+      return _isInPeriod(ts);
+    }).toList();
+  }
+
+  double get _totalExpenses => _expensesForPeriod.fold(0.0, (sum, e) => sum + (e['amount'] as num? ?? 0).toDouble());
+
+  double get _netProfit => _salesProfit - _returnsProfit - _totalExpenses;
 
   Map<String, double> get _salesByPaymentMethod {
     final Map<String, double> result = {};
@@ -510,6 +523,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
               _BreakdownRow(label: 'Sales Profit',  value: _salesProfit,   icon: Icons.savings_outlined,             iconColor: _clrProfit),
               if (_returnsProfit != 0)
                 _BreakdownRow(label: 'Return Impact', value: -_returnsProfit, icon: Icons.remove_circle_outline_rounded, iconColor: _clrReturns),
+              if (_totalExpenses > 0)
+                _BreakdownRow(label: 'Expenses',      value: -_totalExpenses, icon: Icons.money_off_rounded,           iconColor: _clrReturns),
             ],
           ),
           Padding(
