@@ -46,7 +46,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         });
       }
     } catch (e) {
-      print('Error loading sales reports: $e');
+      debugPrint('Error loading sales reports: $e');
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -368,79 +368,67 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildHeroCard(String currency) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isTablet = screenWidth > 600;
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      padding: EdgeInsets.all(isTablet ? 24 : 20),
       decoration: BoxDecoration(
         color: theme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.divider),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+        border: Border.all(
+          color: theme.divider,
+          width: 1.0,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header row with icon
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.insights_rounded, color: theme.primary, size: 18),
-              ),
-              const SizedBox(width: 10),
-              Text(
-                'PERFORMANCE SNAPSHOT',
-                style: TextStyle(
-                  color: theme.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
+          Container(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Icon(Icons.insights_rounded,
+                color: theme.highlight,
+                size: isTablet ? 34 : 26),
           ),
-          const SizedBox(height: 18),
-          // Metrics row
-          Row(
-            children: [
-              Expanded(
-                child: _HeroMetric(
-                  label: 'Net Revenue',
-                  value: '$currency ${_netSales.toStringAsFixed(2)}',
-                  color: _clrSales,
-                ),
-              ),
-              Container(
-                width: 1,
-                height: 48,
-                color: theme.divider,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-              ),
-              Expanded(
-                child: _HeroMetric(
-                  label: 'Net Profit',
-                  value: '$currency ${_netProfit.toStringAsFixed(2)}',
-                  color: _clrProfit,
-                ),
-              ),
-            ],
+          Text(
+            'Performance Snapshot',
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: isTablet ? 26 : 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5,
+            ),
           ),
+          const SizedBox(height: 6),
+          Text('Business overview · $_periodLabel',
+              style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500)),
           const SizedBox(height: 16),
-          // Chips
           Wrap(
-            spacing: 8,
+            spacing: 16,
             runSpacing: 8,
             children: [
-              _HeroChip(
-                icon: Icons.receipt_rounded,
-                label: '$_transactionCount sales',
+              _QuickStat(
+                  icon: Icons.receipt_long_outlined,
+                  value: '$_transactionCount',
+                  label: 'SALES'),
+              _QuickStat(
+                icon: Icons.account_balance_rounded,
+                value: '$currency ${_netSales.toStringAsFixed(0)}',
+                label: 'NET REVENUE',
               ),
-              _HeroChip(
-                icon: Icons.calendar_today_rounded,
-                label: _periodLabel,
+              _QuickStat(
+                icon: Icons.savings_rounded,
+                value: '$currency ${_netProfit.toStringAsFixed(0)}',
+                label: 'NET PROFIT',
+              ),
+              _QuickStat(
+                icon: Icons.shopping_basket_rounded,
+                value: '$currency ${_avgTransaction.toStringAsFixed(0)}',
+                label: 'AVG. CART',
               ),
             ],
           ),
@@ -488,7 +476,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
         mainAxisSpacing: 12,
       ),
       children: [
-        _SummaryCard(title: 'Gross Sales',  value: _totalSales,      icon: Icons.trending_up_rounded,       color: _clrSales),
+        _SummaryCard(title: 'Gross Sales',  value: _totalSales,      icon: Icons.receipt_long_outlined,     color: _clrSales),
         _SummaryCard(title: 'Returns',      value: _totalReturns,    icon: Icons.keyboard_return_rounded,   color: _clrReturns),
         _SummaryCard(title: 'Net Profit',   value: _netProfit,       icon: Icons.paid_rounded,              color: _clrProfit),
         _SummaryCard(title: 'Avg. Cart',    value: _avgTransaction,  icon: Icons.shopping_basket_rounded,   color: _clrCart, isCurrency: true),
@@ -509,7 +497,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             title: 'Revenue',
             color: _clrRevenue,
             children: [
-              _BreakdownRow(label: 'Gross Sales',  value: _totalSales,      icon: Icons.trending_up_rounded,         iconColor: _clrSales),
+              _BreakdownRow(label: 'Gross Sales',  value: _totalSales,      icon: Icons.receipt_long_outlined,       iconColor: _clrSales),
               _BreakdownRow(label: 'Returns',      value: -_totalReturns,   icon: Icons.keyboard_return_rounded,     iconColor: _clrReturns),
               _BreakdownRow(label: 'Discounts',    value: -_totalDiscounts, icon: Icons.local_offer_outlined,        iconColor: const Color(0xFFF59E0B)),
               _BreakdownRow(label: 'Net Sales',    value: _netSales,        icon: Icons.account_balance_rounded,     iconColor: _clrSales, bold: true),
@@ -750,78 +738,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 }
 
-class _HeroMetric extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color? color;
-
-  const _HeroMetric({required this.label, required this.value, this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeProvider.instance;
-    final valueColor = color ?? theme.textPrimary;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            color: theme.textSecondary,
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const SizedBox(height: 6),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            value,
-            style: TextStyle(
-              color: valueColor,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _HeroChip extends StatelessWidget {
+class _QuickStat extends StatelessWidget {
   final IconData icon;
+  final String value;
   final String label;
 
-  const _HeroChip({required this.icon, required this.label});
+  const _QuickStat({required this.icon, required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: theme.divider.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: theme.divider, width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: theme.textSecondary),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(
-              color: theme.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, color: theme.iconColor, size: 14),
+        ),
+        const SizedBox(width: 10),
+        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(value,
+              style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+          Text(label,
+              style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+        ]),
+      ],
     );
   }
 }
@@ -941,7 +882,7 @@ class _SummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 18),

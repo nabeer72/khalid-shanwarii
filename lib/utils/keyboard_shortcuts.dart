@@ -53,6 +53,40 @@ class POSKeyboardShortcuts {
           return KeyEventResult.handled;
         }
 
+        if (key == LogicalKeyboardKey.f1) {
+          onClearCart();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.f2) {
+          onAddCustomer();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.f3) {
+          onSwitchReturnMode();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.f4) {
+          onQuickAdd();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.f5) {
+          onAddDiscount();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.f6) {
+          onHistory();
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.f7) {
+          onSwitchTheme();
+          return KeyEventResult.handled;
+        }
+
+        if (key == LogicalKeyboardKey.escape) {
+          onExit();
+          return KeyEventResult.handled;
+        }
+
         if (event.character != null && event.character!.isNotEmpty) {
           if (!searchFocusNode.hasFocus) {
             searchFocusNode.requestFocus();

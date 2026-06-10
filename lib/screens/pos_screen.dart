@@ -1909,13 +1909,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           onHold: _handleParkCart,
                           onUnhold: _showHeldOrdersDialog,
                           onClearCart: _promptClearCart,
-                          onAddCustomer: () async {
-                            final customer = await _showCustomerSelectionDialog();
-                            if (customer != null) _controller.setSelectedCustomer(customer);
-                          },
+                          onAddCustomer: () => _cartKey.currentState?.toggleCustomerDropdown(),
                           onSwitchReturnMode: () => _controller.toggleReturn(!_controller.isReturn),
                           onQuickAdd: _toggleQuickAddProduct,
-                          onAddDiscount: _showDiscountDialog,
+                          onAddDiscount: () => _cartKey.currentState?.openDiscountEditor(),
                           onHistory: _showAllHistory,
                           onSwitchTheme: () => setState(() => theme.toggleTheme()),
                           onSearchSubmit: (text) {

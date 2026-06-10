@@ -394,18 +394,18 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: isSelected ? theme.primary : theme.divider.withValues(alpha: 0.3),
+                                  color: isSelected ? theme.highlight : theme.divider.withValues(alpha: 0.3),
                                   width: isSelected ? 1.5 : 1.0,
                                 ),
                                 color: isSelected 
-                                  ? theme.primary.withValues(alpha: 0.1) 
+                                  ? theme.highlight.withValues(alpha: 0.1) 
                                   : (theme.isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.01)),
                               ),
                               child: Row(
                                 children: [
                                   Icon(
                                     isAllOption ? Icons.all_inclusive_rounded : icon,
-                                    color: isSelected ? theme.primary : theme.textSecondary,
+                                    color: isSelected ? theme.highlight : theme.textSecondary,
                                     size: 18,
                                   ),
                                   const SizedBox(width: 12),
@@ -413,14 +413,14 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                                     child: Text(
                                       label,
                                       style: TextStyle(
-                                        color: isSelected ? theme.primary : theme.textPrimary,
+                                        color: isSelected ? theme.highlight : theme.textPrimary,
                                         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                                         fontSize: 14,
                                       ),
                                     ),
                                   ),
                                   if (isSelected) 
-                                    Icon(Icons.check_circle_rounded, color: theme.primary, size: 18),
+                                    Icon(Icons.check_circle_rounded, color: theme.highlight, size: 18),
                                 ],
                               ),
                             ),
@@ -446,7 +446,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                       });
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.primary,
+                      backgroundColor: theme.highlight,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       elevation: 0,
@@ -608,7 +608,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                           });
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: theme.primary,
+                          backgroundColor: theme.highlight,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           elevation: 0,
@@ -649,7 +649,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             ),
             child: Row(
               children: [
-                Icon(icon, color: theme.primary, size: 20),
+                Icon(icon, color: theme.highlight, size: 20),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -715,7 +715,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                         itemBuilder: (ctx, i) {
                           final opt = filtered[i];
                           return ListTile(
-                            leading: Icon(icon, color: theme.primary, size: 20),
+                            leading: Icon(icon, color: theme.highlight, size: 20),
                             title: Text(labelMapping(opt), style: TextStyle(color: theme.textPrimary)),
                             onTap: () => Navigator.pop(ctx, opt),
                           );
@@ -750,7 +750,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             ),
             child: Row(
               children: [
-                Icon(Icons.calendar_today_rounded, color: theme.primary, size: 16),
+                Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 16),
                 const SizedBox(width: 8),
                 Text(
                   DateFormat('yyyy-MM-dd').format(date),
@@ -1153,7 +1153,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
   pw.Widget _buildReportHeader(pw.Context context, String title, BusinessConfig business, pw.Font font, pw.Font boldFont, {String userId = 'ADMIN', String? subtitle}) {
     final reportDate = DateFormat('dd MMM yyyy • HH:mm a').format(DateTime.now());
     final reportNum = 'REP-${DateFormat('yyyyMMdd').format(DateTime.now())}-${business.businessId ?? "001"}';
-    final primaryColor = PdfColor.fromHex('#1E3A8A'); 
+    final primaryColor = PdfColor.fromHex('#EF4444'); // Red color used in app
     
     return pw.Container(
       margin: const pw.EdgeInsets.only(bottom: 20),
@@ -1208,12 +1208,12 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       alignment: pw.Alignment.centerRight,
       margin: const pw.EdgeInsets.only(top: 10),
       padding: const pw.EdgeInsets.only(top: 5),
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(top: pw.BorderSide(width: 0.5, color: PdfColors.grey300)),
+      decoration: pw.BoxDecoration(
+        border: pw.Border(top: pw.BorderSide(width: 1, color: PdfColor.fromHex('#EF4444'))),
       ),
       child: pw.Text(
         'PAGE ${context.pageNumber} OF ${context.pagesCount}',
-        style: pw.TextStyle(font: font, fontSize: 7, color: PdfColors.grey600),
+        style: pw.TextStyle(font: font, fontSize: 8, color: PdfColor.fromHex('#EF4444'), fontWeight: pw.FontWeight.bold),
       ),
     );
   }
@@ -1390,7 +1390,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               7: pw.Alignment.center,
               8: pw.Alignment.center,
             },
-            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
+            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
           ));
 
           // 2. Returns Details (Move before summary)
@@ -1422,7 +1422,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 6: pw.Alignment.center,
                 7: pw.Alignment.center,
               },
-              headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
+              headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
             ));
           }
 
@@ -1471,7 +1471,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
           final summaryContent = pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
             children: [
-              pw.Text('FINANCIAL SUMMARY', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 13, color: PdfColor.fromHex('#1E3A8A'))),
+              pw.Text('FINANCIAL SUMMARY', style: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 13, color: PdfColor.fromHex('#EF4444'))),
               pw.SizedBox(height: 12),
               pw.Divider(color: PdfColor.fromHex('#CBD5E1'), thickness: 1),
               pw.SizedBox(height: 12),
@@ -1490,7 +1490,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               ],
               if (retNet > 0 || expensesToSubtract > 0) ...[
                 pw.SizedBox(height: 4),
-                summaryRow('GRAND TOTAL (NET)', '${business.currency} ${finalNetAmount.toStringAsFixed(2)}', bold: true, color: PdfColor.fromHex('#1E3A8A')),
+                summaryRow('GRAND TOTAL (NET)', '${business.currency} ${finalNetAmount.toStringAsFixed(2)}', bold: true, color: PdfColor.fromHex('#EF4444')),
               ],
 
               pw.SizedBox(height: 10),
@@ -1608,7 +1608,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               headerAlignments: headerAlignments,
               cellAlignment: pw.Alignment.centerLeft,
               cellAlignments: cellAlignments,
-              headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
+              headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
             ),
           ];
         }).toList(),
@@ -1660,7 +1660,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             },
             headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
             cellStyle: pw.TextStyle(font: font, fontSize: 9, color: PdfColor.fromHex('#334155')),
-            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
+            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
           ),
           pw.SizedBox(height: 5),
           pw.Container(
@@ -1729,7 +1729,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             },
             headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, fontSize: 9, color: PdfColors.white),
             cellStyle: pw.TextStyle(font: font, fontSize: 9, color: PdfColor.fromHex('#334155')),
-            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#1E3A8A')),
+            headerDecoration: pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
           ),
           pw.SizedBox(height: 5),
           pw.Container(
