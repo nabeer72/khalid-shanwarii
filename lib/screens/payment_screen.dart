@@ -320,6 +320,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'reason': 'Refund',
           'status': 1,
           'is_synced': 0,
+          'shift_id': activeShift?['id'],
         };
         final returnItems = widget.cart.map((item) {
           return {

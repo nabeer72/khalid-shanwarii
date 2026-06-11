@@ -1,4 +1,3 @@
-
 import '../database_helper.dart';
 import 'common_crud.dart';
 
@@ -7,7 +6,7 @@ mixin ReturnsCrud on CommonCrud {
     final db = await database;
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
-    
+
     final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
@@ -16,21 +15,51 @@ mixin ReturnsCrud on CommonCrud {
     );
   }
 
-  Future<int> insertReturn(Map<String, dynamic> returnData, List<Map<String, dynamic>> items) async {
+  Future<int> insertReturn(
+      Map<String, dynamic> returnData, List<Map<String, dynamic>> items) async {
     final db = await database;
     final businessArgs = getBusinessArgs();
     final brid = returnData['branch_id'] ?? getCurrentBranchId();
-    
+
+    // Check if returns table has shift_id column first
+    final tableInfo = await db.rawQuery('PRAGMA table_info(returns)');
+    final hasShiftId = tableInfo.any((col) => col['name'] == 'shift_id');
+
+    // Create a copy of returnData and remove shift_id to prevent inserting if column doesn't exist
+    final filteredReturnData = Map<String, dynamic>.from(returnData);
+    filteredReturnData.remove('shift_id');
+
     final result = await db.transaction((txn) async {
-      final returnId = await txn.insert('returns', {
-        ...returnData,
+      final insertData = {
+        ...filteredReturnData,
         ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
         'branch_id': brid,
         'status': 1,
         'is_synced': 0,
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
-      });
+      };
+      // Only add shift_id if column exists and value is not null
+      if (hasShiftId && returnData['shift_id'] != null) {
+        insertData['shift_id'] = returnData['shift_id'];
+      }
+      
+      final returnId = await txn.insert('returns', insertData);
+
+      // If this return has a sale_id, update that sale's is_return to 1
+      final originalSaleId = returnData['sale_id'];
+      if (originalSaleId != null) {
+        await txn.update(
+          'sales',
+          {
+            'is_return': 1,
+            'is_synced': 0,
+            'updated_at': DateTime.now().toIso8601String(),
+          },
+          where: 'id = ?',
+          whereArgs: [originalSaleId],
+        );
+      }
 
       for (var item in items) {
         final stockId = item['stock_id'];
@@ -53,9 +82,9 @@ mixin ReturnsCrud on CommonCrud {
           );
 
           if (stocks.isNotEmpty) {
-            final currentStock = (stocks.first['quantity'] as num? ?? 0).toDouble();
+            final currentStock =
+                (stocks.first['quantity'] as num? ?? 0).toDouble();
             final newStock = currentStock + quantity.abs();
-
             await txn.update(
               'stocks',
               {
@@ -71,14 +100,15 @@ mixin ReturnsCrud on CommonCrud {
       }
       return returnId;
     });
-    
+
     DatabaseHelper.notifyDataChanged();
     return result;
   }
 
   Future<List<Map<String, dynamic>>> getReturnItems(dynamic returnId) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
     final businessArgs = getBusinessArgs();
 

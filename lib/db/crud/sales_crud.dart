@@ -1,16 +1,18 @@
-
 import 'package:mobile_app/db/mock_data.dart';
 import '../database_helper.dart';
 import 'common_crud.dart';
 
 mixin SalesCrud on CommonCrud {
   // Sales
-  Future<List<Map<String, dynamic>>> getSales({int? limit, String? startTime, String? endTime, int? shiftId}) async {
+  Future<List<Map<String, dynamic>>> getSales(
+      {int? limit, String? startTime, String? endTime, int? shiftId}) async {
     final db = await database;
-    final branchFilterS = getBranchFilter().replaceAll('branch_id', 's.branch_id');
-    final branchFilterR = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchFilterS =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilterR =
+        getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
-    
+
     String extraFilterS = '';
     String extraFilterR = '';
     final List<dynamic> args = [];
@@ -39,6 +41,15 @@ mixin SalesCrud on CommonCrud {
       args.addAll([startTime, endTime]);
     }
 
+    // Check if returns table has shift_id column first
+    final tableInfo = await db.rawQuery('PRAGMA table_info(returns)');
+    final hasShiftId = tableInfo.any((col) => col['name'] == 'shift_id');
+
+    String shiftIdSelect = 'rs.shift_id as shift_id';
+    if (hasShiftId) {
+      shiftIdSelect = 'COALESCE(r.shift_id, rs.shift_id) as shift_id';
+    }
+
     return await db.rawQuery(
       '''
       SELECT 
@@ -52,9 +63,10 @@ mixin SalesCrud on CommonCrud {
       WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilterS$extraFilterS 
       
       UNION ALL
-      
+
       SELECT
-        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.sub_total as subtotal, 0 as tax, 0 as discount, r.total as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, rs.shift_id as shift_id,
+        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.sub_total as subtotal, 0 as tax, 0 as discount, r.total as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, 
+        $shiftIdSelect,
         c.name as customer_name,
         c.phone as customer_phone,
         u.name as employee_name
@@ -70,12 +82,13 @@ mixin SalesCrud on CommonCrud {
     );
   }
 
-  Future<int> insertSale(Map<String, dynamic> sale, List<Map<String, dynamic>> items) async {
+  Future<int> insertSale(
+      Map<String, dynamic> sale, List<Map<String, dynamic>> items) async {
     final db = await database;
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     final uid = getSafeInt(BusinessConfig.instance.userId);
     final brid = sale['branch_id'] ?? getCurrentBranchId();
-    
+
     final result = await db.transaction((txn) async {
       final saleMap = {
         ...sale,
@@ -98,9 +111,9 @@ mixin SalesCrud on CommonCrud {
           rethrow;
         }
       }
-      
+
       final generatedSaleId = insertedId;
-      
+
       final sid = sale['id'] ?? generatedSaleId;
 
       for (var item in items) {
@@ -127,11 +140,11 @@ mixin SalesCrud on CommonCrud {
           );
 
           if (stocks.isNotEmpty) {
-            final currentStock = (stocks.first['quantity'] as num? ?? 0).toDouble();
+            final currentStock =
+                (stocks.first['quantity'] as num? ?? 0).toDouble();
             final absQty = quantity.abs();
-            final newStock = isReturn 
-                ? currentStock + absQty 
-                : currentStock - absQty;
+            final newStock =
+                isReturn ? currentStock + absQty : currentStock - absQty;
 
             await txn.update(
               'stocks',
@@ -151,11 +164,10 @@ mixin SalesCrud on CommonCrud {
       final customerId = sale['customer_id'];
       if (customerId != null) {
         final total = (sale['total'] as num).toDouble();
-        
+
         await txn.rawUpdate(
-          'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ? ${getBusinessFilter()}',
-          [total, customerId, ...getBusinessArgs()]
-        );
+            'UPDATE customers SET total_spent = total_spent + ?, visit_count = visit_count + 1 WHERE id = ? ${getBusinessFilter()}',
+            [total, customerId, ...getBusinessArgs()]);
       }
       return sid;
     });
@@ -166,9 +178,10 @@ mixin SalesCrud on CommonCrud {
 
   Future<List<Map<String, dynamic>>> getSaleItems(dynamic saleId) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
-    
+
     return await db.rawQuery('''
       SELECT si.*, si.sub_total as subtotal, p.name as product_name
       FROM sale_items si
@@ -183,9 +196,14 @@ mixin SalesCrud on CommonCrud {
 
   // --- Reporting Methods ---
 
-  Future<List<Map<String, dynamic>>> getDetailedSaleItems({int? userId, int? categoryId, String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getDetailedSaleItems(
+      {int? userId,
+      int? categoryId,
+      String? startTime,
+      String? endTime}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -197,7 +215,7 @@ mixin SalesCrud on CommonCrud {
       dateFilter = ' AND s.created_at BETWEEN ? AND ?';
       args.addAll([startTime, endTime]);
     }
-    
+
     if (userId != null) {
       userFilter = ' AND s.staff_id = ?';
       args.add(userId);
@@ -231,13 +249,15 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getCategorySalesSummary({int? categoryId, String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getCategorySalesSummary(
+      {int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
     // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     // ignore: unused_local_variable
     final uid = getSafeInt(BusinessConfig.instance.userId);
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -274,9 +294,11 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getEmployeeSalesSummary({int? userId, String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getEmployeeSalesSummary(
+      {int? userId, String? startTime, String? endTime}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -313,9 +335,11 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getTopSellingItems({String? startTime, String? endTime, int limit = 20}) async {
+  Future<List<Map<String, dynamic>>> getTopSellingItems(
+      {String? startTime, String? endTime, int limit = 20}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -343,9 +367,14 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getPaymentMethodSummary({String? startTime, String? endTime, int? userId, int? categoryId}) async {
+  Future<List<Map<String, dynamic>>> getPaymentMethodSummary(
+      {String? startTime,
+      String? endTime,
+      int? userId,
+      int? categoryId}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -375,7 +404,8 @@ mixin SalesCrud on CommonCrud {
     ''', salesArgs);
 
     // Returns total
-    final branchFilterR = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchFilterR =
+        getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     String dateFilterR = '';
     final List<dynamic> returnArgs = [...getBusinessArgs(), ...branchArgs];
 
@@ -392,9 +422,11 @@ mixin SalesCrud on CommonCrud {
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilterR$dateFilterR
     ''', returnArgs);
 
-    final List<Map<String, dynamic>> result = salesByMethod.map((r) => Map<String, dynamic>.from(r)).toList();
+    final List<Map<String, dynamic>> result =
+        salesByMethod.map((r) => Map<String, dynamic>.from(r)).toList();
 
-    if (returnsSummary.isNotEmpty && (returnsSummary.first['total_amount'] as num? ?? 0) > 0) {
+    if (returnsSummary.isNotEmpty &&
+        (returnsSummary.first['total_amount'] as num? ?? 0) > 0) {
       result.add({
         'payment_method': 'Returns',
         'total_count': returnsSummary.first['total_count'] ?? 0,
@@ -405,9 +437,11 @@ mixin SalesCrud on CommonCrud {
     return result;
   }
 
-  Future<List<Map<String, dynamic>>> getDateWiseSalesSummary({String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getDateWiseSalesSummary(
+      {String? startTime, String? endTime}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -431,9 +465,11 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getCategoryReturnsSummary({int? categoryId, String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getCategoryReturnsSummary(
+      {int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -468,9 +504,11 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getEmployeeReturnsSummary({int? userId, String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getEmployeeReturnsSummary(
+      {int? userId, String? startTime, String? endTime}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -501,9 +539,11 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
-  Future<List<Map<String, dynamic>>> getDetailedReturnItems({String? startTime, String? endTime}) async {
+  Future<List<Map<String, dynamic>>> getDetailedReturnItems(
+      {String? startTime, String? endTime}) async {
     final db = await database;
-    final branchFilter = getBranchFilter().replaceAll('branch_id', 'r.branch_id');
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 'r.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';

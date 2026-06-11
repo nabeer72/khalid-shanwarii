@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -13,11 +14,10 @@ class POSController with ChangeNotifier {
   List<Product> _products = [];
   List<dynamic> _topSellingProductIds = [];
   List<POSCartItem> _cart = [];
-  
+
   String _selectedCategory = 'all';
   dynamic _selectedSubCategoryId;
   bool _isLoading = true;
-  
   double _subtotal = 0;
   double _tax = 0;
   double _discount = 0;
@@ -32,6 +32,9 @@ class POSController with ChangeNotifier {
   bool _isManualDiscount = false;
   bool _isDiscountRestricted = false;
 
+  // Subscription to data changes
+  StreamSubscription? _dataChangeSubscription;
+
   // Getters
   List<ProductCategory> get categories => _categories;
   List<ProductCategory> get subCategories => _subCategories;
@@ -45,7 +48,8 @@ class POSController with ChangeNotifier {
   double get discount => _discount;
   String get globalDiscountType => _globalDiscountType;
   double get globalDiscountValue => _globalDiscountValue;
-  double get totalDiscount => _cart.fold(0.0, (sum, item) => sum + item.discount) + _discount;
+  double get totalDiscount =>
+      _cart.fold(0.0, (sum, item) => sum + item.discount) + _discount;
   double get total => _total;
   bool get isReturn => _isReturn;
   int? get originalSaleId => _originalSaleId;
@@ -54,6 +58,19 @@ class POSController with ChangeNotifier {
 
   POSController() {
     loadData();
+    _listenToDataChanges();
+  }
+
+  void _listenToDataChanges() {
+    _dataChangeSubscription = DatabaseHelper.dataStream.listen((_) {
+      loadData();
+    });
+  }
+
+  @override
+  void dispose() {
+    _dataChangeSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> loadData() async {
@@ -62,32 +79,37 @@ class POSController with ChangeNotifier {
     try {
       final productsData = await DatabaseHelper.instance.getProducts();
       final categoriesData = await DatabaseHelper.instance.getCategories();
-      final subCategoriesData = await DatabaseHelper.instance.getSubCategories();
-      
+      final subCategoriesData =
+          await DatabaseHelper.instance.getSubCategories();
+
       _products = productsData.map((p) {
         final stocksData = (p['stocks'] as List<Map<String, dynamic>>? ?? []);
-        return Product.fromMap(p, stocks: stocksData.map((s) => Stock.fromMap(s)).toList());
+        return Product.fromMap(p,
+            stocks: stocksData.map((s) => Stock.fromMap(s)).toList());
       }).toList();
-      _categories = categoriesData.map((c) => ProductCategory.fromMap(c)).toList();
-      
+      _categories =
+          categoriesData.map((c) => ProductCategory.fromMap(c)).toList();
+
       // Load and map subcategories
-      final List<ProductCategory> subCats = subCategoriesData.map((c) => ProductCategory.fromMap({
-        ...c,
-        'parent_id': c['category_id'],
-      })).toList();
-      
+      final List<ProductCategory> subCats = subCategoriesData
+          .map((c) => ProductCategory.fromMap({
+                ...c,
+                'parent_id': c['category_id'],
+              }))
+          .toList();
+
       // We can also store them in a separate list if we want to show a subcategory selector
       _subCategories = subCats;
 
       _topSellingProductIds = [];
       try {
-        final topItems = await DatabaseHelper.instance.getTopSellingItems(limit: 30);
+        final topItems =
+            await DatabaseHelper.instance.getTopSellingItems(limit: 30);
         for (final item in topItems) {
           final id = item['product_id'];
           if (id != null) _topSellingProductIds.add(id);
         }
       } catch (_) {}
-      
     } catch (e) {
       debugPrint('Error loading POS data: $e');
     } finally {
@@ -123,16 +145,25 @@ class POSController with ChangeNotifier {
       filtered = _products;
     } else {
       if (_selectedSubCategoryId != null) {
-        filtered = _products.where((p) => p.subCategoryId?.toString() == _selectedSubCategoryId.toString()).toList();
+        filtered = _products
+            .where((p) =>
+                p.subCategoryId?.toString() ==
+                _selectedSubCategoryId.toString())
+            .toList();
       } else {
         filtered = _products.where((p) {
           final pcid = p.categoryId?.toString();
           final pscid = p.subCategoryId?.toString();
-          
+
           if (pscid != null) {
-            final subCat = _subCategories.where((sc) => sc.id.toString() == pscid).firstOrNull;
-            if (subCat != null && subCat.parentId?.toString() == _selectedCategory) {
-              final count = _products.where((p2) => p2.subCategoryId?.toString() == pscid).length;
+            final subCat = _subCategories
+                .where((sc) => sc.id.toString() == pscid)
+                .firstOrNull;
+            if (subCat != null &&
+                subCat.parentId?.toString() == _selectedCategory) {
+              final count = _products
+                  .where((p2) => p2.subCategoryId?.toString() == pscid)
+                  .length;
               if (count <= 1) return true; // Show directly if 1 or 0 items
             }
           } else if (pcid == _selectedCategory) {
@@ -142,14 +173,15 @@ class POSController with ChangeNotifier {
         }).toList();
       }
     }
-    
+
     // UNIQUE BY NAME: Ensure each product name only appears once in the POS grid.
     // This handles cases where price changes created multiple product entries.
     final Map<String, Product> uniqueByName = {};
     for (var p in filtered) {
-       uniqueByName[p.name.toLowerCase()] = p; // Last one wins (usually the newest)
+      uniqueByName[p.name.toLowerCase()] =
+          p; // Last one wins (usually the newest)
     }
-    
+
     return uniqueByName.values.toList();
   }
 
@@ -174,15 +206,20 @@ class POSController with ChangeNotifier {
   /// Finds all products (and their stocks) that share the same name.
   /// Used for the "Batch Selection" popup in the POS.
   List<Product> getVariantsByName(String name) {
-    return _products.where((p) => p.name.toLowerCase() == name.toLowerCase()).toList();
+    return _products
+        .where((p) => p.name.toLowerCase() == name.toLowerCase())
+        .toList();
   }
 
   // Cart Management
-  bool addToCart(Product product, Stock stock, {double qty = 1, bool isWeight = false}) {
+  bool addToCart(Product product, Stock stock,
+      {double qty = 1, bool isWeight = false}) {
     final cartItemId = '${product.id}_${stock.id}';
-    final existingIndex = _cart.indexWhere((item) => item.cartItemId == cartItemId);
+    final existingIndex =
+        _cart.indexWhere((item) => item.cartItemId == cartItemId);
 
-    final double currentCartQty = existingIndex >= 0 ? _cart[existingIndex].quantity : 0;
+    final double currentCartQty =
+        existingIndex >= 0 ? _cart[existingIndex].quantity : 0;
     if (currentCartQty + qty > stock.quantity) return false;
 
     MockDataStore.instance.addToRecent(product.id);
@@ -221,11 +258,11 @@ class POSController with ChangeNotifier {
 
   void updateQuantity(int index, double delta) {
     if (index < 0 || index >= _cart.length) return;
-    
+
     final item = _cart[index];
     final double step = item.isWeight ? 0.25 : 1.0;
     final double nextQty = item.quantity + (delta * step);
-    
+
     if (nextQty <= 0) {
       _cart.removeAt(index);
     } else {
@@ -237,7 +274,7 @@ class POSController with ChangeNotifier {
 
   void setQuantity(int index, double value) {
     if (index < 0 || index >= _cart.length) return;
-    
+
     if (value <= 0) {
       _cart.removeAt(index);
     } else {
@@ -250,42 +287,46 @@ class POSController with ChangeNotifier {
 
   void calculateTotals() {
     // 1. Apply Auto-discount Logic first if applicable
-    if (!_isManualDiscount && _selectedCustomer != null && _selectedCustomer!.discount > 0) {
-       for (var item in _cart) {
-         if (item.isManual) continue; // Skip auto-discount for manual overrides
-         
-         double limitValue = item.stock.discountLimit;
-         String limitType = item.stock.discountLimitType;
-         double customerPercent = _selectedCustomer!.discount;
-         
-         double calculatedDiscount = 0;
-         if (limitType == 'percentage') {
-            double applyPercent = customerPercent;
-            if (limitValue > 0 && applyPercent > limitValue) {
-                applyPercent = limitValue;
-            }
-            calculatedDiscount = (item.price * item.quantity) * (applyPercent / 100);
-         } else {
-            calculatedDiscount = (item.price * item.quantity) * (customerPercent / 100);
-            if (limitValue > 0 && calculatedDiscount > limitValue) {
-                calculatedDiscount = limitValue;
-            }
-         }
-         
-         item.discountType = 'fixed';
-         item.discountValue = calculatedDiscount;
-         item.updateSubtotal();
-       }
+    if (!_isManualDiscount &&
+        _selectedCustomer != null &&
+        _selectedCustomer!.discount > 0) {
+      for (var item in _cart) {
+        if (item.isManual) continue; // Skip auto-discount for manual overrides
+
+        double limitValue = item.stock.discountLimit;
+        String limitType = item.stock.discountLimitType;
+        double customerPercent = _selectedCustomer!.discount;
+
+        double calculatedDiscount = 0;
+        if (limitType == 'percentage') {
+          double applyPercent = customerPercent;
+          if (limitValue > 0 && applyPercent > limitValue) {
+            applyPercent = limitValue;
+          }
+          calculatedDiscount =
+              (item.price * item.quantity) * (applyPercent / 100);
+        } else {
+          calculatedDiscount =
+              (item.price * item.quantity) * (customerPercent / 100);
+          if (limitValue > 0 && calculatedDiscount > limitValue) {
+            calculatedDiscount = limitValue;
+          }
+        }
+
+        item.discountType = 'fixed';
+        item.discountValue = calculatedDiscount;
+        item.updateSubtotal();
+      }
     }
 
     // 2. Sum up final figures
     _subtotal = 0;
     double itemDiscounts = 0;
-    
+
     for (var item in _cart) {
       // The user wants item-level discounts to be 'hidden' from the bottom discount row
       // So we make the subtotal reflect the value AFTER item discounts
-      _subtotal += item.subtotal; 
+      _subtotal += item.subtotal;
       itemDiscounts += item.discount;
     }
 
@@ -294,7 +335,7 @@ class POSController with ChangeNotifier {
     } else {
       _tax = 0.0;
     }
-    
+
     if (_isManualDiscount && BusinessConfig.instance.enableGlobalDiscount) {
       double calculatedDiscount = 0;
       if (_globalDiscountType == 'percentage') {
@@ -304,7 +345,8 @@ class POSController with ChangeNotifier {
       }
 
       final maxAllowed = _adminMaxGlobalDiscountFixed();
-      if (maxAllowed != double.infinity && calculatedDiscount > maxAllowed + 0.009) {
+      if (maxAllowed != double.infinity &&
+          calculatedDiscount > maxAllowed + 0.009) {
         _discount = maxAllowed;
         _isDiscountRestricted = true;
       } else {
@@ -313,12 +355,12 @@ class POSController with ChangeNotifier {
       }
     } else {
       // Bottom discount row stays 'empty' (0) for item-level discounts
-      _discount = 0; 
+      _discount = 0;
       _isDiscountRestricted = false;
     }
 
     _total = _subtotal + _tax - _discount;
-    
+
     if (!_isReturn && _total < 0) _total = 0;
     notifyListeners();
   }
@@ -387,9 +429,12 @@ class POSController with ChangeNotifier {
   void resumeOrder(HeldOrder order) {
     _cart = order.items.map((itemMap) {
       final productId = itemMap['product_id'] ?? itemMap['id'];
-      final product = _products.firstWhere((p) => p.id == productId, orElse: () => _products.first);
-      final stock = product.stocks.firstWhere((s) => s.id == itemMap['stock_id'], orElse: () => product.stocks.first);
-      
+      final product = _products.firstWhere((p) => p.id == productId,
+          orElse: () => _products.first);
+      final stock = product.stocks.firstWhere(
+          (s) => s.id == itemMap['stock_id'],
+          orElse: () => product.stocks.first);
+
       return POSCartItem(
         cartItemId: '${product.id}_${stock.id}',
         product: product,
@@ -400,21 +445,21 @@ class POSController with ChangeNotifier {
         isWeight: itemMap['isWeight'] ?? false,
       );
     }).toList();
-    
+
     _selectedCustomer = order.customer;
     calculateTotals();
   }
 
   Future<void> parkCurrentCart(String name) async {
     if (_cart.isEmpty) return;
-    
+
     final cartList = _cart.map((item) => item.toMap()).toList();
     await DatabaseHelper.instance.insertHeldOrder({
       'name': name,
       'total': _total,
       'customer_id': _selectedCustomer?.id,
     }, cartList);
-    
+
     clearCart();
   }
 
@@ -426,16 +471,16 @@ class POSController with ChangeNotifier {
       await loadData();
       debugPrint('Products loaded. Count: ${_products.length}');
     }
-    
+
     final items = await DatabaseHelper.instance.getSaleItems(sale['id']);
     debugPrint('Fetched sale items: ${items.length}');
     _cart.clear();
-    
+
     for (var itemMap in items) {
       final productId = itemMap['product_id'];
       final stockId = itemMap['stock_id'];
       debugPrint('Processing item: product_id=$productId, stock_id=$stockId');
-      
+
       try {
         final product = _products.firstWhere((p) => p.id == productId);
         // Use matching stock if stockId is present, otherwise fall back to first stock
@@ -444,12 +489,12 @@ class POSController with ChangeNotifier {
           stock = product.stocks.where((s) => s.id == stockId).firstOrNull;
         }
         stock ??= product.stocks.isNotEmpty ? product.stocks.first : null;
-        
+
         if (stock == null) {
           debugPrint('No stocks found for product $productId, skipping');
           continue;
         }
-        
+
         _cart.add(POSCartItem(
           cartItemId: '${product.id}_${stock.id}',
           saleItemId: itemMap['id'], // ID from sale_items table
@@ -464,19 +509,20 @@ class POSController with ChangeNotifier {
         debugPrint('Product or stock not found for return item: $e');
       }
     }
-    
+
     if (sale['customer_id'] != null) {
       try {
-         final customers = await DatabaseHelper.instance.getCustomers();
-         final customerMap = customers.firstWhere((c) => c['id'] == sale['customer_id']);
-         _selectedCustomer = Customer.fromMap(customerMap);
+        final customers = await DatabaseHelper.instance.getCustomers();
+        final customerMap =
+            customers.firstWhere((c) => c['id'] == sale['customer_id']);
+        _selectedCustomer = Customer.fromMap(customerMap);
       } catch (e) {
-         _selectedCustomer = null; 
+        _selectedCustomer = null;
       }
     } else {
       _selectedCustomer = null;
     }
-    
+
     _isReturn = true;
     _discount = 0; // We reset global discount for the return process
     debugPrint('loadReturnSale complete. Cart size: ${_cart.length}');

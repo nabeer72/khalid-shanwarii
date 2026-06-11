@@ -316,14 +316,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
+                          color: isReturn ? ThemeProvider.warning.withOpacity(0.15) : const Color(0xFFF3F4F6),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                          border: Border.all(color: isReturn ? ThemeProvider.warning.withOpacity(0.3) : const Color(0xFFE5E7EB)),
                         ),
-                        child: const Text(
-                          'SALES RECEIPT',
+                        child: Text(
+                          isReturn ? 'REFUND RECEIPT' : 'SALES RECEIPT',
                           style: TextStyle(
-                            color: Color(0xFF1A73E8),
+                            color: isReturn ? ThemeProvider.warning : const Color(0xFF1A73E8),
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 2,

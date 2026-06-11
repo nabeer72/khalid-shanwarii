@@ -21,6 +21,7 @@ import 'crud/units_crud.dart';
 import 'crud/payment_types_crud.dart';
 import 'crud/brands_crud.dart';
 import 'crud/banks_crud.dart';
+
 class DatabaseHelper
     with
         CommonCrud,
@@ -43,9 +44,8 @@ class DatabaseHelper
         PaymentTypesCrud,
         BrandsCrud,
         BanksCrud {
-          
   static final DatabaseHelper instance = DatabaseHelper._init();
-  
+
   // Stream for data changes (to trigger immediate UI refreshes)
   static final _dataChangeController = StreamController<void>.broadcast();
   static Stream<void> get dataStream => _dataChangeController.stream;
