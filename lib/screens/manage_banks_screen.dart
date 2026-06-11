@@ -35,15 +35,15 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
 
   void _showBankDialog([Bank? bank]) {
     final nameCtrl = TextEditingController(text: bank?.name ?? '');
-    
+
     // Active controllers for the currently being edited account
     final activeTitleCtrl = TextEditingController();
     final activeNumberCtrl = TextEditingController();
     final activeTypeCtrl = TextEditingController();
-    
+
     // List of "Pushed" accounts
     List<Map<String, String>> stagedAccounts = [];
-    
+
     final formKey = GlobalKey<FormState>();
 
     showDialog(
@@ -51,7 +51,8 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: theme.surface,
-          title: Text(bank == null ? 'Add Bank' : 'Edit Bank', style: TextStyle(color: theme.textPrimary)),
+          title: Text(bank == null ? 'Add Bank' : 'Edit Bank',
+              style: TextStyle(color: theme.textPrimary)),
           content: SizedBox(
             width: 500,
             child: SingleChildScrollView(
@@ -63,52 +64,66 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                     TextFormField(
                       controller: nameCtrl,
                       style: TextStyle(color: theme.textPrimary),
-                      decoration: theme.glassInputDecoration('Bank Name', Icons.account_balance_rounded),
-                      validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                      decoration: theme.glassInputDecoration(
+                          'Bank Name', Icons.account_balance_rounded),
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Required' : null,
                     ),
                     if (bank == null) ...[
                       const SizedBox(height: 24),
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.accent.withOpacity(0.05),
+                          color: theme.highlight.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.accent.withOpacity(0.1)),
+                          border: Border.all(
+                              color: theme.highlight.withOpacity(0.1)),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
                               children: [
-                                Icon(Icons.add_circle_outline_rounded, size: 20, color: theme.accent),
+                                Icon(Icons.add_circle_outline_rounded,
+                                    size: 20, color: theme.highlight),
                                 const SizedBox(width: 8),
-                                Text('Add Account Details', style: TextStyle(color: theme.accent, fontWeight: FontWeight.bold)),
+                                Text('Add Account Details',
+                                    style: TextStyle(
+                                        color: theme.highlight,
+                                        fontWeight: FontWeight.bold)),
                               ],
                             ),
                             const SizedBox(height: 16),
                             TextFormField(
                               controller: activeTitleCtrl,
                               style: TextStyle(color: theme.textPrimary),
-                              decoration: theme.glassInputDecoration('Account Title', Icons.person_rounded),
+                              decoration: theme.glassInputDecoration(
+                                  'Account Title', Icons.person_rounded),
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: activeNumberCtrl,
                               style: TextStyle(color: theme.textPrimary),
-                              decoration: theme.glassInputDecoration('Account Number', Icons.numbers_rounded),
+                              decoration: theme.glassInputDecoration(
+                                  'Account Number', Icons.numbers_rounded),
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
                               controller: activeTypeCtrl,
                               style: TextStyle(color: theme.textPrimary),
-                              decoration: theme.glassInputDecoration('Account Type (e.g. Savings)', Icons.category_rounded),
+                              decoration: theme.glassInputDecoration(
+                                  'Account Type (e.g. Savings)',
+                                  Icons.category_rounded),
                             ),
                             const SizedBox(height: 16),
                             Center(
                               child: ElevatedButton.icon(
                                 onPressed: () {
                                   if (activeTitleCtrl.text.trim().isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Account Title is required to add.')));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                            content: Text(
+                                                'Account Title is required to add.')));
                                     return;
                                   }
                                   setDialogState(() {
@@ -125,23 +140,30 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                                 icon: const Icon(Icons.add_rounded, size: 18),
                                 label: const Text('Add Account to List'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: theme.accent.withOpacity(0.8),
+                                  backgroundColor: theme.highlight,
                                   foregroundColor: Colors.white,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8)),
                                 ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      
                       if (stagedAccounts.isNotEmpty) ...[
                         const SizedBox(height: 24),
                         Row(
                           children: [
-                            Icon(Icons.list_alt_rounded, size: 16, color: theme.textSecondary),
+                            Icon(Icons.list_alt_rounded,
+                                size: 16, color: theme.textSecondary),
                             const SizedBox(width: 8),
-                            Text('Added Accounts (${stagedAccounts.length})', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold, fontSize: 13)),
+                            Text('Added Accounts (${stagedAccounts.length})',
+                                style: TextStyle(
+                                    color: theme.textSecondary,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13)),
                           ],
                         ),
                         const Divider(),
@@ -151,14 +173,24 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                           return Card(
                             color: theme.surface.withOpacity(0.5),
                             margin: const EdgeInsets.only(bottom: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8)),
                             child: ListTile(
                               dense: true,
-                              title: Text(acc['title']!, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                              subtitle: Text('${acc['number']} - ${acc['type']}', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
+                              title: Text(acc['title']!,
+                                  style: TextStyle(
+                                      color: theme.textPrimary,
+                                      fontWeight: FontWeight.bold)),
+                              subtitle: Text(
+                                  '${acc['number']} - ${acc['type']}',
+                                  style: TextStyle(
+                                      color: theme.textSecondary,
+                                      fontSize: 11)),
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Colors.redAccent),
-                                onPressed: () => setDialogState(() => stagedAccounts.removeAt(idx)),
+                                icon: const Icon(Icons.delete_outline_rounded,
+                                    size: 18, color: Colors.redAccent),
+                                onPressed: () => setDialogState(
+                                    () => stagedAccounts.removeAt(idx)),
                               ),
                             ),
                           );
@@ -171,9 +203,23 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: theme.textSecondary))),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('CANCEL',
+                  style: TextStyle(
+                      color: theme.textSecondary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12)),
+            ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: theme.accent, padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.highlight,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
               onPressed: () async {
                 if (formKey.currentState!.validate()) {
                   // Include current active account if it has a title
@@ -186,7 +232,8 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                   }
 
                   if (stagedAccounts.isEmpty && bank == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('At least one account is required.')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        content: Text('At least one account is required.')));
                     return;
                   }
 
@@ -195,7 +242,7 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                     'name': nameCtrl.text.trim(),
                   };
                   final bankId = await DatabaseHelper.instance.insertBank(data);
-                  
+
                   // Save all staged accounts
                   if (bank == null) {
                     for (var acc in stagedAccounts) {
@@ -214,7 +261,14 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                   }
                 }
               },
-              child: Text(bank == null ? 'Save All Records' : 'Update Bank', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text(
+                bank == null ? 'SAVE ALL RECORDS' : 'UPDATE BANK',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    letterSpacing: 1),
+              ),
             ),
           ],
         ),
@@ -236,7 +290,10 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
       appBar: AppBar(
         title: Text(
           'Manage Banks',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -252,7 +309,9 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
           child: _isLoading
               ? Center(child: CircularProgressIndicator(color: theme.accent))
               : _banks.isEmpty
-                  ? Center(child: Text('No banks added yet', style: TextStyle(color: theme.textSecondary)))
+                  ? Center(
+                      child: Text('No banks added yet',
+                          style: TextStyle(color: theme.textSecondary)))
                   : ListView.builder(
                       padding: const EdgeInsets.all(16),
                       itemCount: _banks.length,
@@ -264,34 +323,60 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: theme.accent.withOpacity(0.1),
-                              child: Icon(Icons.account_balance_rounded, color: theme.accent),
+                              child: Icon(Icons.account_balance_rounded,
+                                  color: theme.accent),
                             ),
-                            title: Text(bank.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800)),
-                            subtitle: Text('Manage accounts', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                            title: Text(bank.name,
+                                style: TextStyle(
+                                    color: theme.textPrimary,
+                                    fontWeight: FontWeight.w800)),
+                            subtitle: Text('Manage accounts',
+                                style: TextStyle(
+                                    color: theme.textSecondary, fontSize: 12)),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: Icon(Icons.edit_rounded, color: theme.textSecondary, size: 20),
+                                  icon: Icon(Icons.edit_rounded,
+                                      color: theme.textSecondary, size: 20),
                                   onPressed: () => _showBankDialog(bank),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
+                                  icon: const Icon(Icons.delete_outline_rounded,
+                                      color: Colors.redAccent, size: 20),
                                   onPressed: () async {
                                     final confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
                                         backgroundColor: theme.surface,
-                                        title: Text('Delete Bank?', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-                                        content: Text('This will delete all associated accounts.', style: TextStyle(color: theme.textSecondary)),
+                                        title: Text('Delete Bank?',
+                                            style: TextStyle(
+                                                color: theme.textPrimary,
+                                                fontWeight: FontWeight.bold)),
+                                        content: Text(
+                                            'This will delete all associated accounts.',
+                                            style: TextStyle(
+                                                color: theme.textSecondary)),
                                         actions: [
-                                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Cancel', style: TextStyle(color: theme.textSecondary))),
-                                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
+                                              child: Text('Cancel',
+                                                  style: TextStyle(
+                                                      color: theme
+                                                          .textSecondary))),
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: const Text('Delete',
+                                                  style: TextStyle(
+                                                      color: Colors.red))),
                                         ],
                                       ),
                                     );
                                     if (confirm == true) {
-                                      await DatabaseHelper.instance.deleteBank(bank.id!);
+                                      await DatabaseHelper.instance
+                                          .deleteBank(bank.id!);
                                       _loadBanks();
                                     }
                                   },
@@ -330,7 +415,8 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
 
   Future<void> _loadDetails() async {
     setState(() => _isLoading = true);
-    final data = await DatabaseHelper.instance.getBankDetails(bankId: widget.bank.id);
+    final data =
+        await DatabaseHelper.instance.getBankDetails(bankId: widget.bank.id);
     if (mounted) {
       setState(() {
         _details = data.map((d) => BankDetail.fromMap(d)).toList();
@@ -349,7 +435,8 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.surface,
-        title: Text(detail == null ? 'Add Account' : 'Edit Account', style: TextStyle(color: theme.textPrimary)),
+        title: Text(detail == null ? 'Add Account' : 'Edit Account',
+            style: TextStyle(color: theme.textPrimary)),
         content: Form(
           key: formKey,
           child: Column(
@@ -358,28 +445,45 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
               TextFormField(
                 controller: titleCtrl,
                 style: TextStyle(color: theme.textPrimary),
-                decoration: theme.glassInputDecoration('Account Title', Icons.person_rounded),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+                decoration: theme.glassInputDecoration(
+                    'Account Title', Icons.person_rounded),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: numberCtrl,
                 style: TextStyle(color: theme.textPrimary),
-                decoration: theme.glassInputDecoration('Account Number', Icons.numbers_rounded),
+                decoration: theme.glassInputDecoration(
+                    'Account Number', Icons.numbers_rounded),
               ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: typeCtrl,
                 style: TextStyle(color: theme.textPrimary),
-                decoration: theme.glassInputDecoration('Account Type (SB, Current, etc.)', Icons.category_rounded),
+                decoration: theme.glassInputDecoration(
+                    'Account Type (SB, Current, etc.)', Icons.category_rounded),
               ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Cancel', style: TextStyle(color: theme.textSecondary))),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('CANCEL',
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: theme.accent),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: theme.highlight,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () async {
               if (formKey.currentState!.validate()) {
                 final data = {
@@ -396,7 +500,14 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
                 }
               }
             },
-            child: Text('Save', style: const TextStyle(color: Colors.white)),
+            child: Text(
+              detail == null ? 'SAVE ACCOUNT' : 'UPDATE ACCOUNT',
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  letterSpacing: 1),
+            ),
           ),
         ],
       ),
@@ -407,7 +518,8 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       backgroundColor: theme.surface,
-      title: Text('Accounts: ${widget.bank.name}', style: TextStyle(color: theme.textPrimary)),
+      title: Text('Accounts: ${widget.bank.name}',
+          style: TextStyle(color: theme.textPrimary)),
       content: SizedBox(
         width: 400,
         height: 500,
@@ -417,25 +529,35 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
                 children: [
                   Expanded(
                     child: _details.isEmpty
-                        ? Center(child: Text('No accounts added', style: TextStyle(color: theme.textSecondary)))
+                        ? Center(
+                            child: Text('No accounts added',
+                                style: TextStyle(color: theme.textSecondary)))
                         : ListView.builder(
                             itemCount: _details.length,
                             itemBuilder: (context, index) {
                               final d = _details[index];
                               return ListTile(
-                                title: Text(d.accountTitle, style: TextStyle(color: theme.textPrimary)),
-                                subtitle: Text(d.accountNumber ?? 'No Number', style: TextStyle(color: theme.textSecondary)),
+                                title: Text(d.accountTitle,
+                                    style: TextStyle(color: theme.textPrimary)),
+                                subtitle: Text(d.accountNumber ?? 'No Number',
+                                    style:
+                                        TextStyle(color: theme.textSecondary)),
                                 trailing: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     IconButton(
-                                      icon: Icon(Icons.edit_rounded, color: theme.textSecondary, size: 18),
+                                      icon: Icon(Icons.edit_rounded,
+                                          color: theme.textSecondary, size: 18),
                                       onPressed: () => _showAccountDialog(d),
                                     ),
                                     IconButton(
-                                      icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 18),
+                                      icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: Colors.redAccent,
+                                          size: 18),
                                       onPressed: () async {
-                                        await DatabaseHelper.instance.deleteBankDetail(d.id!);
+                                        await DatabaseHelper.instance
+                                            .deleteBankDetail(d.id!);
                                         _loadDetails();
                                       },
                                     ),
@@ -449,17 +571,34 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(backgroundColor: theme.accent),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.highlight,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
                       onPressed: () => _showAccountDialog(),
-                      icon: const Icon(Icons.add_rounded, color: Colors.white),
-                      label: const Text('Add New Account', style: TextStyle(color: Colors.white)),
+                      icon: const Icon(Icons.add_rounded,
+                          color: Colors.white, size: 18),
+                      label: const Text(
+                        'ADD NEW ACCOUNT',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            letterSpacing: 1),
+                      ),
                     ),
                   ),
                 ],
               ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close')),
       ],
     );
   }

@@ -38,7 +38,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
 
   Future<void> _loadTransactions() async {
     setState(() => _isLoading = true);
-    
+
     // Load bank names mapping
     final bankData = await DatabaseHelper.instance.getBanks();
     final Map<int, String> namesMap = {};
@@ -60,12 +60,17 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
   void _showTransactionDialog([BankAccount? transaction]) async {
     final theme = ThemeProvider.instance;
     final bankCtrl = TextEditingController();
-    final typeCtrl = TextEditingController(text: transaction?.accountType ?? '');
-    final titleCtrl = TextEditingController(text: transaction?.accountTitle ?? '');
-    final numberCtrl = TextEditingController(text: transaction?.accountNumber ?? '');
-    final amountCtrl = TextEditingController(text: transaction?.amount.toString() ?? '');
+    final typeCtrl =
+        TextEditingController(text: transaction?.accountType ?? '');
+    final titleCtrl =
+        TextEditingController(text: transaction?.accountTitle ?? '');
+    final numberCtrl =
+        TextEditingController(text: transaction?.accountNumber ?? '');
+    final amountCtrl =
+        TextEditingController(text: transaction?.amount.toString() ?? '');
     final remarksCtrl = TextEditingController(text: transaction?.remarks ?? '');
-    final personCtrl = TextEditingController(text: transaction?.personName ?? '');
+    final personCtrl =
+        TextEditingController(text: transaction?.personName ?? '');
     String transType = transaction?.transactionType ?? 'Deposit';
     _selectedDate = transaction?.date ?? DateTime.now();
     _imagePath = transaction?.receiptImage;
@@ -97,249 +102,317 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
             children: [
               Text(
                 transaction == null ? 'Add Bank Entry' : 'Edit Bank Entry',
-                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18),
               ),
               IconButton(
                 onPressed: () => Navigator.pop(ctx),
-                icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                icon: Icon(Icons.close_rounded,
+                    color: theme.textSecondary, size: 20),
               ),
             ],
           ),
           content: SizedBox(
             width: 400,
             child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Date Selection
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: _selectedDate,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime(2100),
-                        builder: (context, child) => Theme(
-                          data: Theme.of(context).copyWith(
-                            colorScheme: ColorScheme.dark(
-                              primary: theme.highlight,
-                              onPrimary: Colors.white,
-                              surface: theme.surface,
-                              onSurface: theme.textPrimary,
+              child: Form(
+                key: formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Date Selection
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: _selectedDate,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime(2100),
+                          builder: (context, child) => Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.dark(
+                                primary: theme.highlight,
+                                onPrimary: Colors.white,
+                                surface: theme.surface,
+                                onSurface: theme.textPrimary,
+                              ),
                             ),
+                            child: child!,
                           ),
-                          child: child!,
-                        ),
-                      );
-                      if (picked != null) {
-                        setDialogState(() => _selectedDate = picked);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
-                      decoration: BoxDecoration(
-                        color: theme.whiteAlpha(0.05),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-                        border: Border.all(color: theme.isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.calendar_month_rounded, color: theme.iconColor, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            DateFormat('MMM dd, yyyy').format(_selectedDate),
-                            style: TextStyle(color: theme.textPrimary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  if (banks.isNotEmpty) ...[
-                    DropdownButtonFormField<Bank>(
-                      value: selectedBank,
-                      dropdownColor: theme.surface,
-                      style: TextStyle(color: theme.textPrimary),
-                      decoration: theme.glassInputDecoration('Select Bank', Icons.account_balance_rounded),
-                      items: banks.map((b) => DropdownMenuItem(value: b, child: Text(b.name))).toList(),
-                      onChanged: (b) async {
-                        selectedBank = b;
-                        bankCtrl.text = b?.name ?? '';
-                        final accData = await DatabaseHelper.instance.getBankDetails(bankId: b?.id);
-                        setDialogState(() {
-                          accounts = accData.map((d) => BankDetail.fromMap(d)).toList();
-                          if (accounts.length == 1) {
-                            selectedAccount = accounts.first;
-                            titleCtrl.text = selectedAccount!.accountTitle;
-                            numberCtrl.text = selectedAccount!.accountNumber ?? '';
-                            typeCtrl.text = selectedAccount!.accountType ?? '';
-                          } else {
-                            selectedAccount = null;
-                            titleCtrl.text = '';
-                            numberCtrl.text = '';
-                            typeCtrl.text = '';
-                          }
-                        });
+                        );
+                        if (picked != null) {
+                          setDialogState(() => _selectedDate = picked);
+                        }
                       },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 15),
+                        decoration: BoxDecoration(
+                          color: theme.whiteAlpha(0.05),
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusInput),
+                          border: Border.all(
+                              color: theme.isDark
+                                  ? Colors.transparent
+                                  : Colors.black.withOpacity(0.1)),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month_rounded,
+                                color: theme.iconColor, size: 20),
+                            const SizedBox(width: 12),
+                            Text(
+                              DateFormat('MMM dd, yyyy').format(_selectedDate),
+                              style: TextStyle(color: theme.textPrimary),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    if (selectedBank != null) ...[
-                      DropdownButtonFormField<BankDetail>(
-                        value: selectedAccount,
+
+                    if (banks.isNotEmpty) ...[
+                      DropdownButtonFormField<Bank>(
+                        value: selectedBank,
                         dropdownColor: theme.surface,
                         style: TextStyle(color: theme.textPrimary),
-                        decoration: theme.glassInputDecoration('Select Account', Icons.credit_card_rounded),
-                        items: accounts.map((a) => DropdownMenuItem(value: a, child: Text(a.accountTitle))).toList(),
-                        onChanged: (a) {
+                        decoration: theme.glassInputDecoration(
+                            'Select Bank', Icons.account_balance_rounded),
+                        items: banks
+                            .map((b) =>
+                                DropdownMenuItem(value: b, child: Text(b.name)))
+                            .toList(),
+                        onChanged: (b) async {
+                          selectedBank = b;
+                          bankCtrl.text = b?.name ?? '';
+                          final accData = await DatabaseHelper.instance
+                              .getBankDetails(bankId: b?.id);
                           setDialogState(() {
-                            selectedAccount = a;
-                            titleCtrl.text = a?.accountTitle ?? '';
-                            numberCtrl.text = a?.accountNumber ?? '';
-                            typeCtrl.text = a?.accountType ?? '';
+                            accounts = accData
+                                .map((d) => BankDetail.fromMap(d))
+                                .toList();
+                            if (accounts.length == 1) {
+                              selectedAccount = accounts.first;
+                              titleCtrl.text = selectedAccount!.accountTitle;
+                              numberCtrl.text =
+                                  selectedAccount!.accountNumber ?? '';
+                              typeCtrl.text =
+                                  selectedAccount!.accountType ?? '';
+                            } else {
+                              selectedAccount = null;
+                              titleCtrl.text = '';
+                              numberCtrl.text = '';
+                              typeCtrl.text = '';
+                            }
                           });
                         },
                       ),
                       const SizedBox(height: 12),
+                      if (selectedBank != null) ...[
+                        DropdownButtonFormField<BankDetail>(
+                          value: selectedAccount,
+                          dropdownColor: theme.surface,
+                          style: TextStyle(color: theme.textPrimary),
+                          decoration: theme.glassInputDecoration(
+                              'Select Account', Icons.credit_card_rounded),
+                          items: accounts
+                              .map((a) => DropdownMenuItem(
+                                  value: a, child: Text(a.accountTitle)))
+                              .toList(),
+                          onChanged: (a) {
+                            setDialogState(() {
+                              selectedAccount = a;
+                              titleCtrl.text = a?.accountTitle ?? '';
+                              numberCtrl.text = a?.accountNumber ?? '';
+                              typeCtrl.text = a?.accountType ?? '';
+                            });
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                     ],
-                  ],
-                  _buildDialogField(
-                    ctrl: bankCtrl, 
-                    label: 'Bank Name', 
-                    icon: Icons.account_balance_outlined,
-                    readOnly: selectedBank != null,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                    isRequired: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDialogField(
-                    ctrl: titleCtrl, 
-                    label: 'Account Title', 
-                    icon: Icons.person_rounded,
-                    readOnly: selectedAccount != null,
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                    isRequired: true,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDialogField(ctrl: typeCtrl, label: 'Account Type', icon: Icons.category_rounded, readOnly: selectedAccount != null),
-                  const SizedBox(height: 12),
-                  _buildDialogField(ctrl: numberCtrl, label: 'Account Number', icon: Icons.numbers_rounded, readOnly: selectedAccount != null),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    value: transType,
-                    dropdownColor: theme.surface,
-                    style: TextStyle(color: theme.textPrimary),
-                    decoration: theme.glassInputDecoration('Transaction Type', Icons.swap_horiz_rounded),
-                    items: ['Deposit', 'Withdrawal', 'Transfer']
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                        .toList(),
-                    onChanged: (v) => setDialogState(() => transType = v!),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDialogField(
-                    ctrl: personCtrl, 
-                    label: 'Person Name', 
-                    icon: Icons.person_pin_rounded,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDialogField(
-                    ctrl: amountCtrl, 
-                    label: 'Amount', 
-                    icon: Icons.attach_money_rounded, 
-                    isNumber: true,
-                    isRequired: true,
-                    validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Required';
-                      if (double.tryParse(v.trim()) == null) return 'Must be a number';
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDialogField(ctrl: remarksCtrl, label: 'Remarks', icon: Icons.notes_rounded),
-                  const SizedBox(height: 12),
+                    _buildDialogField(
+                      ctrl: bankCtrl,
+                      label: 'Bank Name',
+                      icon: Icons.account_balance_outlined,
+                      readOnly: selectedBank != null,
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Required' : null,
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDialogField(
+                      ctrl: titleCtrl,
+                      label: 'Account Title',
+                      icon: Icons.person_rounded,
+                      readOnly: selectedAccount != null,
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Required' : null,
+                      isRequired: true,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDialogField(
+                        ctrl: typeCtrl,
+                        label: 'Account Type',
+                        icon: Icons.category_rounded,
+                        readOnly: selectedAccount != null),
+                    const SizedBox(height: 12),
+                    _buildDialogField(
+                        ctrl: numberCtrl,
+                        label: 'Account Number',
+                        icon: Icons.numbers_rounded,
+                        readOnly: selectedAccount != null),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: transType,
+                      dropdownColor: theme.surface,
+                      style: TextStyle(color: theme.textPrimary),
+                      decoration: theme.glassInputDecoration(
+                          'Transaction Type', Icons.swap_horiz_rounded),
+                      items: ['Deposit', 'Withdrawal', 'Transfer']
+                          .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => transType = v!),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDialogField(
+                      ctrl: personCtrl,
+                      label: 'Person Name',
+                      icon: Icons.person_pin_rounded,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDialogField(
+                      ctrl: amountCtrl,
+                      label: 'Amount',
+                      icon: Icons.attach_money_rounded,
+                      isNumber: true,
+                      isRequired: true,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) return 'Required';
+                        if (double.tryParse(v.trim()) == null)
+                          return 'Must be a number';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDialogField(
+                        ctrl: remarksCtrl,
+                        label: 'Remarks',
+                        icon: Icons.notes_rounded),
+                    const SizedBox(height: 12),
 
-                  // Image Upload
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Receipt Image (Optional)',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      InkWell(
-                        onTap: () async {
-                          final picker = ImagePicker();
-                          final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-                          if (pickedFile != null) {
-                            setDialogState(() => _imagePath = pickedFile.path);
-                          }
-                        },
-                        child: Container(
-                          height: 100,
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: theme.textHint.withOpacity(0.3)),
-                            borderRadius: BorderRadius.circular(12),
-                            color: theme.surface.withOpacity(0.5),
-                          ),
-                          child: _imagePath != null
-                              ? ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: _imagePath!.startsWith('base64:')
-                                      ? Image.memory(
-                                          base64Decode(_imagePath!.substring(7)),
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (ctx, err, st) => const Icon(Icons.broken_image_rounded),
-                                        )
-                                      : (_imagePath!.startsWith('/') || _imagePath!.contains(':'))
-                                          ? Image.file(File(_imagePath!), fit: BoxFit.cover)
-                                          : Image.network(
-                                              '${ApiService.baseUrl.replaceAll('/api', '')}/storage/$_imagePath',
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (ctx, err, st) => Container(
-                                                color: theme.surface,
-                                                child: const Center(child: Icon(Icons.broken_image_rounded)),
+                    // Image Upload
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Receipt Image (Optional)',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () async {
+                            final picker = ImagePicker();
+                            final pickedFile = await picker.pickImage(
+                                source: ImageSource.gallery);
+                            if (pickedFile != null) {
+                              setDialogState(
+                                  () => _imagePath = pickedFile.path);
+                            }
+                          },
+                          child: Container(
+                            height: 100,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                  color: theme.textHint.withOpacity(0.3)),
+                              borderRadius: BorderRadius.circular(12),
+                              color: theme.surface.withOpacity(0.5),
+                            ),
+                            child: _imagePath != null
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: _imagePath!.startsWith('base64:')
+                                        ? Image.memory(
+                                            base64Decode(
+                                                _imagePath!.substring(7)),
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (ctx, err, st) =>
+                                                const Icon(
+                                                    Icons.broken_image_rounded),
+                                          )
+                                        : (_imagePath!.startsWith('/') ||
+                                                _imagePath!.contains(':'))
+                                            ? Image.file(File(_imagePath!),
+                                                fit: BoxFit.cover)
+                                            : Image.network(
+                                                '${ApiService.baseUrl.replaceAll('/api', '')}/storage/$_imagePath',
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (ctx, err, st) =>
+                                                    Container(
+                                                  color: theme.surface,
+                                                  child: const Center(
+                                                      child: Icon(Icons
+                                                          .broken_image_rounded)),
+                                                ),
                                               ),
-                                            ),
-                                )
-                              : Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.add_a_photo_rounded, color: theme.textHint),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      transType == 'Transfer' ? 'Upload Transfer Receipt' : (transType == 'Withdrawal' ? 'Upload Cheque Image' : 'Upload Slip Image'),
-                                      style: TextStyle(color: theme.textHint, fontSize: 10),
-                                    ),
-                                  ],
-                                ),
+                                  )
+                                : Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.add_a_photo_rounded,
+                                          color: theme.textHint),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        transType == 'Transfer'
+                                            ? 'Upload Transfer Receipt'
+                                            : (transType == 'Withdrawal'
+                                                ? 'Upload Cheque Image'
+                                                : 'Upload Slip Image'),
+                                        style: TextStyle(
+                                            color: theme.textHint,
+                                            fontSize: 10),
+                                      ),
+                                    ],
+                                  ),
+                          ),
                         ),
-                      ),
-                      if (_imagePath != null)
-                        TextButton.icon(
-                          onPressed: () => setDialogState(() => _imagePath = null),
-                          icon: const Icon(Icons.delete_outline, color: ThemeProvider.error, size: 16),
-                          label: const Text('Remove Image', style: TextStyle(color: ThemeProvider.error, fontSize: 11)),
-                        ),
-                    ],
-                  ),
-                ],
+                        if (_imagePath != null)
+                          TextButton.icon(
+                            onPressed: () =>
+                                setDialogState(() => _imagePath = null),
+                            icon: const Icon(Icons.delete_outline,
+                                color: ThemeProvider.error, size: 16),
+                            label: const Text('Remove Image',
+                                style: TextStyle(
+                                    color: ThemeProvider.error, fontSize: 11)),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('CANCEL', style: TextStyle(color: theme.textSecondary)),
+              child: Text('CANCEL',
+                  style: TextStyle(
+                      color: theme.textSecondary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12)),
             ),
             ElevatedButton(
               onPressed: () async {
                 if (!formKey.currentState!.validate()) return;
-                
+
                 final newEntry = BankAccount(
                   id: transaction?.id,
                   bankId: selectedBank?.id,
@@ -356,7 +429,8 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
 
                 // 1. Save/update locally
                 // If transaction is not null, it's an update, so we keep the ID
-                await DatabaseHelper.instance.insertBankTransaction(newEntry.toMap());
+                await DatabaseHelper.instance
+                    .insertBankTransaction(newEntry.toMap());
 
                 // 2. If editing an existing record, push update to live server immediately
                 if (transaction?.id != null) {
@@ -373,24 +447,36 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     'date': newEntry.date?.toIso8601String(),
                     'status': 1,
                   };
-                  final success = await _api.updateBankAccount(transaction!.id!, payload);
-                  
+                  final success =
+                      await _api.updateBankAccount(transaction!.id!, payload);
+
                   if (success) {
                     // Mark as synced locally if server update worked
-                    await DatabaseHelper.instance.database.then((db) => db.update(
-                      'bank_accounts', 
-                      {'is_synced': 1}, 
-                      where: 'id = ?', 
-                      whereArgs: [transaction!.id]
-                    ));
+                    await DatabaseHelper.instance.database.then((db) =>
+                        db.update('bank_accounts', {'is_synced': 1},
+                            where: 'id = ?', whereArgs: [transaction!.id]));
                   }
                 }
 
                 if (ctx.mounted) Navigator.pop(ctx);
                 _loadTransactions();
               },
-              style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
-              child: Text(transaction == null ? 'SAVE ENTRY' : 'UPDATE', style: const TextStyle(color: Colors.white)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.highlight,
+                foregroundColor: Colors.white,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: Text(
+                transaction == null ? 'SAVE ENTRY' : 'UPDATE',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                    letterSpacing: 1),
+              ),
             ),
           ],
         ),
@@ -398,26 +484,28 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
     );
   }
 
-  Widget _buildDialogField({
-    required TextEditingController ctrl, 
-    required String label, 
-    required IconData icon, 
-    bool isNumber = false, 
-    bool readOnly = false,
-    bool isRequired = false,
-    String? Function(String?)? validator
-  }) {
+  Widget _buildDialogField(
+      {required TextEditingController ctrl,
+      required String label,
+      required IconData icon,
+      bool isNumber = false,
+      bool readOnly = false,
+      bool isRequired = false,
+      String? Function(String?)? validator}) {
     return TextFormField(
       controller: ctrl,
       readOnly: readOnly,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-      inputFormatters: isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
+      inputFormatters:
+          isNumber ? [FilteringTextInputFormatter.digitsOnly] : null,
       style: TextStyle(color: readOnly ? theme.textHint : theme.textPrimary),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
-        fillColor: readOnly ? theme.surface.withOpacity(0.3) : null,
-        filled: readOnly,
-      ),
+      decoration: theme
+          .glassInputDecoration(label, icon, isRequired: isRequired)
+          .copyWith(
+            fillColor: readOnly ? theme.surface.withOpacity(0.3) : null,
+            filled: readOnly,
+          ),
     );
   }
 
@@ -433,7 +521,10 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))],
+            boxShadow: const [
+              BoxShadow(
+                  color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))
+            ],
           ),
           padding: const EdgeInsets.all(20),
           child: SingleChildScrollView(
@@ -444,7 +535,11 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Transaction Details', style: TextStyle(color: Colors.black87, fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('Transaction Details',
+                        style: TextStyle(
+                            color: Colors.black87,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold)),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, color: Colors.red),
                       onPressed: () => Navigator.pop(ctx),
@@ -452,7 +547,10 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                   ],
                 ),
                 Table(
-                  border: TableBorder.all(color: Colors.black12, width: 1, borderRadius: BorderRadius.circular(8)),
+                  border: TableBorder.all(
+                      color: Colors.black12,
+                      width: 1,
+                      borderRadius: BorderRadius.circular(8)),
                   columnWidths: const {
                     0: FlexColumnWidth(1.2),
                     1: FlexColumnWidth(2.0),
@@ -463,41 +561,62 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     _buildTableRow('Account Number', t.accountNumber ?? 'N/A'),
                     _buildTableRow('Person Name', t.personName ?? 'N/A'),
                     _buildTableRow('Type', t.transactionType ?? 'N/A'),
-                    _buildTableRow('Amount', '${BusinessConfig.instance.currency}. ${t.amount}'),
-                    _buildTableRow('Date', DateFormat('MMM dd, yyyy').format(t.date ?? DateTime.now())),
+                    _buildTableRow('Amount',
+                        '${BusinessConfig.instance.currency}. ${t.amount}'),
+                    _buildTableRow(
+                        'Date',
+                        DateFormat('MMM dd, yyyy')
+                            .format(t.date ?? DateTime.now())),
                     _buildTableRow('Remarks', t.remarks ?? 'N/A'),
                   ],
                 ),
                 if (t.receiptImage != null && t.receiptImage!.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  const Text('Receipt Image:', style: TextStyle(color: Colors.black54, fontWeight: FontWeight.bold)),
+                  const Text('Receipt Image:',
+                      style: TextStyle(
+                          color: Colors.black54, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: t.receiptImage!.startsWith('base64:')
-                        ? Image.memory(base64Decode(t.receiptImage!.substring(7)), fit: BoxFit.contain)
-                        : (t.receiptImage!.startsWith('/') || t.receiptImage!.contains(':'))
-                            ? Image.file(File(t.receiptImage!), fit: BoxFit.contain)
+                        ? Image.memory(
+                            base64Decode(t.receiptImage!.substring(7)),
+                            fit: BoxFit.contain)
+                        : (t.receiptImage!.startsWith('/') ||
+                                t.receiptImage!.contains(':'))
+                            ? Image.file(File(t.receiptImage!),
+                                fit: BoxFit.contain)
                             : Image.network(
                                 '${ApiService.baseUrl.replaceAll('/api', '')}/storage/${t.receiptImage}',
                                 fit: BoxFit.contain,
-                                errorBuilder: (ctx, err, st) => const Icon(Icons.broken_image_rounded, color: Colors.black54),
+                                errorBuilder: (ctx, err, st) => const Icon(
+                                    Icons.broken_image_rounded,
+                                    color: Colors.black54),
                               ),
                   ),
                 ],
                 const SizedBox(height: 16),
                 Center(
                   child: ElevatedButton.icon(
-                    icon: const Icon(Icons.edit_rounded, size: 16),
-                    label: const Text('Edit Transaction'),
+                    icon: const Icon(Icons.edit_rounded, size: 18),
+                    label: const Text(
+                      'EDIT TRANSACTION',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          letterSpacing: 1),
+                    ),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _showTransactionDialog(t);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: theme.highlight, 
+                      backgroundColor: theme.highlight,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                   ),
                 ),
@@ -514,11 +633,19 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Text(label, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.bold, fontSize: 13)),
+          child: Text(label,
+              style: const TextStyle(
+                  color: Colors.black54,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13)),
         ),
         Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Text(value, style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600, fontSize: 14)),
+          child: Text(value,
+              style: const TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14)),
         ),
       ],
     );
@@ -533,16 +660,21 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
         elevation: 0,
         title: Text(
           'Bank Account Management',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
         actions: [
           IconButton(
-            icon: Icon(Icons.settings_suggest_rounded, color: theme.textPrimary),
+            icon:
+                Icon(Icons.settings_suggest_rounded, color: theme.textPrimary),
             tooltip: 'Manage Banks & Accounts',
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ManageBanksScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const ManageBanksScreen()),
             ).then((_) => _loadTransactions()),
           ),
           const SizedBox(width: 8),
@@ -557,12 +689,17 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.account_balance_rounded, size: 80, color: theme.iconColor.withOpacity(0.5)),
+                          Icon(Icons.account_balance_rounded,
+                              size: 80,
+                              color: theme.iconColor.withOpacity(0.5)),
                           const SizedBox(height: 16),
-                          Text('No bank entries found', 
-                              style: TextStyle(fontSize: 18, color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                          Text('No bank entries found',
+                              style: TextStyle(
+                                  fontSize: 18,
+                                  color: theme.textPrimary,
+                                  fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
-                          Text('Record your bank transactions here', 
+                          Text('Record your bank transactions here',
                               style: TextStyle(color: theme.textSecondary)),
                         ],
                       ),
@@ -577,17 +714,25 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           decoration: theme.glassDecoration,
                           child: ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
                             onTap: () => _showTransactionDetailsDialog(t),
                             title: Text(
                               t.accountTitle ?? 'Unknown Account',
-                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 15),
+                              style: TextStyle(
+                                  color: theme.textPrimary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15),
                             ),
                             subtitle: Padding(
                               padding: const EdgeInsets.only(top: 2),
                               child: Text(
-                                '${t.personName != null && t.personName!.isNotEmpty ? t.personName : ""} ${t.personName != null && t.personName!.isNotEmpty && t.accountNumber != null && t.accountNumber!.isNotEmpty ? "|" : ""} ${t.accountNumber ?? ""}'.trim(),
-                                style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500),
+                                '${t.personName != null && t.personName!.isNotEmpty ? t.personName : ""} ${t.personName != null && t.personName!.isNotEmpty && t.accountNumber != null && t.accountNumber!.isNotEmpty ? "|" : ""} ${t.accountNumber ?? ""}'
+                                    .trim(),
+                                style: TextStyle(
+                                    color: theme.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -602,58 +747,95 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                                     Text(
                                       '${isWithdrawal ? "-" : "+"}${BusinessConfig.instance.currency}. ${t.amount}',
                                       style: TextStyle(
-                                        color: isWithdrawal ? ThemeProvider.error : ThemeProvider.success,
+                                        color: isWithdrawal
+                                            ? ThemeProvider.error
+                                            : ThemeProvider.success,
                                         fontWeight: FontWeight.w900,
                                         fontSize: 13,
                                       ),
                                     ),
                                     Text(
                                       (t.transactionType ?? "").toUpperCase(),
-                                      style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                      style: TextStyle(
+                                          color: theme.textHint,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w800),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(width: 8),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 18),
+                                  icon: const Icon(Icons.delete_outline_rounded,
+                                      color: ThemeProvider.error, size: 18),
                                   onPressed: () async {
                                     final confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (ctx) => AlertDialog(
                                         backgroundColor: theme.surface,
-                                        title: Text('Delete Entry?', style: TextStyle(color: theme.textPrimary)),
-                                        content: Text('Are you sure you want to delete this bank entry?', style: TextStyle(color: theme.textSecondary)),
+                                        title: Text('Delete Entry?',
+                                            style: TextStyle(
+                                                color: theme.textPrimary)),
+                                        content: Text(
+                                            'Are you sure you want to delete this bank entry?',
+                                            style: TextStyle(
+                                                color: theme.textSecondary)),
                                         actions: [
-                                          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('CANCEL', style: TextStyle(color: theme.textSecondary))),
-                                          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('DELETE', style: TextStyle(color: ThemeProvider.error))),
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
+                                              child: Text('CANCEL',
+                                                  style: TextStyle(
+                                                      color: theme
+                                                          .textSecondary))),
+                                          TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: const Text('DELETE',
+                                                  style: TextStyle(
+                                                      color: ThemeProvider
+                                                          .error))),
                                         ],
                                       ),
                                     );
-                                      if (confirm == true) {
-                                        bool serverDeleted = false;
-                                        bool recordMissingOnServer = false;
-                                        // 1. Delete on live server immediately
-                                        if (t.id != null) {
-                                          try {
-                                            serverDeleted = await _api.deleteBankAccount(t.id!);
-                                          } catch (e) {
-                                            // If server returns 404, it means the record is already gone or never existed there
-                                            recordMissingOnServer = true;
-                                          }
-                                          
-                                          if (mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                              content: Text(serverDeleted ? ' Deleted Sucessfully' : (recordMissingOnServer ? ' Record already removed from server' : '⚠️ Server delete failed – check logs')),
-                                              backgroundColor: serverDeleted ? Colors.green : (recordMissingOnServer ? Colors.blue : Colors.red),
-                                              duration: const Duration(seconds: 3),
-                                            ));
-                                          }
+                                    if (confirm == true) {
+                                      bool serverDeleted = false;
+                                      bool recordMissingOnServer = false;
+                                      // 1. Delete on live server immediately
+                                      if (t.id != null) {
+                                        try {
+                                          serverDeleted = await _api
+                                              .deleteBankAccount(t.id!);
+                                        } catch (e) {
+                                          // If server returns 404, it means the record is already gone or never existed there
+                                          recordMissingOnServer = true;
                                         }
-                                        // 2. Delete locally
-                                        // If server delete was successful OR if it was already missing on the server, hard delete it locally
-                                        await DatabaseHelper.instance.deleteBankTransaction(t.id ?? 0, hardDelete: serverDeleted || recordMissingOnServer);
-                                        _loadTransactions();
+
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(SnackBar(
+                                            content: Text(serverDeleted
+                                                ? ' Deleted Sucessfully'
+                                                : (recordMissingOnServer
+                                                    ? ' Record already removed from server'
+                                                    : '⚠️ Server delete failed – check logs')),
+                                            backgroundColor: serverDeleted
+                                                ? Colors.green
+                                                : (recordMissingOnServer
+                                                    ? Colors.blue
+                                                    : Colors.red),
+                                            duration:
+                                                const Duration(seconds: 3),
+                                          ));
+                                        }
                                       }
+                                      // 2. Delete locally
+                                      // If server delete was successful OR if it was already missing on the server, hard delete it locally
+                                      await DatabaseHelper.instance
+                                          .deleteBankTransaction(t.id ?? 0,
+                                              hardDelete: serverDeleted ||
+                                                  recordMissingOnServer);
+                                      _loadTransactions();
+                                    }
                                   },
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
