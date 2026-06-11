@@ -1668,7 +1668,7 @@ class _SettingsSwitch extends StatelessWidget {
         child: ListTile(
           leading: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: theme.whiteAlpha(0.05), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
             child: Icon(icon, color: theme.highlight, size: 22),
           ),
           title: Text(title, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),

@@ -15,54 +15,49 @@ class ShortcutsHelpDialog {
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 520, maxHeight: 620),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-            border: Border.all(color: theme.cardBorder, width: 1.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(theme.isDark ? 0.3 : 0.05),
-                blurRadius: 40,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
+          width: 520,
+          constraints: const BoxConstraints(maxHeight: 620),
+          decoration: theme.glassDecoration,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Header ──
+              // Header
               Container(
-                padding: const EdgeInsets.fromLTRB(24, 20, 16, 16),
+                padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),
+                  color: theme.surface,
+                  borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(ThemeProvider.radiusCard)),
+                  border: Border(
+                    bottom: BorderSide(color: theme.divider, width: 1.0),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(10),
+                        color: theme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(Icons.keyboard_rounded, color: Colors.black87, size: 24),
+                      child: Icon(Icons.keyboard_rounded,
+                          color: theme.primary, size: 24),
                     ),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Keyboard Shortcuts',
                               style: TextStyle(
-                                  color: Colors.black87,
+                                  color: theme.textPrimary,
                                   fontSize: 18,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w900,
                                   letterSpacing: -0.3)),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text('Master your POS with speed ⚡',
                               style: TextStyle(
-                                  color: Colors.black54,
+                                  color: theme.textSecondary,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500)),
                         ],
@@ -70,46 +65,66 @@ class ShortcutsHelpDialog {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(ctx),
-                      icon: const Icon(Icons.close_rounded, color: Colors.black54),
+                      icon: Icon(Icons.close_rounded,
+                          color: theme.textSecondary, size: 20),
                     ),
                   ],
                 ),
               ),
 
-              // ── Body ──
+              // Body
               Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      _sectionTitle('POS Screen', Icons.point_of_sale_rounded, theme.primary),
+                      _sectionTitle('POS Screen', Icons.point_of_sale_rounded,
+                          theme.primary, theme),
                       const SizedBox(height: 8),
-                      _shortcutTile('F1', 'Clear Cart', Icons.remove_shopping_cart_rounded, theme),
-                      _shortcutTile('F2', 'Add / Select Customer', Icons.person_add_rounded, theme),
-                      _shortcutTile('F3', 'Toggle Return Mode', Icons.swap_horiz_rounded, theme),
-                      _shortcutTile('F4', 'Quick Add Product', Icons.add_box_rounded, theme),
-                      _shortcutTile('F5', 'Toggle Discount Editor', Icons.discount_rounded, theme),
-                      _shortcutTile('F6', 'View All History', Icons.receipt_long_rounded, theme),
-                      _shortcutTile('F7', 'Switch Theme', Icons.palette_rounded, theme),
-                      _shortcutTile('ESC', 'Exit POS', Icons.exit_to_app_rounded, theme),
-                      _shortcutTile('Enter', 'Search / Go to Payment', Icons.search_rounded, theme),
-                      _shortcutTile('↑ ↓', 'Change Quantity', Icons.exposure_rounded, theme),
-
+                      _shortcutTile('F1', 'Clear Cart',
+                          Icons.remove_shopping_cart_rounded, theme),
+                      _shortcutTile('F2', 'Add / Select Customer',
+                          Icons.person_add_rounded, theme),
+                      _shortcutTile('F3', 'Toggle Return Mode',
+                          Icons.swap_horiz_rounded, theme),
+                      _shortcutTile('F4', 'Quick Add Product',
+                          Icons.add_box_rounded, theme),
+                      _shortcutTile('F5', 'Toggle Discount Editor',
+                          Icons.discount_rounded, theme),
+                      _shortcutTile('F6', 'View All History',
+                          Icons.receipt_long_rounded, theme),
+                      _shortcutTile(
+                          'F7', 'Switch Theme', Icons.palette_rounded, theme),
+                      _shortcutTile(
+                          'ESC', 'Exit POS', Icons.exit_to_app_rounded, theme),
+                      _shortcutTile('Enter', 'Search / Go to Payment',
+                          Icons.search_rounded, theme),
+                      _shortcutTile('↑ ↓', 'Change Quantity',
+                          Icons.exposure_rounded, theme),
                       const SizedBox(height: 16),
-                      _sectionTitle('Payment Screen', Icons.payment_rounded, theme.accent),
+                      _sectionTitle('Payment Screen', Icons.payment_rounded,
+                          theme.accent, theme),
                       const SizedBox(height: 8),
-                      _shortcutTile('Enter', 'Complete Transaction', Icons.check_circle_rounded, theme),
-                      _shortcutTile('F8', 'Exact Total', Icons.price_check_rounded, theme),
-                      _shortcutTile('F9', 'Toggle Receipt', Icons.receipt_rounded, theme),
-                      _shortcutTile('F10', 'Cash Drawer', Icons.point_of_sale, theme),
-                      _shortcutTile('← → ↑ ↓', 'Switch Payment Method', Icons.swap_horizontal_circle_rounded, theme),
-                      _shortcutTile('ESC', 'Go Back', Icons.arrow_back_rounded, theme),
-
+                      _shortcutTile('Enter', 'Complete Transaction',
+                          Icons.check_circle_rounded, theme),
+                      _shortcutTile('F8', 'Exact Total',
+                          Icons.price_check_rounded, theme),
+                      _shortcutTile(
+                          'F9', 'Toggle Receipt', Icons.receipt_rounded, theme),
+                      _shortcutTile(
+                          'F10', 'Cash Drawer', Icons.point_of_sale, theme),
+                      _shortcutTile('← → ↑ ↓', 'Switch Payment Method',
+                          Icons.swap_horizontal_circle_rounded, theme),
+                      _shortcutTile(
+                          'ESC', 'Go Back', Icons.arrow_back_rounded, theme),
                       const SizedBox(height: 16),
-                      _sectionTitle('Receipt Screen', Icons.receipt_long_rounded, theme.highlight),
+                      _sectionTitle('Receipt Screen',
+                          Icons.receipt_long_rounded, theme.highlight, theme),
                       const SizedBox(height: 8),
-                      _shortcutTile('ESC', 'Back to POS', Icons.arrow_back_rounded, theme),
+                      _shortcutTile('ESC', 'Back to POS',
+                          Icons.arrow_back_rounded, theme),
                     ],
                   ),
                 ),
@@ -121,8 +136,10 @@ class ShortcutsHelpDialog {
     );
   }
 
-  static Widget _sectionTitle(String title, IconData icon, Color color) {
+  static Widget _sectionTitle(
+      String title, IconData icon, Color color, ThemeProvider theme) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.all(6),
@@ -137,8 +154,8 @@ class ShortcutsHelpDialog {
           title,
           style: TextStyle(
             fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: color,
+            fontWeight: FontWeight.w900,
+            color: theme.textPrimary,
             letterSpacing: -0.2,
           ),
         ),
@@ -146,35 +163,28 @@ class ShortcutsHelpDialog {
     );
   }
 
-  static Widget _shortcutTile(String key, String description, IconData icon, ThemeProvider theme) {
+  static Widget _shortcutTile(
+      String key, String description, IconData icon, ThemeProvider theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            constraints: const BoxConstraints(minWidth: 56),
+            width: 60,
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
             decoration: BoxDecoration(
-              color: theme.card,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: theme.cardBorder,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(theme.isDark ? 0.3 : 0.04),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(color: theme.divider, width: 1.0),
             ),
             child: Text(
               key,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
                 fontSize: 12,
-                color: Colors.black,
+                color: theme.textPrimary,
                 letterSpacing: 0.5,
               ),
             ),
@@ -207,7 +217,8 @@ class ShortcutHelpIcon extends StatefulWidget {
   State<ShortcutHelpIcon> createState() => _ShortcutHelpIconState();
 }
 
-class _ShortcutHelpIconState extends State<ShortcutHelpIcon> with SingleTickerProviderStateMixin {
+class _ShortcutHelpIconState extends State<ShortcutHelpIcon>
+    with SingleTickerProviderStateMixin {
   bool _hasSeenShortcuts = true; // default: no blink until loaded
   late AnimationController _blinkController;
   late Animation<double> _blinkAnimation;
@@ -291,10 +302,12 @@ class _ShortcutHelpIconState extends State<ShortcutHelpIcon> with SingleTickerPr
                   height: 8,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: const Color(0xFFE94560).withOpacity(_blinkAnimation.value),
+                    color: const Color(0xFFE94560)
+                        .withOpacity(_blinkAnimation.value),
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFE94560).withOpacity(_blinkAnimation.value * 0.5),
+                        color: const Color(0xFFE94560)
+                            .withOpacity(_blinkAnimation.value * 0.5),
                         blurRadius: 6,
                         spreadRadius: 1,
                       ),

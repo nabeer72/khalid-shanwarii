@@ -5,14 +5,14 @@ class ThemeProvider extends ChangeNotifier {
   ThemeProvider._();
 
   // Typography scale (mobile POS guideline)
-  static const double fontBody   = 16;  // Main body / paragraph
-  static const double fontList   = 15;  // List items, menus
-  static const double fontTable  = 14;  // Dense data, table cells
-  static const double fontButton = 15;  // Buttons & primary labels
+  static const double fontBody = 16; // Main body / paragraph
+  static const double fontList = 15; // List items, menus
+  static const double fontTable = 14; // Dense data, table cells
+  static const double fontButton = 15; // Buttons & primary labels
   static const double fontCaption = 13; // Secondary / helper text
-  static const double fontTitle  = 20;  // Section / window titles
-  static const double fontLabel  = 14;  // Form field labels
-  static const double fontSmall  = 12;  // Tooltips, badges
+  static const double fontTitle = 20; // Section / window titles
+  static const double fontLabel = 14; // Form field labels
+  static const double fontSmall = 12; // Tooltips, badges
 
   // Border Radius standards
   static const double radiusList = 8;
@@ -38,8 +38,10 @@ class ThemeProvider extends ChangeNotifier {
 
   // Premium Light theme colors
   static const lightBackground = Color(0xFFF8F9FA);
-  static const lightSurface = Color(0xFFF1F5F9); // Slightly darker for clear visibility
-  static const lightCard = Color(0xFFF1F5F9);    // Slightly darker for clear visibility
+  static const lightSurface =
+      Color(0xFFF1F5F9); // Slightly darker for clear visibility
+  static const lightCard =
+      Color(0xFFF1F5F9); // Slightly darker for clear visibility
   static const lightPrimary = Color(0xFF1A73E8);
   static const lightAccent = Color(0xFF4285F4);
   static const lightHighlight = Color(0xFFEA4335);
@@ -75,52 +77,45 @@ class ThemeProvider extends ChangeNotifier {
   Color get accent => _isDark ? darkAccent : lightAccent;
   Color get highlight => _isDark ? darkHighlight : lightHighlight;
   Color get textPrimary => _isDark ? Colors.white : const Color(0xFF1F2937);
-  Color get textSecondary => _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
-  Color get textHint => _isDark ? const Color(0xFF4B5563) : const Color(0xFF9CA3AF);
-  Color get divider => _isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
-  Color get secondary => _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
-  Color get cardBorder => _isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04);
+  Color get textSecondary =>
+      _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF6B7280);
+  Color get textHint =>
+      _isDark ? const Color(0xFF4B5563) : const Color(0xFF9CA3AF);
+  Color get divider =>
+      _isDark ? const Color(0xFF374151) : const Color(0xFFE5E7EB);
+  Color get secondary =>
+      _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
+  Color get cardBorder =>
+      _isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04);
   Color get iconColor => _isDark ? Colors.white : Colors.black;
   Color get toggleActiveColor => _isDark ? success : const Color(0xFF02401E);
   Color get switchActiveColor => toggleActiveColor; // Backward compatibility
 
   // Responsive UI Helpers
-  static bool isWideScreen(BuildContext context) => MediaQuery.of(context).size.width > 600;
+  static bool isWideScreen(BuildContext context) =>
+      MediaQuery.of(context).size.width > 600;
 
   // Glassmorphism effect
   BoxDecoration get glassDecoration => BoxDecoration(
-    color: Colors.white.withOpacity(0.5),
-    borderRadius: BorderRadius.circular(radiusGlass),
-    border: Border.all(color: whiteAlpha(0.1), width: 1.5),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(_isDark ? 0.3 : 0.05),
-        blurRadius: 20,
-        offset: const Offset(0, 10),
-      ),
-    ],
-  );
+        color: surface,
+        borderRadius: BorderRadius.circular(radiusGlass),
+        border: Border.all(color: divider, width: 1.0),
+      );
 
   BoxDecoration get glassCircleDecoration => BoxDecoration(
-    color: whiteAlpha(0.05),
-    shape: BoxShape.circle,
-    border: Border.all(color: whiteAlpha(0.1), width: 1.5),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(_isDark ? 0.3 : 0.05),
-        blurRadius: 20,
-        offset: const Offset(0, 10),
-      ),
-    ],
-  );
+        color: surface,
+        shape: BoxShape.circle,
+        border: Border.all(color: divider, width: 1.0),
+      );
 
   // Background Gradients
-  List<Color> get bgGradient => _isDark 
-    ? [darkBackground, darkSurface] 
-    : [const Color(0xFFE0F2F1), const Color(0xFFE3F2FD)];
+  List<Color> get bgGradient => _isDark
+      ? [darkBackground, darkSurface]
+      : [const Color(0xFFE0F2F1), const Color(0xFFE3F2FD)];
 
   // Input Field Glass style
-  InputDecoration glassInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+  InputDecoration glassInputDecoration(String label, IconData icon,
+      {bool isRequired = false}) {
     final labelStyle = TextStyle(
       color: _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563),
       fontSize: 14,
@@ -128,30 +123,41 @@ class ThemeProvider extends ChangeNotifier {
     );
 
     return InputDecoration(
-      label: isRequired 
-        ? RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(text: label, style: labelStyle),
-                const TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold, fontSize: 16)),
-              ],
-            ),
-          )
-        : Text(label, style: labelStyle),
+      label: isRequired
+          ? RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(text: label, style: labelStyle),
+                  const TextSpan(
+                      text: ' *',
+                      style: TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16)),
+                ],
+              ),
+            )
+          : Text(label, style: labelStyle),
       prefixIcon: Icon(icon, color: iconColor),
       filled: true,
       fillColor: whiteAlpha(0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
-        borderSide: BorderSide(color: _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
+        borderSide: BorderSide(
+            color:
+                _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
-        borderSide: BorderSide(color: _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
+        borderSide: BorderSide(
+            color:
+                _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
-        borderSide: BorderSide(color: _isDark ? highlight : Colors.black.withOpacity(0.3), width: 1.5),
+        borderSide: BorderSide(
+            color: _isDark ? highlight : Colors.black.withOpacity(0.3),
+            width: 1.5),
       ),
     );
   }
@@ -161,17 +167,13 @@ class ThemeProvider extends ChangeNotifier {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: bgGradient,
-        ),
-      ),
+      color: background,
       child: child,
     );
   }
 
   // Helper for contrast layer (white in dark, black in light)
-  Color whiteAlpha(double opacity) => _isDark ? Colors.white.withOpacity(opacity) : Colors.black.withOpacity(opacity);
+  Color whiteAlpha(double opacity) => _isDark
+      ? Colors.white.withOpacity(opacity)
+      : Colors.black.withOpacity(opacity);
 }
