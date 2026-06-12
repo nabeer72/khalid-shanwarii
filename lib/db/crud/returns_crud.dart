@@ -43,7 +43,7 @@ mixin ReturnsCrud on CommonCrud {
       if (hasShiftId && returnData['shift_id'] != null) {
         insertData['shift_id'] = returnData['shift_id'];
       }
-      
+
       final returnId = await txn.insert('returns', insertData);
 
       // If this return has a sale_id, update that sale's is_return to 1

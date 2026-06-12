@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/add_product_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/db/mock_data.dart';
 
 class POSQuickAddPanel extends StatefulWidget {
   final VoidCallback onClose;
@@ -126,6 +127,10 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
                     const SizedBox(height: 12),
                     _buildSubCategoryDropdownField(),
                     const SizedBox(height: 12),
+                    _buildBrandDropdownField(),
+                    const SizedBox(height: 12),
+                    _buildUnitDropdownField(),
+                    const SizedBox(height: 12),
                     _buildTextField(
                       controller: _controller.name,
                       label: 'Product Name',
@@ -163,11 +168,41 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
                     ),
                     const SizedBox(height: 12),
                     _buildTextField(
-                      controller: _controller.stock,
-                      label: 'Current Stock',
-                      icon: Icons.warehouse_outlined,
+                      controller: _controller.wholesalePrice,
+                      label: 'Wholesale Price',
+                      icon: Icons.business_center_outlined,
                       keyboardType: TextInputType.number,
                     ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _controller.stock,
+                            label: 'Current Stock',
+                            icon: Icons.warehouse_outlined,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildTextField(
+                            controller: _controller.stockLimit,
+                            label: 'Stock Alert',
+                            icon: Icons.notifications_active_outlined,
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildDiscountField(),
+                    const SizedBox(height: 12),
+                    _buildDateField(_controller.manufactureDate, 'Manufacture Date', Icons.precision_manufacturing_outlined),
+                    const SizedBox(height: 12),
+                    _buildDateField(_controller.expireDate, 'Expiry Date', Icons.calendar_today_outlined),
+                    const SizedBox(height: 12),
+                    if (BusinessConfig.instance.enableTax) _buildTaxWithToggle(),
                   ],
                 ),
               ),
@@ -202,6 +237,7 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     String? Function(String?)? validator,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
@@ -212,6 +248,7 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
         labelText: label,
         labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
         prefixIcon: Icon(icon, color: theme.highlight.withOpacity(0.7), size: 18),
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
@@ -275,6 +312,78 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
     );
   }
 
+  Widget _buildBrandDropdownField() {
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.brands.any((b) => b.id == _controller.selectedBrandId)
+                ? _controller.selectedBrandId
+                : null,
+            dropdownColor: theme.surface,
+            isExpanded: true,
+            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              labelText: 'Brand',
+              labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+              prefixIcon: Icon(Icons.branding_watermark_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
+              filled: true,
+              fillColor: theme.whiteAlpha(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Brand')),
+              ..._controller.brands
+                  .map((b) => DropdownMenuItem(value: b.id, child: Text(b.name)))
+                  .toList(),
+            ],
+            onChanged: _controller.setBrand,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnitDropdownField() {
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<dynamic>(
+            value: _controller.units.any((u) => u['id'] == _controller.selectedUnitId)
+                ? _controller.selectedUnitId
+                : null,
+            dropdownColor: theme.surface,
+            isExpanded: true,
+            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+            decoration: InputDecoration(
+              labelText: 'Unit',
+              labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12),
+              prefixIcon: Icon(Icons.straighten_outlined, color: theme.highlight.withOpacity(0.7), size: 18),
+              filled: true,
+              fillColor: theme.whiteAlpha(0.05),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+            items: [
+              const DropdownMenuItem(value: null, child: Text('No Unit')),
+              ..._controller.units
+                  .map((u) => DropdownMenuItem(value: u['id'], child: Text(u['name'])))
+                  .toList(),
+            ],
+            onChanged: _controller.setUnit,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSubCategoryDropdownField() {
     return Row(
       children: [
@@ -301,8 +410,8 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
             items: [
               const DropdownMenuItem(value: null, child: Text('No Sub-Category')),
               ..._controller.subCategories
-                .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
-                .toList(),
+                  .map((c) => DropdownMenuItem(value: c.id, child: Text(c.name)))
+                  .toList(),
             ],
             onChanged: _controller.setSubCategory,
           ),
@@ -324,6 +433,99 @@ class _POSQuickAddPanelState extends State<POSQuickAddPanel> {
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildDiscountField() {
+    return _buildTextField(
+      controller: _controller.discountLimit,
+      label: 'Max Discount',
+      icon: _controller.discountLimitType == 'percentage'
+          ? Icons.percent_outlined
+          : Icons.monetization_on_outlined,
+      keyboardType: TextInputType.number,
+      suffixIcon: TextButton(
+        onPressed: () {
+          setState(() {
+            _controller.discountLimitType =
+                _controller.discountLimitType == 'percentage' ? 'fixed' : 'percentage';
+          });
+        },
+        child: Text(
+          _controller.discountLimitType == 'percentage'
+              ? '%'
+              : BusinessConfig.instance.currencyDisplay,
+          style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateField(TextEditingController controller, String label, IconData icon) {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(
+          context: context,
+          initialDate: DateTime.now(),
+          firstDate: DateTime.now().subtract(const Duration(days: 3650)),
+          lastDate: DateTime.now().add(const Duration(days: 3650)),
+          builder: (context, child) {
+            return Theme(
+              data: Theme.of(context).copyWith(
+                colorScheme: ColorScheme.light(
+                  primary: theme.highlight,
+                  onPrimary: Colors.white,
+                  surface: theme.surface,
+                  onSurface: theme.textPrimary,
+                ),
+              ),
+              child: child!,
+            );
+          },
+        );
+        if (date != null) {
+          setState(() {
+            controller.text = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          });
+        }
+      },
+      child: IgnorePointer(
+        child: _buildTextField(
+          controller: controller,
+          label: label,
+          icon: icon,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTaxWithToggle() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildTextField(
+            controller: _controller.taxRate,
+            label: 'Tax %',
+            icon: Icons.percent_outlined,
+            keyboardType: TextInputType.number,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Switch(
+          value: _controller.taxEnabled ?? false,
+          activeColor: theme.highlight,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          onChanged: (val) {
+            setState(() {
+              _controller.taxEnabled = val;
+              if (val &&
+                  (_controller.taxRate.text.trim().isEmpty || _controller.taxRate.text == '0')) {
+                _controller.taxRate.text = BusinessConfig.instance.taxRate.toString();
+              }
+            });
+          },
+        ),
       ],
     );
   }

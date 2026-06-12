@@ -1162,11 +1162,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   // Inline camera barcode scanner
   void _openBarcodeScanner() {
-    if (kIsWeb) {
-      _showManualBarcodeEntry();
-      return;
-    }
-
     setState(() {
       if (!_isScannerOpen) {
         _isScannerOpen = true;
@@ -1231,23 +1226,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     children: [
                       Icon(Icons.camera_enhance_outlined, color: theme.textSecondary.withOpacity(0.5), size: 24),
                       const SizedBox(width: 12),
-                      Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Camera not available', 
-                              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
-                          const SizedBox(height: 4),
-                          InkWell(
-                            onTap: () {
-                              _closeBarcodeScanner();
-                              _showManualBarcodeEntry();
-                            },
-                            child: Text('Click for Manual Entry', 
-                                style: TextStyle(color: theme.highlight, fontSize: 11, decoration: TextDecoration.underline)),
-                          ),
-                        ],
-                      ),
+                      Text('Camera not available', 
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
                     ],
                   ),
                 ),

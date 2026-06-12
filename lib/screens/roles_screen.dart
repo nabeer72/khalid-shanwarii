@@ -288,20 +288,23 @@ class _RolesScreenState extends State<RolesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Role Management'),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: theme.textPrimary,
+        title: Text(
+          'Role Management',
+          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        ),
+        leading: BackButton(color: theme.textPrimary),
+        actions: [
+          IconButton(
+            icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor),
+            onPressed: () => setState(() => theme.toggleTheme()),
+          ),
+        ],
       ),
-      extendBodyBehindAppBar: true,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showRoleDialog(),
-        backgroundColor: theme.highlight,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      body: Container(
-        decoration: BoxDecoration(gradient: LinearGradient(colors: theme.bgGradient)),
+      body: theme.glassBackground(
         child: SafeArea(
           child: _controller.isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -310,16 +313,20 @@ class _RolesScreenState extends State<RolesScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.badge_outlined, size: 64, color: theme.textSecondary.withOpacity(0.5)),
+                          Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: theme.glassCircleDecoration,
+                            child: Icon(Icons.badge_outlined, size: 60, color: theme.iconColor),
+                          ),
                           const SizedBox(height: 16),
-                          Text('No roles found', style: TextStyle(color: theme.textSecondary, fontSize: 18)),
+                          Text('No roles found', style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
                           const SizedBox(height: 8),
-                          Text('Add a role to get started', style: TextStyle(color: theme.textSecondary.withOpacity(0.7), fontSize: 14)),
+                          Text('Add a role to get started', style: TextStyle(color: theme.textSecondary, fontSize: 14)),
                         ],
                       ),
                     )
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 100),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
                         itemCount: _controller.roles.length,
                         itemBuilder: (ctx, i) {
                           final role = _controller.roles[i];
@@ -395,6 +402,13 @@ class _RolesScreenState extends State<RolesScreen> {
                         },
                       ),
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showRoleDialog(),
+        backgroundColor: theme.highlight,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('ADD ROLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        elevation: 8,
       ),
     );
   }
