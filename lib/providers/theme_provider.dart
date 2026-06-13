@@ -34,7 +34,7 @@ class ThemeProvider extends ChangeNotifier {
   static const darkCard = Color(0xFF16213E);
   static const darkPrimary = Color(0xFF0F3460);
   static const darkAccent = Color(0xFF533483);
-  static const darkHighlight = Color(0xFFE94560);
+  static const darkHighlight = Color(0xFFBC1823);
 
   // Premium Light theme colors
   static const lightBackground = Color(0xFFF8F9FA);
@@ -44,7 +44,7 @@ class ThemeProvider extends ChangeNotifier {
       Color(0xFFF1F5F9); // Slightly darker for clear visibility
   static const lightPrimary = Color(0xFF1A73E8);
   static const lightAccent = Color(0xFF4285F4);
-  static const lightHighlight = Color(0xFFEA4335);
+  static const lightHighlight = Color(0xFFBC1823);
 
   // Status colors
   static const success = Color(0xFF00D26A);
