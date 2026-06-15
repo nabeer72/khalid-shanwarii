@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/db/database_helper.dart';
-
 class POSKeyboardShortcuts {
   static KeyEventResult handleKeyEvent({
     required FocusNode keyboardFocusNode,

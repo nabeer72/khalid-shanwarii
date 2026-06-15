@@ -41,7 +41,7 @@ class ShortcutsHelpDialog {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(Icons.keyboard_rounded,
-                          color: theme.primary, size: 24),
+                          color: theme.highlight, size: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -81,7 +81,7 @@ class ShortcutsHelpDialog {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _sectionTitle('POS Screen', Icons.point_of_sale_rounded,
-                          theme.primary, theme),
+                         theme.highlight, theme),
                       const SizedBox(height: 8),
                       _shortcutTile('F1', 'Clear Cart',
                           Icons.remove_shopping_cart_rounded, theme),
@@ -105,7 +105,7 @@ class ShortcutsHelpDialog {
                           Icons.exposure_rounded, theme),
                       const SizedBox(height: 16),
                       _sectionTitle('Payment Screen', Icons.payment_rounded,
-                          theme.accent, theme),
+                          theme.highlight, theme),
                       const SizedBox(height: 8),
                       _shortcutTile('Enter', 'Complete Transaction',
                           Icons.check_circle_rounded, theme),

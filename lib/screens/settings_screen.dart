@@ -9,8 +9,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
 import 'package:mobile_app/screens/currency_notes_screen.dart';
-import 'package:mobile_app/screens/units_screen.dart';
-import 'package:mobile_app/screens/payment_types_screen.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/services/api_service.dart';

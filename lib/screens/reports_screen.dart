@@ -107,7 +107,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
       debugPrint('_parseDate: null dateStr, returning DateTime(0)');
       return DateTime(0);
     }
-    final parsed = DateTime.tryParse(dateStr.toString());
+    String str = dateStr.toString();
+    // Try parsing as YYYY-MM-DD first
+    final parts = str.split('T')[0].split('-');
+    if (parts.length >= 3) {
+      try {
+        final year = int.parse(parts[0]);
+        final month = int.parse(parts[1]);
+        final day = int.parse(parts[2]);
+        return DateTime(year, month, day);
+      } catch (_) {
+        // fall through
+      }
+    }
+    final parsed = DateTime.tryParse(str);
     if (parsed == null) {
       debugPrint(
           '_parseDate: failed to parse dateStr=$dateStr, returning DateTime(0)');
@@ -124,14 +137,15 @@ class _ReportsScreenState extends State<ReportsScreen> {
     if (ts == null) return false;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
+    final normalizedTs = _parseDate(ts.toIso8601String());
     switch (_period) {
       case 'today':
-        return _parseDate(ts.toIso8601String()) == today;
+        return normalizedTs == today;
       case 'week':
         final weekAgo = today.subtract(const Duration(days: 7));
-        return _parseDate(ts.toIso8601String()).isAfter(weekAgo);
+        return normalizedTs.isAfter(weekAgo);
       case 'month':
-        return ts.month == now.month && ts.year == now.year;
+        return normalizedTs.month == now.month && normalizedTs.year == now.year;
       default:
         return true;
     }
@@ -876,8 +890,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-              color: Color(0xFF8B5CF6), // purple – matches Stock module
+            decoration: BoxDecoration(
+              color: theme.highlight,
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.inventory_2_outlined,
@@ -1065,7 +1079,7 @@ class _SummaryCard extends StatelessWidget {
     final isNegative = value < 0;
     final displayValue = isNegative ? value.abs() : value;
     final displayPrefix = isNegative ? '−' : '';
-    final displayColor = isNegative ? const Color(0xFFEF4444) : color;
+    final displayColor = isNegative ? theme.highlight : color;
 
     final display = isCurrency
         ? '$displayPrefix${BusinessConfig.instance.currencyDisplay} ${displayValue.toStringAsFixed(2)}'
@@ -1140,9 +1154,8 @@ class _BreakdownRow extends StatelessWidget {
     final theme = ThemeProvider.instance;
     final prefix = value < 0 ? '−' : '';
     final effectiveIconColor = iconColor ?? theme.highlight;
-    // Amount colour: negative values (returns/discounts) use red, positive use icon colour
-    final amountColor =
-        value < 0 ? const Color(0xFFEF4444) : effectiveIconColor;
+    // Amount colour: negative values (returns/discounts) use highlight, positive use icon colour
+    final amountColor = value < 0 ? theme.highlight : effectiveIconColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

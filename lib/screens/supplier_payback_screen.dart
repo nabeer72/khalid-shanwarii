@@ -521,11 +521,15 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: theme.glassCircleDecoration,
-            child: Text(_isHistoryView ? '📋' : '🤝', style: const TextStyle(fontSize: 48)),
-          ),
+       Container(
+  padding: const EdgeInsets.all(32),
+  decoration: theme.glassCircleDecoration,
+  child: Icon(
+    _isHistoryView ? Icons.history : Icons.handshake,
+    size: 48,
+    color: theme.highlight,
+  ),
+),
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty 

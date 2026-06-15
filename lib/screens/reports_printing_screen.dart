@@ -1466,7 +1466,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
 
           final finalNetAmount = totalSalesNet - retNet;
           final expensesToSubtract = periodExpenses ?? 0.0;
-          final finalProfit = totalSalesProfit - totalReturnsProfit - expensesToSubtract; // Simple profit - refund - expenses subtraction
+          final finalProfit = totalSalesProfit - totalReturnsProfit - expensesToSubtract;
           
           final summaryContent = pw.Column(
             crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -1506,7 +1506,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               pw.Divider(borderStyle: pw.BorderStyle.dashed, color: PdfColor.fromHex('#94A3B8'), thickness: 0.5),
               pw.SizedBox(height: 10),
               
-              summaryRow('Final Business Profit', '${business.currency} ${finalProfit.toStringAsFixed(2)}', bold: true, color: PdfColors.green700),
+              summaryRow('Final Business Profit', '${finalProfit < 0 ? '-' : ''}${business.currency} ${finalProfit.abs().toStringAsFixed(2)}', bold: true, color: finalProfit < 0 ? PdfColors.red700 : PdfColors.green700),
             ]
           );
 
