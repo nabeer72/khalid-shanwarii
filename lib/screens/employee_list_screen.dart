@@ -508,7 +508,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                           final roleColor = _getRoleColor(emp.role);
                           return Container(
                                 margin: const EdgeInsets.only(bottom: 8),
-                            decoration: theme.glassDecoration,
+                            decoration: theme.glassListDecoration,
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                               onTap: () => _openAddEmployeeScreen(emp),

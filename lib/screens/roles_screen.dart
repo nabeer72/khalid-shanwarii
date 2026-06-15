@@ -45,18 +45,19 @@ class _RolesScreenState extends State<RolesScreen> {
     final nameController = TextEditingController(text: role?.name ?? '');
     final descController = TextEditingController(text: role?.description ?? '');
     int? selectedBranchId = role?.branchId ?? BusinessConfig.instance.branchId;
-    
+
     // Ensure the selectedBranchId actually exists in the loaded branches list.
     // If not, fall back to the first available branch, or null if empty.
     bool branchExists = _controller.branches.any((b) {
-      final bId = b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? '');
+      final bId =
+          b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? '');
       return bId == selectedBranchId;
     });
 
     if (!branchExists) {
       if (_controller.branches.isNotEmpty) {
-        selectedBranchId = _controller.branches.first['id'] is int 
-            ? _controller.branches.first['id'] as int 
+        selectedBranchId = _controller.branches.first['id'] is int
+            ? _controller.branches.first['id'] as int
             : int.tryParse(_controller.branches.first['id']?.toString() ?? '');
       } else {
         selectedBranchId = null;
@@ -74,15 +75,30 @@ class _RolesScreenState extends State<RolesScreen> {
           for (var p in _controller.allPermissions) {
             String name = (p['name'] ?? '').toString().toLowerCase();
             String module = 'General';
-            if (name.contains('product') || name.contains('stock')) module = 'Inventory';
-            else if (name.contains('sale') || name.contains('pos') || name.contains('recovery')) module = 'Sales';
-            else if (name.contains('expense')) module = 'Expenses';
-            else if (name.contains('supplier') || name.contains('vendor') || name.contains('payback')) module = 'Suppliers';
-            else if (name.contains('customer')) module = 'Customers';
-            else if (name.contains('staff') || name.contains('role') || name.contains('employee')) module = 'Staff';
-            else if (name.contains('report')) module = 'Reports';
-            else if (name.contains('setting') || name.contains('branch') || name.contains('bank')) module = 'Configuration';
-            
+            if (name.contains('product') || name.contains('stock'))
+              module = 'Inventory';
+            else if (name.contains('sale') ||
+                name.contains('pos') ||
+                name.contains('recovery'))
+              module = 'Sales';
+            else if (name.contains('expense'))
+              module = 'Expenses';
+            else if (name.contains('supplier') ||
+                name.contains('vendor') ||
+                name.contains('payback'))
+              module = 'Suppliers';
+            else if (name.contains('customer'))
+              module = 'Customers';
+            else if (name.contains('staff') ||
+                name.contains('role') ||
+                name.contains('employee'))
+              module = 'Staff';
+            else if (name.contains('report'))
+              module = 'Reports';
+            else if (name.contains('setting') ||
+                name.contains('branch') ||
+                name.contains('bank')) module = 'Configuration';
+
             grouped.putIfAbsent(module, () => []).add(p);
           }
 
@@ -93,11 +109,15 @@ class _RolesScreenState extends State<RolesScreen> {
               children: [
                 Text(
                   role == null ? 'Create Role' : 'Edit Role',
-                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                  icon: Icon(Icons.close_rounded,
+                      color: theme.textSecondary, size: 20),
                 ),
               ],
             ),
@@ -110,27 +130,33 @@ class _RolesScreenState extends State<RolesScreen> {
                     TextField(
                       controller: nameController,
                       style: TextStyle(color: theme.textPrimary),
-                      decoration: theme.glassInputDecoration('Role Name', Icons.badge_outlined),
+                      decoration: theme.glassInputDecoration(
+                          'Role Name', Icons.badge_outlined),
                     ),
                     const SizedBox(height: 16),
                     TextField(
                       controller: descController,
                       style: TextStyle(color: theme.textPrimary),
-                      decoration: theme.glassInputDecoration('Description', Icons.description_outlined),
+                      decoration: theme.glassInputDecoration(
+                          'Description', Icons.description_outlined),
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<int?>(
                       value: selectedBranchId,
                       dropdownColor: theme.surface,
                       style: TextStyle(color: theme.textPrimary),
-                      decoration: theme.glassInputDecoration('Assign to Branch', Icons.storefront_outlined),
+                      decoration: theme.glassInputDecoration(
+                          'Assign to Branch', Icons.storefront_outlined),
                       items: [
                         ..._controller.branches.map((b) => DropdownMenuItem(
-                          value: b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? ''),
-                          child: Text(b['branch_title'] ?? 'Branch'),
-                        )),
+                              value: b['id'] is int
+                                  ? b['id']
+                                  : int.tryParse(b['id']?.toString() ?? ''),
+                              child: Text(b['branch_title'] ?? 'Branch'),
+                            )),
                       ],
-                      onChanged: (val) => setDialogState(() => selectedBranchId = val),
+                      onChanged: (val) =>
+                          setDialogState(() => selectedBranchId = val),
                     ),
                     const SizedBox(height: 24),
                     Row(
@@ -138,29 +164,38 @@ class _RolesScreenState extends State<RolesScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Permissions by Module', 
-                            style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold),
+                            'Permissions by Module',
+                            style: TextStyle(
+                                color: theme.textSecondary,
+                                fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         TextButton.icon(
                           icon: Icon(
-                            selectedPerms.length == _controller.allPermissions.length 
-                              ? Icons.deselect 
-                              : Icons.select_all, 
-                            size: 16, 
-                            color: theme.highlight
-                          ),
+                              selectedPerms.length ==
+                                      _controller.allPermissions.length
+                                  ? Icons.deselect
+                                  : Icons.select_all,
+                              size: 16,
+                              color: theme.highlight),
                           label: Text(
-                            selectedPerms.length == _controller.allPermissions.length ? 'Deselect All' : 'Assign All',
-                            style: TextStyle(color: theme.highlight, fontSize: 12),
+                            selectedPerms.length ==
+                                    _controller.allPermissions.length
+                                ? 'Deselect All'
+                                : 'Assign All',
+                            style:
+                                TextStyle(color: theme.highlight, fontSize: 12),
                           ),
                           onPressed: () {
                             setDialogState(() {
-                              if (selectedPerms.length == _controller.allPermissions.length) {
+                              if (selectedPerms.length ==
+                                  _controller.allPermissions.length) {
                                 selectedPerms.clear();
                               } else {
-                                selectedPerms = _controller.allPermissions.map((p) => p['id'] as int).toList();
+                                selectedPerms = _controller.allPermissions
+                                    .map((p) => p['id'] as int)
+                                    .toList();
                               }
                             });
                           },
@@ -172,34 +207,50 @@ class _RolesScreenState extends State<RolesScreen> {
                       height: 320,
                       decoration: BoxDecoration(
                         color: theme.background.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                        borderRadius:
+                            BorderRadius.circular(ThemeProvider.radiusList),
                       ),
                       child: ListView(
                         children: grouped.entries.map((entry) {
-                          final groupPermIds = entry.value.map((p) => p['id'] as int).toList();
-                          final bool isAllSelectedInGroup = groupPermIds.every((id) => selectedPerms.contains(id));
-                          final bool isPartiallySelectedInGroup = groupPermIds.any((id) => selectedPerms.contains(id)) && !isAllSelectedInGroup;
+                          final groupPermIds =
+                              entry.value.map((p) => p['id'] as int).toList();
+                          final bool isAllSelectedInGroup = groupPermIds
+                              .every((id) => selectedPerms.contains(id));
+                          final bool isPartiallySelectedInGroup = groupPermIds
+                                  .any((id) => selectedPerms.contains(id)) &&
+                              !isAllSelectedInGroup;
 
                           return ExpansionTile(
-                            leading: Icon(_getModuleIcon(entry.key), color: theme.highlight, size: 20),
+                            leading: Icon(_getModuleIcon(entry.key),
+                                color: theme.highlight, size: 20),
                             title: Row(
                               children: [
                                 Expanded(
-                                  child: Text(entry.key, style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+                                  child: Text(entry.key,
+                                      style: TextStyle(
+                                          color: theme.textPrimary,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold)),
                                 ),
                                 Checkbox(
-                                  value: isAllSelectedInGroup ? true : (isPartiallySelectedInGroup ? null : false),
+                                  value: isAllSelectedInGroup
+                                      ? true
+                                      : (isPartiallySelectedInGroup
+                                          ? null
+                                          : false),
                                   tristate: true,
                                   onChanged: (val) {
                                     setDialogState(() {
                                       if (val == true || val == null) {
                                         // If empty or partial, select all in this group
                                         for (var id in groupPermIds) {
-                                          if (!selectedPerms.contains(id)) selectedPerms.add(id);
+                                          if (!selectedPerms.contains(id))
+                                            selectedPerms.add(id);
                                         }
                                       } else {
                                         // Deselect all in this group
-                                        selectedPerms.removeWhere((id) => groupPermIds.contains(id));
+                                        selectedPerms.removeWhere(
+                                            (id) => groupPermIds.contains(id));
                                       }
                                     });
                                   },
@@ -210,10 +261,14 @@ class _RolesScreenState extends State<RolesScreen> {
                               final pid = p['id'] as int;
                               final isSelected = selectedPerms.contains(pid);
                               return CheckboxListTile(
-                                title: Text(p['label'] ?? p['name'] ?? pid, style: TextStyle(color: theme.textPrimary, fontSize: 12)),
+                                title: Text(p['label'] ?? p['name'] ?? pid,
+                                    style: TextStyle(
+                                        color: theme.textPrimary,
+                                        fontSize: 12)),
                                 value: isSelected,
                                 dense: true,
-                                controlAffinity: ListTileControlAffinity.leading,
+                                controlAffinity:
+                                    ListTileControlAffinity.leading,
                                 onChanged: (val) {
                                   setDialogState(() {
                                     if (val == true) {
@@ -234,7 +289,9 @@ class _RolesScreenState extends State<RolesScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+              TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('Cancel')),
               ElevatedButton(
                 onPressed: () async {
                   if (nameController.text.trim().isEmpty) {
@@ -243,10 +300,12 @@ class _RolesScreenState extends State<RolesScreen> {
                     );
                     return;
                   }
-                  
+
                   if (selectedBranchId == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please select a branch for this role')),
+                      const SnackBar(
+                          content:
+                              Text('Please select a branch for this role')),
                     );
                     return;
                   }
@@ -273,15 +332,24 @@ class _RolesScreenState extends State<RolesScreen> {
 
   IconData _getModuleIcon(String module) {
     switch (module) {
-      case 'Inventory': return Icons.inventory_2_outlined;
-      case 'Sales': return Icons.receipt_long_outlined;
-      case 'Expenses': return Icons.account_balance_wallet_outlined;
-      case 'Suppliers': return Icons.business_outlined;
-      case 'Customers': return Icons.people_outline;
-      case 'Staff': return Icons.badge_outlined;
-      case 'Reports': return Icons.bar_chart_outlined;
-      case 'Configuration': return Icons.settings_outlined;
-      default: return Icons.category_outlined;
+      case 'Inventory':
+        return Icons.inventory_2_outlined;
+      case 'Sales':
+        return Icons.receipt_long_outlined;
+      case 'Expenses':
+        return Icons.account_balance_wallet_outlined;
+      case 'Suppliers':
+        return Icons.business_outlined;
+      case 'Customers':
+        return Icons.people_outline;
+      case 'Staff':
+        return Icons.badge_outlined;
+      case 'Reports':
+        return Icons.bar_chart_outlined;
+      case 'Configuration':
+        return Icons.settings_outlined;
+      default:
+        return Icons.category_outlined;
     }
   }
 
@@ -294,12 +362,19 @@ class _RolesScreenState extends State<RolesScreen> {
         elevation: 0,
         title: Text(
           'Role Management',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
         actions: [
           IconButton(
-            icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor),
+            icon: Icon(
+                theme.isDark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                color: theme.iconColor),
             onPressed: () => setState(() => theme.toggleTheme()),
           ),
         ],
@@ -316,98 +391,143 @@ class _RolesScreenState extends State<RolesScreen> {
                           Container(
                             padding: const EdgeInsets.all(32),
                             decoration: theme.glassCircleDecoration,
-                            child: Icon(Icons.badge_outlined, size: 60, color: theme.iconColor),
+                            child: Icon(Icons.badge_outlined,
+                                size: 60, color: theme.iconColor),
                           ),
                           const SizedBox(height: 16),
-                          Text('No roles found', style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+                          Text('No roles found',
+                              style: TextStyle(
+                                  color: theme.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800)),
                           const SizedBox(height: 8),
-                          Text('Add a role to get started', style: TextStyle(color: theme.textSecondary, fontSize: 14)),
+                          Text('Add a role to get started',
+                              style: TextStyle(
+                                  color: theme.textSecondary, fontSize: 14)),
                         ],
                       ),
                     )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
-                        itemCount: _controller.roles.length,
-                        itemBuilder: (ctx, i) {
-                          final role = _controller.roles[i];
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: theme.glassDecoration,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                              onTap: () => _showRoleDialog(role),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(role.name, 
-                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
+                  : ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      itemCount: _controller.roles.length,
+                      itemBuilder: (ctx, i) {
+                        final role = _controller.roles[i];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: theme.glassListDecoration,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
+                            onTap: () => _showRoleDialog(role),
+                            title: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(role.name,
+                                      style: TextStyle(
+                                          color: theme.textPrimary,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14)),
+                                ),
+                                Text('ID: ${role.id}',
+                                    style: TextStyle(
+                                        color: theme.textHint,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800)),
+                              ],
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    '${role.permissionIds.length} permissions • ${(role.description?.isEmpty ?? true) ? "No description" : role.description}',
+                                    style: TextStyle(
+                                        color: theme.textSecondary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                  Text('ID: ${role.id}', 
-                                      style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
-                                ],
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      '${role.permissionIds.length} permissions • ${(role.description?.isEmpty ?? true) ? "No description" : role.description}',
-                                      style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  if (role.permissionIds.isNotEmpty) ...[
-                                    const SizedBox(height: 6),
-                                    Wrap(
-                                      spacing: 4,
-                                      runSpacing: 4,
-                                      children: role.permissionIds.take(5).map((pid) {
-                                        final p = _controller.allPermissions.firstWhere((p) => (p['id'] ?? p['name']) == pid, orElse: () => {});
-                                        final label = (p['label'] ?? p['name'] ?? pid.toString()).toString();
-                                        return Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: theme.highlight.withOpacity(0.08),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: theme.highlight.withOpacity(0.15)),
-                                          ),
-                                          child: Text(
-                                            label.toUpperCase(),
-                                            style: TextStyle(color: theme.highlight, fontSize: 8, fontWeight: FontWeight.w800),
-                                          ),
-                                        );
-                                      }).toList()..addAll([
+                                ),
+                                if (role.permissionIds.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Wrap(
+                                    spacing: 4,
+                                    runSpacing: 4,
+                                    children: role.permissionIds
+                                        .take(5)
+                                        .map((pid) {
+                                      final p = _controller.allPermissions
+                                          .firstWhere(
+                                              (p) =>
+                                                  (p['id'] ?? p['name']) == pid,
+                                              orElse: () => {});
+                                      final label = (p['label'] ??
+                                              p['name'] ??
+                                              pid.toString())
+                                          .toString();
+                                      return Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color:
+                                              theme.highlight.withOpacity(0.08),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                              color: theme.highlight
+                                                  .withOpacity(0.15)),
+                                        ),
+                                        child: Text(
+                                          label.toUpperCase(),
+                                          style: TextStyle(
+                                              color: theme.highlight,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w800),
+                                        ),
+                                      );
+                                    }).toList()
+                                      ..addAll([
                                         if (role.permissionIds.length > 5)
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
                                               color: theme.whiteAlpha(0.05),
-                                              borderRadius: BorderRadius.circular(4),
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
                                             ),
                                             child: Text(
                                               '+${role.permissionIds.length - 5} MORE',
-                                              style: TextStyle(color: theme.textSecondary, fontSize: 8, fontWeight: FontWeight.w800),
+                                              style: TextStyle(
+                                                  color: theme.textSecondary,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.w800),
                                             ),
                                           ),
                                       ]),
-                                    ),
-                                  ],
+                                  ),
                                 ],
-                              ),
-                              trailing: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 20),
+                              ],
                             ),
-                          );
-                        },
-                      ),
+                            trailing: Icon(Icons.edit_note_rounded,
+                                color: theme.highlight, size: 20),
+                          ),
+                        );
+                      },
+                    ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showRoleDialog(),
         backgroundColor: theme.highlight,
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('ADD ROLE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        label: const Text('ADD ROLE',
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5)),
         elevation: 8,
       ),
     );

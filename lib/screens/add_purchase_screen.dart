@@ -238,34 +238,34 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     }
   }
 
-  InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+  InputDecoration _dialogInputDecoration(ThemeProvider theme, String label, IconData icon, {bool isRequired = false}) {
     return InputDecoration(
       label: isRequired 
         ? RichText(
             text: TextSpan(
               text: label,
-              style: const TextStyle(color: Color(0xFF6B7280)),
-              children: const [
-                TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              style: TextStyle(color: theme.textSecondary),
+              children: [
+                TextSpan(text: ' *', style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold)),
               ],
             ),
           )
-        : Text(label),
-      labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-      prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
+        : Text(label, style: TextStyle(color: theme.textSecondary)),
+      labelStyle: TextStyle(color: theme.textSecondary),
+      prefixIcon: Icon(icon, color: theme.iconColor),
       filled: true,
-      fillColor: Colors.black.withOpacity(0.05),
+      fillColor: theme.whiteAlpha(0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+        borderSide: BorderSide(color: theme.highlight),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+        borderSide: BorderSide(color: theme.highlight),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+        borderSide: BorderSide(color: theme.highlight, width: 1.5),
       ),
     );
   }
@@ -482,7 +482,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                               ),
                             TextFormField(
                               controller: searchCtrl,
-                              decoration: _dialogInputDecoration('Search Product...', Icons.search_rounded).copyWith(
+                              decoration: _dialogInputDecoration(theme, 'Search Product...', Icons.search_rounded).copyWith(
                                 suffixIcon: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
@@ -588,8 +588,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                       ] else ...[
                         TextField(
                           controller: nameCtrl,
-                          decoration: _dialogInputDecoration('Product Name', Icons.edit_note_rounded, isRequired: true),
-                          style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
+                          decoration: _dialogInputDecoration(theme, 'Product Name', Icons.edit_note_rounded, isRequired: true),
+                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
                         ),
                       ],
 
@@ -609,8 +609,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: costCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('Purchase $unitName Price', Icons.inventory_2_outlined, isRequired: true),
-                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                        decoration: _dialogInputDecoration(theme, 'Purchase $unitName Price', Icons.inventory_2_outlined, isRequired: true),
+                                        style: TextStyle(color: theme.textPrimary),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -619,8 +619,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: wholesaleCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('$unitName Wholesale Price', Icons.local_offer_outlined),
-                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                        decoration: _dialogInputDecoration(theme, '$unitName Wholesale Price', Icons.local_offer_outlined),
+                                        style: TextStyle(color: theme.textPrimary),
                                       ),
                                     ),
                                   ],
@@ -634,8 +634,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: priceCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('$unitName Sale Price', Icons.account_balance_wallet_outlined, isRequired: true),
-                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                        decoration: _dialogInputDecoration(theme, '$unitName Sale Price', Icons.account_balance_wallet_outlined, isRequired: true),
+                                        style: TextStyle(color: theme.textPrimary),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -644,8 +644,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: piecesCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('$unitName Quantity', Icons.grid_view_rounded, isRequired: true),
-                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                        decoration: _dialogInputDecoration(theme, '$unitName Quantity', Icons.grid_view_rounded, isRequired: true),
+                                        style: TextStyle(color: theme.textPrimary),
                                       ),
                                     ),
                                   ],
@@ -659,8 +659,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                         controller: qtyCtrl,
                                         keyboardType: TextInputType.number,
                                         onChanged: (_) => setDialogState(() {}),
-                                        decoration: _dialogInputDecoration('Initial ${unitName}s', Icons.warehouse_outlined, isRequired: true),
-                                        style: const TextStyle(color: Color(0xFF1F2937)),
+                                        decoration: _dialogInputDecoration(theme, 'Initial ${unitName}s', Icons.warehouse_outlined, isRequired: true),
+                                        style: TextStyle(color: theme.textPrimary),
                                       ),
                                     ),
                                     const SizedBox(width: 12),
@@ -709,8 +709,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: qtyCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Stock Quantity', Icons.numbers_rounded, isRequired: true),
-                                style: const TextStyle(color: Color(0xFF1F2937)),
+                                decoration: _dialogInputDecoration(theme, 'Stock Quantity', Icons.numbers_rounded, isRequired: true),
+                                style: TextStyle(color: theme.textPrimary),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -719,8 +719,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: costCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Cost Price', Icons.attach_money_rounded, isRequired: true),
-                                style: const TextStyle(color: Color(0xFF1F2937)),
+                                decoration: _dialogInputDecoration(theme, 'Cost Price', Icons.attach_money_rounded, isRequired: true),
+                                style: TextStyle(color: theme.textPrimary),
                               ),
                             ),
                           ],
@@ -733,8 +733,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: wholesaleCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Wholesale Price', Icons.business_center_rounded),
-                                style: const TextStyle(color: Color(0xFF1F2937)),
+                                decoration: _dialogInputDecoration(theme, 'Wholesale Price', Icons.business_center_rounded),
+                                style: TextStyle(color: theme.textPrimary),
                               ),
                             ),
                             const SizedBox(width: 12),
@@ -743,8 +743,8 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 controller: priceCtrl,
                                 keyboardType: TextInputType.number,
                                 onChanged: (_) => setDialogState(() {}),
-                                decoration: _dialogInputDecoration('Sale Price', Icons.price_change_rounded, isRequired: true),
-                                style: const TextStyle(color: Color(0xFF1F2937)),
+                                decoration: _dialogInputDecoration(theme, 'Sale Price', Icons.price_change_rounded, isRequired: true),
+                                style: TextStyle(color: theme.textPrimary),
                               ),
                             ),
                           ],
@@ -1159,7 +1159,7 @@ class _ItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: theme.glassDecoration,
+      decoration: theme.glassListDecoration,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         title: Text(item['product_name'] ?? 'Unknown', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800)),

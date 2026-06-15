@@ -1614,19 +1614,8 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     TextField(
                       autofocus: true,
                       style:
-                          const TextStyle(color: Colors.black87, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        prefixIcon: const Icon(Icons.search_rounded,
-                            color: Colors.black45),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
+                          TextStyle(color: theme.textPrimary, fontSize: 13),
+                      decoration: theme.glassInputDecoration('Search...', Icons.search_rounded),
                       onChanged: (v) => setDialogState(() => searchQuery = v),
                     ),
                     const SizedBox(height: 12),
@@ -1815,7 +1804,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                               final purchase = _purchases[index];
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 8),
-                                decoration: theme.glassDecoration,
+                                decoration: theme.glassListDecoration,
                                 child: ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
                                       horizontal: 14, vertical: 4),

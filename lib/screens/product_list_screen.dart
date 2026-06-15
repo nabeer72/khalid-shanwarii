@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -34,16 +33,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
-      final productsData = await DatabaseHelper.instance.getProducts(includeInactive: true);
+      final productsData =
+          await DatabaseHelper.instance.getProducts(includeInactive: true);
       final categoriesData = await DatabaseHelper.instance.getCategories();
-      
+
       if (mounted) {
         setState(() {
           _products = productsData.map((pData) {
-            final stocksData = List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
-            return Product.fromMap(pData, stocks: stocksData.map<Stock>((s) => Stock.fromMap(s)).toList());
+            final stocksData =
+                List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
+            return Product.fromMap(pData,
+                stocks:
+                    stocksData.map<Stock>((s) => Stock.fromMap(s)).toList());
           }).toList();
-          _categories = categoriesData.map((c) => ProductCategory.fromMap(c)).toList();
+          _categories =
+              categoriesData.map((c) => ProductCategory.fromMap(c)).toList();
           _loading = false;
         });
       }
@@ -68,14 +72,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   Future<void> _toggleFavorite(Product product) async {
     if (product.id != null) {
-      await DatabaseHelper.instance.toggleProductFavorite(product.id!, product.isFavorite);
+      await DatabaseHelper.instance
+          .toggleProductFavorite(product.id!, product.isFavorite);
       _loadData(); // Refresh list and counts
     }
   }
 
   Future<void> _toggleStatus(Product product) async {
     if (product.id != null) {
-      await DatabaseHelper.instance.toggleProductStatus(product.id!, product.status);
+      await DatabaseHelper.instance
+          .toggleProductStatus(product.id!, product.status);
       _loadData();
     }
   }
@@ -84,7 +90,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void _addToPOS(Product product) {
     // This could navigate to POS and auto-add or just provide feedback
     // For now, let's show a snackbar or navigate to POS
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const POSScreen())).then((_) => _loadData());
+    Navigator.push(
+            context, MaterialPageRoute(builder: (_) => const POSScreen()))
+        .then((_) => _loadData());
   }
 
   @override
@@ -96,12 +104,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
         elevation: 0,
         title: Text(
           'Product Catalog',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
         actions: [
           IconButton(
-            icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor),
+            icon: Icon(
+                theme.isDark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                color: theme.iconColor),
             onPressed: () => setState(() => theme.toggleTheme()),
           ),
         ],
@@ -118,20 +133,30 @@ class _ProductListScreenState extends State<ProductListScreen> {
                     Expanded(
                       child: Container(
                         decoration: theme.glassDecoration.copyWith(
-                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                          color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusList),
+                          color: theme.isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.white.withOpacity(0.2),
                         ),
                         child: TextField(
-                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontWeight: FontWeight.w500),
                           decoration: InputDecoration(
                             hintText: 'Search products...',
-                            hintStyle: TextStyle(color: theme.textHint, fontWeight: FontWeight.w400),
-                            prefixIcon: Icon(Icons.search_rounded, color: theme.iconColor),
+                            hintStyle: TextStyle(
+                                color: theme.textHint,
+                                fontWeight: FontWeight.w400),
+                            prefixIcon: Icon(Icons.search_rounded,
+                                color: theme.iconColor),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 15),
                           ),
                           onChanged: (val) {
-                            setState(() => _searchQuery = val.trim().toLowerCase());
+                            setState(
+                                () => _searchQuery = val.trim().toLowerCase());
                           },
                         ),
                       ),
@@ -143,7 +168,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: theme.whiteAlpha(0.05),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                        borderRadius:
+                            BorderRadius.circular(ThemeProvider.radiusList),
                         border: Border.all(color: theme.whiteAlpha(0.1)),
                       ),
                       child: Row(
@@ -156,12 +182,13 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   ],
                 ),
               ),
-              
+
               Expanded(
-                child: _loading 
-                    ? Center(child: CircularProgressIndicator(color: theme.highlight))
-                    : _buildProductList()
-              ),
+                  child: _loading
+                      ? Center(
+                          child:
+                              CircularProgressIndicator(color: theme.highlight))
+                      : _buildProductList()),
             ],
           ),
         ),
@@ -170,7 +197,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
         onPressed: () => _openProductScreen(),
         backgroundColor: theme.highlight,
         icon: const Icon(Icons.add_rounded, color: Colors.white),
-        label: const Text('NEW PRODUCT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        label: const Text('NEW PRODUCT',
+            style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5)),
         elevation: 8,
       ),
     );
@@ -185,13 +216,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
             Container(
               padding: const EdgeInsets.all(32),
               decoration: theme.glassCircleDecoration,
-              child: Icon(Icons.inventory_2_outlined, size: 60, color: theme.iconColor),
+              child: Icon(Icons.inventory_2_outlined,
+                  size: 60, color: theme.iconColor),
             ),
             const SizedBox(height: 16),
-            Text('No products found', 
-              style: TextStyle(fontSize: 18, color: theme.textPrimary, fontWeight: FontWeight.w800)),
-            Text('Add items to your catalog', 
-              style: TextStyle(fontSize: 14, color: theme.textSecondary)),
+            Text('No products found',
+                style: TextStyle(
+                    fontSize: 18,
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.w800)),
+            Text('Add items to your catalog',
+                style: TextStyle(fontSize: 14, color: theme.textSecondary)),
           ],
         ),
       );
@@ -204,7 +239,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
       if (_searchQuery.isEmpty) return true;
       final name = p.name.toLowerCase();
-      final barcode = p.stocks.any((s) => (s.barcode ?? '').toLowerCase().contains(_searchQuery));
+      final barcode = p.stocks
+          .any((s) => (s.barcode ?? '').toLowerCase().contains(_searchQuery));
       return name.contains(_searchQuery) || barcode;
     }).toList();
 
@@ -223,11 +259,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final name = sortedNames[index];
         final group = grouped[name]!;
         final isExpanded = _expandedGroups.contains(name);
-        
+
         // Aggregate Data
         final totalStock = group.fold(0.0, (sum, p) => sum + p.totalStock);
         final isActive = group.any((p) => p.status == 1);
-        
+
         // Collect all Prices
         final Set<double> uniquePrices = {};
         for (var p in group) {
@@ -235,9 +271,11 @@ class _ProductListScreenState extends State<ProductListScreen> {
             uniquePrices.add(s.salePrice);
           }
         }
-        
+
         final hasVariants = group.length > 1 || uniquePrices.length > 1;
-        final displayPrice = uniquePrices.length == 1 ? uniquePrices.first.toStringAsFixed(2) : '';
+        final displayPrice = uniquePrices.length == 1
+            ? uniquePrices.first.toStringAsFixed(2)
+            : '';
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
@@ -261,10 +299,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   },
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                   child: Container(
-                    decoration: theme.glassDecoration.copyWith(
-                      border: !isActive 
-                        ? Border.all(color: ThemeProvider.error.withOpacity(0.4), width: 1.5)
-                        : isExpanded ? Border.all(color: theme.highlight.withOpacity(0.3), width: 1.5) : null,
+                    decoration: theme.glassListDecoration.copyWith(
+                      border: !isActive
+                          ? Border.all(
+                              color: ThemeProvider.error.withOpacity(0.4),
+                              width: 1.5)
+                          : null,
                     ),
                     child: Opacity(
                       opacity: !isActive ? 0.7 : 1.0,
@@ -282,13 +322,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                       color: theme.textPrimary,
                                       fontSize: 14,
                                       fontWeight: FontWeight.w800,
-                                      decoration: !isActive ? TextDecoration.lineThrough : null,
+                                      decoration: !isActive
+                                          ? TextDecoration.lineThrough
+                                          : null,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     'Stock: ${totalStock.toStringAsFixed(0)} | ${group.length} variants',
-                                    style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                        color: theme.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500),
                                   ),
                                 ],
                               ),
@@ -300,18 +345,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 children: [
                                   Text(
                                     '${BusinessConfig.instance.currencyDisplay} $displayPrice',
-                                    style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                                    style: TextStyle(
+                                        color: theme.highlight,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 13),
                                   ),
                                   Text(
                                     'UNIT PRICE',
-                                    style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                    style: TextStyle(
+                                        color: theme.textHint,
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.w800),
                                   ),
                                 ],
                               ),
                             const SizedBox(width: 8),
                             if (hasVariants)
                               Icon(
-                                isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                                isExpanded
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
                                 color: theme.highlight,
                                 size: 24,
                               ),
@@ -319,7 +372,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
                               Switch.adaptive(
                                 value: isActive,
                                 activeColor: theme.toggleActiveColor,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                materialTapTargetSize:
+                                    MaterialTapTargetSize.shrinkWrap,
                                 onChanged: (val) {
                                   for (var p in group) {
                                     _toggleStatus(p);
@@ -333,8 +387,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   ),
                 ),
               ),
-              if (isExpanded)
-                _buildVariantsList(name, group),
+              if (isExpanded) _buildVariantsList(name, group),
             ],
           ),
         );
@@ -363,26 +416,33 @@ class _ProductListScreenState extends State<ProductListScreen> {
         final key = '${s.salePrice}_${effectiveBarcode ?? 'default'}';
         if (variants.containsKey(key)) {
           final existingStock = variants[key]!.value;
-          variants[key] = MapEntry(p, existingStock.copyWith(quantity: existingStock.quantity + s.quantity));
+          variants[key] = MapEntry(
+              p,
+              existingStock.copyWith(
+                  quantity: existingStock.quantity + s.quantity));
         } else {
           variants[key] = MapEntry(p, s);
         }
       }
     }
-    final flattened = variants.values.toList()..sort((a, b) => b.value.salePrice.compareTo(a.value.salePrice));
+    final flattened = variants.values.toList()
+      ..sort((a, b) => b.value.salePrice.compareTo(a.value.salePrice));
 
     return Container(
       margin: const EdgeInsets.only(top: 4, left: 16, right: 4),
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: theme.highlight.withOpacity(0.2), width: 2)),
+        border: Border(
+            left:
+                BorderSide(color: theme.highlight.withOpacity(0.2), width: 2)),
       ),
       child: Column(
         children: flattened.map((entry) {
           final p = entry.key;
           final s = entry.value;
           final bool isLowStock = s.quantity <= p.stockLimit;
-          final currentEffectiveBarcode = s.barcode ?? fallbackBarcode ?? 'Default';
+          final currentEffectiveBarcode =
+              s.barcode ?? fallbackBarcode ?? 'Default';
 
           return Padding(
             padding: const EdgeInsets.only(bottom: 6),
@@ -390,9 +450,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
               onTap: () => _openProductScreen(product: p, stock: s),
               borderRadius: BorderRadius.circular(8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
-                  color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                  color: theme.isDark
+                      ? Colors.white.withOpacity(0.03)
+                      : Colors.black.withOpacity(0.02),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -404,17 +467,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           Text(
                             '${BusinessConfig.instance.currencyDisplay} ${s.salePrice.toStringAsFixed(2)}',
                             style: TextStyle(
-                              color: theme.textPrimary, 
-                              fontWeight: FontWeight.bold, 
+                              color: theme.textPrimary,
+                              fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              decoration: s.status == 0 ? TextDecoration.lineThrough : null,
+                              decoration: s.status == 0
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                           ),
                           Text('Barcode: $currentEffectiveBarcode',
                               style: TextStyle(
-                                color: theme.textHint, 
+                                color: theme.textHint,
                                 fontSize: 10,
-                                decoration: s.status == 0 ? TextDecoration.lineThrough : null,
+                                decoration: s.status == 0
+                                    ? TextDecoration.lineThrough
+                                    : null,
                               )),
                           if (s.tax > 0 || p.taxEnabled)
                             Text(
@@ -423,14 +490,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                 color: theme.highlight,
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
-                                decoration: s.status == 0 ? TextDecoration.lineThrough : null,
+                                decoration: s.status == 0
+                                    ? TextDecoration.lineThrough
+                                    : null,
                               ),
                             ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: s.status == 0
                             ? theme.textHint.withOpacity(0.1)
@@ -440,7 +510,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        s.status == 0 ? 'Inactive' : '${s.quantity.toStringAsFixed(0)} Unit',
+                        s.status == 0
+                            ? 'Inactive'
+                            : '${s.quantity.toStringAsFixed(0)} Unit',
                         style: TextStyle(
                           color: s.status == 0
                               ? theme.textHint
@@ -458,12 +530,14 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       activeColor: theme.toggleActiveColor,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       onChanged: (val) async {
-                        await DatabaseHelper.instance.toggleStockStatus(s.id, s.status);
+                        await DatabaseHelper.instance
+                            .toggleStockStatus(s.id, s.status);
                         _loadData();
                       },
                     ),
                     IconButton(
-                      icon: Icon(Icons.edit_note_rounded, color: theme.highlight, size: 18),
+                      icon: Icon(Icons.edit_note_rounded,
+                          color: theme.highlight, size: 18),
                       onPressed: () => _openProductScreen(product: p, stock: s),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -487,13 +561,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
           decoration: BoxDecoration(
             color: active ? theme.highlight : Colors.transparent,
             borderRadius: BorderRadius.circular(ThemeProvider.radiusList - 2),
-            boxShadow: active ? [
-              BoxShadow(
-                color: theme.highlight.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ] : null,
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: theme.highlight.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
           ),
           child: Center(
             child: Text(

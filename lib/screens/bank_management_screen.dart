@@ -671,10 +671,9 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
             icon:
                 Icon(Icons.settings_suggest_rounded, color: theme.textPrimary),
             tooltip: 'Manage Banks & Accounts',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (context) => const ManageBanksScreen()),
+            onPressed: () => showDialog(
+              context: context,
+              builder: (ctx) => const ManageBanksScreen(),
             ).then((_) => _loadTransactions()),
           ),
           const SizedBox(width: 8),
@@ -712,7 +711,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                         final isWithdrawal = t.transactionType == 'Withdrawal';
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          decoration: theme.glassDecoration,
+                          decoration: theme.glassListDecoration,
                           child: ListTile(
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 4),

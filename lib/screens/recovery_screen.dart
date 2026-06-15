@@ -236,7 +236,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          decoration: theme.glassDecoration,
+                          decoration: theme.glassListDecoration,
                           child: Row(
                             children: [
                               Icon(Icons.calendar_today_rounded, color: theme.highlight, size: 20),
@@ -565,7 +565,7 @@ class _CustomerCreditCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: theme.glassDecoration,
+      decoration: theme.glassListDecoration,
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
@@ -657,7 +657,7 @@ class _PaymentHistoryCard extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: theme.glassDecoration,
+      decoration: theme.glassListDecoration,
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(ThemeProvider.radiusList),

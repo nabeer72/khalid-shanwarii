@@ -52,12 +52,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
       _selectedPayment == 'Credit Card';
 
   /// Change / returnable amount for Cash, Mobile Payment, Credit Card
-  double get _change =>
-      _isTenderedMethod ? (_amountTendered - _grandTotal).clamp(-double.infinity, double.infinity) : 0;
+  double get _change => _isTenderedMethod
+      ? (_amountTendered - _grandTotal).clamp(-double.infinity, double.infinity)
+      : 0;
 
   /// For Credit: how much of the total is still unpaid (goes to credit)
-  double get _creditRemaining =>
-      _selectedPayment == 'Credit' ? (_grandTotal - _amountTendered).clamp(0, double.infinity) : 0;
+  double get _creditRemaining => _selectedPayment == 'Credit'
+      ? (_grandTotal - _amountTendered).clamp(0, double.infinity)
+      : 0;
   Customer? _selectedCustomer;
   bool _processing = false;
   bool _generateReceipt = BusinessConfig.instance.autoReceipt;
@@ -66,10 +68,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   // Default payment methods shown immediately (before async DB load)
   static final _defaultPaymentMethods = [
-    PaymentMethod(id: 1, name: 'Cash',           icon: 'payments'),
+    PaymentMethod(id: 1, name: 'Cash', icon: 'payments'),
     PaymentMethod(id: 2, name: 'Mobile Payment', icon: 'phone_android'),
-    PaymentMethod(id: 3, name: 'Credit',         icon: 'account_balance_wallet'),
-    PaymentMethod(id: 4, name: 'Credit Card',    icon: 'credit_card'),
+    PaymentMethod(id: 3, name: 'Credit', icon: 'account_balance_wallet'),
+    PaymentMethod(id: 4, name: 'Credit Card', icon: 'credit_card'),
   ];
 
   List<PaymentMethod> _dynamicPaymentMethods = List.of(_defaultPaymentMethods);
@@ -120,23 +122,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final name = (pt['name']?.toString() ?? 'Unknown').trim();
       if (name.isEmpty) continue;
       final lower = name.toLowerCase();
-      
+
       // Determine icon
       String icon = 'payments';
-      if (lower.contains('cash')) icon = 'payments';
-      else if (lower.contains('bank')) icon = 'account_balance';
-      else if (lower.contains('cheque')) icon = 'receipt_long';
-      else if (lower.contains('card')) icon = 'credit_card';
-      else if (lower.contains('online')) icon = 'wifi';
-      else if (lower.contains('mobile')) icon = 'phone_android';
+      if (lower.contains('cash'))
+        icon = 'payments';
+      else if (lower.contains('bank'))
+        icon = 'account_balance';
+      else if (lower.contains('cheque'))
+        icon = 'receipt_long';
+      else if (lower.contains('card'))
+        icon = 'credit_card';
+      else if (lower.contains('online'))
+        icon = 'wifi';
+      else if (lower.contains('mobile'))
+        icon = 'phone_android';
       else if (lower == 'credit') icon = 'account_balance_wallet';
 
       // Database ID takes precedence
-      methodMap[lower] = {
-        'id': pt['id'],
-        'name': name,
-        'icon': icon
-      };
+      methodMap[lower] = {'id': pt['id'], 'name': name, 'icon': icon};
     }
 
     final List<PaymentMethod> list = [];
@@ -175,53 +179,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
       double totalMaxAllowed = 0.0;
       double totalItemApplied = 0.0;
       bool itemLimitExceeded = false;
-      
+
       for (var item in widget.cart) {
         double itemPrice = (item['price'] as num).toDouble();
         double itemQty = (item['quantity'] as num).toDouble();
         double itemDisc = (item['discount'] as num? ?? 0).toDouble();
-        double itemDiscLimitPercent = (item['discount_limit'] as num? ?? 0).toDouble();
-        
-        double maxForThisItem = (itemPrice * itemQty) * (itemDiscLimitPercent / 100.0);
-        
+        double itemDiscLimitPercent =
+            (item['discount_limit'] as num? ?? 0).toDouble();
+
+        double maxForThisItem =
+            (itemPrice * itemQty) * (itemDiscLimitPercent / 100.0);
+
         if (itemDiscLimitPercent >= 0 && itemDisc > maxForThisItem + 0.01) {
           itemLimitExceeded = true;
         }
-        
+
         totalItemApplied += itemDisc;
         if (itemDiscLimitPercent >= 0) {
-           totalMaxAllowed += maxForThisItem;
+          totalMaxAllowed += maxForThisItem;
         }
       }
 
-      if (itemLimitExceeded || (widget.discount > 0.01 && (totalItemApplied + widget.discount > totalMaxAllowed + 0.01))) {
+      if (itemLimitExceeded ||
+          (widget.discount > 0.01 &&
+              (totalItemApplied + widget.discount > totalMaxAllowed + 0.01))) {
         if (mounted) {
-           showDialog(
-             context: context,
-             builder: (ctx) => AlertDialog(
-                backgroundColor: ThemeProvider.error,
-                title: const Text('Discount Limit Exceeded', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                content: const Text('The applied discount exceeds the allowed maximum discount limit for the products. The sale cannot proceed.', style: TextStyle(color: Colors.white)),
-                actions: [
-                   TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('OK', style: TextStyle(color: Colors.white)),
-                   )
-                ]
-             )
-           );
+          showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                      backgroundColor: ThemeProvider.error,
+                      title: const Text('Discount Limit Exceeded',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                      content: const Text(
+                          'The applied discount exceeds the allowed maximum discount limit for the products. The sale cannot proceed.',
+                          style: TextStyle(color: Colors.white)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('OK',
+                              style: TextStyle(color: Colors.white)),
+                        )
+                      ]));
         }
         return;
       }
     }
 
-    if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer == null) {
+    if ((_selectedPayment == 'Credit' || unpaidAmount > 0.01) &&
+        _selectedCustomer == null) {
       final customer = await _showCustomerSelectionDialog();
       if (customer == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Partial payments and credit sales require a customer. Please select a customer.'),
+              content: Text(
+                  'Partial payments and credit sales require a customer. Please select a customer.'),
               backgroundColor: ThemeProvider.error,
             ),
           );
@@ -234,18 +248,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
 
     // Credit Limit Check
-    if (!widget.isReturn && (_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
+    if (!widget.isReturn &&
+        (_selectedPayment == 'Credit' || unpaidAmount > 0.01) &&
+        _selectedCustomer != null) {
       if (_selectedCustomer!.creditLimit > 0) {
         final currentBalance = _selectedCustomer!.creditBalance ?? 0.0;
         final newCredit = unpaidAmount;
         final totalNewBalance = currentBalance + newCredit;
-        
+
         if (totalNewBalance > _selectedCustomer!.creditLimit) {
-          final exceededAmount = totalNewBalance - _selectedCustomer!.creditLimit;
+          final exceededAmount =
+              totalNewBalance - _selectedCustomer!.creditLimit;
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Credit limit exceeded by ${BusinessConfig.instance.formatAmount(exceededAmount)}! \nLimit: ${BusinessConfig.instance.formatAmount(_selectedCustomer!.creditLimit)}, New Balance: ${BusinessConfig.instance.formatAmount(totalNewBalance)}'),
+                content: Text(
+                    'Credit limit exceeded by ${BusinessConfig.instance.formatAmount(exceededAmount)}! \nLimit: ${BusinessConfig.instance.formatAmount(_selectedCustomer!.creditLimit)}, New Balance: ${BusinessConfig.instance.formatAmount(totalNewBalance)}'),
                 backgroundColor: ThemeProvider.error,
                 duration: const Duration(seconds: 8),
                 action: SnackBarAction(
@@ -267,10 +285,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final activeShift = await DatabaseHelper.instance.getActiveShift();
       final isReturnVal = widget.isReturn ? 1 : 0;
       final sign = widget.isReturn ? -1.0 : 1.0;
-      
-      final selectedMethod = _dynamicPaymentMethods.firstWhere((pm) => pm.name == _selectedPayment, orElse: () => _dynamicPaymentMethods.first);
+
+      final selectedMethod = _dynamicPaymentMethods.firstWhere(
+          (pm) => pm.name == _selectedPayment,
+          orElse: () => _dynamicPaymentMethods.first);
       final paymentTypeId = selectedMethod.id;
-      
+
       final sale = {
         'business_id': BusinessConfig.instance.businessId,
         'branch_id': BusinessConfig.instance.branchId,
@@ -333,17 +353,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
             'discount': item['discount'] ?? 0,
           };
         }).toList();
-        saleId = await DatabaseHelper.instance.insertReturn(returnData, returnItems);
+        saleId =
+            await DatabaseHelper.instance.insertReturn(returnData, returnItems);
       } else {
         saleId = await DatabaseHelper.instance.insertSale(sale, saleItems);
       }
-      
+
       // Credit logic: remaining balance goes to credit, partial cash recorded as payment
       final double creditAmount = _selectedPayment == 'Credit'
-          ? _grandTotal         // full amount is a credit sale
-          : unpaidAmount;       // for non-credit methods, only unpaid portion becomes credit
+          ? _grandTotal // full amount is a credit sale
+          : unpaidAmount; // for non-credit methods, only unpaid portion becomes credit
 
-      if (!widget.isReturn && (_selectedPayment == 'Credit' || unpaidAmount > 0.01) && _selectedCustomer != null) {
+      if (!widget.isReturn &&
+          (_selectedPayment == 'Credit' || unpaidAmount > 0.01) &&
+          _selectedCustomer != null) {
         // How much is still owed after any cash paid now
         final double remainingCredit = _selectedPayment == 'Credit'
             ? (_grandTotal - _amountTendered).clamp(0.0, double.infinity)
@@ -360,9 +383,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         };
-        final creditSaleId = await DatabaseHelper.instance.insertCreditSale(creditSale);
+        final creditSaleId =
+            await DatabaseHelper.instance.insertCreditSale(creditSale);
         // Only add the unpaid portion to the customer's credit balance
-        await DatabaseHelper.instance.updateCustomerCreditBalance(_selectedCustomer!.id ?? 0, remainingCredit);
+        await DatabaseHelper.instance.updateCustomerCreditBalance(
+            _selectedCustomer!.id ?? 0, remainingCredit);
 
         // Record the partial cash payment made at the time of sale
         if (_selectedPayment == 'Credit' && _amountTendered > 0) {
@@ -392,7 +417,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           await DatabaseHelper.instance.insertCreditPayment(payment);
         }
       }
-      
+
       final saleForReceipt = {
         'id': saleId,
         'business_id': BusinessConfig.instance.businessId,
@@ -410,13 +435,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'status': 1,
         'is_synced': 0,
         'created_at': DateTime.now().toIso8601String(),
-        'items': widget.cart.map((item) => {
-          'name': item['name'],
-          'price': (item['price'] as num).toDouble(),
-          'quantity': item['quantity'],
-          'sub_total': (item['sub_total'] ?? item['subtotal'] as num).toDouble(),
-          'discount': (item['discount'] as num? ?? 0).toDouble(),
-        }).toList(),
+        'items': widget.cart
+            .map((item) => {
+                  'name': item['name'],
+                  'price': (item['price'] as num).toDouble(),
+                  'quantity': item['quantity'],
+                  'sub_total':
+                      (item['sub_total'] ?? item['subtotal'] as num).toDouble(),
+                  'discount': (item['discount'] as num? ?? 0).toDouble(),
+                })
+            .toList(),
         'timestamp': DateTime.now().toIso8601String(),
         'isReturn': widget.isReturn,
         'paymentMethod': _selectedPayment,
@@ -431,17 +459,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (mounted) {
         if (_generateReceipt) {
           Navigator.of(context).pushReplacement(
-            MaterialPageRoute(builder: (_) => ReceiptScreen(sale: saleForReceipt)),
+            MaterialPageRoute(
+                builder: (_) => ReceiptScreen(sale: saleForReceipt)),
           );
         } else {
           Navigator.of(context).pop();
           if (widget.isReturn) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Refund completed!'), backgroundColor: ThemeProvider.success),
+              const SnackBar(
+                  content: Text('Refund completed!'),
+                  backgroundColor: ThemeProvider.success),
             );
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Sale completed successfully!'), backgroundColor: ThemeProvider.success),
+              const SnackBar(
+                  content: Text('Sale completed successfully!'),
+                  backgroundColor: ThemeProvider.success),
             );
           }
         }
@@ -461,12 +494,13 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _cyclePaymentMethod(int step) {
     if (_dynamicPaymentMethods.isEmpty) return;
-    final currentIndex = _dynamicPaymentMethods.indexWhere((m) => m.name == _selectedPayment);
+    final currentIndex =
+        _dynamicPaymentMethods.indexWhere((m) => m.name == _selectedPayment);
     if (currentIndex == -1) return;
-    
+
     int nextIndex = (currentIndex + step) % _dynamicPaymentMethods.length;
     if (nextIndex < 0) nextIndex = _dynamicPaymentMethods.length - 1;
-    
+
     setState(() {
       _selectedPayment = _dynamicPaymentMethods[nextIndex].name;
     });
@@ -490,118 +524,129 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ),
       child: Scaffold(
         extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          widget.isReturn ? 'Process Refund' : 'Payment',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            widget.isReturn ? 'Process Refund' : 'Payment',
+            style: TextStyle(
+                color: theme.textPrimary,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5),
+          ),
+          leading: BackButton(color: theme.textPrimary),
         ),
-        leading: BackButton(color: theme.textPrimary),
-      ),
-      body: KeyboardListener(
-        focusNode: _keyboardFocusNode,
-        autofocus: true,
-        onKeyEvent: (KeyEvent event) {
-          if (event is KeyDownEvent) {
-            if (event.character != null && RegExp(r'^[0-9.]$').hasMatch(event.character!)) {
-              _onDialTap(event.character!);
-            } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
-              _onDialTap('⌫');
-            } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-              _processPayment();
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowDown || event.logicalKey == LogicalKeyboardKey.arrowRight) {
-              _cyclePaymentMethod(1);
-            } else if (event.logicalKey == LogicalKeyboardKey.arrowUp || event.logicalKey == LogicalKeyboardKey.arrowLeft) {
-              _cyclePaymentMethod(-1);
+        body: KeyboardListener(
+          focusNode: _keyboardFocusNode,
+          autofocus: true,
+          onKeyEvent: (KeyEvent event) {
+            if (event is KeyDownEvent) {
+              if (event.character != null &&
+                  RegExp(r'^[0-9.]$').hasMatch(event.character!)) {
+                _onDialTap(event.character!);
+              } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
+                _onDialTap('⌫');
+              } else if (event.logicalKey == LogicalKeyboardKey.enter) {
+                _processPayment();
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
+                  event.logicalKey == LogicalKeyboardKey.arrowRight) {
+                _cyclePaymentMethod(1);
+              } else if (event.logicalKey == LogicalKeyboardKey.arrowUp ||
+                  event.logicalKey == LogicalKeyboardKey.arrowLeft) {
+                _cyclePaymentMethod(-1);
+              }
             }
-          }
-        },
-        child: theme.glassBackground(
-          child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 820;
-              if (isWide) {
-                return Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      // COMBINED LEFT CARD (Amount + Payment Methods)
-                      Container(
-                        decoration: theme.glassDecoration.copyWith(
-                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                        ),
-                        child: IntrinsicWidth(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              SizedBox(
-                                width: 280,
-                                child: Padding(
+          },
+          child: theme.glassBackground(
+            child: SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 820;
+                  if (isWide) {
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // COMBINED LEFT CARD (Amount + Payment Methods)
+                          Container(
+                            decoration: theme.glassDecoration.copyWith(
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusCard),
+                            ),
+                            child: IntrinsicWidth(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  SizedBox(
+                                    width: 280,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: _buildLeftPanelContent(),
+                                    ),
+                                  ),
+                                  VerticalDivider(
+                                    width: 1,
+                                    thickness: 1,
+                                    color: theme.cardBorder,
+                                  ),
+                                  SizedBox(
+                                    width: 230,
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: _buildMiddlePanelContent(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // RIGHT: Order Summary
+                          Expanded(
+                            child: _buildSummary(true),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        children: [
+                          Container(
+                            decoration: theme.glassDecoration.copyWith(
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusCard),
+                            ),
+                            child: Column(
+                              children: [
+                                Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: _buildLeftPanelContent(),
                                 ),
-                              ),
-                              VerticalDivider(
-                                width: 1,
-                                thickness: 1,
-                                color: theme.cardBorder,
-                              ),
-                              SizedBox(
-                                width: 230,
-                                child: Padding(
+                                Divider(
+                                    height: 1,
+                                    thickness: 1,
+                                    color: theme.cardBorder),
+                                Padding(
                                   padding: const EdgeInsets.all(16),
                                   child: _buildMiddlePanelContent(),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          _buildSummary(false),
+                        ],
                       ),
-                      const SizedBox(width: 16),
-                      // RIGHT: Order Summary
-                      Expanded(
-                        child: _buildSummary(true),
-                      ),
-                    ],
-                  ),
-                );
-              } else {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Container(
-                        decoration: theme.glassDecoration.copyWith(
-                          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                        ),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: _buildLeftPanelContent(),
-                            ),
-                            Divider(height: 1, thickness: 1, color: theme.cardBorder),
-                            Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: _buildMiddlePanelContent(),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildSummary(false),
-                    ],
-                  ),
-                );
-              }
-            },
-          ),
+                    );
+                  }
+                },
+              ),
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -613,94 +658,112 @@ class _PaymentScreenState extends State<PaymentScreen> {
         children: [
           _buildAmountField(),
           const SizedBox(height: 10),
-            _buildUniversalDialPad(),
-            // Returnable amount for Cash / Mobile / Credit Card
-            if (_isTenderedMethod && _change > 0.005) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: ThemeProvider.success.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  border: Border.all(color: ThemeProvider.success.withOpacity(0.3), width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.arrow_circle_down_rounded, color: ThemeProvider.success, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Return ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_change)} to customer',
-                        style: const TextStyle(color: ThemeProvider.success, fontSize: 10, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
+          _buildUniversalDialPad(),
+          // Returnable amount for Cash / Mobile / Credit Card
+          if (_isTenderedMethod && _change > 0.005) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: ThemeProvider.success.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                border: Border.all(
+                    color: ThemeProvider.success.withOpacity(0.3), width: 1.5),
               ),
-            ],
-            // Partial credit info for Credit method
-            if (_selectedPayment == 'Credit' && _creditRemaining > 0) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: ThemeProvider.warning.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  border: Border.all(color: ThemeProvider.warning.withOpacity(0.3), width: 1.5),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.account_balance_wallet_rounded, color: ThemeProvider.warning, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Credit balance: ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_creditRemaining)}',
-                            style: const TextStyle(color: ThemeProvider.warning, fontSize: 10, fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ],
+              child: Row(
+                children: [
+                  Icon(Icons.arrow_circle_down_rounded,
+                      color: ThemeProvider.success, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Return ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_change)} to customer',
+                      style: const TextStyle(
+                          color: ThemeProvider.success,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700),
                     ),
-                    if (_amountTendered > 0) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        'Paid now: ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_amountTendered)}',
-                        style: TextStyle(color: theme.textSecondary, fontSize: 9, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // Partial credit info for Credit method
+          if (_selectedPayment == 'Credit' && _creditRemaining > 0) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: ThemeProvider.warning.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                border: Border.all(
+                    color: ThemeProvider.warning.withOpacity(0.3), width: 1.5),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.account_balance_wallet_rounded,
+                          color: ThemeProvider.warning, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Credit balance: ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_creditRemaining)}',
+                          style: const TextStyle(
+                              color: ThemeProvider.warning,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700),
+                        ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ],
-            // Credit method, no partial entered yet
-            if (_selectedPayment == 'Credit' && _amountTendered == 0) ...[
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: ThemeProvider.info.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  border: Border.all(color: ThemeProvider.info.withOpacity(0.3), width: 1.5),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline_rounded, color: ThemeProvider.info, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Full amount goes to credit. Enter a partial amount above to pay some now.',
-                        style: const TextStyle(color: ThemeProvider.info, fontSize: 10, fontWeight: FontWeight.w600),
-                      ),
+                  ),
+                  if (_amountTendered > 0) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Paid now: ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_amountTendered)}',
+                      style: TextStyle(
+                          color: theme.textSecondary,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600),
                     ),
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
           ],
-        ),
-      );
+          // Credit method, no partial entered yet
+          if (_selectedPayment == 'Credit' && _amountTendered == 0) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: ThemeProvider.info.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                border: Border.all(
+                    color: ThemeProvider.info.withOpacity(0.3), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      color: ThemeProvider.info, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Full amount goes to credit. Enter a partial amount above to pay some now.',
+                      style: const TextStyle(
+                          color: ThemeProvider.info,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildMiddlePanelContent() {
@@ -715,59 +778,63 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.3)),
         const SizedBox(height: 10),
-          // 2x2 grid of payment methods
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 0.95,
-            children: _dynamicPaymentMethods.take(4).map((pm) => _PaymentMethodButton(
-              name: pm.name,
-              iconName: pm.icon,
-              selected: _selectedPayment == pm.name,
-              onTap: () {
-                setState(() {
-                  _selectedPayment = pm.name;
-                  // Reset tendered amount when switching methods
-                  _amountTendered = 0;
-                  _cashController.text = '0.00';
-                  _partialController.text = '0.00';
-                });
-              },
-            )).toList(),
+        // 2x2 grid of payment methods
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: 0.95,
+          children: _dynamicPaymentMethods
+              .take(4)
+              .map((pm) => _PaymentMethodButton(
+                    name: pm.name,
+                    iconName: pm.icon,
+                    selected: _selectedPayment == pm.name,
+                    onTap: () {
+                      setState(() {
+                        _selectedPayment = pm.name;
+                        // Reset tendered amount when switching methods
+                        _amountTendered = 0;
+                        _cashController.text = '0.00';
+                        _partialController.text = '0.00';
+                      });
+                    },
+                  ))
+              .toList(),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: theme.cardBorder)),
           ),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: theme.cardBorder)),
-            ),
-            padding: const EdgeInsets.only(top: 10),
-            child: Column(
-              children: [
-                _buildOptionToggle(
-                  label: 'Receipt',
-                  icon: Icons.receipt_long_rounded,
-                  value: _generateReceipt,
-                  onChanged: (v) => setState(() => _generateReceipt = v ?? false),
-                ),
-                const SizedBox(height: 4),
-                _buildOptionToggle(
-                  label: 'Cash Drawer',
-                  icon: Icons.door_sliding_rounded,
-                  value: _openCashDrawer,
-                  onChanged: (v) => setState(() => _openCashDrawer = v ?? false),
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            children: [
+              _buildOptionToggle(
+                label: 'Receipt',
+                icon: Icons.receipt_long_rounded,
+                value: _generateReceipt,
+                onChanged: (v) => setState(() => _generateReceipt = v ?? false),
+              ),
+              const SizedBox(height: 4),
+              _buildOptionToggle(
+                label: 'Cash Drawer',
+                icon: Icons.door_sliding_rounded,
+                value: _openCashDrawer,
+                onChanged: (v) => setState(() => _openCashDrawer = v ?? false),
+              ),
+            ],
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   // Keep old method for compat — now unused but left to avoid removing any referenced code
-  Widget _buildPaymentMethods({bool isMobile = false}) => _buildMiddlePanelContent();
+  Widget _buildPaymentMethods({bool isMobile = false}) =>
+      _buildMiddlePanelContent();
 
   Widget _buildSummary(bool isWide) {
     return Container(
@@ -792,27 +859,38 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5)),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
                     color: theme.whiteAlpha(0.05),
-                    borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                    borderRadius:
+                        BorderRadius.circular(ThemeProvider.radiusList),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.person_rounded, size: 13, color: theme.highlight),
+                      Icon(Icons.person_rounded,
+                          size: 13, color: theme.highlight),
                       const SizedBox(width: 5),
                       Text(
                         _selectedCustomer?.name ?? 'Walk-in Guest',
-                        style: TextStyle(color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.w900),
+                        style: TextStyle(
+                            color: theme.textPrimary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900),
                       ),
-                      if (_selectedCustomer == null && (_amountTendered < _grandTotal || _selectedPayment == 'Credit')) ...[
+                      if (_selectedCustomer == null &&
+                          (_amountTendered < _grandTotal ||
+                              _selectedPayment == 'Credit')) ...[
                         const SizedBox(width: 4),
                         GestureDetector(
                           onTap: () async {
-                            final customer = await _showCustomerSelectionDialog();
-                            if (customer != null) setState(() => _selectedCustomer = customer);
+                            final customer =
+                                await _showCustomerSelectionDialog();
+                            if (customer != null)
+                              setState(() => _selectedCustomer = customer);
                           },
-                          child: Icon(Icons.add_circle_outline_rounded, size: 16, color: theme.highlight),
+                          child: Icon(Icons.add_circle_outline_rounded,
+                              size: 16, color: theme.highlight),
                         ),
                       ],
                     ],
@@ -829,14 +907,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: SingleChildScrollView(
-                  child: _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
+                  child: _buildItemList(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics()),
                 ),
               ),
             )
           else
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: _buildItemList(shrinkWrap: true, physics: const NeverScrollableScrollPhysics()),
+              child: _buildItemList(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics()),
             ),
 
           // Totals section with top divider
@@ -849,34 +931,41 @@ class _PaymentScreenState extends State<PaymentScreen> {
               children: [
                 _SummaryRow(
                     label: 'Subtotal',
-                    value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.subtotal)}'),
+                    value:
+                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.subtotal)}'),
                 _SummaryRow(
                     label: 'Tax',
-                    value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
+                    value:
+                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
                 if (widget.discount > 0)
                   _SummaryRow(
                       label: 'Discount',
-                      value: '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.discount)}',
+                      value:
+                          '-${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.discount)}',
                       valueColor: ThemeProvider.warning),
                 if (_tipAmount > 0)
                   _SummaryRow(
                       label: 'Tip',
-                      value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_tipAmount)}',
+                      value:
+                          '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_tipAmount)}',
                       valueColor: ThemeProvider.success),
                 if (_isTenderedMethod && _change > 0.005)
                   _SummaryRow(
                       label: 'Returnable Amount',
-                      value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_change)}',
+                      value:
+                          '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_change)}',
                       valueColor: ThemeProvider.success),
                 if (_selectedPayment == 'Credit' && _creditRemaining > 0)
                   _SummaryRow(
                       label: 'To Credit',
-                      value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_creditRemaining)}',
+                      value:
+                          '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_creditRemaining)}',
                       valueColor: ThemeProvider.warning),
                 if (_selectedPayment == 'Credit' && _amountTendered > 0)
                   _SummaryRow(
                       label: 'Paid Now',
-                      value: '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_amountTendered)}',
+                      value:
+                          '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_amountTendered)}',
                       valueColor: ThemeProvider.success),
               ],
             ),
@@ -933,7 +1022,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                               ? 'PAY ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_amountTendered)} + ADD CREDIT'
                               : 'ADD FULL AMOUNT TO CREDIT')
                           : 'COMPLETE TRANSACTION',
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                  style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.3),
                 ),
                 onPressed: (_processing ||
                         (!widget.isReturn &&
@@ -942,11 +1034,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     ? null
                     : _processPayment,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.isReturn ? ThemeProvider.warning : ThemeProvider.success,
+                  backgroundColor: widget.isReturn
+                      ? ThemeProvider.warning
+                      : ThemeProvider.success,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(ThemeProvider.radiusList)),
                   elevation: 4,
-                  shadowColor: (widget.isReturn ? ThemeProvider.warning : ThemeProvider.success).withOpacity(0.3),
+                  shadowColor: (widget.isReturn
+                          ? ThemeProvider.warning
+                          : ThemeProvider.success)
+                      .withOpacity(0.3),
                 ),
               ),
             ),
@@ -1059,31 +1158,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         TextField(
                           autofocus: true,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: 'Search customer...',
-                            hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon:
-                                Icon(Icons.search, color: theme.iconColor),
-                            border: const OutlineInputBorder(),
-                          ),
+                          decoration: theme.glassInputDecoration(
+                              'Search customer...', Icons.search),
                           onChanged: (v) => setDialogState(() => query = v),
                         ),
                         const SizedBox(height: 12),
-                          if (!BusinessConfig.instance.requireCustomer) ...[
-                            ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: theme.highlight.withAlpha(40),
-                                child: Icon(Icons.person_outline,
-                                    color: theme.highlight, size: 20),
-                              ),
-                              title: Text('Walk-in Guest',
-                                  style: TextStyle(
-                                      color: theme.textPrimary,
-                                      fontWeight: FontWeight.bold)),
-                              onTap: () => Navigator.pop(ctx, null),
+                        if (!BusinessConfig.instance.requireCustomer) ...[
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: theme.highlight.withAlpha(40),
+                              child: Icon(Icons.person_outline,
+                                  color: theme.highlight, size: 20),
                             ),
-                            const Divider(),
-                          ],
+                            title: Text('Walk-in Guest',
+                                style: TextStyle(
+                                    color: theme.textPrimary,
+                                    fontWeight: FontWeight.bold)),
+                            onTap: () => Navigator.pop(ctx, null),
+                          ),
+                          const Divider(),
+                        ],
                         if (filtered.isEmpty)
                           Padding(
                             padding: const EdgeInsets.all(20),
@@ -1149,18 +1243,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
                 child: Text('${item['quantity']}x',
                     style: TextStyle(
-                        color: theme.highlight, fontSize: 12, fontWeight: FontWeight.w900)),
+                        color: theme.highlight,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900)),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(item['name'],
                     style: TextStyle(
-                        color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                        color: theme.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600)),
               ),
               Text(
                 '${BusinessConfig.instance.currencyDisplay} ${(item['subtotal'] as double).toStringAsFixed(2)}',
                 style: TextStyle(
-                    color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.w800),
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800),
               ),
             ],
           ),
@@ -1217,7 +1317,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.refresh_rounded, color: theme.highlight, size: 18),
+                icon: Icon(Icons.refresh_rounded,
+                    color: theme.highlight, size: 18),
                 onPressed: () => _setCash(_grandTotal),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
@@ -1231,12 +1332,25 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Widget _buildUniversalDialPad() {
-    final leftNotes = _currencyNotes.take((_currencyNotes.length / 2).ceil()).toList();
+    final leftNotes =
+        _currencyNotes.take((_currencyNotes.length / 2).ceil()).toList();
     final rightNotes = _currencyNotes.skip(leftNotes.length).toList();
 
     // Fallback if no notes defined
-    final displayLeft = leftNotes.isNotEmpty ? leftNotes : [{'value': 10}, {'value': 20}, {'value': 50}];
-    final displayRight = rightNotes.isNotEmpty ? rightNotes : [{'value': 100}, {'value': 500}, {'value': 1000}];
+    final displayLeft = leftNotes.isNotEmpty
+        ? leftNotes
+        : [
+            {'value': 10},
+            {'value': 20},
+            {'value': 50}
+          ];
+    final displayRight = rightNotes.isNotEmpty
+        ? rightNotes
+        : [
+            {'value': 100},
+            {'value': 500},
+            {'value': 1000}
+          ];
 
     return Column(
       children: [
@@ -1247,10 +1361,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Expanded(
               flex: 1,
               child: Column(
-                children: displayLeft.map((note) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: _NoteButton(amount: (note['value'] as num).toDouble(), onTap: () => _setCash((note['value'] as num).toDouble())),
-                )).toList(),
+                children: displayLeft
+                    .map((note) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _NoteButton(
+                              amount: (note['value'] as num).toDouble(),
+                              onTap: () =>
+                                  _setCash((note['value'] as num).toDouble())),
+                        ))
+                    .toList(),
               ),
             ),
             const SizedBox(width: 8),
@@ -1274,10 +1393,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             Expanded(
               flex: 1,
               child: Column(
-                children: displayRight.map((note) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: _NoteButton(amount: (note['value'] as num).toDouble(), onTap: () => _setCash((note['value'] as num).toDouble())),
-                )).toList(),
+                children: displayRight
+                    .map((note) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: _NoteButton(
+                              amount: (note['value'] as num).toDouble(),
+                              onTap: () =>
+                                  _setCash((note['value'] as num).toDouble())),
+                        ))
+                    .toList(),
               ),
             ),
           ],
@@ -1304,18 +1428,34 @@ class _PaymentScreenState extends State<PaymentScreen> {
           // Row 1: NO TIP, 5%, 10%
           Row(
             children: [
-              Expanded(child: _TipButton(percent: 0, selected: _tipPercent == 0, onTap: () => setState(() => _tipPercent = 0))),
+              Expanded(
+                  child: _TipButton(
+                      percent: 0,
+                      selected: _tipPercent == 0,
+                      onTap: () => setState(() => _tipPercent = 0))),
               const SizedBox(width: 6),
-              Expanded(child: _TipButton(percent: 5, selected: _tipPercent == 5, onTap: () => setState(() => _tipPercent = 5))),
+              Expanded(
+                  child: _TipButton(
+                      percent: 5,
+                      selected: _tipPercent == 5,
+                      onTap: () => setState(() => _tipPercent = 5))),
               const SizedBox(width: 6),
-              Expanded(child: _TipButton(percent: 10, selected: _tipPercent == 10, onTap: () => setState(() => _tipPercent = 10))),
+              Expanded(
+                  child: _TipButton(
+                      percent: 10,
+                      selected: _tipPercent == 10,
+                      onTap: () => setState(() => _tipPercent = 10))),
             ],
           ),
           const SizedBox(height: 6),
           // Row 2: 15% alone centered
           Row(
             children: [
-              Expanded(child: _TipButton(percent: 15, selected: _tipPercent == 15, onTap: () => setState(() => _tipPercent = 15))),
+              Expanded(
+                  child: _TipButton(
+                      percent: 15,
+                      selected: _tipPercent == 15,
+                      onTap: () => setState(() => _tipPercent = 15))),
             ],
           ),
         ],
@@ -1361,13 +1501,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
         current += '.';
       }
     } else {
-      if (current == '0' || current == '0.00' || current == widget.total.toStringAsFixed(2)) {
+      if (current == '0' ||
+          current == '0.00' ||
+          current == widget.total.toStringAsFixed(2)) {
         current = key;
       } else {
         current += key;
       }
     }
-    
+
     setState(() {
       double val = double.tryParse(current) ?? 0;
       _activeController.text = current;
@@ -1381,7 +1523,8 @@ class _DialButton extends StatelessWidget {
   final bool isIcon;
   final VoidCallback onTap;
 
-  const _DialButton({required this.label, required this.onTap, this.isIcon = false});
+  const _DialButton(
+      {required this.label, required this.onTap, this.isIcon = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1399,9 +1542,14 @@ class _DialButton extends StatelessWidget {
             border: Border.all(color: theme.whiteAlpha(0.1)),
           ),
           child: Center(
-            child: isIcon 
-              ? Icon(Icons.backspace_outlined, color: theme.textPrimary, size: 16)
-              : Text(label, style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+            child: isIcon
+                ? Icon(Icons.backspace_outlined,
+                    color: theme.textPrimary, size: 16)
+                : Text(label,
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold)),
           ),
         ),
       ),
@@ -1435,8 +1583,11 @@ class _NoteButton extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(amount.toStringAsFixed(0), style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 12)),
-                
+                Text(amount.toStringAsFixed(0),
+                    style: TextStyle(
+                        color: theme.highlight,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12)),
               ],
             ),
           ),
@@ -1501,12 +1652,13 @@ class _PaymentMethodButton extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: selected ? Colors.white.withOpacity(0.2) : theme.whiteAlpha(0.06),
+                color: selected
+                    ? Colors.white.withOpacity(0.2)
+                    : theme.whiteAlpha(0.06),
                 shape: BoxShape.circle,
               ),
               child: Icon(_icon,
-                  color: selected ? Colors.white : theme.iconColor,
-                  size: 18),
+                  color: selected ? Colors.white : theme.iconColor, size: 18),
             ),
             const SizedBox(height: 5),
             Text(name.toUpperCase(),
@@ -1543,13 +1695,18 @@ class _QuickCashButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.highlight.withOpacity(0.08),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: theme.highlight.withOpacity(0.25), width: 1.5),
+          border:
+              Border.all(color: theme.highlight.withOpacity(0.25), width: 1.5),
         ),
         child: Center(
           child: Text(
-            label ?? '${BusinessConfig.instance.currencyDisplay} ${amount.toStringAsFixed(0)}',
+            label ??
+                '${BusinessConfig.instance.currencyDisplay} ${amount.toStringAsFixed(0)}',
             style: TextStyle(
-                color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                color: theme.highlight,
+                fontWeight: FontWeight.w900,
+                fontSize: 13,
+                letterSpacing: 0.5),
           ),
         ),
       ),
@@ -1610,12 +1767,17 @@ class _SummaryRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(label,
-                style: TextStyle(color: theme.textSecondary, fontSize: 14, fontWeight: FontWeight.w600)),
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600)),
           ),
           const SizedBox(width: 8),
           Text(value,
               style: TextStyle(
-                  color: valueColor ?? theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w800)),
+                  color: valueColor ?? theme.textPrimary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800)),
         ],
       ),
     );

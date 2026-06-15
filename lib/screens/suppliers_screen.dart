@@ -275,7 +275,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         final supplier = _controller.suppliers[index];
                         return Container(
                           margin: const EdgeInsets.only(bottom: 8),
-                          decoration: theme.glassDecoration,
+                          decoration: theme.glassListDecoration,
                           child: ListTile(
                             isThreeLine: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),

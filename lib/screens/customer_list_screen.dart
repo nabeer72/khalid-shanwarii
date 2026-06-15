@@ -345,7 +345,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                                 },
                                 borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                                 child: Container(
-                                  decoration: theme.glassDecoration,
+                                  decoration: theme.glassListDecoration,
                                   child: ListTile(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                                     title: Row(

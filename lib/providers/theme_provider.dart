@@ -87,7 +87,7 @@ class ThemeProvider extends ChangeNotifier {
       _isDark ? const Color(0xFF16213E) : const Color(0xFF1565C0);
   Color get cardBorder =>
       _isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04);
-  Color get iconColor => _isDark ? Colors.white : Colors.black;
+  Color get iconColor => highlight;
   Color get toggleActiveColor => _isDark ? success : const Color(0xFF02401E);
   Color get switchActiveColor => toggleActiveColor; // Backward compatibility
 
@@ -95,8 +95,15 @@ class ThemeProvider extends ChangeNotifier {
   static bool isWideScreen(BuildContext context) =>
       MediaQuery.of(context).size.width > 600;
 
-  // Glassmorphism effect
+  // Glassmorphism effect (with border for cards, search areas, etc.)
   BoxDecoration get glassDecoration => BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(radiusGlass),
+        border: Border.all(color: highlight, width: 1.0),
+      );
+
+  // Glassmorphism effect without border (for list tiles)
+  BoxDecoration get glassListDecoration => BoxDecoration(
         color: surface,
         borderRadius: BorderRadius.circular(radiusGlass),
         border: Border.all(color: divider, width: 1.0),
@@ -105,7 +112,6 @@ class ThemeProvider extends ChangeNotifier {
   BoxDecoration get glassCircleDecoration => BoxDecoration(
         color: surface,
         shape: BoxShape.circle,
-        border: Border.all(color: divider, width: 1.0),
       );
 
   // Background Gradients
@@ -117,7 +123,7 @@ class ThemeProvider extends ChangeNotifier {
   InputDecoration glassInputDecoration(String label, IconData icon,
       {bool isRequired = false}) {
     final labelStyle = TextStyle(
-      color: _isDark ? const Color(0xFF9CA3AF) : const Color(0xFF4B5563),
+      color: textSecondary,
       fontSize: 14,
       fontWeight: FontWeight.w500,
     );
@@ -128,10 +134,10 @@ class ThemeProvider extends ChangeNotifier {
               text: TextSpan(
                 children: [
                   TextSpan(text: label, style: labelStyle),
-                  const TextSpan(
+                  TextSpan(
                       text: ' *',
                       style: TextStyle(
-                          color: Colors.red,
+                          color: highlight,
                           fontWeight: FontWeight.bold,
                           fontSize: 16)),
                 ],
@@ -143,21 +149,15 @@ class ThemeProvider extends ChangeNotifier {
       fillColor: whiteAlpha(0.05),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
-        borderSide: BorderSide(
-            color:
-                _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
+        borderSide: BorderSide(color: divider, width: 1.0),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
-        borderSide: BorderSide(
-            color:
-                _isDark ? Colors.transparent : Colors.black.withOpacity(0.1)),
+        borderSide: BorderSide(color: divider, width: 1.0),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
-        borderSide: BorderSide(
-            color: _isDark ? highlight : Colors.black.withOpacity(0.3),
-            width: 1.5),
+        borderSide: BorderSide(color: highlight, width: 1.5),
       ),
     );
   }

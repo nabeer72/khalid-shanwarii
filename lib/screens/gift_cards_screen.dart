@@ -6,11 +6,26 @@ import 'package:mobile_app/db/mock_data.dart';
 class GiftCardStore {
   static final GiftCardStore instance = GiftCardStore._();
   GiftCardStore._();
-  
+
   final List<GiftCard> cards = [
-    GiftCard(id: 1, code: 'GIFT-1000-ABCD', balance: 25.00, initialAmount: 25.00, createdAt: DateTime.now().subtract(const Duration(days: 5))),
-    GiftCard(id: 2, code: 'GIFT-2000-EFGH', balance: 50.00, initialAmount: 50.00, createdAt: DateTime.now().subtract(const Duration(days: 2))),
-    GiftCard(id: 3, code: 'GIFT-3000-IJKL', balance: 12.50, initialAmount: 100.00, createdAt: DateTime.now().subtract(const Duration(days: 30))),
+    GiftCard(
+        id: 1,
+        code: 'GIFT-1000-ABCD',
+        balance: 25.00,
+        initialAmount: 25.00,
+        createdAt: DateTime.now().subtract(const Duration(days: 5))),
+    GiftCard(
+        id: 2,
+        code: 'GIFT-2000-EFGH',
+        balance: 50.00,
+        initialAmount: 50.00,
+        createdAt: DateTime.now().subtract(const Duration(days: 2))),
+    GiftCard(
+        id: 3,
+        code: 'GIFT-3000-IJKL',
+        balance: 12.50,
+        initialAmount: 100.00,
+        createdAt: DateTime.now().subtract(const Duration(days: 30))),
   ];
 }
 
@@ -22,7 +37,13 @@ class GiftCard {
   final DateTime createdAt;
   bool isActive;
 
-  GiftCard({required this.id, required this.code, required this.balance, required this.initialAmount, required this.createdAt, this.isActive = true});
+  GiftCard(
+      {required this.id,
+      required this.code,
+      required this.balance,
+      required this.initialAmount,
+      required this.createdAt,
+      this.isActive = true});
 }
 
 class GiftCardsScreen extends StatefulWidget {
@@ -48,7 +69,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
           contentPadding: EdgeInsets.zero,
           content: Container(
             padding: const EdgeInsets.all(24),
-            decoration: theme.glassDecoration,
+            decoration: theme.glassListDecoration,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,39 +78,71 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: const Color(0xFFE91E63).withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                      child: const Icon(Icons.card_giftcard_rounded, color: Color(0xFFE91E63), size: 24),
+                      decoration: BoxDecoration(
+                          color: theme.highlight.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Icon(Icons.card_giftcard_rounded,
+                          color: theme.highlight, size: 24),
                     ),
                     const SizedBox(width: 12),
-                    Text('New Gift Card', style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900)),
+                    Text('New Gift Card',
+                        style: TextStyle(
+                            color: theme.textPrimary,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900)),
                   ],
                 ),
                 const SizedBox(height: 24),
-                Text('SELECT PRESET AMOUNT', 
-                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                Text('SELECT PRESET AMOUNT',
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1)),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 12,
                   runSpacing: 12,
-                  children: amounts.map((amt) => GestureDetector(
-                    onTap: () => setDialogState(() => selectedAmount = amt),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: selectedAmount == amt ? const Color(0xFFE91E63) : theme.whiteAlpha(0.05),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                        border: Border.all(color: selectedAmount == amt ? const Color(0xFFE91E63) : theme.whiteAlpha(0.1), width: 1.5),
-                        boxShadow: selectedAmount == amt ? [BoxShadow(color: const Color(0xFFE91E63).withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
-                      ),
-                      child: Text(
-                        '${BusinessConfig.instance.currency}. ${amt.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          color: selectedAmount == amt ? Colors.white : theme.textPrimary,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                  )).toList(),
+                  children: amounts
+                      .map((amt) => GestureDetector(
+                            onTap: () =>
+                                setDialogState(() => selectedAmount = amt),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: selectedAmount == amt
+                                    ? theme.highlight
+                                    : theme.whiteAlpha(0.05),
+                                borderRadius: BorderRadius.circular(
+                                    ThemeProvider.radiusList),
+                                border: Border.all(
+                                    color: selectedAmount == amt
+                                        ? theme.highlight
+                                        : theme.whiteAlpha(0.1),
+                                    width: 1.5),
+                                boxShadow: selectedAmount == amt
+                                    ? [
+                                        BoxShadow(
+                                            color: theme.highlight
+                                                .withOpacity(0.3),
+                                            blurRadius: 10,
+                                            offset: const Offset(0, 4))
+                                      ]
+                                    : null,
+                              ),
+                              child: Text(
+                                '${BusinessConfig.instance.currency}. ${amt.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  color: selectedAmount == amt
+                                      ? Colors.white
+                                      : theme.textPrimary,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ))
+                      .toList(),
                 ),
                 const SizedBox(height: 32),
                 Row(
@@ -97,21 +150,27 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                     Expanded(
                       child: TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w900)),
+                        child: Text('CANCEL',
+                            style: TextStyle(
+                                color: theme.textSecondary,
+                                fontWeight: FontWeight.w900)),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE91E63),
+                          backgroundColor: theme.highlight,
                           foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusList)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           elevation: 0,
                         ),
                         onPressed: () {
-                          final code = 'GIFT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}-${DateTime.now().microsecond.toString().padLeft(4, '0')}';
+                          final code =
+                              'GIFT-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}-${DateTime.now().microsecond.toString().padLeft(4, '0')}';
                           GiftCardStore.instance.cards.add(GiftCard(
                             id: GiftCardStore.instance.cards.length + 1,
                             code: code,
@@ -123,7 +182,8 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                           setState(() {});
                           _showNewCardDialog(code, selectedAmount);
                         },
-                        child: const Text('GENERATE', style: TextStyle(fontWeight: FontWeight.w900)),
+                        child: const Text('GENERATE',
+                            style: TextStyle(fontWeight: FontWeight.w900)),
                       ),
                     ),
                   ],
@@ -144,39 +204,84 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
         contentPadding: EdgeInsets.zero,
         content: Container(
           padding: const EdgeInsets.all(24),
-          decoration: theme.glassDecoration,
+          decoration: theme.glassListDecoration,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: ThemeProvider.success.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.verified_rounded, color: ThemeProvider.success, size: 32),
+                decoration: BoxDecoration(
+                    color: ThemeProvider.success.withOpacity(0.1),
+                    shape: BoxShape.circle),
+                child: const Icon(Icons.verified_rounded,
+                    color: ThemeProvider.success, size: 32),
               ),
               const SizedBox(height: 16),
-              Text('Generation Success!', style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900)),
+              Text('Generation Success!',
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 24),
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFFE91E63), Color(0xFFFF5722)]),
+                  gradient: LinearGradient(colors: [
+                    theme.highlight,
+                    theme.highlight.withOpacity(0.8)
+                  ]),
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  boxShadow: [BoxShadow(color: const Color(0xFFE91E63).withOpacity(0.3), blurRadius: 20, offset: const Offset(0, 8))],
+                  boxShadow: [
+                    BoxShadow(
+                        color: theme.highlight.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8))
+                  ],
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.card_giftcard_rounded, color: Colors.white, size: 48),
+                    const Icon(Icons.card_giftcard_rounded,
+                        color: Colors.white, size: 48),
                     const SizedBox(height: 16),
-                    Text(code, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w900, letterSpacing: 2, fontFamily: 'Monospace')),
+                    Text(code,
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 2,
+                            fontFamily: 'Monospace')),
                     const SizedBox(height: 12),
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4), decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(ThemeProvider.radiusList)), child: Text('BALANCE', style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1))),
+                    Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
+                        child: Text('BALANCE',
+                            style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1))),
                     const SizedBox(height: 4),
-                    Text('${BusinessConfig.instance.currency}. ${amount.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900, letterSpacing: -1)),
+                    Text(
+                        '${BusinessConfig.instance.currency}. ${amount.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -1)),
                   ],
                 ),
               ),
               const SizedBox(height: 24),
-              Text('Record this code for the customer', textAlign: TextAlign.center, style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+              Text('Record this code for the customer',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: theme.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
@@ -184,12 +289,14 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: ThemeProvider.success,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     elevation: 0,
                   ),
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('FINISH', style: TextStyle(fontWeight: FontWeight.w900)),
+                  child: const Text('FINISH',
+                      style: TextStyle(fontWeight: FontWeight.w900)),
                 ),
               ),
             ],
@@ -209,7 +316,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
         contentPadding: EdgeInsets.zero,
         content: Container(
           padding: const EdgeInsets.all(24),
-          decoration: theme.glassDecoration,
+          decoration: theme.glassListDecoration,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -217,28 +324,44 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-                    child: Icon(Icons.account_balance_wallet_rounded, color: theme.highlight, size: 24),
+                    decoration: BoxDecoration(
+                        color: theme.highlight.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10)),
+                    child: Icon(Icons.account_balance_wallet_rounded,
+                        color: theme.highlight, size: 24),
                   ),
                   const SizedBox(width: 12),
-                  Text('Balance Check', style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w900)),
+                  Text('Balance Check',
+                      style: TextStyle(
+                          color: theme.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900)),
                 ],
               ),
               const SizedBox(height: 24),
               Container(
                 decoration: theme.glassDecoration.copyWith(
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                  color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+                  color: theme.isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.white.withOpacity(0.2),
                 ),
                 child: TextField(
                   controller: codeCtrl,
-                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                      color: theme.textPrimary, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     labelText: 'CARD SERIAL / CODE',
-                    labelStyle: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1),
-                    prefixIcon: Icon(Icons.qr_code_rounded, color: theme.highlight),
+                    labelStyle: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1),
+                    prefixIcon:
+                        Icon(Icons.qr_code_rounded, color: theme.highlight),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                   ),
                 ),
               ),
@@ -248,7 +371,10 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: Text('CLOSE', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w900)),
+                      child: Text('CLOSE',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontWeight: FontWeight.w900)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -257,37 +383,49 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.highlight,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,
                       ),
                       onPressed: () {
                         final card = GiftCardStore.instance.cards.firstWhere(
                           (c) => c.code == codeCtrl.text,
-                          orElse: () => GiftCard(id: 0, code: '', balance: 0, initialAmount: 0, createdAt: DateTime.now()),
+                          orElse: () => GiftCard(
+                              id: 0,
+                              code: '',
+                              balance: 0,
+                              initialAmount: 0,
+                              createdAt: DateTime.now()),
                         );
                         Navigator.pop(ctx);
                         if (card.id != 0) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Balance: ${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}'), 
+                              content: Text(
+                                  'Balance: ${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}'),
                               backgroundColor: ThemeProvider.success,
                               behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusList)),
                             ),
                           );
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: const Text('Invalid Gift Card Code'), 
+                              content: const Text('Invalid Gift Card Code'),
                               backgroundColor: ThemeProvider.error,
                               behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusList)),
                             ),
                           );
                         }
                       },
-                      child: const Text('SEARCH', style: TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('SEARCH',
+                          style: TextStyle(fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ],
@@ -310,19 +448,24 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
         elevation: 0,
         title: Text(
           widget.selectMode ? 'Select Gift Card' : 'Gift Catalog',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
         actions: [
           IconButton(
-            icon: Icon(Icons.search_rounded, color: theme.iconColor), 
-            onPressed: _checkBalance, 
-            tooltip: 'Check Balance'
-          ),
+              icon: Icon(Icons.search_rounded, color: theme.iconColor),
+              onPressed: _checkBalance,
+              tooltip: 'Check Balance'),
           IconButton(
-            icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor), 
-            onPressed: () => setState(() => theme.toggleTheme())
-          ),
+              icon: Icon(
+                  theme.isDark
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded,
+                  color: theme.iconColor),
+              onPressed: () => setState(() => theme.toggleTheme())),
         ],
       ),
       body: theme.glassBackground(
@@ -335,24 +478,35 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                       Container(
                         padding: const EdgeInsets.all(32),
                         decoration: theme.glassCircleDecoration,
-                        child: const Icon(Icons.card_giftcard_rounded, size: 60, color: Color(0xFFE91E63)),
+                        child: Icon(Icons.card_giftcard_rounded,
+                            size: 60, color: theme.highlight),
                       ),
                       const SizedBox(height: 20),
-                      Text('No Active Gift Cards', 
-                        style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
+                      Text('No Active Gift Cards',
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800)),
                       const SizedBox(height: 8),
-                      Text('Generate a new card to get started', 
-                        style: TextStyle(color: theme.textSecondary, fontSize: 14)),
+                      Text('Generate a new card to get started',
+                          style: TextStyle(
+                              color: theme.textSecondary, fontSize: 14)),
                       const SizedBox(height: 24),
                       ElevatedButton.icon(
                         onPressed: _createGiftCard,
                         icon: const Icon(Icons.add_rounded),
-                        label: const Text('GENERATE CARD', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+                        label: const Text('GENERATE CARD',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.5)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE91E63),
+                          backgroundColor: theme.highlight,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusList)),
                         ),
                       ),
                     ],
@@ -365,7 +519,9 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
                     final card = cards[index];
                     return _GiftCardTile(
                       card: card,
-                      onTap: widget.selectMode ? () => Navigator.pop(context, card) : null,
+                      onTap: widget.selectMode
+                          ? () => Navigator.pop(context, card)
+                          : null,
                     );
                   },
                 ),
@@ -373,7 +529,7 @@ class _GiftCardsScreenState extends State<GiftCardsScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _createGiftCard,
-        backgroundColor: const Color(0xFFE91E63),
+        backgroundColor: theme.highlight,
         elevation: 4,
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 32),
       ),
@@ -394,18 +550,26 @@ class _GiftCardTile extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: theme.glassDecoration,
+      decoration: theme.glassListDecoration,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         onTap: onTap,
         title: Row(
           children: [
             Expanded(
-              child: Text(card.code, 
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13, fontFamily: 'Monospace', letterSpacing: 1)),
+              child: Text(card.code,
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      fontFamily: 'Monospace',
+                      letterSpacing: 1)),
             ),
-            Text('ID: ${card.id}', 
-                style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
+            Text('ID: ${card.id}',
+                style: TextStyle(
+                    color: theme.textHint,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800)),
           ],
         ),
         subtitle: Padding(
@@ -414,12 +578,18 @@ class _GiftCardTile extends StatelessWidget {
             children: [
               Text(
                 'ISSUED: ${card.createdAt.day}/${card.createdAt.month}/${card.createdAt.year}',
-                style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500),
               ),
               const Spacer(),
               Text(
                 'VAL: ${BusinessConfig.instance.currency}. ${card.initialAmount.toStringAsFixed(0)}',
-                style: TextStyle(color: theme.textHint, fontSize: 11, fontWeight: FontWeight.w500),
+                style: TextStyle(
+                    color: theme.textHint,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500),
               ),
             ],
           ),
@@ -431,14 +601,17 @@ class _GiftCardTile extends StatelessWidget {
             Text(
               '${BusinessConfig.instance.currency}. ${card.balance.toStringAsFixed(2)}',
               style: TextStyle(
-                color: isDepleted ? ThemeProvider.error : const Color(0xFFE91E63), 
-                fontWeight: FontWeight.w900, 
+                color: isDepleted ? ThemeProvider.error : theme.highlight,
+                fontWeight: FontWeight.w900,
                 fontSize: 14,
               ),
             ),
             Text(
               isDepleted ? 'DEPLETED' : 'BALANCE',
-              style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+              style: TextStyle(
+                  color: theme.textHint,
+                  fontSize: 8,
+                  fontWeight: FontWeight.w800),
             ),
           ],
         ),

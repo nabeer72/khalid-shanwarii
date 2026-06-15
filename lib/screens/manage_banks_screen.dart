@@ -285,109 +285,167 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        title: Text(
-          'Manage Banks',
-          style: TextStyle(
-              color: theme.textPrimary,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -0.5),
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: MediaQuery.of(context).size.width * 0.9,
+        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+        decoration: BoxDecoration(
+          color: theme.surface,
+          borderRadius: BorderRadius.circular(16),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: BackButton(color: theme.textPrimary),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showBankDialog(),
-        backgroundColor: theme.highlight,
-        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-      ),
-      body: theme.glassBackground(
-        child: SafeArea(
-          child: _isLoading
-              ? Center(child: CircularProgressIndicator(color: theme.accent))
-              : _banks.isEmpty
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.highlight.withOpacity(0.1),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Manage Banks',
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.close_rounded, color: theme.textPrimary),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _isLoading
                   ? Center(
-                      child: Text('No banks added yet',
-                          style: TextStyle(color: theme.textSecondary)))
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: _banks.length,
-                      itemBuilder: (context, index) {
-                        final bank = _banks[index];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 8),
-                          decoration: theme.glassDecoration,
-                          child: ListTile(
-                            leading: CircleAvatar(
-                              backgroundColor: theme.accent.withOpacity(0.1),
-                              child: Icon(Icons.account_balance_rounded,
-                                  color: theme.accent),
-                            ),
-                            title: Text(bank.name,
-                                style: TextStyle(
-                                    color: theme.textPrimary,
-                                    fontWeight: FontWeight.w800)),
-                            subtitle: Text('Manage accounts',
-                                style: TextStyle(
-                                    color: theme.textSecondary, fontSize: 12)),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(Icons.edit_rounded,
-                                      color: theme.textSecondary, size: 20),
-                                  onPressed: () => _showBankDialog(bank),
+                      child: CircularProgressIndicator(color: theme.highlight))
+                  : _banks.isEmpty
+                      ? Center(
+                          child: Text('No banks added yet',
+                              style: TextStyle(color: theme.textSecondary)))
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _banks.length,
+                          itemBuilder: (context, index) {
+                            final bank = _banks[index];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: theme.surface
+                                    .withOpacity(theme.isDark ? 0.08 : 0.8),
+                                borderRadius: BorderRadius.circular(
+                                    ThemeProvider.radiusList),
+                              ),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor:
+                                      theme.highlight.withOpacity(0.1),
+                                  child: Icon(Icons.account_balance_rounded,
+                                      color: theme.highlight),
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete_outline_rounded,
-                                      color: Colors.redAccent, size: 20),
-                                  onPressed: () async {
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        backgroundColor: theme.surface,
-                                        title: Text('Delete Bank?',
-                                            style: TextStyle(
-                                                color: theme.textPrimary,
-                                                fontWeight: FontWeight.bold)),
-                                        content: Text(
-                                            'This will delete all associated accounts.',
-                                            style: TextStyle(
-                                                color: theme.textSecondary)),
-                                        actions: [
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, false),
-                                              child: Text('Cancel',
-                                                  style: TextStyle(
-                                                      color: theme
-                                                          .textSecondary))),
-                                          TextButton(
-                                              onPressed: () =>
-                                                  Navigator.pop(ctx, true),
-                                              child: const Text('Delete',
-                                                  style: TextStyle(
-                                                      color: Colors.red))),
-                                        ],
-                                      ),
-                                    );
-                                    if (confirm == true) {
-                                      await DatabaseHelper.instance
-                                          .deleteBank(bank.id!);
-                                      _loadBanks();
-                                    }
-                                  },
+                                title: Text(bank.name,
+                                    style: TextStyle(
+                                        color: theme.textPrimary,
+                                        fontWeight: FontWeight.w800)),
+                                subtitle: Text('Manage accounts',
+                                    style: TextStyle(
+                                        color: theme.textSecondary,
+                                        fontSize: 12)),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: Icon(Icons.edit_rounded,
+                                          color: theme.textSecondary, size: 20),
+                                      onPressed: () => _showBankDialog(bank),
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                          Icons.delete_outline_rounded,
+                                          color: Colors.redAccent,
+                                          size: 20),
+                                      onPressed: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (ctx) => AlertDialog(
+                                            backgroundColor: theme.surface,
+                                            title: Text('Delete Bank?',
+                                                style: TextStyle(
+                                                    color: theme.textPrimary,
+                                                    fontWeight:
+                                                        FontWeight.bold)),
+                                            content: Text(
+                                                'This will delete all associated accounts.',
+                                                style: TextStyle(
+                                                    color:
+                                                        theme.textSecondary)),
+                                            actions: [
+                                              TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx, false),
+                                                  child: Text('Cancel',
+                                                      style: TextStyle(
+                                                          color: theme
+                                                              .textSecondary))),
+                                              TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(ctx, true),
+                                                  child: const Text('Delete',
+                                                      style: TextStyle(
+                                                          color: Colors.red))),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await DatabaseHelper.instance
+                                              .deleteBank(bank.id!);
+                                          _loadBanks();
+                                        }
+                                      },
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                            onTap: () => _showAccountsDialog(bank),
-                          ),
-                        );
-                      },
-                    ),
+                                onTap: () => _showAccountsDialog(bank),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.highlight,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: () => _showBankDialog(),
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text(
+                    'ADD NEW BANK',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -524,7 +582,7 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
         width: 400,
         height: 500,
         child: _isLoading
-            ? Center(child: CircularProgressIndicator(color: theme.accent))
+            ? Center(child: CircularProgressIndicator(color: theme.highlight))
             : Column(
                 children: [
                   Expanded(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
@@ -20,10 +21,24 @@ class _ReportsScreenState extends State<ReportsScreen> {
   List<Map<String, dynamic>> _expenses = [];
   bool _isLoading = true;
 
+  StreamSubscription<void>? _dataSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadAnalyticsData();
+    // Listen for data changes
+    _dataSubscription = DatabaseHelper.dataStream.listen((_) {
+      if (mounted) {
+        _loadAnalyticsData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _dataSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAnalyticsData() async {
@@ -37,6 +52,19 @@ class _ReportsScreenState extends State<ReportsScreen> {
         db.getExpenses(),
       ]);
       if (mounted) {
+        debugPrint('=== Reports Data Loaded ===');
+        debugPrint('Sales: ${results[0].length} items');
+        for (var s in results[0]) {
+          debugPrint(
+              '  - Sale: id=${s['id']}, is_return=${s['is_return']}, created_at=${s['created_at']}, total=${s['total']}');
+        }
+        debugPrint('Sale Items: ${results[1].length} items');
+        debugPrint('Return Items: ${results[2].length} items');
+        debugPrint('Expenses: ${results[3].length} items');
+        for (var e in results[3]) {
+          debugPrint(
+              '  - Expense: id=${e['id']}, date=${e['date']}, amount=${e['amount']}');
+        }
         setState(() {
           _sales = results[0];
           _saleItems = results[1];
@@ -74,14 +102,34 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return _lineItemNet(item) - cost;
   }
 
+  DateTime _parseDate(dynamic dateStr) {
+    if (dateStr == null) {
+      debugPrint('_parseDate: null dateStr, returning DateTime(0)');
+      return DateTime(0);
+    }
+    final parsed = DateTime.tryParse(dateStr.toString());
+    if (parsed == null) {
+      debugPrint(
+          '_parseDate: failed to parse dateStr=$dateStr, returning DateTime(0)');
+      return DateTime(0);
+    }
+    final result = DateTime(
+        parsed.toLocal().year, parsed.toLocal().month, parsed.toLocal().day);
+    debugPrint(
+        '_parseDate: dateStr=$dateStr, parsed=$parsed, toLocal=${parsed.toLocal()}, result=$result');
+    return result;
+  }
+
   bool _isInPeriod(DateTime? ts) {
     if (ts == null) return false;
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     switch (_period) {
       case 'today':
-        return ts.day == now.day && ts.month == now.month && ts.year == now.year;
+        return _parseDate(ts.toIso8601String()) == today;
       case 'week':
-        return ts.isAfter(now.subtract(const Duration(days: 7)));
+        final weekAgo = today.subtract(const Duration(days: 7));
+        return _parseDate(ts.toIso8601String()).isAfter(weekAgo);
       case 'month':
         return ts.month == now.month && ts.year == now.year;
       default:
@@ -91,23 +139,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<Map<String, dynamic>> get _salesForPeriod {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final sales = _sales;
-    
+    debugPrint('=== _salesForPeriod ===');
+    debugPrint('Period: $_period, today: $today');
+
     switch (_period) {
       case 'today':
         return sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
-          return ts != null && ts.day == now.day && ts.month == now.month && ts.year == now.year;
+          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          debugPrint(
+              'Checking sale: id=${s['id']}, created_at=${s['created_at']}, parsed ts=$ts');
+          if (ts == null) {
+            debugPrint('  Skipping (null ts)');
+            return false;
+          }
+          final parsedDate = _parseDate(ts.toIso8601String());
+          final isToday = parsedDate == today;
+          debugPrint('  parsedDate=$parsedDate, isToday=$isToday');
+          return isToday;
         }).toList();
       case 'week':
-        final weekAgo = now.subtract(const Duration(days: 7));
+        final weekAgo = today.subtract(const Duration(days: 7));
         return sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
-          return ts != null && ts.isAfter(weekAgo);
+          final ts = DateTime.tryParse(s['created_at'] ?? '');
+          if (ts == null) return false;
+          return _parseDate(ts.toIso8601String()).isAfter(weekAgo);
         }).toList();
       case 'month':
         return sales.where((s) {
-          final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
+          final ts = DateTime.tryParse(s['created_at'] ?? '');
           return ts != null && ts.month == now.month && ts.year == now.year;
         }).toList();
       default:
@@ -115,45 +176,93 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
   }
 
-  double get _totalSales => _salesForPeriod.where((s) => s['is_return'] != 1).fold(0.0, (sum, s) => sum + (s['total'] as num? ?? 0).toDouble());
-  double get _totalReturns => _salesForPeriod.where((s) => s['is_return'] == 1).fold(0.0, (sum, s) => sum + (s['total'] as num? ?? 0).abs().toDouble());
-  double get _netSales => _totalSales - _totalReturns;
-  double get _totalTax => _salesForPeriod.where((s) => s['is_return'] != 1).fold(0.0, (sum, s) => sum + (s['tax'] as num? ?? 0).toDouble());
-  double get _totalTips => _salesForPeriod.where((s) => s['is_return'] != 1).fold(0.0, (sum, s) => sum + (s['tip'] as num? ?? 0).toDouble());
-  double get _totalDiscounts => _salesForPeriod.where((s) => s['is_return'] != 1).fold(0.0, (sum, s) => sum + (s['discount'] as num? ?? 0).toDouble());
-  int get _transactionCount => _salesForPeriod.where((s) => s['is_return'] != 1).length;
-  double get _avgTransaction => _transactionCount > 0 ? _netSales / _transactionCount : 0;
+  double get _totalSales {
+    final val = _salesForPeriod
+        .where((s) => s['is_return'] != 1)
+        .fold(0.0, (sum, s) => sum + (s['total'] as num? ?? 0).toDouble());
+    debugPrint('_totalSales: $val');
+    return val;
+  }
+
+  double get _totalReturns {
+    final val = _salesForPeriod.where((s) => s['is_return'] == 1).fold(
+        0.0, (sum, s) => sum + (s['total'] as num? ?? 0).abs().toDouble());
+    debugPrint('_totalReturns: $val');
+    return val;
+  }
+
+  double get _netSales {
+    final val = _totalSales - _totalReturns;
+    debugPrint('_netSales: $val');
+    return val;
+  }
+
+  double get _totalTax => _salesForPeriod
+      .where((s) => s['is_return'] != 1)
+      .fold(0.0, (sum, s) => sum + (s['tax'] as num? ?? 0).toDouble());
+  double get _totalTips => _salesForPeriod
+      .where((s) => s['is_return'] != 1)
+      .fold(0.0, (sum, s) => sum + (s['tip'] as num? ?? 0).toDouble());
+  double get _totalDiscounts => _salesForPeriod
+      .where((s) => s['is_return'] != 1)
+      .fold(0.0, (sum, s) => sum + (s['discount'] as num? ?? 0).toDouble());
+  int get _transactionCount =>
+      _salesForPeriod.where((s) => s['is_return'] != 1).length;
+  double get _avgTransaction =>
+      _transactionCount > 0 ? _netSales / _transactionCount : 0;
 
   List<Map<String, dynamic>> get _saleItemsForPeriod {
     return _saleItems.where((item) {
-      final ts = DateTime.tryParse(item['created_at']?.toString() ?? '')?.toLocal();
+      final ts = DateTime.tryParse(item['created_at']?.toString() ?? '');
       return _isInPeriod(ts);
     }).toList();
   }
 
   List<Map<String, dynamic>> get _returnItemsForPeriod {
     return _returnItems.where((item) {
-      final ts = DateTime.tryParse(item['created_at']?.toString() ?? '')?.toLocal();
+      final ts = DateTime.tryParse(item['created_at']?.toString() ?? '');
       return _isInPeriod(ts);
     }).toList();
   }
 
   /// Same as print report: sum(line net − cost) for sales minus returns.
-  double get _salesProfit =>
-      _saleItemsForPeriod.fold(0.0, (sum, item) => sum + _lineItemProfit(item));
-  double get _returnsProfit =>
-      _returnItemsForPeriod.fold(0.0, (sum, item) => sum + _lineItemProfit(item));
-      
+  double get _salesProfit {
+    final val = _saleItemsForPeriod.fold(
+        0.0, (sum, item) => sum + _lineItemProfit(item));
+    debugPrint('_salesProfit: $val');
+    return val;
+  }
+
+  double get _returnsProfit {
+    final val = _returnItemsForPeriod
+        .fold(0.0, (sum, item) => sum + _lineItemProfit(item))
+        .abs();
+    debugPrint('_returnsProfit: $val');
+    return val;
+  }
+
   List<Map<String, dynamic>> get _expensesForPeriod {
     return _expenses.where((item) {
-      final ts = DateTime.tryParse(item['expense_date']?.toString() ?? item['created_at']?.toString() ?? '')?.toLocal();
-      return _isInPeriod(ts);
+      final ts = DateTime.tryParse(
+          item['date']?.toString() ?? item['created_at']?.toString() ?? '');
+      final inPeriod = _isInPeriod(ts);
+      debugPrint('Expense date check: ts=$ts, inPeriod=$inPeriod');
+      return inPeriod;
     }).toList();
   }
 
-  double get _totalExpenses => _expensesForPeriod.fold(0.0, (sum, e) => sum + (e['amount'] as num? ?? 0).toDouble());
+  double get _totalExpenses {
+    final val = _expensesForPeriod.fold(
+        0.0, (sum, e) => sum + (e['amount'] as num? ?? 0).toDouble());
+    debugPrint('_totalExpenses: $val');
+    return val;
+  }
 
-  double get _netProfit => _salesProfit - _returnsProfit - _totalExpenses;
+  double get _netProfit {
+    final val = _salesProfit - _returnsProfit - _totalExpenses;
+    debugPrint('_netProfit: $val');
+    return val;
+  }
 
   Map<String, double> get _salesByPaymentMethod {
     final Map<String, double> result = {};
@@ -176,7 +285,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         result[name] = (result[name] ?? 0) + qty;
       }
     }
-    return Map.fromEntries(result.entries.toList()..sort((a, b) => b.value.compareTo(a.value)));
+    return Map.fromEntries(
+        result.entries.toList()..sort((a, b) => b.value.compareTo(a.value)));
   }
 
   String get _periodLabel {
@@ -276,11 +386,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     color: theme.background.withValues(alpha: 0.65),
                     child: Center(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 28, vertical: 22),
                         decoration: BoxDecoration(
                           color: theme.surface,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: theme.divider.withValues(alpha: 0.6)),
+                          border: Border.all(
+                              color: theme.divider.withValues(alpha: 0.6)),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.08),
@@ -334,10 +446,22 @@ class _ReportsScreenState extends State<ReportsScreen> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _PeriodChip(label: 'Today', selected: _period == 'today', onTap: () => setState(() => _period = 'today')),
-            _PeriodChip(label: 'Week', selected: _period == 'week', onTap: () => setState(() => _period = 'week')),
-            _PeriodChip(label: 'Month', selected: _period == 'month', onTap: () => setState(() => _period = 'month')),
-            _PeriodChip(label: 'All', selected: _period == 'all', onTap: () => setState(() => _period = 'all')),
+            _PeriodChip(
+                label: 'Today',
+                selected: _period == 'today',
+                onTap: () => setState(() => _period = 'today')),
+            _PeriodChip(
+                label: 'Week',
+                selected: _period == 'week',
+                onTap: () => setState(() => _period = 'week')),
+            _PeriodChip(
+                label: 'Month',
+                selected: _period == 'month',
+                onTap: () => setState(() => _period = 'month')),
+            _PeriodChip(
+                label: 'All',
+                selected: _period == 'all',
+                onTap: () => setState(() => _period = 'all')),
           ],
         ),
       ),
@@ -345,26 +469,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   // ── Dashboard icon palette (same as _ModuleCard colours) ──────────────
-  static const _clrSales      = Color(0xFF22C55E); // green  – Gross Sales
-  static const _clrReturns    = Color(0xFFEF4444); // red    – Returns
-  static const _clrProfit     = Color(0xFF3366FF); // blue   – Net Profit
-  static const _clrCart       = Color(0xFF0EA5E9); // sky    – Avg Cart
-  static const _clrRevenue    = Color(0xFF22C55E); // green  – Revenue group
-  static const _clrProfitGrp  = Color(0xFF3366FF); // blue   – Profit group
-  static const _clrOther      = Color(0xFF8B5CF6); // purple – Other group
-  static const _clrCash       = Color(0xFF10B981); // emerald
-  static const _clrCard       = Color(0xFF3366FF); // blue
-  static const _clrMobile     = Color(0xFF0EA5E9); // sky
-  static const _clrCredit     = Color(0xFF8B5CF6); // purple
-  static const _clrPayment    = Color(0xFF6366F1); // indigo
 
   Color _paymentColor(String method) {
-    final m = method.toLowerCase();
-    if (m.contains('cash'))   return _clrCash;
-    if (m.contains('card'))   return _clrCard;
-    if (m.contains('mobile')) return _clrMobile;
-    if (m.contains('credit')) return _clrCredit;
-    return _clrPayment;
+    return theme.highlight;
   }
 
   Widget _buildHeroCard(String currency) {
@@ -388,8 +495,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Container(
             padding: const EdgeInsets.only(bottom: 12),
             child: Icon(Icons.insights_rounded,
-                color: theme.highlight,
-                size: isTablet ? 34 : 26),
+                color: theme.highlight, size: isTablet ? 34 : 26),
           ),
           Text(
             'Performance Snapshot',
@@ -413,22 +519,25 @@ class _ReportsScreenState extends State<ReportsScreen> {
             children: [
               _QuickStat(
                   icon: Icons.receipt_long_outlined,
-                  value: '$_transactionCount',
+                  value: _transactionCount,
                   label: 'SALES'),
               _QuickStat(
                 icon: Icons.account_balance_rounded,
-                value: '$currency ${_netSales.toStringAsFixed(0)}',
+                value: _netSales,
                 label: 'NET REVENUE',
+                isCurrency: true,
               ),
               _QuickStat(
                 icon: Icons.savings_rounded,
-                value: '$currency ${_netProfit.toStringAsFixed(0)}',
+                value: _netProfit,
                 label: 'NET PROFIT',
+                isCurrency: true,
               ),
               _QuickStat(
                 icon: Icons.shopping_basket_rounded,
-                value: '$currency ${_avgTransaction.toStringAsFixed(0)}',
+                value: _avgTransaction,
                 label: 'AVG. CART',
+                isCurrency: true,
               ),
             ],
           ),
@@ -476,10 +585,27 @@ class _ReportsScreenState extends State<ReportsScreen> {
         mainAxisSpacing: 12,
       ),
       children: [
-        _SummaryCard(title: 'Gross Sales',  value: _totalSales,      icon: Icons.receipt_long_outlined,     color: _clrSales),
-        _SummaryCard(title: 'Returns',      value: _totalReturns,    icon: Icons.keyboard_return_rounded,   color: _clrReturns),
-        _SummaryCard(title: 'Net Profit',   value: _netProfit,       icon: Icons.paid_rounded,              color: _clrProfit),
-        _SummaryCard(title: 'Avg. Cart',    value: _avgTransaction,  icon: Icons.shopping_basket_rounded,   color: _clrCart, isCurrency: true),
+        _SummaryCard(
+            title: 'Gross Sales',
+            value: _totalSales,
+            icon: Icons.receipt_long_outlined,
+            color: theme.highlight),
+        _SummaryCard(
+            title: 'Returns',
+            value: _totalReturns,
+            icon: Icons.keyboard_return_rounded,
+            color: theme.highlight),
+        _SummaryCard(
+            title: 'Net Profit',
+            value: _netProfit,
+            icon: Icons.paid_rounded,
+            color: theme.highlight),
+        _SummaryCard(
+            title: 'Avg. Cart',
+            value: _avgTransaction,
+            icon: Icons.shopping_basket_rounded,
+            color: theme.highlight,
+            isCurrency: true),
       ],
     );
   }
@@ -495,24 +621,53 @@ class _ReportsScreenState extends State<ReportsScreen> {
         children: [
           _BreakdownGroup(
             title: 'Revenue',
-            color: _clrRevenue,
+            color: theme.highlight,
             children: [
-              _BreakdownRow(label: 'Gross Sales',  value: _totalSales,      icon: Icons.receipt_long_outlined,       iconColor: _clrSales),
-              _BreakdownRow(label: 'Returns',      value: -_totalReturns,   icon: Icons.keyboard_return_rounded,     iconColor: _clrReturns),
-              _BreakdownRow(label: 'Discounts',    value: -_totalDiscounts, icon: Icons.local_offer_outlined,        iconColor: const Color(0xFFF59E0B)),
-              _BreakdownRow(label: 'Net Sales',    value: _netSales,        icon: Icons.account_balance_rounded,     iconColor: _clrSales, bold: true),
+              _BreakdownRow(
+                  label: 'Gross Sales',
+                  value: _totalSales,
+                  icon: Icons.receipt_long_outlined,
+                  iconColor: theme.highlight),
+              _BreakdownRow(
+                  label: 'Returns',
+                  value: -_totalReturns,
+                  icon: Icons.keyboard_return_rounded,
+                  iconColor: theme.highlight),
+              _BreakdownRow(
+                  label: 'Discounts',
+                  value: -_totalDiscounts,
+                  icon: Icons.local_offer_outlined,
+                  iconColor: theme.highlight),
+              _BreakdownRow(
+                  label: 'Net Sales',
+                  value: _netSales,
+                  icon: Icons.account_balance_rounded,
+                  iconColor: theme.highlight,
+                  bold: true),
             ],
           ),
           Divider(height: 1, color: theme.divider.withValues(alpha: 0.5)),
           _BreakdownGroup(
             title: 'Profit',
-            color: _clrProfitGrp,
+            color: theme.highlight,
             children: [
-              _BreakdownRow(label: 'Sales Profit',  value: _salesProfit,   icon: Icons.savings_outlined,             iconColor: _clrProfit),
+              _BreakdownRow(
+                  label: 'Sales Profit',
+                  value: _salesProfit,
+                  icon: Icons.savings_outlined,
+                  iconColor: theme.highlight),
               if (_returnsProfit != 0)
-                _BreakdownRow(label: 'Return Impact', value: -_returnsProfit, icon: Icons.remove_circle_outline_rounded, iconColor: _clrReturns),
+                _BreakdownRow(
+                    label: 'Return Impact',
+                    value: -_returnsProfit,
+                    icon: Icons.remove_circle_outline_rounded,
+                    iconColor: theme.highlight),
               if (_totalExpenses > 0)
-                _BreakdownRow(label: 'Expenses',      value: -_totalExpenses, icon: Icons.money_off_rounded,           iconColor: _clrReturns),
+                _BreakdownRow(
+                    label: 'Expenses',
+                    value: -_totalExpenses,
+                    icon: Icons.money_off_rounded,
+                    iconColor: theme.highlight),
             ],
           ),
           Padding(
@@ -523,17 +678,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
               decoration: BoxDecoration(
                 color: theme.surface,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _clrProfit, width: 1.5),
+                border: Border.all(color: theme.highlight, width: 1.5),
               ),
               child: Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: _clrProfit,
+                      color: theme.highlight,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.paid_rounded, color: Colors.white, size: 22),
+                    child: const Icon(Icons.paid_rounded,
+                        color: Colors.white, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -550,9 +706,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '$currency ${_netProfit.toStringAsFixed(2)}',
+                          '${_netProfit < 0 ? '−' : ''}$currency ${_netProfit.abs().toStringAsFixed(2)}',
                           style: TextStyle(
-                            color: _clrProfit,
+                            color: theme.highlight,
                             fontSize: 22,
                             fontWeight: FontWeight.w800,
                             letterSpacing: -0.5,
@@ -568,10 +724,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Divider(height: 1, color: theme.divider.withValues(alpha: 0.5)),
           _BreakdownGroup(
             title: 'Other',
-            color: _clrOther,
+            color: theme.highlight,
             children: [
-              _BreakdownRow(label: 'Tax Collected', value: _totalTax,   icon: Icons.receipt_outlined,           iconColor: _clrMobile),
-              _BreakdownRow(label: 'Service Tips',  value: _totalTips,  icon: Icons.volunteer_activism_outlined, iconColor: const Color(0xFFEAB308)),
+              _BreakdownRow(
+                  label: 'Tax Collected',
+                  value: _totalTax,
+                  icon: Icons.receipt_outlined,
+                  iconColor: theme.highlight),
+              _BreakdownRow(
+                  label: 'Service Tips',
+                  value: _totalTips,
+                  icon: Icons.volunteer_activism_outlined,
+                  iconColor: theme.highlight),
             ],
           ),
         ],
@@ -596,7 +760,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
             const SizedBox(height: 10),
             Text(
               'No payments in this period',
-              style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600, fontSize: 14),
+              style: TextStyle(
+                  color: theme.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14),
             ),
           ],
         ),
@@ -613,7 +780,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
         border: Border.all(color: theme.divider.withValues(alpha: 0.6)),
       ),
       child: Column(
-        children: _salesByPaymentMethod.entries.toList().asMap().entries.map((entry) {
+        children:
+            _salesByPaymentMethod.entries.toList().asMap().entries.map((entry) {
           final method = entry.value.key;
           final amount = entry.value.value;
           final percent = total > 0 ? (amount / total * 100) : 0.0;
@@ -632,7 +800,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                         color: methodColor.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Icon(_paymentIcon(method), color: methodColor, size: 20),
+                      child: Icon(_paymentIcon(method),
+                          color: methodColor, size: 20),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -708,10 +877,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFF8B5CF6),   // purple – matches Stock module
+              color: Color(0xFF8B5CF6), // purple – matches Stock module
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.inventory_2_outlined, size: 36, color: Colors.white),
+            child: const Icon(Icons.inventory_2_outlined,
+                size: 36, color: Colors.white),
           ),
           const SizedBox(height: 16),
           Text(
@@ -740,14 +910,32 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
 class _QuickStat extends StatelessWidget {
   final IconData icon;
-  final String value;
+  final dynamic value; // Can be int or double
   final String label;
+  final bool isCurrency;
 
-  const _QuickStat({required this.icon, required this.value, required this.label});
+  const _QuickStat({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.isCurrency = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
+    final isNegative = (value is num) ? value < 0 : false;
+    final displayValue = (value is num) ? value.abs() : value;
+    final displayPrefix = isNegative ? '−' : '';
+
+    String displayText;
+    if (isCurrency) {
+      displayText =
+          '$displayPrefix${BusinessConfig.instance.currencyDisplay} ${displayValue.toStringAsFixed(0)}';
+    } else {
+      displayText = '$displayPrefix$displayValue';
+    }
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -757,10 +945,17 @@ class _QuickStat extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(value,
-              style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w800)),
+          Text(displayText,
+              style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800)),
           Text(label,
-              style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.5)),
+              style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.5)),
         ]),
       ],
     );
@@ -772,7 +967,8 @@ class _BreakdownGroup extends StatelessWidget {
   final List<Widget> children;
   final Color? color;
 
-  const _BreakdownGroup({required this.title, required this.children, this.color});
+  const _BreakdownGroup(
+      {required this.title, required this.children, this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -819,7 +1015,8 @@ class _PeriodChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _PeriodChip({required this.label, required this.selected, required this.onTap});
+  const _PeriodChip(
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -865,9 +1062,14 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
+    final isNegative = value < 0;
+    final displayValue = isNegative ? value.abs() : value;
+    final displayPrefix = isNegative ? '−' : '';
+    final displayColor = isNegative ? const Color(0xFFEF4444) : color;
+
     final display = isCurrency
-        ? '${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(2)}'
-        : value.toInt().toString();
+        ? '$displayPrefix${BusinessConfig.instance.currencyDisplay} ${displayValue.toStringAsFixed(2)}'
+        : '$displayPrefix${displayValue.toInt().toString()}';
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -882,10 +1084,10 @@ class _SummaryCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
+              color: displayColor.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: color, size: 18),
+            child: Icon(icon, color: displayColor, size: 18),
           ),
           const Spacer(),
           FittedBox(
@@ -894,7 +1096,7 @@ class _SummaryCard extends StatelessWidget {
             child: Text(
               display,
               style: TextStyle(
-                color: color,
+                color: displayColor,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 letterSpacing: -0.4,
@@ -939,7 +1141,8 @@ class _BreakdownRow extends StatelessWidget {
     final prefix = value < 0 ? '−' : '';
     final effectiveIconColor = iconColor ?? theme.highlight;
     // Amount colour: negative values (returns/discounts) use red, positive use icon colour
-    final amountColor = value < 0 ? const Color(0xFFEF4444) : effectiveIconColor;
+    final amountColor =
+        value < 0 ? const Color(0xFFEF4444) : effectiveIconColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),

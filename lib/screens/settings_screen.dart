@@ -15,8 +15,6 @@ import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/services/api_service.dart';
 
-
-
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -27,7 +25,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final theme = ThemeProvider.instance;
   final SyncService _syncService = SyncService();
-  
+
   List<Map<String, dynamic>> _businessTypes = [];
   bool _businessTypesLoading = false;
   // Business and config state
@@ -44,7 +42,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _enableTax = BusinessConfig.instance.enableTax;
   bool _enableGlobalDiscount = BusinessConfig.instance.enableGlobalDiscount;
   double _globalDiscountLimit = BusinessConfig.instance.globalDiscountLimit;
-  String _globalDiscountLimitType = BusinessConfig.instance.globalDiscountLimitType;
+  String _globalDiscountLimitType =
+      BusinessConfig.instance.globalDiscountLimitType;
   late final TextEditingController _taxRateCtrl;
   late final TextEditingController _globalDiscountLimitCtrl;
 
@@ -78,7 +77,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final limit = double.tryParse(_globalDiscountLimitCtrl.text.trim()) ?? 0.0;
     setState(() => _globalDiscountLimit = limit);
     BusinessConfig.instance.globalDiscountLimit = limit;
-    await DatabaseHelper.instance.setSetting('global_discount_limit', limit.toString());
+    await DatabaseHelper.instance
+        .setSetting('global_discount_limit', limit.toString());
   }
 
   Future<void> _loadBusinessTypes() async {
@@ -88,11 +88,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (response != null && response.statusCode == 200) {
         // Assume response data is a list of business type objects with id, name, icon fields
         final List data = response.data is List ? response.data : [];
-        _businessTypes = data.map((e) => {
-          'id': e['id']?.toString() ?? '',
-          'name': e['name']?.toString() ?? '',
-          'icon': e['icon']?.toString() ?? '🏪',
-        }).toList();
+        _businessTypes = data
+            .map((e) => {
+                  'id': e['id']?.toString() ?? '',
+                  'name': e['name']?.toString() ?? '',
+                  'icon': e['icon']?.toString() ?? '🏪',
+                })
+            .toList();
       } else {
         _businessTypes = [
           {'id': 'general', 'name': 'General', 'icon': '🏪'},
@@ -116,11 +118,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {bool isRequired = false}) {
+  Widget _buildTextField(
+      TextEditingController ctrl, String label, IconData icon,
+      {bool isRequired = false}) {
     return TextField(
       controller: ctrl,
       style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired),
+      decoration:
+          theme.glassInputDecoration(label, icon, isRequired: isRequired),
     );
   }
 
@@ -132,44 +137,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final List<FocusNode> focusNodes = List.generate(4, (_) => FocusNode());
 
-    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon,
+        {bool isRequired = false}) {
       return InputDecoration(
-        label: isRequired 
-          ? RichText(
-              text: TextSpan(
-                text: label,
-                style: const TextStyle(color: Color(0xFF6B7280)),
-                children: const [
-                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )
-          : Text(label),
-        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-        prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
+        label: isRequired
+            ? RichText(
+                text: TextSpan(
+                  text: label,
+                  style: TextStyle(color: theme.textSecondary),
+                  children: [
+                    TextSpan(
+                        text: ' *',
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            : Text(label, style: TextStyle(color: theme.textSecondary)),
+        labelStyle: TextStyle(color: theme.textSecondary),
+        prefixIcon: Icon(icon, color: theme.iconColor),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.05),
+        fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          borderSide: BorderSide(color: theme.highlight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          borderSide: BorderSide(color: theme.highlight),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+          borderSide: BorderSide(color: theme.highlight, width: 1.5),
         ),
       );
     }
 
-    Widget _buildDialogField(TextEditingController ctrl, FocusNode node, String label, IconData icon, {TextInputType? keyboardType, bool isRequired = false}) {
+    Widget _buildDialogField(
+        TextEditingController ctrl, FocusNode node, String label, IconData icon,
+        {TextInputType? keyboardType, bool isRequired = false}) {
       return TextField(
         controller: ctrl,
         focusNode: node,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
+        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
         decoration: _dialogInputDecoration(label, icon, isRequired: isRequired),
       );
     }
@@ -183,7 +195,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             focusNodes[focusIndex].requestFocus();
           }
         });
-        
+
         return AlertDialog(
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.white,
@@ -200,16 +212,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Business Profile', 
-                    style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  const Text('Business Profile',
+                      style: TextStyle(
+                          color: Color(0xFF1F2937),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5)),
                   const SizedBox(height: 24),
-                  _buildDialogField(nameCtrl, focusNodes[0], 'Business Name', Icons.store_rounded, isRequired: true),
+                  _buildDialogField(nameCtrl, focusNodes[0], 'Business Name',
+                      Icons.store_rounded,
+                      isRequired: true),
                   const SizedBox(height: 16),
-                  _buildDialogField(addressCtrl, focusNodes[1], 'Physical Address', Icons.location_on_rounded),
+                  _buildDialogField(addressCtrl, focusNodes[1],
+                      'Physical Address', Icons.location_on_rounded),
                   const SizedBox(height: 16),
-                  _buildDialogField(phoneCtrl, focusNodes[2], 'Contact Phone', Icons.phone_rounded, keyboardType: TextInputType.phone, isRequired: true),
+                  _buildDialogField(phoneCtrl, focusNodes[2], 'Contact Phone',
+                      Icons.phone_rounded,
+                      keyboardType: TextInputType.phone, isRequired: true),
                   const SizedBox(height: 16),
-                  _buildDialogField(footerCtrl, focusNodes[3], 'Receipt Footer Message', Icons.sticky_note_2_rounded),
+                  _buildDialogField(footerCtrl, focusNodes[3],
+                      'Receipt Footer Message', Icons.sticky_note_2_rounded),
                   const SizedBox(height: 32),
                   Row(
                     children: [
@@ -221,7 +243,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             }
                             Navigator.pop(ctx);
                           },
-                          child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                          child: const Text('CANCEL',
+                              style: TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontWeight: FontWeight.w900)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -231,7 +256,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             backgroundColor: ThemeProvider.success,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    ThemeProvider.radiusList)),
                           ),
                           onPressed: () async {
                             setState(() {
@@ -240,29 +267,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _businessPhone = phoneCtrl.text;
                               _receiptFooter = footerCtrl.text;
                             });
-                            
-                            BusinessConfig.instance.businessName = _businessName;
-                            BusinessConfig.instance.businessAddress = _businessAddress;
-                            BusinessConfig.instance.businessPhone = _businessPhone;
-                            BusinessConfig.instance.receiptFooter = _receiptFooter;
+
+                            BusinessConfig.instance.businessName =
+                                _businessName;
+                            BusinessConfig.instance.businessAddress =
+                                _businessAddress;
+                            BusinessConfig.instance.businessPhone =
+                                _businessPhone;
+                            BusinessConfig.instance.receiptFooter =
+                                _receiptFooter;
 
                             final db = DatabaseHelper.instance;
                             await db.setSetting('business_name', _businessName);
-                            await db.setSetting('business_address', _businessAddress);
-                            await db.setSetting('business_phone', _businessPhone);
-                            await db.setSetting('receipt_footer', _receiptFooter);
+                            await db.setSetting(
+                                'business_address', _businessAddress);
+                            await db.setSetting(
+                                'business_phone', _businessPhone);
+                            await db.setSetting(
+                                'receipt_footer', _receiptFooter);
 
                             if (BusinessConfig.instance.businessId != null) {
-                              await db.updateBusinessSyncStatus(BusinessConfig.instance.businessId, 0);
+                              await db.updateBusinessSyncStatus(
+                                  BusinessConfig.instance.businessId, 0);
                             }
 
                             for (var node in focusNodes) {
                               node.dispose();
                             }
                             Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Business info updated!'), backgroundColor: ThemeProvider.success));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Business info updated!'),
+                                    backgroundColor: ThemeProvider.success));
                           },
-                          child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w900)),
+                          child: const Text('SAVE',
+                              style: TextStyle(fontWeight: FontWeight.w900)),
                         ),
                       ),
                     ],
@@ -280,7 +319,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final db = DatabaseHelper.instance;
     final userId = BusinessConfig.instance.userId;
     List<Map<String, dynamic>> businesses = [];
-    
+
     if (userId != null) {
       businesses = await db.getBusinessesForUser(userId);
     }
@@ -308,8 +347,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Manage Businesses', 
-                      style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                    const Text('Manage Businesses',
+                        style: TextStyle(
+                            color: Color(0xFF1F2937),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5)),
                     IconButton(
                       onPressed: () => Navigator.pop(ctx),
                       icon: const Icon(Icons.close, color: Color(0xFF6B7280)),
@@ -323,46 +366,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     itemCount: businesses.length,
                     itemBuilder: (ctx, i) {
                       final b = businesses[i];
-                      final isCurrent = b['id'] == BusinessConfig.instance.businessId;
+                      final isCurrent =
+                          b['id'] == BusinessConfig.instance.businessId;
                       final type = b['business_type_id']?.toString() ?? '1';
-                      
+
                       String icon = '🏪';
-                      if (type == 'garments') icon = '👕';
-                      else if (type == 'produce') icon = '🥬';
-                      else if (type == 'restaurant') icon = '🍽️';
+                      if (type == 'garments')
+                        icon = '👕';
+                      else if (type == 'produce')
+                        icon = '🥬';
+                      else if (type == 'restaurant')
+                        icon = '🍽️';
                       else if (type == 'electronics') icon = '📱';
 
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: isCurrent ? theme.highlight.withOpacity(0.05) : const Color(0xFFF9FAFB),
+                            color: isCurrent
+                                ? theme.highlight.withOpacity(0.05)
+                                : const Color(0xFFF9FAFB),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: isCurrent ? theme.highlight.withOpacity(0.3) : const Color(0xFFE5E7EB)),
+                            border: Border.all(
+                                color: isCurrent
+                                    ? theme.highlight.withOpacity(0.3)
+                                    : const Color(0xFFE5E7EB)),
                           ),
                           child: ListTile(
                             leading: Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: isCurrent ? theme.highlight : const Color(0xFFF3F4F6),
+                                color: isCurrent
+                                    ? theme.highlight
+                                    : const Color(0xFFF3F4F6),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(icon, style: const TextStyle(fontSize: 18)),
+                              child: Text(icon,
+                                  style: const TextStyle(fontSize: 18)),
                             ),
-                            title: Text(b['name'] ?? 'Unnamed Business', 
-                              style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 14)),
-                            subtitle: Text('Category ID: ${b['business_type_id'] ?? '1'}'.toUpperCase(), 
-                              style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11, fontWeight: FontWeight.w600)),
-                            trailing: isCurrent 
-                              ? const Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 20)
-                              : TextButton(
-                                  onPressed: () => _switchBusiness(b),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: theme.highlight,
-                                    textStyle: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                            title: Text(b['name'] ?? 'Unnamed Business',
+                                style: const TextStyle(
+                                    color: Color(0xFF1F2937),
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14)),
+                            subtitle: Text(
+                                'Category ID: ${b['business_type_id'] ?? '1'}'
+                                    .toUpperCase(),
+                                style: const TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600)),
+                            trailing: isCurrent
+                                ? const Icon(Icons.check_circle_rounded,
+                                    color: ThemeProvider.success, size: 20)
+                                : TextButton(
+                                    onPressed: () => _switchBusiness(b),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: theme.highlight,
+                                      textStyle: const TextStyle(
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 12),
+                                    ),
+                                    child: const Text('SWITCH'),
                                   ),
-                                  child: const Text('SWITCH'),
-                                ),
                           ),
                         ),
                       );
@@ -378,14 +444,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusList)),
                     ),
                     onPressed: () {
                       Navigator.pop(ctx);
                       _showAddBusinessDialog();
                     },
                     icon: const Icon(Icons.add_business_rounded, size: 20),
-                    label: const Text('ADD NEW BUSINESS', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                    label: const Text('ADD NEW BUSINESS',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w900, fontSize: 13)),
                   ),
                 ),
               ],
@@ -453,18 +523,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Create New Business', 
-                    style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                  const Text('Create New Business',
+                      style: TextStyle(
+                          color: Color(0xFF1F2937),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5)),
                   const SizedBox(height: 24),
                   TextField(
                     controller: nameCtrl,
                     autofocus: true,
-                    style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                    decoration: theme.glassInputDecoration('Business Name', Icons.store_rounded, isRequired: true),
+                    style: TextStyle(
+                        color: theme.textPrimary, fontWeight: FontWeight.w600),
+                    decoration: theme.glassInputDecoration(
+                        'Business Name', Icons.store_rounded,
+                        isRequired: true),
                   ),
                   const SizedBox(height: 20),
-                  const Text('Select Category', 
-                    style: TextStyle(color: Color(0xFF1F2937), fontSize: 13, fontWeight: FontWeight.bold)),
+                  const Text('Select Category',
+                      style: TextStyle(
+                          color: Color(0xFF1F2937),
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 70,
@@ -502,21 +582,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: isSelected ? theme.highlight : const Color(0xFFF3F4F6),
+                                      color: isSelected
+                                          ? theme.highlight
+                                          : const Color(0xFFF3F4F6),
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: isSelected ? theme.highlight : Colors.transparent),
+                                      border: Border.all(
+                                          color: isSelected
+                                              ? theme.highlight
+                                              : Colors.transparent),
                                     ),
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
-                                        Text(type['icon'], style: const TextStyle(fontSize: 18)),
+                                        Text(type['icon'],
+                                            style:
+                                                const TextStyle(fontSize: 18)),
                                         const SizedBox(height: 2),
                                         Text(type['name'],
                                             style: TextStyle(
-                                              color: isSelected ? Colors.white : const Color(0xFF4B5563),
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : const Color(0xFF4B5563),
                                               fontSize: 10,
                                               fontWeight: FontWeight.w800,
                                             )),
@@ -550,7 +641,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                          child: const Text('CANCEL',
+                              style: TextStyle(
+                                  color: Color(0xFF6B7280),
+                                  fontWeight: FontWeight.w900)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -560,14 +654,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             backgroundColor: ThemeProvider.success,
                             foregroundColor: Colors.white,
                             elevation: 0,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(
+                                    ThemeProvider.radiusList)),
                           ),
                           onPressed: () async {
                             if (nameCtrl.text.trim().isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter business name')));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content:
+                                          Text('Please enter business name')));
                               return;
                             }
-                            
+
                             final db = DatabaseHelper.instance;
                             final now = DateTime.now().toIso8601String();
                             final userId = BusinessConfig.instance.userId;
@@ -575,7 +674,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             // 1. Insert business
                             final bid = await db.insertBusiness({
                               'name': nameCtrl.text,
-                              'business_type_id': 1, // Default to 1 (General/Retail)
+                              'business_type_id':
+                                  1, // Default to 1 (General/Retail)
                               'owner_user_id': userId,
                               'status': 1,
                               'is_synced': 0,
@@ -605,13 +705,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             if (mounted) {
                               Navigator.pop(ctx);
                               _showManageBusinessesDialog(); // Refresh list
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('Business "${nameCtrl.text}" created!'),
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(
+                                content: Text(
+                                    'Business "${nameCtrl.text}" created!'),
                                 backgroundColor: ThemeProvider.success,
                               ));
                             }
                           },
-                          child: const Text('CREATE', style: TextStyle(fontWeight: FontWeight.w900)),
+                          child: const Text('CREATE',
+                              style: TextStyle(fontWeight: FontWeight.w900)),
                         ),
                       ),
                     ],
@@ -626,34 +729,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showCurrencyDialog() {
-    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon,
+        {bool isRequired = false}) {
       return InputDecoration(
-        label: isRequired 
-          ? RichText(
-              text: TextSpan(
-                text: label,
-                style: const TextStyle(color: Color(0xFF6B7280)),
-                children: const [
-                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )
-          : Text(label),
-        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-        prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
+        label: isRequired
+            ? RichText(
+                text: TextSpan(
+                  text: label,
+                  style: TextStyle(color: theme.textSecondary),
+                  children: [
+                    TextSpan(
+                        text: ' *',
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            : Text(label, style: TextStyle(color: theme.textSecondary)),
+        labelStyle: TextStyle(color: theme.textSecondary),
+        prefixIcon: Icon(icon, color: theme.iconColor),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.05),
+        fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          borderSide: BorderSide(color: theme.highlight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          borderSide: BorderSide(color: theme.highlight),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+          borderSide: BorderSide(color: theme.highlight, width: 1.5),
         ),
       );
     }
@@ -682,21 +790,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Select Currency', 
-                      style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                    const Text('Select Currency',
+                        style: TextStyle(
+                            color: Color(0xFF1F2937),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5)),
                     const SizedBox(height: 20),
                     TextField(
                       autofocus: true,
-                      style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                      decoration: _dialogInputDecoration('Search currency...', Icons.search_rounded),
+                      style: TextStyle(
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w600),
+                      decoration: _dialogInputDecoration(
+                          'Search currency...', Icons.search_rounded),
                       onChanged: (val) {
                         setDialogState(() {
                           query = val.toLowerCase();
-                          filteredList = currencyList.where((c) => 
-                            c.name.toLowerCase().contains(query) || 
-                            c.code.toLowerCase().contains(query) || 
-                            c.symbol.contains(query)
-                          ).toList();
+                          filteredList = currencyList
+                              .where((c) =>
+                                  c.name.toLowerCase().contains(query) ||
+                                  c.code.toLowerCase().contains(query) ||
+                                  c.symbol.contains(query))
+                              .toList();
                         });
                       },
                     ),
@@ -706,24 +822,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         itemCount: filteredList.length,
                         itemBuilder: (ctx, i) {
                           final currency = filteredList[i];
-                          final isSelected = BusinessConfig.instance.currency == currency.symbol;
-                          
+                          final isSelected = BusinessConfig.instance.currency ==
+                              currency.symbol;
+
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 8),
                             child: InkWell(
                               onTap: () {
-                                setState(() => BusinessConfig.instance.currency = currency.symbol);
-                                DatabaseHelper.instance.saveCurrency(currency.symbol);
+                                setState(() => BusinessConfig
+                                    .instance.currency = currency.symbol);
+                                DatabaseHelper.instance
+                                    .saveCurrency(currency.symbol);
                                 Navigator.pop(ctx);
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Currency set to ${currency.name}'), backgroundColor: ThemeProvider.success));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            'Currency set to ${currency.name}'),
+                                        backgroundColor:
+                                            ThemeProvider.success));
                               },
-                              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusList),
                               child: Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? theme.highlight.withOpacity(0.1) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                                  border: Border.all(color: isSelected ? theme.highlight.withOpacity(0.3) : Colors.transparent),
+                                  color: isSelected
+                                      ? theme.highlight.withOpacity(0.1)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusList),
+                                  border: Border.all(
+                                      color: isSelected
+                                          ? theme.highlight.withOpacity(0.3)
+                                          : Colors.transparent),
                                 ),
                                 child: Row(
                                   children: [
@@ -732,22 +863,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       height: 40,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        color: isSelected ? theme.highlight : const Color(0xFFF3F4F6),
+                                        color: isSelected
+                                            ? theme.highlight
+                                            : const Color(0xFFF3F4F6),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: Text(currency.symbol, style: TextStyle(color: isSelected ? Colors.white : const Color(0xFF1F2937), fontSize: 18, fontWeight: FontWeight.bold)),
+                                      child: Text(currency.symbol,
+                                          style: TextStyle(
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : const Color(0xFF1F2937),
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.bold)),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          Text(currency.name, style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w800, fontSize: 14)),
-                                          Text(currency.code, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+                                          Text(currency.name,
+                                              style: const TextStyle(
+                                                  color: Color(0xFF1F2937),
+                                                  fontWeight: FontWeight.w800,
+                                                  fontSize: 14)),
+                                          Text(currency.code,
+                                              style: const TextStyle(
+                                                  color: Color(0xFF6B7280),
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500)),
                                         ],
                                       ),
                                     ),
-                                    if (isSelected) const Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 20),
+                                    if (isSelected)
+                                      const Icon(Icons.check_circle_rounded,
+                                          color: ThemeProvider.success,
+                                          size: 20),
                                   ],
                                 ),
                               ),
@@ -762,7 +913,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                            child: const Text('CANCEL',
+                                style: TextStyle(
+                                    color: Color(0xFF6B7280),
+                                    fontWeight: FontWeight.w900)),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -772,14 +926,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               backgroundColor: theme.highlight,
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusList)),
                             ),
                             onPressed: () {
                               Navigator.pop(ctx);
                               _showCustomCurrencyDialog();
                             },
                             icon: const Icon(Icons.edit_rounded, size: 16),
-                            label: const Text('CUSTOM', style: TextStyle(fontWeight: FontWeight.w900)),
+                            label: const Text('CUSTOM',
+                                style: TextStyle(fontWeight: FontWeight.w900)),
                           ),
                         ),
                       ],
@@ -796,34 +953,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showCustomCurrencyDialog() {
     final customCtrl = TextEditingController();
-    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon,
+        {bool isRequired = false}) {
       return InputDecoration(
-        label: isRequired 
-          ? RichText(
-              text: TextSpan(
-                text: label,
-                style: const TextStyle(color: Color(0xFF6B7280)),
-                children: const [
-                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )
-          : Text(label),
-        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-        prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
+        label: isRequired
+            ? RichText(
+                text: TextSpan(
+                  text: label,
+                  style: TextStyle(color: theme.textSecondary),
+                  children: [
+                    TextSpan(
+                        text: ' *',
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            : Text(label, style: TextStyle(color: theme.textSecondary)),
+        labelStyle: TextStyle(color: theme.textSecondary),
+        prefixIcon: Icon(icon, color: theme.iconColor),
         filled: true,
-        fillColor: Colors.black.withOpacity(0.05),
+        fillColor: theme.whiteAlpha(0.05),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          borderSide: BorderSide(color: theme.highlight),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
+          borderSide: BorderSide(color: theme.highlight),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
+          borderSide: BorderSide(color: theme.highlight, width: 1.5),
         ),
       );
     }
@@ -845,14 +1007,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Custom Symbol', 
-                style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+              const Text('Custom Symbol',
+                  style: TextStyle(
+                      color: Color(0xFF1F2937),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5)),
               const SizedBox(height: 24),
               TextField(
                 controller: customCtrl,
                 autofocus: true,
-                style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                decoration: _dialogInputDecoration('Enter symbol (e.g. ₿)', Icons.currency_exchange_rounded, isRequired: true),
+                style: TextStyle(
+                    color: theme.textPrimary, fontWeight: FontWeight.w600),
+                decoration: _dialogInputDecoration(
+                    'Enter symbol (e.g. ₿)', Icons.currency_exchange_rounded,
+                    isRequired: true),
               ),
               const SizedBox(height: 32),
               Row(
@@ -860,7 +1029,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                      child: const Text('CANCEL',
+                          style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w900)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -870,17 +1042,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: ThemeProvider.success,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
                       ),
                       onPressed: () {
-                         if (customCtrl.text.isNotEmpty) {
-                          setState(() => BusinessConfig.instance.currency = customCtrl.text);
+                        if (customCtrl.text.isNotEmpty) {
+                          setState(() => BusinessConfig.instance.currency =
+                              customCtrl.text);
                           DatabaseHelper.instance.saveCurrency(customCtrl.text);
                           Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Currency symbol updated'), backgroundColor: ThemeProvider.success));
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                              content: Text('Currency symbol updated'),
+                              backgroundColor: ThemeProvider.success));
                         }
                       },
-                      child: const Text('SAVE', style: TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('SAVE',
+                          style: TextStyle(fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ],
@@ -895,19 +1073,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _showTaxDialog() {
     final taxCtrl = TextEditingController(text: _taxRate.toString());
 
-    InputDecoration _dialogInputDecoration(String label, IconData icon, {bool isRequired = false}) {
+    InputDecoration _dialogInputDecoration(String label, IconData icon,
+        {bool isRequired = false}) {
       return InputDecoration(
-        label: isRequired 
-          ? RichText(
-              text: TextSpan(
-                text: label,
-                style: const TextStyle(color: Color(0xFF6B7280)),
-                children: const [
-                  TextSpan(text: ' *', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            )
-          : Text(label),
+        label: isRequired
+            ? RichText(
+                text: TextSpan(
+                  text: label,
+                  style: const TextStyle(color: Color(0xFF6B7280)),
+                  children: const [
+                    TextSpan(
+                        text: ' *',
+                        style: TextStyle(
+                            color: Colors.red, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            : Text(label),
         labelStyle: const TextStyle(color: Color(0xFF6B7280)),
         prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
         filled: true,
@@ -943,15 +1125,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('GST', 
-                style: TextStyle(color: Color(0xFF1F2937), fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+              const Text('GST',
+                  style: TextStyle(
+                      color: Color(0xFF1F2937),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5)),
               const SizedBox(height: 24),
               TextField(
                 controller: taxCtrl,
                 keyboardType: TextInputType.number,
                 autofocus: true,
-                style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                decoration: _dialogInputDecoration('Tax Percentage (%)', Icons.percent_rounded, isRequired: true),
+                style: TextStyle(
+                    color: theme.textPrimary, fontWeight: FontWeight.w600),
+                decoration: _dialogInputDecoration(
+                    'Tax Percentage (%)', Icons.percent_rounded,
+                    isRequired: true),
               ),
               const SizedBox(height: 32),
               Row(
@@ -959,7 +1148,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
-                      child: const Text('CANCEL', style: TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w900)),
+                      child: const Text('CANCEL',
+                          style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontWeight: FontWeight.w900)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -969,16 +1161,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: ThemeProvider.success,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
                       ),
                       onPressed: () async {
-                        setState(() => _taxRate = double.tryParse(taxCtrl.text) ?? 0.0);
+                        setState(() =>
+                            _taxRate = double.tryParse(taxCtrl.text) ?? 0.0);
                         BusinessConfig.instance.taxRate = _taxRate;
-                        await DatabaseHelper.instance.setSetting('tax_rate', _taxRate.toString());
+                        await DatabaseHelper.instance
+                            .setSetting('tax_rate', _taxRate.toString());
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Tax rate updated to ${_taxRate}%'), backgroundColor: ThemeProvider.success));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('Tax rate updated to ${_taxRate}%'),
+                            backgroundColor: ThemeProvider.success));
                       },
-                      child: const Text('UPDATE', style: TextStyle(fontWeight: FontWeight.w900)),
+                      child: const Text('UPDATE',
+                          style: TextStyle(fontWeight: FontWeight.w900)),
                     ),
                   ),
                 ],
@@ -999,7 +1198,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         elevation: 0,
         title: Text(
           'System Settings',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
       ),
@@ -1012,7 +1214,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SectionHeader(
                 title: 'BUSINESS IDENTITY',
                 trailing: IconButton(
-                  icon: Icon(Icons.edit_square, color: theme.highlight, size: 20),
+                  icon:
+                      Icon(Icons.edit_square, color: theme.highlight, size: 20),
                   onPressed: () => _showEditBusinessDialog(focusIndex: 0),
                   tooltip: 'Edit Business Profile',
                 ),
@@ -1073,7 +1276,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     }
                   });
                   BusinessConfig.instance.enableTax = v;
-                  await DatabaseHelper.instance.setSetting('enable_tax', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('enable_tax', v ? '1' : '0');
                   if (v) await _saveTaxRateFromField();
                 },
               ),
@@ -1082,14 +1286,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: TextField(
                     controller: _taxRateCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                        color: theme.textPrimary, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       labelText: 'Tax Rate (%)',
-                      prefixIcon: Icon(Icons.percent_rounded, color: theme.highlight),
+                      prefixIcon:
+                          Icon(Icons.percent_rounded, color: theme.highlight),
                       filled: true,
-                      fillColor: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      fillColor: theme.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onEditingComplete: _saveTaxRateFromField,
                     onSubmitted: (_) => _saveTaxRateFromField(),
@@ -1103,12 +1313,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) async {
                   setState(() {
                     _enableGlobalDiscount = v;
-                    if (v && _globalDiscountLimitCtrl.text.trim().isEmpty && _globalDiscountLimit > 0) {
-                      _globalDiscountLimitCtrl.text = _globalDiscountLimit.toString();
+                    if (v &&
+                        _globalDiscountLimitCtrl.text.trim().isEmpty &&
+                        _globalDiscountLimit > 0) {
+                      _globalDiscountLimitCtrl.text =
+                          _globalDiscountLimit.toString();
                     }
                   });
                   BusinessConfig.instance.enableGlobalDiscount = v;
-                  await DatabaseHelper.instance.setSetting('enable_global_discount', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('enable_global_discount', v ? '1' : '0');
                   if (v) await _saveGlobalDiscountLimitFromField();
                 },
               ),
@@ -1117,8 +1331,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                   child: TextField(
                     controller: _globalDiscountLimitCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    style: TextStyle(
+                        color: theme.textPrimary, fontWeight: FontWeight.w600),
                     decoration: InputDecoration(
                       labelText: 'Max Discount Limit',
                       prefixIcon: Icon(
@@ -1131,9 +1347,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onPressed: () async {
                           setState(() {
                             _globalDiscountLimitType =
-                                _globalDiscountLimitType == 'percentage' ? 'fixed' : 'percentage';
+                                _globalDiscountLimitType == 'percentage'
+                                    ? 'fixed'
+                                    : 'percentage';
                           });
-                          BusinessConfig.instance.globalDiscountLimitType = _globalDiscountLimitType;
+                          BusinessConfig.instance.globalDiscountLimitType =
+                              _globalDiscountLimitType;
                           await DatabaseHelper.instance.setSetting(
                             'global_discount_limit_type',
                             _globalDiscountLimitType,
@@ -1143,12 +1362,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _globalDiscountLimitType == 'percentage'
                               ? '%'
                               : BusinessConfig.instance.currencyDisplay,
-                          style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                              color: theme.highlight,
+                              fontWeight: FontWeight.bold),
                         ),
                       ),
                       filled: true,
-                      fillColor: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      fillColor: theme.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                     onEditingComplete: _saveGlobalDiscountLimitFromField,
                     onSubmitted: (_) => _saveGlobalDiscountLimitFromField(),
@@ -1162,7 +1386,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const CurrencyNotesScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const CurrencyNotesScreen()),
                   );
                 },
               ),
@@ -1192,9 +1417,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
               const SizedBox(height: 24),
               const _SectionHeader(title: 'PREFERENCES'),
               _SettingsSwitch(
-                icon: theme.isDark ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                icon: theme.isDark
+                    ? Icons.dark_mode_rounded
+                    : Icons.light_mode_rounded,
                 title: 'Aesthetic Dark Mode',
-                subtitle: theme.isDark ? 'Professional dark theme' : 'Vibrant light theme',
+                subtitle: theme.isDark
+                    ? 'Professional dark theme'
+                    : 'Vibrant light theme',
                 value: theme.isDark,
                 onChanged: (v) => setState(() => theme.toggleTheme()),
               ),
@@ -1206,7 +1435,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) async {
                   setState(() => _requireCustomer = v);
                   BusinessConfig.instance.requireCustomer = v;
-                  await DatabaseHelper.instance.setSetting('require_customer', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('require_customer', v ? '1' : '0');
                 },
               ),
               _SettingsSwitch(
@@ -1217,7 +1447,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) async {
                   setState(() => _autoReceipt = v);
                   BusinessConfig.instance.autoReceipt = v;
-                  await DatabaseHelper.instance.setSetting('auto_receipt', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('auto_receipt', v ? '1' : '0');
                 },
               ),
               _SettingsSwitch(
@@ -1228,7 +1459,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) async {
                   setState(() => _openCashDrawer = v);
                   BusinessConfig.instance.openCashDrawer = v;
-                  await DatabaseHelper.instance.setSetting('open_cash_drawer', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('open_cash_drawer', v ? '1' : '0');
                 },
               ),
               _SettingsSwitch(
@@ -1239,7 +1471,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) async {
                   setState(() => _soundEnabled = v);
                   BusinessConfig.instance.soundEnabled = v;
-                  await DatabaseHelper.instance.setSetting('sound_enabled', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('sound_enabled', v ? '1' : '0');
                 },
               ),
               _SettingsSwitch(
@@ -1250,7 +1483,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onChanged: (v) async {
                   setState(() => _enableShiftManagement = v);
                   BusinessConfig.instance.enableShiftManagement = v;
-                  await DatabaseHelper.instance.setSetting('enable_shift_management', v ? '1' : '0');
+                  await DatabaseHelper.instance
+                      .setSetting('enable_shift_management', v ? '1' : '0');
                 },
               ),
 
@@ -1260,7 +1494,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 icon: Icons.cloud_sync_rounded,
                 title: 'Cloud Synchronization',
                 subtitle: 'Last synced: 2 hours ago',
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Syncing with cloud...'), backgroundColor: ThemeProvider.info)),
+                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Syncing with cloud...'),
+                        backgroundColor: ThemeProvider.info)),
               ),
               _SettingsTile(
                 icon: Icons.storage_rounded,
@@ -1286,31 +1523,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       final jsonStr = await storage.read(key: 'saved_accounts');
                       List<Map<String, dynamic>> accounts = [];
                       if (jsonStr != null) {
-                        accounts = List<Map<String, dynamic>>.from(jsonDecode(jsonStr));
+                        accounts = List<Map<String, dynamic>>.from(
+                            jsonDecode(jsonStr));
                       }
-                      
+
                       // Check if account already saved, update pin
-                      final accIndex = accounts.indexWhere((acc) => acc['email'].toString().toLowerCase() == currentEmail.toLowerCase());
+                      final accIndex = accounts.indexWhere((acc) =>
+                          acc['email'].toString().toLowerCase() ==
+                          currentEmail.toLowerCase());
                       if (accIndex != -1) {
                         accounts[accIndex]['pin'] = pin;
                       } else {
                         // Create a basic saved account context if one didn't exist
                         String name = 'User';
                         final dbHelper = DatabaseHelper.instance;
-                        final localUser = await dbHelper.getUserByEmail(currentEmail);
-                        if (localUser != null) name = localUser['name'] ?? 'User';
+                        final localUser =
+                            await dbHelper.getUserByEmail(currentEmail);
+                        if (localUser != null)
+                          name = localUser['name'] ?? 'User';
 
                         accounts.add({
                           'email': currentEmail.toLowerCase(),
-                          'password': '', // Will prompt password if they don't have it saved, handled normally during quick login fail
+                          'password':
+                              '', // Will prompt password if they don't have it saved, handled normally during quick login fail
                           'name': name,
                           'pin': pin,
                         });
                       }
-                      
-                      await storage.write(key: 'saved_accounts', value: jsonEncode(accounts));
+
+                      await storage.write(
+                          key: 'saved_accounts', value: jsonEncode(accounts));
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('PIN updated successfully!'), backgroundColor: ThemeProvider.success));
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                            content: Text('PIN updated successfully!'),
+                            backgroundColor: ThemeProvider.success));
                       }
                     } catch (e) {
                       print('Error saving PIN: $e');
@@ -1348,21 +1594,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Container(
           width: 300,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(Icons.cloud_done_rounded, color: theme.highlight, size: 28),
+                decoration: BoxDecoration(
+                    color: theme.highlight.withOpacity(0.1),
+                    shape: BoxShape.circle),
+                child: Icon(Icons.cloud_done_rounded,
+                    color: theme.highlight, size: 28),
               ),
               const SizedBox(height: 12),
-              const Text('Manage Storage', style: TextStyle(color: Color(0xFF1F2937), fontSize: 16, fontWeight: FontWeight.w900)),
+              const Text('Manage Storage',
+                  style: TextStyle(
+                      color: Color(0xFF1F2937),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              const Text('Have you synced your local data with the cloud server?', 
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+              const Text(
+                  'Have you synced your local data with the cloud server?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 20),
               Row(
                 children: [
@@ -1370,14 +1628,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                        side: BorderSide(color: theme.highlight.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
+                        side:
+                            BorderSide(color: theme.highlight.withOpacity(0.5)),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
                         _performFullSync();
                       },
-                      child: Text('NOT YET', style: TextStyle(color: const Color(0xFF1F2937), fontWeight: FontWeight.w900, fontSize: 11)),
+                      child: Text('NOT YET',
+                          style: TextStyle(
+                              color: const Color(0xFF1F2937),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1388,13 +1653,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: theme.highlight,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
                       ),
                       onPressed: () {
                         Navigator.pop(ctx);
                         _confirmCleanup();
                       },
-                      child: const Text('YES, SYNCED', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                      child: const Text('YES, SYNCED',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900, fontSize: 11)),
                     ),
                   ),
                 ],
@@ -1407,20 +1676,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _performFullSync() async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Starting synchronization...'), backgroundColor: ThemeProvider.info));
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Starting synchronization...'),
+        backgroundColor: ThemeProvider.info));
     try {
       final result = await _syncService.syncAll();
       if (mounted) {
         if (result.success) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sync complete! Now you can safely cleanup.'), backgroundColor: ThemeProvider.success));
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Sync complete! Now you can safely cleanup.'),
+              backgroundColor: ThemeProvider.success));
           _confirmCleanup();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync partial: ${result.pushError ?? result.pullError}'), backgroundColor: ThemeProvider.warning));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content:
+                  Text('Sync partial: ${result.pushError ?? result.pullError}'),
+              backgroundColor: ThemeProvider.warning));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sync failed: $e'), backgroundColor: ThemeProvider.error));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Sync failed: $e'),
+            backgroundColor: ThemeProvider.error));
       }
     }
   }
@@ -1437,21 +1715,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           content: Container(
             width: 300,
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(24)),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: ThemeProvider.warning.withOpacity(0.1), shape: BoxShape.circle),
-                  child: const Icon(Icons.warning_amber_rounded, color: ThemeProvider.warning, size: 28),
+                  decoration: BoxDecoration(
+                      color: ThemeProvider.warning.withOpacity(0.1),
+                      shape: BoxShape.circle),
+                  child: const Icon(Icons.warning_amber_rounded,
+                      color: ThemeProvider.warning, size: 28),
                 ),
                 const SizedBox(height: 12),
-                const Text('Unsynced Data Detected', style: TextStyle(color: Color(0xFF1F2937), fontSize: 16, fontWeight: FontWeight.w900), textAlign: TextAlign.center),
+                const Text('Unsynced Data Detected',
+                    style: TextStyle(
+                        color: Color(0xFF1F2937),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900),
+                    textAlign: TextAlign.center),
                 const SizedBox(height: 6),
-                const Text('Some records have not been synced yet. If you cleanup now, those records will NOT be deleted. Proceed?', 
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+                const Text(
+                    'Some records have not been synced yet. If you cleanup now, those records will NOT be deleted. Proceed?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Color(0xFF6B7280),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -1459,11 +1750,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       child: OutlinedButton(
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusList)),
                           side: const BorderSide(color: Color(0xFF9CA3AF)),
                         ),
                         onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('CANCEL', style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w900, fontSize: 11)),
+                        child: const Text('CANCEL',
+                            style: TextStyle(
+                                color: Color(0xFF1F2937),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11)),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1474,10 +1771,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           backgroundColor: ThemeProvider.warning,
                           foregroundColor: Colors.white,
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusList)),
                         ),
                         onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('PROCEED', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                        child: const Text('PROCEED',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w900, fontSize: 11)),
                       ),
                     ),
                   ],
@@ -1500,21 +1801,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Container(
           width: 300,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+          decoration: BoxDecoration(
+              color: Colors.white, borderRadius: BorderRadius.circular(24)),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: ThemeProvider.error.withOpacity(0.1), shape: BoxShape.circle),
-                child: const Icon(Icons.delete_sweep_rounded, color: ThemeProvider.error, size: 28),
+                decoration: BoxDecoration(
+                    color: ThemeProvider.error.withOpacity(0.1),
+                    shape: BoxShape.circle),
+                child: const Icon(Icons.delete_sweep_rounded,
+                    color: ThemeProvider.error, size: 28),
               ),
               const SizedBox(height: 12),
-              const Text('Confirm Cleanup', style: TextStyle(color: Color(0xFF1F2937), fontSize: 16, fontWeight: FontWeight.w900)),
+              const Text('Confirm Cleanup',
+                  style: TextStyle(
+                      color: Color(0xFF1F2937),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900)),
               const SizedBox(height: 6),
-              const Text('This will remove synced transaction records older than one week. You can still view them online.', 
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Color(0xFF6B7280), fontSize: 12, fontWeight: FontWeight.w500)),
+              const Text(
+                  'This will remove synced transaction records older than one week. You can still view them online.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      color: Color(0xFF6B7280),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500)),
               const SizedBox(height: 20),
               Row(
                 children: [
@@ -1522,11 +1835,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
                         side: const BorderSide(color: Color(0xFF9CA3AF)),
                       ),
                       onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('CANCEL', style: TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w900, fontSize: 11)),
+                      child: const Text('CANCEL',
+                          style: TextStyle(
+                              color: Color(0xFF1F2937),
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11)),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1537,10 +1856,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         backgroundColor: ThemeProvider.error,
                         foregroundColor: Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
                       ),
                       onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('CLEANUP', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11)),
+                      child: const Text('CLEANUP',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w900, fontSize: 11)),
                     ),
                   ),
                 ],
@@ -1577,11 +1900,11 @@ class _SectionHeader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            title, 
+            title,
             style: TextStyle(
-              color: theme.highlight, 
-              fontSize: 12, 
-              fontWeight: FontWeight.w900, 
+              color: theme.highlight,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
             ),
           ),
@@ -1601,10 +1924,10 @@ class _SettingsTile extends StatelessWidget {
   final bool showTrailing;
 
   const _SettingsTile({
-    required this.icon, 
-    required this.title, 
-    required this.subtitle, 
-    required this.onTap, 
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
     // ignore: unused_element_parameter
     this.titleColor,
     this.showTrailing = true,
@@ -1616,33 +1939,52 @@ class _SettingsTile extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        decoration: theme.glassDecoration,
+        decoration: theme.glassListDecoration,
         child: ListTile(
           onTap: onTap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
           leading: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
             child: Icon(icon, color: theme.highlight, size: 22),
           ),
-          title: Text(title, style: TextStyle(color: titleColor ?? theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
-          subtitle: Text(subtitle, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
-          trailing: showTrailing ? Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: theme.highlight.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: theme.highlight.withOpacity(0.1)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.edit_note_rounded, color: theme.highlight, size: 16),
-                const SizedBox(width: 4),
-                Text('EDIT', style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900)),
-              ],
-            ),
-          ) : null,
+          title: Text(title,
+              style: TextStyle(
+                  color: titleColor ?? theme.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14)),
+          subtitle: Text(subtitle,
+              style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500)),
+          trailing: showTrailing
+              ? Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: theme.highlight.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: theme.highlight.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.edit_note_rounded,
+                          color: theme.highlight, size: 16),
+                      const SizedBox(width: 4),
+                      Text('EDIT',
+                          style: TextStyle(
+                              color: theme.highlight,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900)),
+                    ],
+                  ),
+                )
+              : null,
         ),
       ),
     );
@@ -1656,7 +1998,12 @@ class _SettingsSwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _SettingsSwitch({required this.icon, required this.title, required this.subtitle, required this.value, required this.onChanged});
+  const _SettingsSwitch(
+      {required this.icon,
+      required this.title,
+      required this.subtitle,
+      required this.value,
+      required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -1664,18 +2011,27 @@ class _SettingsSwitch extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Container(
-        decoration: theme.glassDecoration,
+        decoration: theme.glassListDecoration,
         child: ListTile(
           leading: Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(
+                color: Colors.white, borderRadius: BorderRadius.circular(12)),
             child: Icon(icon, color: theme.highlight, size: 22),
           ),
-          title: Text(title, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
-          subtitle: Text(subtitle, style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500)),
+          title: Text(title,
+              style: TextStyle(
+                  color: theme.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14)),
+          subtitle: Text(subtitle,
+              style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500)),
           trailing: Switch(
-            value: value, 
-            onChanged: onChanged, 
+            value: value,
+            onChanged: onChanged,
             activeColor: theme.switchActiveColor,
             activeTrackColor: theme.switchActiveColor.withOpacity(0.3),
             inactiveThumbColor: theme.textHint,

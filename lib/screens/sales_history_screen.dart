@@ -406,7 +406,7 @@ class _SaleTile extends StatelessWidget {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: theme.glassDecoration,
+      decoration: theme.glassListDecoration,
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         onTap: onTap,

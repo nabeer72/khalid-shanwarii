@@ -140,9 +140,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
 
                           return Container(
                             margin: const EdgeInsets.only(bottom: 8),
-                            decoration: theme.glassDecoration.copyWith(
-                              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                            ),
+                            decoration: theme.glassListDecoration,
                             child: ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                               title: Row(

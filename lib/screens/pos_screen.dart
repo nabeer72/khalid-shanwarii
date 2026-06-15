@@ -1,4 +1,5 @@
-import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_app/controllers/pos_controller.dart';
@@ -30,29 +31,32 @@ class POSScreen extends StatefulWidget {
   final Map<String, dynamic>? returnSale;
   final String? initialCategory;
   static bool isActive = false;
-  const POSScreen({super.key, this.resumeOrder, this.returnSale, this.initialCategory});
+  const POSScreen(
+      {super.key, this.resumeOrder, this.returnSale, this.initialCategory});
 
   @override
   State<POSScreen> createState() => _POSScreenState();
 }
 
-class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMixin {
+class _POSScreenState extends State<POSScreen>
+    with SingleTickerProviderStateMixin {
   final _controller = POSController();
   final theme = ThemeProvider.instance;
-  
+
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final FocusNode _keyboardFocusNode = FocusNode();
-  final GlobalKey<POSCartSectionState> _cartKey = GlobalKey<POSCartSectionState>();
+  final GlobalKey<POSCartSectionState> _cartKey =
+      GlobalKey<POSCartSectionState>();
   bool _isScannerOpen = false;
   MobileScannerController? _scannerController;
   DateTime? _lastScanTime;
   AudioPlayer? _audioPlayer;
-  
+
   bool _showQuickAddProduct = false;
   late AnimationController _quickAddController;
   late Animation<Offset> _quickAddSlideAnimation;
-  
+
   double _searchBoxWidth = 300;
 
   @override
@@ -67,17 +71,20 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     } catch (_) {}
     POSScreen.isActive = true;
     _controller.addListener(_onControllerChange);
-    
+
     if (widget.resumeOrder != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _controller.resumeOrder(widget.resumeOrder!));
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _controller.resumeOrder(widget.resumeOrder!));
     } else if (widget.returnSale != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _controller.loadReturnSale(widget.returnSale!));
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _controller.loadReturnSale(widget.returnSale!));
     }
 
     if (widget.initialCategory != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _controller.setCategory(widget.initialCategory!));
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => _controller.setCategory(widget.initialCategory!));
     }
-    
+
     _quickAddController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -131,24 +138,30 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('No active shift found. Please start a shift first.'),
+            content: const Text(
+                'No active shift found. Please start a shift first.'),
             backgroundColor: ThemeProvider.warning,
           ),
         );
       }
       return;
     }
-    
+
     // ignore: unused_local_variable
     final startTime = shift['start_time'];
     // ignore: unused_local_variable
     final now = DateTime.now().toIso8601String();
-    
+
     if (mounted) {
-      final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => SalesHistoryScreen(
-        shiftId: shift['id'] is int ? shift['id'] : int.tryParse(shift['id'].toString()),
-        isShiftHistory: true,
-      )));
+      final result = await Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (_) => SalesHistoryScreen(
+                    shiftId: shift['id'] is int
+                        ? shift['id']
+                        : int.tryParse(shift['id'].toString()),
+                    isShiftHistory: true,
+                  )));
       if (result != null && result is Map && mounted) {
         _controller.loadReturnSale(Map<String, dynamic>.from(result));
       }
@@ -156,7 +169,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   }
 
   void _showAllHistory() async {
-    final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
+    final result = await Navigator.push(
+        context, MaterialPageRoute(builder: (_) => const SalesHistoryScreen()));
     if (result != null && result is Map && mounted) {
       _controller.loadReturnSale(Map<String, dynamic>.from(result));
     }
@@ -172,16 +186,22 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
           children: [
             Icon(Icons.error_outline_rounded, color: ThemeProvider.error),
             const SizedBox(width: 12),
-            Text('Stock Not Found', 
-              style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Stock Not Found',
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18)),
           ],
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Out of Stock Alert', 
-              style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold, fontSize: 14)),
+            Text('Out of Stock Alert',
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14)),
             const SizedBox(height: 12),
             Text(
               'The product "${product.name}" (Batch: ${stock.barcode ?? 'Default'}) has zero stock and cannot be sold.',
@@ -194,9 +214,12 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             onPressed: () => Navigator.pop(ctx),
             style: ElevatedButton.styleFrom(
               backgroundColor: theme.highlight,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('OK', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text('OK',
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -206,7 +229,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _showStockBatchDialog(List<Product> variants) {
     if (variants.isEmpty) return;
     final product = variants.first;
-    
+
     // Group all stocks from all variants by their salePrice to avoid duplicates with the same price.
     final Map<double, Map<String, dynamic>> groupedStocks = {};
     for (var v in variants) {
@@ -221,7 +244,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         } else {
           // NEW PRICE -> Create new entry (using a clone to avoid side effects)
           groupedStocks[price] = {
-            'product': v, 
+            'product': v,
             'stock': Stock.fromMap(s.toMap()),
           };
         }
@@ -229,8 +252,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     }
     final allStocks = groupedStocks.values.toList();
     // Sort by price descending (newest/highest usually preferred)
-    allStocks.sort((a, b) => b['stock'].salePrice.compareTo(a['stock'].salePrice));
-    
+    allStocks
+        .sort((a, b) => b['stock'].salePrice.compareTo(a['stock'].salePrice));
+
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -280,7 +304,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           shape: BoxShape.circle,
                           color: theme.textHint.withOpacity(0.1),
                         ),
-                        child: Icon(Icons.close, color: theme.textSecondary, size: 18),
+                        child: Icon(Icons.close,
+                            color: theme.textSecondary, size: 18),
                       ),
                     ),
                   ),
@@ -291,13 +316,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: allStocks.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (ctx, i) {
                     final item = allStocks[i];
                     final p = item['product'] as Product;
                     final s = item['stock'] as Stock;
                     final bool isLowStock = s.quantity <= p.stockLimit;
-                    
+
                     return Material(
                       color: Colors.transparent,
                       child: InkWell(
@@ -316,7 +342,9 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: theme.cardBorder),
-                            color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                            color: theme.isDark
+                                ? Colors.white.withOpacity(0.03)
+                                : Colors.black.withOpacity(0.02),
                           ),
                           child: Row(
                             children: [
@@ -326,7 +354,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                   color: theme.highlight.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Icon(Icons.inventory_2_outlined, color: theme.highlight, size: 22),
+                                child: Icon(Icons.inventory_2_outlined,
+                                    color: theme.highlight, size: 22),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -340,7 +369,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold)),
                                     const SizedBox(height: 4),
-                                    Text('Barcode: ${s.barcode ?? p.latestBarcode ?? 'Default'}',
+                                    Text(
+                                        'Barcode: ${s.barcode ?? p.latestBarcode ?? 'Default'}',
                                         style: TextStyle(
                                             color: theme.textSecondary,
                                             fontSize: 12)),
@@ -348,15 +378,20 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                 ),
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: isLowStock ? ThemeProvider.error.withOpacity(0.1) : ThemeProvider.success.withOpacity(0.1),
+                                  color: isLowStock
+                                      ? ThemeProvider.error.withOpacity(0.1)
+                                      : ThemeProvider.success.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
                                   '${s.quantity} Unit',
                                   style: TextStyle(
-                                    color: isLowStock ? ThemeProvider.error : ThemeProvider.success,
+                                    color: isLowStock
+                                        ? ThemeProvider.error
+                                        : ThemeProvider.success,
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -418,14 +453,18 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: theme.highlight.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(stock.salePrice)} / ${BusinessConfig.instance.weightUnit}',
-                      style: TextStyle(color: theme.highlight, fontSize: 11, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: theme.highlight,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -433,7 +472,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               const SizedBox(height: 30),
               TextField(
                 controller: weightCtrl,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
                 autofocus: true,
                 style: TextStyle(
                     color: theme.textPrimary,
@@ -445,7 +485,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   hintText: '0.00',
                   hintStyle: TextStyle(color: theme.textHint.withOpacity(0.2)),
                   suffixText: BusinessConfig.instance.weightUnit,
-                  suffixStyle: TextStyle(color: theme.textSecondary, fontSize: 18, fontWeight: FontWeight.bold),
+                  suffixStyle: TextStyle(
+                      color: theme.textSecondary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold),
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
@@ -458,9 +501,12 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: ActionChip(
-                      label: Text('$w ${BusinessConfig.instance.weightUnit}', 
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      backgroundColor: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                      label: Text('$w ${BusinessConfig.instance.weightUnit}',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 12)),
+                      backgroundColor: theme.isDark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
                       side: BorderSide(color: theme.cardBorder),
                       onPressed: () => weightCtrl.text = w,
                     ),
@@ -476,9 +522,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(color: theme.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                      child: Text('Cancel',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -487,7 +537,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       onPressed: () {
                         final weight = double.tryParse(weightCtrl.text);
                         if (weight != null && weight > 0) {
-                          _controller.addToCart(product, stock, qty: weight, isWeight: true);
+                          _controller.addToCart(product, stock,
+                              qty: weight, isWeight: true);
                           Navigator.pop(ctx);
                         }
                       },
@@ -495,9 +546,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         backgroundColor: theme.highlight,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('ADD TO CART', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      child: const Text('ADD TO CART',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1)),
                     ),
                   ),
                 ],
@@ -524,26 +580,32 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             return KeyEventResult.ignored;
           },
           child: AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             backgroundColor: theme.surface,
             title: Row(
               children: [
-                const Icon(Icons.warning_amber_rounded, color: ThemeProvider.error),
+                const Icon(Icons.warning_amber_rounded,
+                    color: ThemeProvider.error),
                 const SizedBox(width: 8),
                 Text('Clear Cart', style: TextStyle(color: theme.textPrimary)),
               ],
             ),
-            content: Text('Are you sure you want to clear all items from the cart?',
+            content: Text(
+                'Are you sure you want to clear all items from the cart?',
                 style: TextStyle(color: theme.textSecondary)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Cancel', style: TextStyle(color: theme.textSecondary)),
+                child: Text('Cancel',
+                    style: TextStyle(color: theme.textSecondary)),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                style: ElevatedButton.styleFrom(backgroundColor: ThemeProvider.error),
-                child: const Text('Clear', style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: ThemeProvider.error),
+                child:
+                    const Text('Clear', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
@@ -558,21 +620,24 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
 
   Future<void> _handleParkCart() async {
     if (_controller.cart.isEmpty) return;
-    
+
     final existingOrders = await DatabaseHelper.instance.getHeldOrders();
     final defaultName = _controller.selectedCustomer?.name ??
         'Order #${existingOrders.length + 1}';
-        
+
     final nameCtrl = TextEditingController(text: defaultName);
-    
+
     if (!mounted) return;
-    
+
     final name = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: theme.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
-        title: Text('Hold Order', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+        title: Text('Hold Order',
+            style: TextStyle(
+                color: theme.textPrimary, fontWeight: FontWeight.bold)),
         content: TextField(
           controller: nameCtrl,
           autofocus: true,
@@ -593,9 +658,11 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             style: ElevatedButton.styleFrom(
               backgroundColor: ThemeProvider.warning,
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('HOLD ORDER', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text('HOLD ORDER',
+                style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -604,8 +671,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     if (name != null && name.isNotEmpty) {
       await _controller.parkCurrentCart(name);
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Order held successfully!')));
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Order held successfully!')));
       }
     }
   }
@@ -616,142 +683,217 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setModalState) {
           return FutureBuilder<List<Map<String, dynamic>>>(
-            future: DatabaseHelper.instance.getHeldOrders(),
-            builder: (context, snapshot) {
-              final ordersData = snapshot.data ?? [];
-              final loading = snapshot.connectionState == ConnectionState.waiting;
+              future: DatabaseHelper.instance.getHeldOrders(),
+              builder: (context, snapshot) {
+                final ordersData = snapshot.data ?? [];
+                final loading =
+                    snapshot.connectionState == ConnectionState.waiting;
 
-              return AlertDialog(
-                backgroundColor: theme.surface,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
-                titlePadding: EdgeInsets.zero,
-                contentPadding: EdgeInsets.zero,
-                content: SizedBox(
-                  width: 450,
-                  height: MediaQuery.of(context).size.height * 0.7,
-                  child: Column(
-                    children: [
-                      // Title & Close
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text('HELD ORDERS',
-                                style: TextStyle(
-                                    color: theme.textPrimary,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w900)),
-                            IconButton(
-                              icon: const Icon(Icons.close_rounded),
-                              onPressed: () => Navigator.pop(ctx),
-                              color: theme.iconColor,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(),
-
-                      // List of Held Orders
-                      Expanded(
-                        child: loading 
-                          ? Center(child: CircularProgressIndicator(color: theme.highlight))
-                          : ordersData.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.inventory_2_outlined, size: 48, color: theme.iconColor.withOpacity(0.5)),
-                                    const SizedBox(height: 12),
-                                    Text('No parked orders', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: ordersData.length,
-                                itemBuilder: (context, index) {
-                                  final data = ordersData[index];
-                                  final createdAt = DateTime.parse(data['created_at']);
-                                  final elapsed = DateTime.now().difference(createdAt);
-                                  final elapsedStr = elapsed.inMinutes < 60 
-                                      ? '${elapsed.inMinutes}m ago'
-                                      : '${elapsed.inHours}h ${elapsed.inMinutes % 60}m ago';
-
-                                  return Container(
-                                    margin: const EdgeInsets.only(bottom: 8),
-                                    decoration: theme.glassDecoration,
-                                    child: ListTile(
-                                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                                      leading: Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: ThemeProvider.warning.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                                        ),
-                                        child: const Icon(Icons.pause_rounded, color: ThemeProvider.warning, size: 20),
-                                      ),
-                                      title: Row(
-                                        children: [
-                                          Expanded(
-                                            child: Text(data['name'] ?? 'Order', 
-                                                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
-                                          ),
-                                          Text(elapsedStr, 
-                                              style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800)),
-                                        ],
-                                      ),
-                                      subtitle: Padding(
-                                        padding: const EdgeInsets.only(top: 2),
-                                        child: Text(
-                                          'Total: ${BusinessConfig.instance.currencyDisplay} ${(data['total'] as num).toStringAsFixed(2)}',
-                                          style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
-                                        ),
-                                      ),
-                                      trailing: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          IconButton(
-                                            icon: const Icon(Icons.delete_outline_rounded, color: ThemeProvider.error, size: 18),
-                                            onPressed: () async {
-                                              await DatabaseHelper.instance.deleteHeldOrder(data['id']);
-                                              setModalState(() {});
-                                            },
-                                          ),
-                                          const SizedBox(width: 4),
-                                          IconButton(
-                                            icon: const Icon(Icons.play_arrow_rounded, color: ThemeProvider.success, size: 18),
-                                            style: IconButton.styleFrom(
-                                              backgroundColor: ThemeProvider.success.withOpacity(0.1),
-                                              padding: const EdgeInsets.all(8),
-                                            ),
-                                            onPressed: () async {
-                                              final items = await DatabaseHelper.instance.getHeldOrderItems(data['id']);
-                                              Customer? customer;
-                                              if (data['customer_id'] != null) {
-                                                final cData = await DatabaseHelper.instance.getCustomer(data['customer_id']);
-                                                if (cData != null) customer = Customer.fromMap(cData);
-                                              }
-                                              final order = HeldOrder.fromMap(data, childItems: items, customer: customer);
-                                              await DatabaseHelper.instance.deleteHeldOrder(data['id']);
-                                              _controller.resumeOrder(order);
-                                              if (ctx.mounted) Navigator.pop(ctx);
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
+                return AlertDialog(
+                  backgroundColor: theme.surface,
+                  shape: RoundedRectangleBorder(
+                      borderRadius:
+                          BorderRadius.circular(ThemeProvider.radiusCard)),
+                  titlePadding: EdgeInsets.zero,
+                  contentPadding: EdgeInsets.zero,
+                  content: SizedBox(
+                    width: 450,
+                    height: MediaQuery.of(context).size.height * 0.7,
+                    child: Column(
+                      children: [
+                        // Title & Close
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 20, 16, 8),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('HELD ORDERS',
+                                  style: TextStyle(
+                                      color: theme.textPrimary,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900)),
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded),
+                                onPressed: () => Navigator.pop(ctx),
+                                color: theme.iconColor,
                               ),
-                      ),
-                    ],
+                            ],
+                          ),
+                        ),
+                        const Divider(),
+
+                        // List of Held Orders
+                        Expanded(
+                          child: loading
+                              ? Center(
+                                  child: CircularProgressIndicator(
+                                      color: theme.highlight))
+                              : ordersData.isEmpty
+                                  ? Center(
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.inventory_2_outlined,
+                                              size: 48,
+                                              color: theme.iconColor
+                                                  .withOpacity(0.5)),
+                                          const SizedBox(height: 12),
+                                          Text('No parked orders',
+                                              style: TextStyle(
+                                                  color: theme.textSecondary,
+                                                  fontWeight: FontWeight.w600)),
+                                        ],
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      padding: const EdgeInsets.all(16),
+                                      itemCount: ordersData.length,
+                                      itemBuilder: (context, index) {
+                                        final data = ordersData[index];
+                                        final createdAt =
+                                            DateTime.parse(data['created_at']);
+                                        final elapsed = DateTime.now()
+                                            .difference(createdAt);
+                                        final elapsedStr = elapsed.inMinutes <
+                                                60
+                                            ? '${elapsed.inMinutes}m ago'
+                                            : '${elapsed.inHours}h ${elapsed.inMinutes % 60}m ago';
+
+                                        return Container(
+                                          margin:
+                                              const EdgeInsets.only(bottom: 8),
+                                          decoration: theme.glassListDecoration,
+                                          child: ListTile(
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    horizontal: 14,
+                                                    vertical: 4),
+                                            leading: Container(
+                                              width: 40,
+                                              height: 40,
+                                              decoration: BoxDecoration(
+                                                color: ThemeProvider.warning
+                                                    .withOpacity(0.1),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                        ThemeProvider
+                                                            .radiusList),
+                                              ),
+                                              child: const Icon(
+                                                  Icons.pause_rounded,
+                                                  color: ThemeProvider.warning,
+                                                  size: 20),
+                                            ),
+                                            title: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                      data['name'] ?? 'Order',
+                                                      style: TextStyle(
+                                                          color:
+                                                              theme.textPrimary,
+                                                          fontWeight:
+                                                              FontWeight.w800,
+                                                          fontSize: 14)),
+                                                ),
+                                                Text(elapsedStr,
+                                                    style: TextStyle(
+                                                        color: theme.textHint,
+                                                        fontSize: 10,
+                                                        fontWeight:
+                                                            FontWeight.w800)),
+                                              ],
+                                            ),
+                                            subtitle: Padding(
+                                              padding:
+                                                  const EdgeInsets.only(top: 2),
+                                              child: Text(
+                                                'Total: ${BusinessConfig.instance.currencyDisplay} ${(data['total'] as num).toStringAsFixed(2)}',
+                                                style: TextStyle(
+                                                    color: theme.textSecondary,
+                                                    fontSize: 12,
+                                                    fontWeight:
+                                                        FontWeight.w500),
+                                              ),
+                                            ),
+                                            trailing: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons
+                                                          .delete_outline_rounded,
+                                                      color:
+                                                          ThemeProvider.error,
+                                                      size: 18),
+                                                  onPressed: () async {
+                                                    await DatabaseHelper
+                                                        .instance
+                                                        .deleteHeldOrder(
+                                                            data['id']);
+                                                    setModalState(() {});
+                                                  },
+                                                ),
+                                                const SizedBox(width: 4),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.play_arrow_rounded,
+                                                      color:
+                                                          ThemeProvider.success,
+                                                      size: 18),
+                                                  style: IconButton.styleFrom(
+                                                    backgroundColor:
+                                                        ThemeProvider.success
+                                                            .withOpacity(0.1),
+                                                    padding:
+                                                        const EdgeInsets.all(8),
+                                                  ),
+                                                  onPressed: () async {
+                                                    final items =
+                                                        await DatabaseHelper
+                                                            .instance
+                                                            .getHeldOrderItems(
+                                                                data['id']);
+                                                    Customer? customer;
+                                                    if (data['customer_id'] !=
+                                                        null) {
+                                                      final cData =
+                                                          await DatabaseHelper
+                                                              .instance
+                                                              .getCustomer(data[
+                                                                  'customer_id']);
+                                                      if (cData != null)
+                                                        customer =
+                                                            Customer.fromMap(
+                                                                cData);
+                                                    }
+                                                    final order =
+                                                        HeldOrder.fromMap(data,
+                                                            childItems: items,
+                                                            customer: customer);
+                                                    await DatabaseHelper
+                                                        .instance
+                                                        .deleteHeldOrder(
+                                                            data['id']);
+                                                    _controller
+                                                        .resumeOrder(order);
+                                                    if (ctx.mounted)
+                                                      Navigator.pop(ctx);
+                                                  },
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }
-          );
+                );
+              });
         },
       ),
     );
@@ -760,13 +902,15 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _showDiscountDialog() {
     String dType = 'fixed';
     String? dialogError;
-    final discountCtrl = TextEditingController(text: _controller.discount > 0 ? _controller.discount.toString() : '');
-    
+    final discountCtrl = TextEditingController(
+        text: _controller.discount > 0 ? _controller.discount.toString() : '');
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: Colors.transparent,
           child: Container(
             width: 350,
@@ -801,13 +945,19 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     TextButton(
                       onPressed: () {
                         setDialogState(() {
-                          dType = dType == 'percentage' ? 'fixed' : 'percentage';
+                          dType =
+                              dType == 'percentage' ? 'fixed' : 'percentage';
                           dialogError = null;
                         });
                       },
                       child: Text(
-                        dType == 'percentage' ? '%' : BusinessConfig.instance.currencyDisplay,
-                        style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold, fontSize: 22),
+                        dType == 'percentage'
+                            ? '%'
+                            : BusinessConfig.instance.currencyDisplay,
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 22),
                       ),
                     ),
                   ],
@@ -815,40 +965,62 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 const SizedBox(height: 30),
                 Container(
                   decoration: BoxDecoration(
-                    color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                    color: theme.isDark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: dialogError != null ? ThemeProvider.error : theme.cardBorder),
+                    border: Border.all(
+                        color: dialogError != null
+                            ? ThemeProvider.error
+                            : theme.cardBorder),
                   ),
                   child: TextField(
                     controller: discountCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     autofocus: true,
-                    style: TextStyle(color: theme.textPrimary, fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1),
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1),
                     textAlign: TextAlign.center,
                     decoration: InputDecoration(
-                      prefixText: dType == 'percentage' ? '' : '${BusinessConfig.instance.currencyDisplay} ',
+                      prefixText: dType == 'percentage'
+                          ? ''
+                          : '${BusinessConfig.instance.currencyDisplay} ',
                       suffixText: dType == 'percentage' ? '%' : '',
-                      prefixStyle: TextStyle(color: theme.textSecondary, fontSize: 20, fontWeight: FontWeight.bold),
-                      suffixStyle: TextStyle(color: theme.textSecondary, fontSize: 20, fontWeight: FontWeight.bold),
+                      prefixStyle: TextStyle(
+                          color: theme.textSecondary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
+                      suffixStyle: TextStyle(
+                          color: theme.textSecondary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
                       hintText: '0.00',
-                      hintStyle: TextStyle(color: theme.textHint.withOpacity(0.2)),
+                      hintStyle:
+                          TextStyle(color: theme.textHint.withOpacity(0.2)),
                       border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 20),
                     ),
                     onChanged: (v) => setDialogState(() {
                       dialogError = null;
                     }),
                     onSubmitted: (v) {
                       final val = double.tryParse(v) ?? 0;
-                      final max = _controller.getMaxAllowedGlobalDiscount(dType);
-                      
+                      final max =
+                          _controller.getMaxAllowedGlobalDiscount(dType);
+
                       if (val > max && max != double.infinity) {
                         setDialogState(() {
-                          dialogError = 'Exceeds max allowed (${max.toStringAsFixed(2)})';
+                          dialogError =
+                              'Exceeds max allowed (${max.toStringAsFixed(2)})';
                         });
                         return;
                       }
-                      
+
                       _controller.setDiscount(val, type: dType);
                       Navigator.pop(ctx);
                     },
@@ -859,7 +1031,10 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     padding: const EdgeInsets.only(top: 12),
                     child: Text(
                       dialogError!,
-                      style: const TextStyle(color: ThemeProvider.error, fontSize: 12, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                          color: ThemeProvider.error,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold),
                     ),
                   ),
                 const SizedBox(height: 30),
@@ -871,9 +1046,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: BorderSide(color: theme.cardBorder),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                        child: Text('Cancel',
+                            style: TextStyle(
+                                color: theme.textSecondary,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -881,15 +1060,17 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       child: ElevatedButton(
                         onPressed: () {
                           final val = double.tryParse(discountCtrl.text) ?? 0;
-                          final max = _controller.getMaxAllowedGlobalDiscount(dType);
-                          
+                          final max =
+                              _controller.getMaxAllowedGlobalDiscount(dType);
+
                           if (val > max && max != double.infinity) {
                             setDialogState(() {
-                              dialogError = 'Exceeds max allowed (${max.toStringAsFixed(2)})';
+                              dialogError =
+                                  'Exceeds max allowed (${max.toStringAsFixed(2)})';
                             });
                             return;
                           }
-                          
+
                           _controller.setDiscount(val, type: dType);
                           Navigator.pop(ctx);
                         },
@@ -897,9 +1078,14 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           backgroundColor: theme.highlight,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 0,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('APPLY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                        child: const Text('APPLY',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1)),
                       ),
                     ),
                   ],
@@ -964,7 +1150,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             children: [
               Row(
                 children: [
-                  const Icon(Icons.error_outline_rounded, color: ThemeProvider.error),
+                  const Icon(Icons.error_outline_rounded,
+                      color: ThemeProvider.error),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -990,9 +1177,11 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: theme.highlight,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 24, vertical: 10),
                   ),
-                  child: const Text('OK', style: TextStyle(color: Colors.white)),
+                  child:
+                      const Text('OK', style: TextStyle(color: Colors.white)),
                 ),
               ),
             ],
@@ -1057,31 +1246,26 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         TextField(
                           autofocus: true,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: InputDecoration(
-                            hintText: 'Search customer...',
-                            hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon:
-                                Icon(Icons.search, color: theme.iconColor),
-                            border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                          ),
+                          decoration: theme.glassInputDecoration(
+                              'Search customer...', Icons.search),
                           onChanged: (v) => setDialogState(() => query = v),
                         ),
                         const SizedBox(height: 12),
-                          if (!BusinessConfig.instance.requireCustomer) ...[
-                            ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: theme.highlight.withAlpha(40),
-                                child: Icon(Icons.person_outline,
-                                    color: theme.highlight, size: 20),
-                              ),
-                              title: Text('Walk-in Guest',
-                                  style: TextStyle(
-                                      color: theme.textPrimary,
-                                      fontWeight: FontWeight.bold)),
-                              onTap: () => Navigator.pop(ctx, null),
+                        if (!BusinessConfig.instance.requireCustomer) ...[
+                          ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: theme.highlight.withAlpha(40),
+                              child: Icon(Icons.person_outline,
+                                  color: theme.highlight, size: 20),
                             ),
-                            const Divider(),
-                          ],
+                            title: Text('Walk-in Guest',
+                                style: TextStyle(
+                                    color: theme.textPrimary,
+                                    fontWeight: FontWeight.bold)),
+                            onTap: () => Navigator.pop(ctx, null),
+                          ),
+                          const Divider(),
+                        ],
                         if (filtered.isEmpty)
                           Padding(
                             padding: const EdgeInsets.all(20),
@@ -1186,7 +1370,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     if (barcodes.isNotEmpty) {
       final String? code = barcodes.first.rawValue;
       if (code != null) {
-        if (_lastScanTime == null || DateTime.now().difference(_lastScanTime!).inMilliseconds > 1500) {
+        if (_lastScanTime == null ||
+            DateTime.now().difference(_lastScanTime!).inMilliseconds > 1500) {
           _lastScanTime = DateTime.now();
           _audioPlayer?.play(AssetSource('beep.mpeg'));
           _processBarcode(code);
@@ -1205,16 +1390,22 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         decoration: BoxDecoration(
           color: theme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: theme.highlight.withOpacity(0.5), width: 1.5),
+          border:
+              Border.all(color: theme.highlight.withOpacity(0.5), width: 1.5),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4)),
+            BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4)),
           ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: Stack(
             children: [
-              if (_scannerController != null && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS))
+              if (_scannerController != null &&
+                  (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS))
                 MobileScanner(
                   controller: _scannerController!,
                   onDetect: _onDetectBarcode,
@@ -1224,10 +1415,15 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.camera_enhance_outlined, color: theme.textSecondary.withOpacity(0.5), size: 24),
+                      Icon(Icons.camera_enhance_outlined,
+                          color: theme.textSecondary.withOpacity(0.5),
+                          size: 24),
                       const SizedBox(width: 12),
-                      Text('Camera not available', 
-                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                      Text('Camera not available',
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12)),
                     ],
                   ),
                 ),
@@ -1235,23 +1431,29 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 top: 4,
                 right: 4,
                 child: IconButton(
-                  icon: Icon(Icons.close_rounded, color: theme.textPrimary, size: 18),
+                  icon: Icon(Icons.close_rounded,
+                      color: theme.textPrimary, size: 18),
                   onPressed: _closeBarcodeScanner,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
-                  style: IconButton.styleFrom(backgroundColor: theme.surface.withOpacity(0.5)),
+                  style: IconButton.styleFrom(
+                      backgroundColor: theme.surface.withOpacity(0.5)),
                 ),
               ),
-              if (_scannerController != null && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS))
+              if (_scannerController != null &&
+                  (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS))
                 Positioned(
                   top: 4,
                   left: 4,
                   child: IconButton(
-                    icon: const Icon(Icons.flash_on, color: Colors.white, size: 18),
+                    icon: const Icon(Icons.flash_on,
+                        color: Colors.white, size: 18),
                     onPressed: () => _scannerController?.toggleTorch(),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
-                    style: IconButton.styleFrom(backgroundColor: Colors.black54),
+                    style:
+                        IconButton.styleFrom(backgroundColor: Colors.black54),
                   ),
                 ),
             ],
@@ -1305,27 +1507,37 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       color: ThemeProvider.info.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.qr_code_scanner_rounded, color: ThemeProvider.info, size: 24),
+                    child: const Icon(Icons.qr_code_scanner_rounded,
+                        color: ThemeProvider.info, size: 24),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
               Container(
                 decoration: BoxDecoration(
-                  color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03),
+                  color: theme.isDark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: theme.cardBorder),
                 ),
                 child: TextField(
                   controller: barcodeCtrl,
                   autofocus: true,
-                  style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.bold, letterSpacing: 1),
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1),
                   decoration: InputDecoration(
                     hintText: 'Enter barcode...',
-                    hintStyle: TextStyle(color: theme.textHint.withOpacity(0.5), fontSize: 16),
-                    prefixIcon: Icon(Icons.keyboard_outlined, color: theme.textSecondary, size: 20),
+                    hintStyle: TextStyle(
+                        color: theme.textHint.withOpacity(0.5), fontSize: 16),
+                    prefixIcon: Icon(Icons.keyboard_outlined,
+                        color: theme.textSecondary, size: 20),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 16),
                   ),
                   onSubmitted: (v) {
                     Navigator.pop(ctx);
@@ -1336,13 +1548,18 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               const SizedBox(height: 20),
               if (_controller.products.isNotEmpty) ...[
                 Text('Quick Selection',
-                    style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.bold)),
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: _controller.products
-                      .where((p) => p.latestBarcode != null && p.latestBarcode!.isNotEmpty)
+                      .where((p) =>
+                          p.latestBarcode != null &&
+                          p.latestBarcode!.isNotEmpty)
                       .take(3)
                       .map((p) => Material(
                             color: Colors.transparent,
@@ -1353,13 +1570,20 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                               },
                               borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(color: theme.cardBorder),
-                                  color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                  color: theme.isDark
+                                      ? Colors.white.withOpacity(0.03)
+                                      : Colors.black.withOpacity(0.02),
                                 ),
-                                child: Text(p.latestBarcode!, style: TextStyle(color: theme.textPrimary, fontSize: 12, fontWeight: FontWeight.w600)),
+                                child: Text(p.latestBarcode!,
+                                    style: TextStyle(
+                                        color: theme.textPrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600)),
                               ),
                             ),
                           ))
@@ -1375,9 +1599,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(color: theme.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                      child: Text('Cancel',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1385,15 +1613,21 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     child: ElevatedButton(
                       onPressed: () {
                         Navigator.pop(ctx);
-                        if (barcodeCtrl.text.isNotEmpty) _processBarcode(barcodeCtrl.text);
+                        if (barcodeCtrl.text.isNotEmpty)
+                          _processBarcode(barcodeCtrl.text);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: theme.highlight,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('ADD PRODUCT', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                      child: const Text('ADD PRODUCT',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1)),
                     ),
                   ),
                 ],
@@ -1494,7 +1728,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           shape: BoxShape.circle,
                           color: theme.textHint.withOpacity(0.1),
                         ),
-                        child: Icon(Icons.close, color: theme.textSecondary, size: 18),
+                        child: Icon(Icons.close,
+                            color: theme.textSecondary, size: 18),
                       ),
                     ),
                   ),
@@ -1505,7 +1740,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: variants.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (ctx, i) {
                     final v = variants[i];
                     Stock? stock;
@@ -1514,7 +1750,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     } catch (_) {
                       stock = v.stocks.isNotEmpty ? v.stocks.first : null;
                     }
-                    
+
                     if (stock == null) return const SizedBox.shrink();
                     final inStock = stock.quantity > 0;
                     final bool isLowStock = stock.quantity <= v.stockLimit;
@@ -1523,25 +1759,29 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       color: Colors.transparent,
                       child: InkWell(
                         onTap: () {
-                                if (!inStock) {
-                                  _showStockNotFoundDialog(v, stock!);
-                                  return;
-                                }
-                                Navigator.pop(ctx);
-                                final success = _controller.addToCart(v, stock!);
-                                if (!success) {
-                                  // ignore: unnecessary_non_null_assertion
-                                  _showStockNotFoundDialog(v, stock!);
-                                }
-                              },
+                          if (!inStock) {
+                            _showStockNotFoundDialog(v, stock!);
+                            return;
+                          }
+                          Navigator.pop(ctx);
+                          final success = _controller.addToCart(v, stock!);
+                          if (!success) {
+                            // ignore: unnecessary_non_null_assertion
+                            _showStockNotFoundDialog(v, stock!);
+                          }
+                        },
                         borderRadius: BorderRadius.circular(12),
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                                color: inStock ? theme.cardBorder : theme.cardBorder.withOpacity(0.5)),
-                            color: theme.isDark ? Colors.white.withOpacity(0.03) : Colors.black.withOpacity(0.02),
+                                color: inStock
+                                    ? theme.cardBorder
+                                    : theme.cardBorder.withOpacity(0.5)),
+                            color: theme.isDark
+                                ? Colors.white.withOpacity(0.03)
+                                : Colors.black.withOpacity(0.02),
                           ),
                           child: Opacity(
                             opacity: inStock ? 1.0 : 0.6,
@@ -1550,16 +1790,23 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: (inStock ? theme.highlight : theme.textHint).withOpacity(0.1),
+                                    color: (inStock
+                                            ? theme.highlight
+                                            : theme.textHint)
+                                        .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(10),
                                   ),
                                   child: Icon(Icons.inventory_2_outlined,
-                                      color: inStock ? theme.highlight : theme.textHint, size: 22),
+                                      color: inStock
+                                          ? theme.highlight
+                                          : theme.textHint,
+                                      size: 22),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(v.name,
                                           style: TextStyle(
@@ -1577,13 +1824,16 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                   ),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: !inStock
                                         ? ThemeProvider.error.withOpacity(0.1)
                                         : isLowStock
-                                            ? ThemeProvider.warning.withOpacity(0.1)
-                                            : ThemeProvider.success.withOpacity(0.1),
+                                            ? ThemeProvider.warning
+                                                .withOpacity(0.1)
+                                            : ThemeProvider.success
+                                                .withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(20),
                                   ),
                                   child: Text(
@@ -1620,7 +1870,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   void _showAddCategoryDialog({void Function(int newId)? onSuccess}) {
     final nameCtrl = TextEditingController();
     final iconCtrl = TextEditingController(text: '📦');
-    
+
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -1657,7 +1907,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 decoration: InputDecoration(
                   labelText: 'Category Name',
                   labelStyle: TextStyle(color: theme.textSecondary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: theme.cardBorder),
@@ -1671,7 +1922,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 decoration: InputDecoration(
                   labelText: 'Icon / Emoji',
                   labelStyle: TextStyle(color: theme.textSecondary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: theme.cardBorder),
@@ -1687,9 +1939,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(color: theme.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                      child: Text('Cancel',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1697,7 +1953,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     child: ElevatedButton(
                       onPressed: () async {
                         if (nameCtrl.text.isEmpty) return;
-                        final newId = await DatabaseHelper.instance.insertCategory({
+                        final newId =
+                            await DatabaseHelper.instance.insertCategory({
                           'name': nameCtrl.text,
                           'icon': iconCtrl.text,
                           'status': 1,
@@ -1713,9 +1970,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         backgroundColor: theme.highlight,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text('SAVE',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -1727,19 +1988,21 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     );
   }
 
-  void _showAddSubCategoryDialog({void Function(int newId)? onSuccess, String? categoryId}) {
-    final String effectiveCategoryId = categoryId ?? _controller.selectedCategory;
+  void _showAddSubCategoryDialog(
+      {void Function(int newId)? onSuccess, String? categoryId}) {
+    final String effectiveCategoryId =
+        categoryId ?? _controller.selectedCategory;
     final bool isRealCategory = int.tryParse(effectiveCategoryId) != null;
-    
+
     if (!isRealCategory) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a main category first'), backgroundColor: ThemeProvider.error)
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Please select a main category first'),
+          backgroundColor: ThemeProvider.error));
       return;
     }
 
     final nameCtrl = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (ctx) => Dialog(
@@ -1776,7 +2039,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 decoration: InputDecoration(
                   labelText: 'Sub-Category Name',
                   labelStyle: TextStyle(color: theme.textSecondary),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: theme.cardBorder),
@@ -1792,9 +2056,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         side: BorderSide(color: theme.cardBorder),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Text('Cancel', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.bold)),
+                      child: Text('Cancel',
+                          style: TextStyle(
+                              color: theme.textSecondary,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -1802,7 +2070,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                     child: ElevatedButton(
                       onPressed: () async {
                         if (nameCtrl.text.isEmpty) return;
-                        final newId = await DatabaseHelper.instance.insertSubCategory({
+                        final newId =
+                            await DatabaseHelper.instance.insertSubCategory({
                           'name': nameCtrl.text,
                           'category_id': int.parse(effectiveCategoryId),
                           'status': 1,
@@ -1818,9 +2087,13 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                         backgroundColor: theme.highlight,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: const Text('SAVE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      child: const Text('SAVE',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -1835,160 +2108,180 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
   @override
   Widget build(BuildContext context) {
     return CallbackShortcuts(
-      bindings: POSKeyboardShortcuts.getPosBindings(
-        onEscape: () async {
-          final shouldPop = await _showBackConfirmDialog(context);
-          if (shouldPop == true && context.mounted) {
-            Navigator.pop(context);
-          }
-        },
-        onF1: _promptClearCart,
-        onF2: () => _cartKey.currentState?.toggleCustomerDropdown(),
-        onF3: () => _controller.toggleReturn(!_controller.isReturn),
-        onF4: _toggleQuickAddProduct,
-        onF5: () => _cartKey.currentState?.openDiscountEditor(),
-        onF6: _showAllHistory,
-        onF7: () => setState(() => theme.toggleTheme()),
-      ),
-      child: PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) async {
-        if (didPop) return;
-        final shouldPop = await _showBackConfirmDialog(context);
-        if (shouldPop == true && context.mounted) {
-          Navigator.of(context).pop();
-        }
-      },
-      child: Scaffold(
-        extendBodyBehindAppBar: true,
-        body: theme.glassBackground(
-          child: SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isTablet = constraints.maxWidth > 800;
-                return Stack(
-                  children: [
-                    Focus(
-                      focusNode: _keyboardFocusNode,
-                      autofocus: true,
-                      canRequestFocus: true,
-                      descendantsAreFocusable: true,
-                      onKeyEvent: (node, event) {
-                        final result = POSKeyboardShortcuts.handleKeyEvent(
-                          keyboardFocusNode: _keyboardFocusNode,
-                          searchFocusNode: _searchFocusNode,
-                          searchCtrl: _searchCtrl,
-                          event: event,
-                          onExit: () async {
-                            final shouldPop = await _showBackConfirmDialog(context);
-                            if (shouldPop == true && mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          onPay: _goToPayment,
-                          onHold: _handleParkCart,
-                          onUnhold: _showHeldOrdersDialog,
-                          onClearCart: _promptClearCart,
-                          onAddCustomer: () => _cartKey.currentState?.toggleCustomerDropdown(),
-                          onSwitchReturnMode: () => _controller.toggleReturn(!_controller.isReturn),
-                          onQuickAdd: _toggleQuickAddProduct,
-                          onAddDiscount: () => _cartKey.currentState?.openDiscountEditor(),
-                          onHistory: _showAllHistory,
-                          onSwitchTheme: () => setState(() => theme.toggleTheme()),
-                          onSearchSubmit: (text) {
-                            _processBarcode(text);
-                            _searchCtrl.clear();
-                            _controller.setSearchQuery('');
-                          },
-                          onSearchUpdate: (text) {
-                            _controller.setSearchQuery(text);
-                          },
-                        );
+        bindings: POSKeyboardShortcuts.getPosBindings(
+          onEscape: () async {
+            final shouldPop = await _showBackConfirmDialog(context);
+            if (shouldPop == true && context.mounted) {
+              Navigator.pop(context);
+            }
+          },
+          onF1: _promptClearCart,
+          onF2: () => _cartKey.currentState?.toggleCustomerDropdown(),
+          onF3: () => _controller.toggleReturn(!_controller.isReturn),
+          onF4: _toggleQuickAddProduct,
+          onF5: () => _cartKey.currentState?.openDiscountEditor(),
+          onF6: _showAllHistory,
+          onF7: () => setState(() => theme.toggleTheme()),
+        ),
+        child: PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) async {
+            if (didPop) return;
+            final shouldPop = await _showBackConfirmDialog(context);
+            if (shouldPop == true && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+          child: Scaffold(
+            extendBodyBehindAppBar: true,
+            body: theme.glassBackground(
+              child: SafeArea(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isTablet = constraints.maxWidth > 800;
+                    return Stack(
+                      children: [
+                        Focus(
+                          focusNode: _keyboardFocusNode,
+                          autofocus: true,
+                          canRequestFocus: true,
+                          descendantsAreFocusable: true,
+                          onKeyEvent: (node, event) {
+                            final result = POSKeyboardShortcuts.handleKeyEvent(
+                              keyboardFocusNode: _keyboardFocusNode,
+                              searchFocusNode: _searchFocusNode,
+                              searchCtrl: _searchCtrl,
+                              event: event,
+                              onExit: () async {
+                                final shouldPop =
+                                    await _showBackConfirmDialog(context);
+                                if (shouldPop == true && mounted) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                              onPay: _goToPayment,
+                              onHold: _handleParkCart,
+                              onUnhold: _showHeldOrdersDialog,
+                              onClearCart: _promptClearCart,
+                              onAddCustomer: () => _cartKey.currentState
+                                  ?.toggleCustomerDropdown(),
+                              onSwitchReturnMode: () => _controller
+                                  .toggleReturn(!_controller.isReturn),
+                              onQuickAdd: _toggleQuickAddProduct,
+                              onAddDiscount: () =>
+                                  _cartKey.currentState?.openDiscountEditor(),
+                              onHistory: _showAllHistory,
+                              onSwitchTheme: () =>
+                                  setState(() => theme.toggleTheme()),
+                              onSearchSubmit: (text) {
+                                _processBarcode(text);
+                                _searchCtrl.clear();
+                                _controller.setSearchQuery('');
+                              },
+                              onSearchUpdate: (text) {
+                                _controller.setSearchQuery(text);
+                              },
+                            );
 
-                        if (result == KeyEventResult.ignored &&
-                            event is KeyDownEvent &&
-                            _cartKey.currentState?.isCustomerDropdownOpen != true) {
-                          final key = event.logicalKey;
-                          
-                          if (key == LogicalKeyboardKey.enter) {
-                            if (_searchCtrl.text.isNotEmpty) {
-                              _processBarcode(_searchCtrl.text);
-                              _searchCtrl.clear();
-                              _controller.setSearchQuery('');
-                            } else {
-                              _goToPayment();
+                            if (result == KeyEventResult.ignored &&
+                                event is KeyDownEvent &&
+                                _cartKey.currentState?.isCustomerDropdownOpen !=
+                                    true) {
+                              final key = event.logicalKey;
+
+                              if (key == LogicalKeyboardKey.enter) {
+                                if (_searchCtrl.text.isNotEmpty) {
+                                  _processBarcode(_searchCtrl.text);
+                                  _searchCtrl.clear();
+                                  _controller.setSearchQuery('');
+                                } else {
+                                  _goToPayment();
+                                }
+                                return KeyEventResult.handled;
+                              }
+
+                              if (key == LogicalKeyboardKey.arrowUp ||
+                                  key == LogicalKeyboardKey.arrowRight) {
+                                if (_controller.cart.isNotEmpty) {
+                                  _controller.updateQuantity(
+                                      _controller.cart.length - 1, 1);
+                                }
+                                return KeyEventResult.handled;
+                              }
+
+                              if (key == LogicalKeyboardKey.arrowDown ||
+                                  key == LogicalKeyboardKey.arrowLeft) {
+                                if (_controller.cart.isNotEmpty) {
+                                  _controller.updateQuantity(
+                                      _controller.cart.length - 1, -1);
+                                }
+                                return KeyEventResult.handled;
+                              }
                             }
-                            return KeyEventResult.handled;
-                          }
-                          
-                          if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.arrowRight) {
-                            if (_controller.cart.isNotEmpty) {
-                              _controller.updateQuantity(_controller.cart.length - 1, 1);
-                            }
-                            return KeyEventResult.handled;
-                          }
-                          
-                          if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.arrowLeft) {
-                            if (_controller.cart.isNotEmpty) {
-                              _controller.updateQuantity(_controller.cart.length - 1, -1);
-                            }
-                            return KeyEventResult.handled;
-                          }
-                        }
-                        
-                        return result;
-                      },
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              children: [
-                                Expanded(child: _buildProductPanel()),
-                                if (!isTablet)
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                                    child: _buildMobileCartBar(),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          if (isTablet) SizedBox(width: 380, child: _buildCartPanel())
-                        ],
-                      ),
-                    ),
-                    
-                    // Quick Add Product Overlay
-                    if (_showQuickAddProduct)
-                      GestureDetector(
-                        onTap: _toggleQuickAddProduct,
-                        child: Container(color: Colors.black26),
-                      ),
-                    
-                    if (_showQuickAddProduct)
-                      SlideTransition(
-                        position: _quickAddSlideAnimation,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: SizedBox(
-                            width: 350,
-                            child: POSQuickAddPanel(
-                              onClose: _toggleQuickAddProduct,
-                              onSuccess: _onProductQuickAdded,
-                              onAddCategory: (void Function(int newId) refresh) => _showAddCategoryDialog(onSuccess: refresh),
-                              onAddSubCategory: (void Function(int newId) refresh, catId) => _showAddSubCategoryDialog(onSuccess: refresh, categoryId: catId),
-                            ),
+
+                            return result;
+                          },
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Column(
+                                  children: [
+                                    Expanded(child: _buildProductPanel()),
+                                    if (!isTablet)
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            16, 0, 16, 16),
+                                        child: _buildMobileCartBar(),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                              if (isTablet)
+                                SizedBox(width: 380, child: _buildCartPanel())
+                            ],
                           ),
                         ),
-                      ),
-                  ],
-                );
-              },
+
+                        // Quick Add Product Overlay
+                        if (_showQuickAddProduct)
+                          GestureDetector(
+                            onTap: _toggleQuickAddProduct,
+                            child: Container(color: Colors.black26),
+                          ),
+
+                        if (_showQuickAddProduct)
+                          SlideTransition(
+                            position: _quickAddSlideAnimation,
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: SizedBox(
+                                width: 350,
+                                child: POSQuickAddPanel(
+                                  onClose: _toggleQuickAddProduct,
+                                  onSuccess: _onProductQuickAdded,
+                                  onAddCategory:
+                                      (void Function(int newId) refresh) =>
+                                          _showAddCategoryDialog(
+                                              onSuccess: refresh),
+                                  onAddSubCategory:
+                                      (void Function(int newId) refresh,
+                                              catId) =>
+                                          _showAddSubCategoryDialog(
+                                              onSuccess: refresh,
+                                              categoryId: catId),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
+                ),
+              ),
             ),
           ),
-        ),
-      ),
-    ));
+        ));
   }
 
   void _handleProductTap(Product product) {
@@ -2000,7 +2293,7 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
     } else {
       final targetV = variants.isNotEmpty ? variants.first : product;
       if (targetV.stocks.isEmpty) return;
-      
+
       final stock = targetV.stocks.first;
       if (stock.quantity <= 0) {
         _showStockNotFoundDialog(targetV, stock);
@@ -2020,14 +2313,16 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         if (_isScannerOpen) _buildInlineScanner(),
         Container(
           decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
+            border:
+                Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
           ),
           child: _buildPOSHeader(),
         ),
-        if (!_isScannerOpen) 
+        if (!_isScannerOpen)
           Container(
             decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
+              border:
+                  Border(bottom: BorderSide(color: theme.cardBorder, width: 1)),
             ),
             child: POSCategorySelector(
               controller: _controller,
@@ -2052,7 +2347,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                       color: Colors.transparent,
                       child: Container(
                         decoration: theme.glassDecoration.copyWith(
-                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                          borderRadius: const BorderRadius.vertical(
+                              bottom: Radius.circular(12)),
                           border: Border.all(color: theme.cardBorder),
                           color: theme.surface,
                         ),
@@ -2060,13 +2356,16 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                           shrinkWrap: true,
                           padding: const EdgeInsets.all(4),
                           itemCount: _controller.filteredProducts.length,
-                          separatorBuilder: (ctx, i) => Divider(height: 1, color: theme.cardBorder),
+                          separatorBuilder: (ctx, i) =>
+                              Divider(height: 1, color: theme.cardBorder),
                           itemBuilder: (ctx, i) {
                             final product = _controller.filteredProducts[i];
-                            final isInCart = _controller.cart.any((item) => item.product.id == product.id);
-                            
+                            final isInCart = _controller.cart
+                                .any((item) => item.product.id == product.id);
+
                             return ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 0),
                               leading: Checkbox(
                                 value: isInCart,
                                 onChanged: (bool? checked) {
@@ -2074,34 +2373,54 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                                     _handleProductTap(product);
                                   } else {
                                     final indices = <int>[];
-                                    for(int j = 0; j < _controller.cart.length; j++) {
-                                      if (_controller.cart[j].product.id == product.id) {
+                                    for (int j = 0;
+                                        j < _controller.cart.length;
+                                        j++) {
+                                      if (_controller.cart[j].product.id ==
+                                          product.id) {
                                         indices.add(j);
                                       }
                                     }
-                                    for(final idx in indices.reversed) {
+                                    for (final idx in indices.reversed) {
                                       _controller.removeFromCart(idx);
                                     }
                                   }
                                   _searchFocusNode.requestFocus();
                                 },
                                 activeColor: theme.highlight,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4)),
                               ),
-                              title: Text(product.name, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 13)),
-                              subtitle: Text('Stock: ${product.latestStockQuantity}', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-                              trailing: Text(BusinessConfig.instance.formatAmount(product.latestPrice), style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900)),
+                              title: Text(product.name,
+                                  style: TextStyle(
+                                      color: theme.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13)),
+                              subtitle: Text(
+                                  'Stock: ${product.latestStockQuantity}',
+                                  style: TextStyle(
+                                      color: theme.textSecondary,
+                                      fontSize: 11)),
+                              trailing: Text(
+                                  BusinessConfig.instance
+                                      .formatAmount(product.latestPrice),
+                                  style: TextStyle(
+                                      color: theme.highlight,
+                                      fontWeight: FontWeight.w900)),
                               onTap: () {
                                 if (!isInCart) {
                                   _handleProductTap(product);
                                 } else {
                                   final indices = <int>[];
-                                  for(int j = 0; j < _controller.cart.length; j++) {
-                                    if (_controller.cart[j].product.id == product.id) {
+                                  for (int j = 0;
+                                      j < _controller.cart.length;
+                                      j++) {
+                                    if (_controller.cart[j].product.id ==
+                                        product.id) {
                                       indices.add(j);
                                     }
                                   }
-                                  for(final idx in indices.reversed) {
+                                  for (final idx in indices.reversed) {
                                     _controller.removeFromCart(idx);
                                   }
                                 }
@@ -2151,119 +2470,120 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         final bool showLabel = constraints.maxWidth > 600;
 
         final buttons = [
-              Container(
-                decoration: theme.glassCircleDecoration,
-                child: IconButton(
-                  icon: Icon(Icons.arrow_back_ios_new_rounded,
-                      color: theme.iconColor, size: 20),
-                  onPressed: () async {
-                    final shouldPop = await _showBackConfirmDialog(context);
-                    if (shouldPop == true && context.mounted) {
+          Container(
+            decoration: theme.glassCircleDecoration,
+            child: IconButton(
+              icon: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: theme.iconColor, size: 20),
+              onPressed: () async {
+                final shouldPop = await _showBackConfirmDialog(context);
+                if (shouldPop == true && context.mounted) {
+                  Navigator.pop(context);
+                }
+              },
+            ),
+          ),
+          if (BusinessConfig.instance.enableShiftManagement) ...[
+            const SizedBox(width: 8),
+            Container(
+              decoration: theme.glassCircleDecoration,
+              child: IconButton(
+                icon: Icon(Icons.logout_rounded,
+                    color: ThemeProvider.error, size: 20),
+                tooltip: 'Clock Out',
+                onPressed: () async {
+                  final activeShift =
+                      await DatabaseHelper.instance.getActiveShift();
+                  if (activeShift != null && mounted) {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        backgroundColor: theme.surface,
+                        title: const Text('Clock Out'),
+                        content: const Text(
+                            'Are you sure you want to clock out? This will end your current shift.'),
+                        actions: [
+                          TextButton(
+                              onPressed: () => Navigator.pop(ctx, false),
+                              child: const Text('No')),
+                          ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                  backgroundColor: ThemeProvider.error),
+                              onPressed: () => Navigator.pop(ctx, true),
+                              child: const Text('Yes, Clock Out')),
+                        ],
+                      ),
+                    );
+
+                    if (confirm != true || !mounted) return;
+
+                    final closingData = await showDialog<Map<String, dynamic>>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => const ClockOutDenominationsDialog(),
+                    );
+
+                    if (closingData == null || !mounted) return;
+
+                    final clockedOut = await showDialog<bool>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (ctx) => ClockOutDialog(
+                        activeShift: activeShift,
+                        closingCash: closingData['total'],
+                        closingDenominations: closingData['denominations'],
+                      ),
+                    );
+
+                    if (clockedOut == true && mounted) {
                       Navigator.pop(context);
                     }
-                  },
-                ),
+                  }
+                },
               ),
-              if (BusinessConfig.instance.enableShiftManagement) ...[
-                const SizedBox(width: 8),
-                Container(
-                  decoration: theme.glassCircleDecoration,
-                  child: IconButton(
-                    icon: Icon(Icons.logout_rounded,
-                        color: ThemeProvider.error, size: 20),
-                    tooltip: 'Clock Out',
-                    onPressed: () async {
-                      final activeShift =
-                          await DatabaseHelper.instance.getActiveShift();
-                      if (activeShift != null && mounted) {
-                        final confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            backgroundColor: theme.surface,
-                            title: const Text('Clock Out'),
-                            content: const Text(
-                                'Are you sure you want to clock out? This will end your current shift.'),
-                            actions: [
-                              TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('No')),
-                              ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: ThemeProvider.error),
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text('Yes, Clock Out')),
-                            ],
-                          ),
-                        );
-
-                        if (confirm != true || !mounted) return;
-
-                        final closingData = await showDialog<Map<String, dynamic>>(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (ctx) => const ClockOutDenominationsDialog(),
-                        );
-
-                        if (closingData == null || !mounted) return;
-
-                        final clockedOut = await showDialog<bool>(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (ctx) => ClockOutDialog(
-                            activeShift: activeShift,
-                            closingCash: closingData['total'],
-                            closingDenominations: closingData['denominations'],
-                          ),
-                        );
-
-                        if (clockedOut == true && mounted) {
-                          Navigator.pop(context);
-                        }
-                      }
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(width: 12),
-              const ShortcutHelpIcon(),
-              const SizedBox(width: 8),
-              Container(
-                decoration: theme.glassCircleDecoration,
-                child: IconButton(
-                  icon: Icon(
-                      theme.isDark
-                          ? Icons.light_mode_rounded
-                          : Icons.dark_mode_rounded,
-                      color: theme.isDark ? Colors.white : Colors.black,
-                      size: 20),
-                  tooltip: theme.isDark ? 'Light Mode' : 'Dark Mode',
-                  onPressed: () => setState(() => theme.toggleTheme()),
-                ),
-              ),
-              if (BusinessConfig.instance.enableShiftManagement) ...[
-                const SizedBox(width: 12),
-                _buildHeaderActionButton(
-                  icon: Icons.history_rounded,
-                  label: 'Shift History',
-                  showLabel: showLabel,
-                  color: theme.highlight,
-                  onTap: _showShiftHistory,
-                ),
-              ],
-              const SizedBox(width: 8),
-              _buildHeaderActionButton(
-                icon: Icons.receipt_long_rounded,
-                label: 'All History',
-                showLabel: showLabel,
-                onTap: _showAllHistory,
-              ),
+            ),
+          ],
+          const SizedBox(width: 12),
+          const ShortcutHelpIcon(),
+          const SizedBox(width: 8),
+          Container(
+            decoration: theme.glassCircleDecoration,
+            child: IconButton(
+              icon: Icon(
+                  theme.isDark
+                      ? Icons.light_mode_rounded
+                      : Icons.dark_mode_rounded,
+                  color: theme.isDark ? Colors.white : Colors.black,
+                  size: 20),
+              tooltip: theme.isDark ? 'Light Mode' : 'Dark Mode',
+              onPressed: () => setState(() => theme.toggleTheme()),
+            ),
+          ),
+          if (BusinessConfig.instance.enableShiftManagement) ...[
+            const SizedBox(width: 12),
+            _buildHeaderActionButton(
+              icon: Icons.history_rounded,
+              label: 'Shift History',
+              showLabel: showLabel,
+              color: theme.highlight,
+              onTap: _showShiftHistory,
+            ),
+          ],
+          const SizedBox(width: 8),
+          _buildHeaderActionButton(
+            icon: Icons.receipt_long_rounded,
+            label: 'All History',
+            showLabel: showLabel,
+            onTap: _showAllHistory,
+          ),
         ];
 
         final searchWidget = LayoutBuilder(
           builder: (context, fieldConstraints) {
             if (_searchBoxWidth != fieldConstraints.maxWidth) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) setState(() => _searchBoxWidth = fieldConstraints.maxWidth);
+                if (mounted)
+                  setState(() => _searchBoxWidth = fieldConstraints.maxWidth);
               });
             }
             return Container(
@@ -2287,35 +2607,35 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 style: TextStyle(
                     color: theme.textPrimary, fontWeight: FontWeight.w500),
                 decoration: InputDecoration(
-              hintText: showLabel
-                  ? 'Search product or scan barcode...'
-                  : 'Search...',
-              hintStyle: TextStyle(
-                  color: theme.textHint, fontWeight: FontWeight.w400),
-              prefixIcon:
-                  Icon(Icons.search_rounded, color: theme.iconColor),
-              suffixIcon: _controller.searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: Icon(Icons.close_rounded,
-                          size: 18, color: theme.iconColor),
-                      onPressed: () {
-                        _searchCtrl.clear();
-                        _controller.setSearchQuery('');
-                      })
-                  : IconButton(
-                      icon: Icon(Icons.barcode_reader,
-                          color: theme.iconColor),
-                      onPressed: _openBarcodeScanner),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16, vertical: 12),
-            ),
-          ),
+                  hintText: showLabel
+                      ? 'Search product or scan barcode...'
+                      : 'Search...',
+                  hintStyle: TextStyle(
+                      color: theme.textHint, fontWeight: FontWeight.w400),
+                  prefixIcon:
+                      Icon(Icons.search_rounded, color: theme.iconColor),
+                  suffixIcon: _controller.searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.close_rounded,
+                              size: 18, color: theme.iconColor),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            _controller.setSearchQuery('');
+                          })
+                      : IconButton(
+                          icon: Icon(Icons.barcode_reader,
+                              color: theme.iconColor),
+                          onPressed: _openBarcodeScanner),
+                  border: InputBorder.none,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                ),
+              ),
+            );
+          },
         );
-      },
-    );
 
-    if (showLabel) {
+        if (showLabel) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
@@ -2323,7 +2643,6 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
                 ...buttons,
                 const SizedBox(width: 12),
                 Expanded(child: searchWidget),
-
               ],
             ),
           );
@@ -2368,7 +2687,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
               builder: (_, scrollController) => Container(
                 decoration: BoxDecoration(
                   color: theme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(8)),
                 ),
                 child: _buildCartPanel(),
               ),
@@ -2436,8 +2756,12 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
         },
         child: AlertDialog(
           backgroundColor: theme.surface,
-          title: Text('Exit POS?', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold)),
-          content: Text('Are you sure you want to go back? Your current cart will be lost.', style: TextStyle(color: theme.textSecondary)),
+          title: Text('Exit POS?',
+              style: TextStyle(
+                  color: theme.textPrimary, fontWeight: FontWeight.bold)),
+          content: Text(
+              'Are you sure you want to go back? Your current cart will be lost.',
+              style: TextStyle(color: theme.textSecondary)),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -2446,7 +2770,8 @@ class _POSScreenState extends State<POSScreen> with SingleTickerProviderStateMix
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.highlight,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
               ),
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Yes', style: TextStyle(color: Colors.white)),
