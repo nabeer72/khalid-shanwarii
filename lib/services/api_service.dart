@@ -6,7 +6,7 @@ class ApiService {
   // Replace with your actual IP address for emulator (e.g., 10.0.2.2 for Android)
   // or your machine's LAN IP if running on physical device (e.g., 192.168.1.X).
   // Current IP: 192.168.137.202 (from ipconfig - Wi-Fi adapter)
-  static const String baseUrl = 'http://192.168.18.47:8000/api';
+  static const String baseUrl = 'https://pos.sata.pk/api';
 
   final Dio _dio = Dio(BaseOptions(
     baseUrl: baseUrl,
@@ -246,6 +246,18 @@ class ApiService {
       return await _dio.get('/user/businesses');
     } catch (e) {
       print('❌ [API] Failed to fetch user businesses: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response?> submitFeedback(String message, {String? email}) async {
+    try {
+      return await _dio.post('/feedback', data: {
+        'message': message,
+        if (email != null && email.isNotEmpty) 'email': email,
+      });
+    } catch (e) {
+      print('❌ [API] Failed to submit feedback: $e');
       rethrow;
     }
   }

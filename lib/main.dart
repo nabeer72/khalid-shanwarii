@@ -13,12 +13,18 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/services/api_service.dart';
+import 'package:window_manager/window_manager.dart';
 
 // Global navigator key to allow navigation from anywhere (like a shake event)
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
+    await windowManager.ensureInitialized();
+    await windowManager.maximize();
+  }
   
   // Initialize database for non-web platforms
   if (!kIsWeb) {

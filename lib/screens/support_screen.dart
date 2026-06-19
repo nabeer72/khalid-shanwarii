@@ -159,7 +159,7 @@ class _SupportScreenState extends State<SupportScreen> {
                                 final message = _feedbackController.text.trim();
                                 try {
                                   final api = ApiService();
-                                  await api.post('/feedback', data: {'message': message});
+                                  await api.submitFeedback(message);
                                   
                                   if (mounted) {
                                     setState(() {
