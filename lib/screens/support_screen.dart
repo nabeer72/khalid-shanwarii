@@ -45,298 +45,162 @@ class _SupportScreenState extends State<SupportScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Customer Support'),
+        title: Text(
+          'Customer Support',
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        foregroundColor: theme.textPrimary,
+        leading: BackButton(color: theme.textPrimary),
       ),
       body: theme.glassBackground(
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Hero section
-                      Center(
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: theme.highlight.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: theme.highlight.withOpacity(0.3), width: 2),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: theme.highlight.withOpacity(0.15),
-                                    blurRadius: 20,
-                                    spreadRadius: 2,
-                                  )
-                                ]
-                              ),
-                              child: Icon(Icons.support_agent_rounded, size: 56, color: theme.highlight),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Need Help?',
-                              style: TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w900,
-                                color: theme.textPrimary,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Contact our support team for any assistance or inquiries.',
-                              style: TextStyle(fontSize: 14, color: theme.textSecondary, fontWeight: FontWeight.w500),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      
-                      // Contact Section
-                      Text(
-                        'Get In Touch',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: theme.textPrimary,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      // Email Card
-                      _buildContactCard(
-                        context,
-                        icon: Icons.email_rounded,
-                        title: 'Email Us',
-                        value: _email,
-                        iconColor: theme.secondary,
-                        onTap: () => _launchEmail(_email),
-                        onLongPress: () => _copyToClipboard(context, _email),
-                      ),
-                      const SizedBox(height: 10),
-      
-                      // Phone Card
-                      _buildContactCard(
-                        context,
-                        icon: Icons.phone_rounded,
-                        title: 'Call Us',
-                        value: _mobile,
-                        iconColor: ThemeProvider.success,
-                        onTap: () => _launchPhone(_mobile),
-                        onLongPress: () => _copyToClipboard(context, _mobile),
-                      ),
-                      
-                      const SizedBox(height: 28),
-                      
-                      // FAQ Section
-                      Text(
-                        'Frequently Asked Questions',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: theme.textPrimary,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      ..._faqs.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final faq = entry.value;
-                        return _buildFaqItem(context, faq['question']!, faq['answer']!, index);
-                      }).toList(),
-                      
-                      const SizedBox(height: 28),
-                      
-                      // Feedback Section
-                      Text(
-                        'Send Feedback',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                          color: theme.textPrimary,
-                          letterSpacing: -0.3,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (_feedbackSent)
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: ThemeProvider.success.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                            border: Border.all(color: ThemeProvider.success.withOpacity(0.3)),
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              const SizedBox(height: 12),
+              
+              // Contact Section
+              const _SectionHeader(title: 'GET IN TOUCH'),
+              _SupportTile(
+                icon: Icons.email_rounded,
+                title: 'Email Us',
+                subtitle: _email,
+                onTap: () => _launchEmail(_email),
+                onLongPress: () => _copyToClipboard(context, _email),
+                showTrailing: true,
+              ),
+              _SupportTile(
+                icon: Icons.phone_rounded,
+                title: 'Call Us',
+                subtitle: _mobile,
+                onTap: () => _launchPhone(_mobile),
+                onLongPress: () => _copyToClipboard(context, _mobile),
+                showTrailing: true,
+              ),
+              
+              const SizedBox(height: 24),
+              // FAQ Section
+              const _SectionHeader(title: 'FREQUENTLY ASKED QUESTIONS'),
+              ..._faqs.asMap().entries.map((entry) {
+                final index = entry.key;
+                final faq = entry.value;
+                return _buildFaqItem(context, faq['question']!, faq['answer']!, index);
+              }).toList(),
+              
+              const SizedBox(height: 24),
+              // Feedback Section
+              const _SectionHeader(title: 'SEND FEEDBACK'),
+              if (_feedbackSent)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: ThemeProvider.success.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                      border: Border.all(color: ThemeProvider.success.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 24),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Thank you for your feedback! We appreciate it.',
+                            style: TextStyle(color: ThemeProvider.success, fontWeight: FontWeight.w700, fontSize: 14),
                           ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.check_circle_rounded, color: ThemeProvider.success, size: 24),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Thank you for your feedback! We appreciate it.',
-                                  style: TextStyle(color: ThemeProvider.success, fontWeight: FontWeight.w700, fontSize: 14),
-                                ),
-                              ),
-                            ],
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: theme.glassListDecoration,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Let us know how we can improve!',
+                          style: TextStyle(
+                            color: theme.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
                           ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: theme.glassDecoration,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Let us know how we can improve!',
-                                style: TextStyle(
-                                  color: theme.textSecondary,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: _feedbackController,
+                          maxLines: 3,
+                          style: TextStyle(color: theme.textPrimary),
+                          decoration: theme.glassInputDecoration('Your feedback...', Icons.feedback_rounded),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: theme.highlight,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                               ),
-                              const SizedBox(height: 10),
-                              TextFormField(
-                                controller: _feedbackController,
-                                maxLines: 3,
-                                style: TextStyle(color: theme.textPrimary),
-                                decoration: theme.glassInputDecoration('Your feedback...', Icons.feedback_rounded),
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: theme.highlight,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  onPressed: () async {
-                                    if (_feedbackController.text.trim().isNotEmpty) {
-                                      final message = _feedbackController.text.trim();
-                                      try {
-                                        final api = ApiService();
-                                        await api.post('/feedback', data: {'message': message});
-                                        
-                                        if (mounted) {
-                                          setState(() {
-                                            _feedbackSent = true;
-                                          });
-                                          _feedbackController.clear();
-                                          Future.delayed(const Duration(seconds: 3), () {
-                                            if (mounted) {
-                                              setState(() {
-                                                _feedbackSent = false;
-                                              });
-                                            }
-                                          });
-                                        }
-                                      } catch (e) {
-                                        if (mounted) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Failed to send feedback: $e'),
-                                              backgroundColor: Colors.red,
-                                              behavior: SnackBarBehavior.floating,
-                                            ),
-                                          );
-                                        }
+                            ),
+                            onPressed: () async {
+                              if (_feedbackController.text.trim().isNotEmpty) {
+                                final message = _feedbackController.text.trim();
+                                try {
+                                  final api = ApiService();
+                                  await api.post('/feedback', data: {'message': message});
+                                  
+                                  if (mounted) {
+                                    setState(() {
+                                      _feedbackSent = true;
+                                    });
+                                    _feedbackController.clear();
+                                    Future.delayed(const Duration(seconds: 3), () {
+                                      if (mounted) {
+                                        setState(() {
+                                          _feedbackSent = false;
+                                        });
                                       }
-                                    }
-                                  },
-                                  child: const Text(
-                                    'SEND FEEDBACK',
-                                    style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
-                                  ),
-                                ),
-                              ),
-                            ],
+                                    });
+                                  }
+                                } catch (e) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Failed to send feedback: $e'),
+                                        backgroundColor: Colors.red,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  }
+                                }
+                              }
+                            },
+                            child: const Text(
+                              'SEND FEEDBACK',
+                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                            ),
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
+                
+                const SizedBox(height: 40),
+            ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildContactCard(BuildContext context, {
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color iconColor,
-    required VoidCallback onTap,
-    required VoidCallback onLongPress,
-  }) {
-    final theme = ThemeProvider.instance;
-    return GestureDetector(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: theme.glassDecoration,
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: iconColor.withOpacity(0.12),
-                shape: BoxShape.circle,
-                border: Border.all(color: iconColor.withOpacity(0.25), width: 1.5),
-                boxShadow: [
-                  BoxShadow(
-                    color: iconColor.withOpacity(0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              ),
-              child: Icon(icon, color: iconColor, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title.toUpperCase(),
-                    style: TextStyle(
-                      color: theme.textHint,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, size: 20, color: theme.iconColor.withOpacity(0.6)),
-          ],
         ),
       ),
     );
@@ -348,7 +212,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: theme.glassDecoration,
+      decoration: theme.glassListDecoration,
       child: Theme(
         data: ThemeData(dividerColor: Colors.transparent),
         child: ExpansionTile(
@@ -361,6 +225,8 @@ class _SupportScreenState extends State<SupportScreen> {
             ),
           ),
           tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          expandedAlignment: Alignment.centerLeft,
           trailing: Icon(
             isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
             color: theme.iconColor,
@@ -376,6 +242,7 @@ class _SupportScreenState extends State<SupportScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Text(
                 answer,
+                textAlign: TextAlign.left,
                 style: TextStyle(
                   color: theme.textSecondary,
                   fontSize: 13,
@@ -432,5 +299,84 @@ class _SupportScreenState extends State<SupportScreen> {
   void dispose() {
     _feedbackController.dispose();
     super.dispose();
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: theme.highlight,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool showTrailing;
+
+  const _SupportTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.onLongPress,
+    this.showTrailing = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Container(
+        decoration: theme.glassListDecoration,
+        child: ListTile(
+          onTap: onTap,
+          onLongPress: onLongPress,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+          leading: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+            child: Icon(icon, color: theme.highlight, size: 22),
+          ),
+          title: Text(title,
+              style: TextStyle(
+                  color: theme.textPrimary,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14)),
+          subtitle: Text(subtitle,
+              style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500)),
+          trailing: showTrailing
+              ? Icon(Icons.chevron_right_rounded,
+                  size: 20, color: theme.iconColor.withOpacity(0.6))
+              : null,
+        ),
+      ),
+    );
   }
 }
