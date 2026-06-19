@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/services/api_service.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SupportScreen extends StatefulWidget {
@@ -222,19 +223,37 @@ class _SupportScreenState extends State<SupportScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     if (_feedbackController.text.trim().isNotEmpty) {
-                                      setState(() {
-                                        _feedbackSent = true;
-                                      });
-                                      _feedbackController.clear();
-                                      Future.delayed(const Duration(seconds: 3), () {
+                                      final message = _feedbackController.text.trim();
+                                      try {
+                                        final api = ApiService();
+                                        await api.post('/feedback', data: {'message': message});
+                                        
                                         if (mounted) {
                                           setState(() {
-                                            _feedbackSent = false;
+                                            _feedbackSent = true;
+                                          });
+                                          _feedbackController.clear();
+                                          Future.delayed(const Duration(seconds: 3), () {
+                                            if (mounted) {
+                                              setState(() {
+                                                _feedbackSent = false;
+                                              });
+                                            }
                                           });
                                         }
-                                      });
+                                      } catch (e) {
+                                        if (mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Failed to send feedback: $e'),
+                                              backgroundColor: Colors.red,
+                                              behavior: SnackBarBehavior.floating,
+                                            ),
+                                          );
+                                        }
+                                      }
                                     }
                                   },
                                   child: const Text(

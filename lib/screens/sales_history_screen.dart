@@ -346,10 +346,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                       const EdgeInsets.fromLTRB(16, 4, 16, 100),
                                   itemCount: _filteredSales.length,
                                   itemBuilder: (context, index) {
-                                    final sale = _filteredSales[
-                                        _filteredSales.length -
-                                            1 -
-                                            index]; // Reverse order
+                                    final sale = _filteredSales[index];
                                     return _SaleTile(
                                       sale: sale,
                                       onTap: () => _showSaleDetail(sale),
