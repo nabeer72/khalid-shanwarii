@@ -52,19 +52,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
         db.getExpenses(),
       ]);
       if (mounted) {
-        debugPrint('=== Reports Data Loaded ===');
-        debugPrint('Sales: ${results[0].length} items');
-        for (var s in results[0]) {
-          debugPrint(
-              '  - Sale: id=${s['id']}, is_return=${s['is_return']}, created_at=${s['created_at']}, total=${s['total']}');
-        }
-        debugPrint('Sale Items: ${results[1].length} items');
-        debugPrint('Return Items: ${results[2].length} items');
-        debugPrint('Expenses: ${results[3].length} items');
-        for (var e in results[3]) {
-          debugPrint(
-              '  - Expense: id=${e['id']}, date=${e['date']}, amount=${e['amount']}');
-        }
         setState(() {
           _sales = results[0];
           _saleItems = results[1];
@@ -99,12 +86,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   static double _lineItemProfit(Map<String, dynamic> item) {
     final qty = _parseAmount(item['quantity']);
     final cost = _parseAmount(item['purchase_price']) * qty;
-    return _lineItemNet(item) - cost;
+    final profit = _lineItemNet(item) - cost;
+    return profit;
   }
 
   DateTime _parseDate(dynamic dateStr) {
     if (dateStr == null) {
-      debugPrint('_parseDate: null dateStr, returning DateTime(0)');
       return DateTime(0);
     }
     String str = dateStr.toString();
@@ -122,14 +109,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     }
     final parsed = DateTime.tryParse(str);
     if (parsed == null) {
-      debugPrint(
-          '_parseDate: failed to parse dateStr=$dateStr, returning DateTime(0)');
       return DateTime(0);
     }
     final result = DateTime(
         parsed.toLocal().year, parsed.toLocal().month, parsed.toLocal().day);
-    debugPrint(
-        '_parseDate: dateStr=$dateStr, parsed=$parsed, toLocal=${parsed.toLocal()}, result=$result');
     return result;
   }
 
@@ -155,22 +138,16 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final sales = _sales;
-    debugPrint('=== _salesForPeriod ===');
-    debugPrint('Period: $_period, today: $today');
 
     switch (_period) {
       case 'today':
         return sales.where((s) {
           final ts = DateTime.tryParse(s['created_at'] ?? '');
-          debugPrint(
-              'Checking sale: id=${s['id']}, created_at=${s['created_at']}, parsed ts=$ts');
           if (ts == null) {
-            debugPrint('  Skipping (null ts)');
             return false;
           }
           final parsedDate = _parseDate(ts.toIso8601String());
           final isToday = parsedDate == today;
-          debugPrint('  parsedDate=$parsedDate, isToday=$isToday');
           return isToday;
         }).toList();
       case 'week':
@@ -194,20 +171,17 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final val = _salesForPeriod
         .where((s) => s['is_return'] != 1)
         .fold(0.0, (sum, s) => sum + (s['total'] as num? ?? 0).toDouble());
-    debugPrint('_totalSales: $val');
     return val;
   }
 
   double get _totalReturns {
     final val = _salesForPeriod.where((s) => s['is_return'] == 1).fold(
         0.0, (sum, s) => sum + (s['total'] as num? ?? 0).abs().toDouble());
-    debugPrint('_totalReturns: $val');
     return val;
   }
 
   double get _netSales {
     final val = _totalSales - _totalReturns;
-    debugPrint('_netSales: $val');
     return val;
   }
 
@@ -243,7 +217,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
   double get _salesProfit {
     final val = _saleItemsForPeriod.fold(
         0.0, (sum, item) => sum + _lineItemProfit(item));
-    debugPrint('_salesProfit: $val');
     return val;
   }
 
@@ -251,7 +224,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final val = _returnItemsForPeriod
         .fold(0.0, (sum, item) => sum + _lineItemProfit(item))
         .abs();
-    debugPrint('_returnsProfit: $val');
     return val;
   }
 
@@ -260,7 +232,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       final ts = DateTime.tryParse(
           item['date']?.toString() ?? item['created_at']?.toString() ?? '');
       final inPeriod = _isInPeriod(ts);
-      debugPrint('Expense date check: ts=$ts, inPeriod=$inPeriod');
       return inPeriod;
     }).toList();
   }
@@ -268,13 +239,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
   double get _totalExpenses {
     final val = _expensesForPeriod.fold(
         0.0, (sum, e) => sum + (e['amount'] as num? ?? 0).toDouble());
-    debugPrint('_totalExpenses: $val');
     return val;
   }
 
   double get _netProfit {
     final val = _salesProfit - _returnsProfit - _totalExpenses;
-    debugPrint('_netProfit: $val');
     return val;
   }
 

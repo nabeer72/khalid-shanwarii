@@ -65,11 +65,16 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
         // Filter local first to see if we REALLY have nothing
         final q = _query.toLowerCase();
         final localFiltered = localData.where((s) {
-          final customerName = (s['customer_name'] ?? '').toString().toLowerCase();
-          final customerPhone = (s['customer_phone'] ?? '').toString().toLowerCase();
+          final customerName =
+              (s['customer_name'] ?? '').toString().toLowerCase();
+          final customerPhone =
+              (s['customer_phone'] ?? '').toString().toLowerCase();
           final invoiceNum = s['id'].toString();
           final date = (s['created_at'] ?? '').toString().toLowerCase();
-          return customerName.contains(q) || customerPhone.contains(q) || invoiceNum.contains(q) || date.contains(q);
+          return customerName.contains(q) ||
+              customerPhone.contains(q) ||
+              invoiceNum.contains(q) ||
+              date.contains(q);
         }).toList();
 
         if (localFiltered.isEmpty) {
@@ -107,7 +112,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
       if (_filter == 'today') {
         filtered = _sales.where((s) {
           final ts = DateTime.tryParse(s['created_at'] ?? '')?.toLocal();
-          return ts != null && ts.day == now.day && ts.month == now.month && ts.year == now.year;
+          return ts != null &&
+              ts.day == now.day &&
+              ts.month == now.month &&
+              ts.year == now.year;
         }).toList();
       } else if (_filter == 'week') {
         final weekAgo = now.subtract(const Duration(days: 7));
@@ -129,17 +137,20 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
     if (_query.isNotEmpty && !_isOnlineSearch) {
       final q = _query.toLowerCase();
       filtered = filtered.where((s) {
-        final customerName = (s['customer_name'] ?? '').toString().toLowerCase();
-        final customerPhone = (s['customer_phone'] ?? '').toString().toLowerCase();
-        final employeeName = (s['employee_name'] ?? '').toString().toLowerCase();
+        final customerName =
+            (s['customer_name'] ?? '').toString().toLowerCase();
+        final customerPhone =
+            (s['customer_phone'] ?? '').toString().toLowerCase();
+        final employeeName =
+            (s['employee_name'] ?? '').toString().toLowerCase();
         final invoiceNum = s['id'].toString();
         final date = (s['created_at'] ?? '').toString().toLowerCase();
-        
-        return customerName.contains(q) || 
-               customerPhone.contains(q) || 
-               employeeName.contains(q) || 
-               invoiceNum.contains(q) || 
-               date.contains(q);
+
+        return customerName.contains(q) ||
+            customerPhone.contains(q) ||
+            employeeName.contains(q) ||
+            invoiceNum.contains(q) ||
+            date.contains(q);
       }).toList();
     }
 
@@ -155,12 +166,19 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
         elevation: 0,
         title: Text(
           widget.isShiftHistory ? 'Shift History' : 'Sales History',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
         actions: [
           IconButton(
-            icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor),
+            icon: Icon(
+                theme.isDark
+                    ? Icons.light_mode_rounded
+                    : Icons.dark_mode_rounded,
+                color: theme.iconColor),
             onPressed: () => setState(() => theme.toggleTheme()),
           ),
         ],
@@ -177,19 +195,28 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                     Expanded(
                       child: Container(
                         decoration: theme.glassDecoration.copyWith(
-                          borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                          color: theme.isDark ? Colors.white.withOpacity(0.05) : Colors.white.withOpacity(0.2),
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusList),
+                          color: theme.isDark
+                              ? Colors.white.withOpacity(0.05)
+                              : Colors.white.withOpacity(0.2),
                         ),
                         child: TextField(
                           controller: _searchCtrl,
                           onChanged: (v) => setState(() => _query = v),
-                          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w500),
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontWeight: FontWeight.w500),
                           decoration: InputDecoration(
-                            hintText: _showOnlyRefunds ? 'Search refunds...' : 'Search sales...',
+                            hintText: _showOnlyRefunds
+                                ? 'Search refunds...'
+                                : 'Search sales...',
                             hintStyle: TextStyle(color: theme.textHint),
-                            prefixIcon: Icon(Icons.search_rounded, color: theme.highlight),
+                            prefixIcon: Icon(Icons.search_rounded,
+                                color: theme.highlight),
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                           ),
                         ),
                       ),
@@ -201,7 +228,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: theme.whiteAlpha(0.05),
-                        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+                        borderRadius:
+                            BorderRadius.circular(ThemeProvider.radiusList),
                         border: Border.all(color: theme.whiteAlpha(0.1)),
                       ),
                       child: Row(
@@ -214,96 +242,139 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                   ],
                 ),
               ),
-              
+
               if (!widget.isShiftHistory)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Row(
                     children: [
-                      _FilterChip(label: 'ALL', selected: _filter == 'all', onTap: () => setState(() => _filter = 'all')),
+                      _FilterChip(
+                          label: 'ALL',
+                          selected: _filter == 'all',
+                          onTap: () => setState(() => _filter = 'all')),
                       const SizedBox(width: 8),
-                      _FilterChip(label: 'TODAY', selected: _filter == 'today', onTap: () => setState(() => _filter = 'today')),
+                      _FilterChip(
+                          label: 'TODAY',
+                          selected: _filter == 'today',
+                          onTap: () => setState(() => _filter = 'today')),
                       const SizedBox(width: 8),
-                      _FilterChip(label: 'WEEK', selected: _filter == 'week', onTap: () => setState(() => _filter = 'week')),
+                      _FilterChip(
+                          label: 'WEEK',
+                          selected: _filter == 'week',
+                          onTap: () => setState(() => _filter = 'week')),
                     ],
                   ),
                 ),
 
               // Sales list
               Expanded(
-                child: _isLoading 
-                ? Center(child: CircularProgressIndicator(color: theme.highlight))
-                : _filteredSales.isEmpty
+                child: _isLoading
                     ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: theme.glassCircleDecoration,
-                              child: Icon(
-                                _isOnlineSearch ? Icons.cloud_off_rounded : Icons.receipt_long_rounded, 
-                                size: 60, 
-                                color: theme.iconColor
-                              ),
+                        child:
+                            CircularProgressIndicator(color: theme.highlight))
+                    : _filteredSales.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(32),
+                                  decoration: theme.glassCircleDecoration,
+                                  child: Icon(
+                                      _isOnlineSearch
+                                          ? Icons.cloud_off_rounded
+                                          : Icons.receipt_long_rounded,
+                                      size: 60,
+                                      color: theme.iconColor),
+                                ),
+                                const SizedBox(height: 20),
+                                Text(
+                                    _isOnlineSearch
+                                        ? 'No records found on server'
+                                        : 'No activity recorded',
+                                    style: TextStyle(
+                                        color: theme.textPrimary,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800)),
+                                Text(
+                                    _isOnlineSearch
+                                        ? 'Try a different search term'
+                                        : 'Transactions will appear here',
+                                    style: TextStyle(
+                                        color: theme.textSecondary,
+                                        fontSize: 14)),
+                              ],
                             ),
-                            const SizedBox(height: 20),
-                            Text(_isOnlineSearch ? 'No records found on server' : 'No activity recorded', 
-                              style: TextStyle(color: theme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800)),
-                            Text(_isOnlineSearch ? 'Try a different search term' : 'Transactions will appear here', 
-                              style: TextStyle(color: theme.textSecondary, fontSize: 14)),
-                          ],
-                        ),
-                      )
-                    : Column(
-                        children: [
-                          if (_isOnlineSearch)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.cloud_done_rounded, color: theme.highlight, size: 16),
-                                  const SizedBox(width: 8),
-                                  Text('SHOWING RESULTS FROM SERVER', 
-                                    style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                                  const Spacer(),
-                                  TextButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _isOnlineSearch = false;
-                                        _loadSales();
-                                      });
-                                    },
-                                    child: const Text('BACK TO LOCAL', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900)),
+                          )
+                        : Column(
+                            children: [
+                              if (_isOnlineSearch)
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 8),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.cloud_done_rounded,
+                                          color: theme.highlight, size: 16),
+                                      const SizedBox(width: 8),
+                                      Text('SHOWING RESULTS FROM SERVER',
+                                          style: TextStyle(
+                                              color: theme.highlight,
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 1)),
+                                      const Spacer(),
+                                      TextButton(
+                                        onPressed: () {
+                                          setState(() {
+                                            _isOnlineSearch = false;
+                                            _loadSales();
+                                          });
+                                        },
+                                        child: const Text('BACK TO LOCAL',
+                                            style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w900)),
+                                      ),
+                                    ],
                                   ),
-                                ],
+                                ),
+                              Expanded(
+                                child: ListView.builder(
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                                  itemCount: _filteredSales.length,
+                                  itemBuilder: (context, index) {
+                                    final sale = _filteredSales[
+                                        _filteredSales.length -
+                                            1 -
+                                            index]; // Reverse order
+                                    return _SaleTile(
+                                      sale: sale,
+                                      onTap: () => _showSaleDetail(sale),
+                                      onPrint: () => _showSaleDetail(sale),
+                                      onRefund: () => _handleRefund(sale),
+                                      isOnline: _isOnlineSearch,
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                          Expanded(
-                            child: ListView.builder(
-                              padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
-                              itemCount: _filteredSales.length,
-                              itemBuilder: (context, index) {
-                                final sale = _filteredSales[_filteredSales.length - 1 - index]; // Reverse order
-                                return _SaleTile(
-                                  sale: sale, 
-                                  onTap: () => _showSaleDetail(sale),
-                                  onPrint: () => _showSaleDetail(sale),
-                                  onRefund: () => _handleRefund(sale),
-                                  isOnline: _isOnlineSearch,
-                                );
-                              },
-                            ),
+                              if (!_isOnlineSearch &&
+                                  _query.isNotEmpty &&
+                                  _filteredSales.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 24),
+                                  child: Text(
+                                      'SEARCHING LOCAL ONLY. TRY MORE SPECIFIC QUERY FOR ONLINE AUTO-SEARCH.',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                          color: theme.textHint,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w700)),
+                                ),
+                            ],
                           ),
-                          if (!_isOnlineSearch && _query.isNotEmpty && _filteredSales.isNotEmpty)
-                             Padding(
-                               padding: const EdgeInsets.only(bottom: 24),
-                               child: Text('SEARCHING LOCAL ONLY. TRY MORE SPECIFIC QUERY FOR ONLINE AUTO-SEARCH.', 
-                                 textAlign: TextAlign.center,
-                                 style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w700)),
-                             ),
-                        ],
-                      ),
               ),
             ],
           ),
@@ -313,7 +384,8 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   }
 
   void _showSaleDetail(Map<String, dynamic> sale) {
-    Navigator.push(context, MaterialPageRoute(builder: (_) => ReceiptScreen(sale: sale)));
+    Navigator.push(
+        context, MaterialPageRoute(builder: (_) => ReceiptScreen(sale: sale)));
   }
 
   void _handleRefund(Map<String, dynamic> sale) {
@@ -328,14 +400,17 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
           duration: const Duration(milliseconds: 200),
           decoration: BoxDecoration(
             color: active ? theme.highlight : Colors.transparent,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusList - 2), // Slightly less to fit inside padding
-            boxShadow: active ? [
-              BoxShadow(
-                color: theme.highlight.withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              )
-            ] : null,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusList -
+                2), // Slightly less to fit inside padding
+            boxShadow: active
+                ? [
+                    BoxShadow(
+                      color: theme.highlight.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
           ),
           child: Center(
             child: Text(
@@ -359,7 +434,8 @@ class _FilterChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
+  const _FilterChip(
+      {required this.label, required this.selected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -371,10 +447,23 @@ class _FilterChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? theme.highlight : theme.whiteAlpha(0.05),
           borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-          border: Border.all(color: selected ? theme.highlight : theme.whiteAlpha(0.1)),
-          boxShadow: selected ? [BoxShadow(color: theme.highlight.withOpacity(0.3), blurRadius: 10, offset: const Offset(0, 4))] : null,
+          border: Border.all(
+              color: selected ? theme.highlight : theme.whiteAlpha(0.1)),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                      color: theme.highlight.withOpacity(0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4))
+                ]
+              : null,
         ),
-        child: Text(label, style: TextStyle(color: selected ? Colors.white : theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+        child: Text(label,
+            style: TextStyle(
+                color: selected ? Colors.white : theme.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 0.5)),
       ),
     );
   }
@@ -388,7 +477,7 @@ class _SaleTile extends StatelessWidget {
   final bool isOnline;
 
   const _SaleTile({
-    required this.sale, 
+    required this.sale,
     required this.onTap,
     required this.onPrint,
     required this.onRefund,
@@ -414,11 +503,18 @@ class _SaleTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('BILL #${sale['id'] ?? '??'}', 
-                style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 14)),
+            Text('BILL #${sale['id'] ?? '??'}',
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14)),
             if (sale['customer_name'] != null)
-              Text(sale['customer_name'].toString().toUpperCase(), 
-                  style: TextStyle(color: theme.highlight, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 0.5)),
+              Text(sale['customer_name'].toString().toUpperCase(),
+                  style: TextStyle(
+                      color: theme.highlight,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5)),
           ],
         ),
         subtitle: Padding(
@@ -427,13 +523,21 @@ class _SaleTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                timestamp != null ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')} | ${timestamp.day}/${timestamp.month}/${timestamp.year}' : 'Unknown',
-                style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                timestamp != null
+                    ? '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')} | ${timestamp.day}/${timestamp.month}/${timestamp.year}'
+                    : 'Unknown',
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500),
               ),
               if (sale['employee_name'] != null)
                 Text(
                   'BY: ${sale['employee_name']}',
-                  style: TextStyle(color: theme.textHint, fontSize: 9, fontWeight: FontWeight.w700),
+                  style: TextStyle(
+                      color: theme.textHint,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700),
                 ),
             ],
           ),
@@ -449,28 +553,45 @@ class _SaleTile extends StatelessWidget {
               children: [
                 Text(
                   isReturn ? 'REFUND' : 'SALE',
-                  style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontSize: 10, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                      color: theme.highlight,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900),
                 ),
                 Text(
                   '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(total.abs())}',
-                  style: TextStyle(color: isReturn ? ThemeProvider.warning : theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                  style: TextStyle(
+                      color: theme.highlight,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13),
                 ),
                 if (isOnline)
                   Container(
                     margin: const EdgeInsets.only(top: 2),
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                    child: Text('ONLINE', style: TextStyle(color: theme.highlight, fontSize: 7, fontWeight: FontWeight.w900)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: theme.highlight.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(4)),
+                    child: Text('ONLINE',
+                        style: TextStyle(
+                            color: theme.highlight,
+                            fontSize: 7,
+                            fontWeight: FontWeight.w900)),
                   ),
                 Text(
                   '${paymentMethod.toUpperCase()}${paymentTypeId != null ? " ($paymentTypeId)" : ""}',
-                  style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                      color: theme.textHint,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800),
                 ),
               ],
             ),
             const SizedBox(width: 12),
             IconButton(
-              icon: Icon(Icons.print_rounded, color: theme.textSecondary, size: 22),
+              icon: Icon(Icons.print_rounded,
+                  color: theme.textSecondary, size: 22),
               constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
               padding: EdgeInsets.zero,
               onPressed: onPrint,
@@ -483,9 +604,9 @@ class _SaleTile extends StatelessWidget {
                   height: 28,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: ThemeProvider.warning.withOpacity(0.15),
+                    color: theme.highlight.withOpacity(0.15),
                   ),
-                  child: const Icon(Icons.undo, color: ThemeProvider.warning, size: 16),
+                  child: Icon(Icons.undo, color: theme.highlight, size: 16),
                 ),
                 constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                 padding: EdgeInsets.zero,
