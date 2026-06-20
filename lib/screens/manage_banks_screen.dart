@@ -74,7 +74,6 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: theme.highlight.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
                               color: theme.highlight.withOpacity(0.1)),
@@ -291,7 +290,7 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
         width: MediaQuery.of(context).size.width * 0.9,
         constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
         decoration: BoxDecoration(
-          color: theme.surface,
+          color: theme.background,
           borderRadius: BorderRadius.circular(16),
         ),
         child: Column(
@@ -299,9 +298,8 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
           children: [
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: theme.highlight.withOpacity(0.1),
-                borderRadius: const BorderRadius.only(
+              decoration: const BoxDecoration(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(16),
                   topRight: Radius.circular(16),
                 ),
@@ -338,12 +336,7 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
                             final bank = _banks[index];
                             return Container(
                               margin: const EdgeInsets.only(bottom: 8),
-                              decoration: BoxDecoration(
-                                color: theme.surface
-                                    .withOpacity(theme.isDark ? 0.08 : 0.8),
-                                borderRadius: BorderRadius.circular(
-                                    ThemeProvider.radiusList),
-                              ),
+                              decoration: theme.glassListDecoration,
                               child: ListTile(
                                 leading: CircleAvatar(
                                   backgroundColor:

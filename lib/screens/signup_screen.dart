@@ -435,7 +435,7 @@ class _SignupScreenState extends State<SignupScreen>
                           final typeId = bt['id'] as int;
                           final typeName = bt['name'] as String;
                           final selected = _selectedBusinessTypeId == typeId;
-                          final bColor = _getColor(typeName);
+                          final bColor = theme.highlight;
                           return GestureDetector(
                             onTap: () {
                               setState(() {
@@ -778,9 +778,7 @@ class _SignupScreenState extends State<SignupScreen>
               : ElevatedButton(
                   onPressed: _signup,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedBusinessTypeId != null 
-                      ? _getColor(_businessTypes.firstWhere((t) => t['id'] == _selectedBusinessTypeId)['name'])
-                      : theme.primary,
+                    backgroundColor: theme.highlight,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
                     elevation: 4,
@@ -806,9 +804,7 @@ class _SignupScreenState extends State<SignupScreen>
                 style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
                 child: Text('Login',
                     style: TextStyle(
-                        color: _selectedBusinessTypeId != null 
-                          ? _getColor(_businessTypes.firstWhere((t) => t['id'] == _selectedBusinessTypeId)['name'])
-                          : theme.primary,
+                        color: theme.highlight,
                         fontWeight: FontWeight.bold,
                         fontSize: 13)),
               ),

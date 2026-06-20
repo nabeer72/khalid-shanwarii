@@ -498,11 +498,13 @@ class _LoginScreenState extends State<LoginScreen>
         await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after admin login failed: $e'));
         
         BusinessConfig.instance.staffName = user['name'] ?? 'Admin';
+        BusinessConfig.instance.staffId = null;
         BusinessConfig.instance.userId = uid;
         if (bid != null) await _dbHelper.addUserBusiness(uid, bid);
         
         await _storage.write(key: 'user_id', value: uid.toString());
         await _storage.write(key: 'user_email', value: user['email']);
+        await _storage.delete(key: 'staff_id');
         
         // Ensure API token exists so business list can be fetched from server
         await _syncLoginToBackend();
@@ -639,6 +641,7 @@ class _LoginScreenState extends State<LoginScreen>
               } else {
                 await storage.write(key: 'user_id', value: uid.toString());
                 await storage.delete(key: 'staff_id');
+                BusinessConfig.instance.staffId = null;
               }
               if (brid != null) await storage.write(key: 'branch_id', value: brid.toString());
             }

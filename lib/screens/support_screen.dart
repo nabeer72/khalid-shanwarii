@@ -143,12 +143,16 @@ class _SupportScreenState extends State<SupportScreen> {
                           decoration: theme.glassInputDecoration('Your feedback...', Icons.feedback_rounded),
                         ),
                         const SizedBox(height: 12),
-                        SizedBox(
-                          width: double.infinity,
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: SizedBox(
+                            height: 40,
                           child: ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: theme.highlight,
                               foregroundColor: Colors.white,
+                              elevation: 6,
+                              shadowColor: theme.highlight.withAlpha(102),
                               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
@@ -187,13 +191,21 @@ class _SupportScreenState extends State<SupportScreen> {
                                 }
                               }
                             },
-                            child: const Text(
-                              'SEND FEEDBACK',
-                              style: TextStyle(fontWeight: FontWeight.w900, fontSize: 11, letterSpacing: 1),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(Icons.send_rounded, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'SEND FEEDBACK',
+                                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
+                      ),
+                    ],
                     ),
                   ),
                 ),

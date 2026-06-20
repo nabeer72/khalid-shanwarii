@@ -850,8 +850,9 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showTransactionDialog(),
         icon: const Icon(Icons.add_card_rounded),
-        label: const Text('ADD ENTRY'),
+        label: const Text('ADD ENTRY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: theme.highlight,
+        foregroundColor: Colors.white,
       ),
     );
   }
