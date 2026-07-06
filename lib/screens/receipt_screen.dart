@@ -274,10 +274,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Padding(
-                              padding: EdgeInsets.only(top: 2),
-                              child: Icon(Icons.location_on_outlined, size: 14, color: Color(0xFF6B7280)),
-                            ),
+                           
                             const SizedBox(width: 6),
                             Expanded(
                               child: Text(

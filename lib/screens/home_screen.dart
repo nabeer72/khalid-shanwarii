@@ -73,6 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _loadStats();
         _loadBranches();
         _loadCurrentStaff(); // [FIX] Re-check permissions after every sync/data change
+        _refreshSubscriptionStatus(); // [FIX] Reload subscription so renewal is reflected immediately
       }
     });
 
@@ -85,6 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _autoSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
         if (mounted && !_syncService.isSyncing) {
           _syncService.triggerDebouncedSync(delayMs: 0);
+          _refreshSubscriptionStatus(); // [FIX] Also refresh subscription on periodic sync tick
         }
       });
     }
@@ -123,6 +125,40 @@ class _HomeScreenState extends State<HomeScreen> {
     if (kIsWeb) return;
     final lastSync = await _syncService.getLastSyncTime();
     if (mounted) setState(() => _lastSync = lastSync);
+  }
+
+  /// Reloads subscription data from the local `businesses` table into
+  /// [BusinessConfig] and triggers a rebuild so the subscription banner
+  /// updates automatically once the server approves a renewal (picked up
+  /// by the next sync without requiring a logout/login).
+  Future<void> _refreshSubscriptionStatus() async {
+    if (kIsWeb) return;
+    final bid = BusinessConfig.instance.businessId;
+    if (bid == null) return;
+    try {
+      final rawDb = await DatabaseHelper.instance.database;
+      final rows = await rawDb.query(
+        'businesses',
+        where: 'id = ?',
+        whereArgs: [bid],
+      );
+      if (rows.isNotEmpty) {
+        final biz = rows.first;
+        BusinessConfig.instance.setSubscription(
+          status: biz['subscription_status']?.toString() ?? 'none',
+          planId: biz['subscription_plan_id'] as int?,
+          planName: biz['subscription_plan_name']?.toString(),
+          endDate: biz['subscription_end_date'] != null
+              ? DateTime.tryParse(biz['subscription_end_date'].toString())
+              : null,
+          branches: biz['max_branches'] as int?,
+          products: biz['max_products'] as int?,
+        );
+        if (mounted) setState(() {});
+      }
+    } catch (e) {
+      if (kDebugMode) print('⚠️ [HOME] Failed to refresh subscription: $e');
+    }
   }
 
   Future<void> _loadCurrentStaff() async {
@@ -549,6 +585,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await _loadLastSync();
         await _loadStats();
         await _loadCurrentStaff(); // [FIX] Refresh permissions after manual sync
+        await _refreshSubscriptionStatus(); // [FIX] Reflect renewed subscription without re-login
         if (!silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(

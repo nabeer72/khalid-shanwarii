@@ -14,10 +14,28 @@ mixin SettingsCrud {
     final bid = BusinessConfig.instance.businessId;
     final uid = BusinessConfig.instance.userId;
 
+    // Build WHERE clause dynamically: sqflite_sqlcipher does not accept null bind
+    // values, so we use IS NULL directly in SQL when the IDs are not set.
+    final List<dynamic> args = [key];
+    String bidClause;
+    if (bid == null) {
+      bidClause = 'business_id IS NULL';
+    } else {
+      bidClause = 'business_id = ?';
+      args.add(bid);
+    }
+    String uidClause;
+    if (uid == null) {
+      uidClause = 'user_id IS NULL';
+    } else {
+      uidClause = 'user_id = ?';
+      args.add(uid);
+    }
+
     final results = await db.query(
       'settings',
-      where: 'key = ? AND (business_id = ? OR (business_id IS NULL AND ? IS NULL)) AND (user_id = ? OR (user_id IS NULL AND ? IS NULL))',
-      whereArgs: [key, bid, bid, uid, uid],
+      where: 'key = ? AND $bidClause AND $uidClause',
+      whereArgs: args,
     );
     return results.isNotEmpty ? results.first['value'] as String? : null;
   }

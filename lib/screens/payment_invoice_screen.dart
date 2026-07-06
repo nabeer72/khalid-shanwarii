@@ -88,32 +88,28 @@ class _PaymentInvoiceScreenState extends State<PaymentInvoiceScreen> {
                           ),
                           child: Container(
                             padding: const EdgeInsets.all(24),
-                            decoration: theme.glassDecoration.copyWith(
-                              color: theme.isDark 
-                                  ? theme.surface.withOpacity(0.4) 
-                                  : Colors.white.withOpacity(0.85),
-                            ),
+                            decoration: theme.glassDecoration,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Container(
                                   width: 64,
                                   height: 64,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFF1A73E8), // Solid blue matching screenshot
+                                  decoration: BoxDecoration(
+                                    color: theme.highlight, // Theme highlight
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 32),
                                 ),
                                 const SizedBox(height: 16),
-                                const Text(
+                                Text(
                                   'Invoice Payment',
-                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+                                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.textPrimary),
                                 ),
                                 const SizedBox(height: 8),
-                                const Text(
+                                Text(
                                   'Please pay the designated amount to activate your subscription.',
-                                  style: TextStyle(color: Color(0xFF6B7280), fontSize: 14),
+                                  style: TextStyle(color: theme.textSecondary, fontSize: 14),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 24),
@@ -122,11 +118,7 @@ class _PaymentInvoiceScreenState extends State<PaymentInvoiceScreen> {
                                 Container(
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(20),
-                                  decoration: BoxDecoration(
-                                    color: theme.surface,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(color: theme.divider),
-                                  ),
+                                  decoration: theme.glassListDecoration,
                                   child: Column(
                                     children: [
                                       Text('AMOUNT DUE', 
@@ -148,13 +140,13 @@ class _PaymentInvoiceScreenState extends State<PaymentInvoiceScreen> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFD6F5F8), // Light cyan background
-                                    borderRadius: BorderRadius.circular(8),
+                                    color: theme.highlight.withOpacity(0.1), // Highlight background
+                                    borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                                   ),
                                   child: RichText(
-                                    text: const TextSpan(
-                                      style: TextStyle(color: Color(0xFF0F5156), fontSize: 14, height: 1.4), // Darker cyan text
-                                      children: [
+                                    text: TextSpan(
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 14, height: 1.4), // Darker cyan text
+                                      children: const [
                                         TextSpan(text: 'Payment Instructions: ', style: TextStyle(fontWeight: FontWeight.bold)),
                                         TextSpan(text: 'Please wire transfer the amount to '),
                                         TextSpan(text: 'SATA INC Bank, A/C: 1000-2000-3000', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -173,7 +165,7 @@ class _PaymentInvoiceScreenState extends State<PaymentInvoiceScreen> {
                                     Row(
                                       children: [
                                         Text('Upload Payment Receipt', style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-                                        const Text(' *', style: TextStyle(color: Colors.red)),
+                                        Text(' *', style: TextStyle(color: theme.highlight)),
                                       ],
                                     ),
                                     const SizedBox(height: 8),
@@ -182,40 +174,40 @@ class _PaymentInvoiceScreenState extends State<PaymentInvoiceScreen> {
                                       child: Container(
                                         height: 38,
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: theme.surface,
                                           borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: const Color(0xFFD1D5DB)), // Light gray border
+                                          border: Border.all(color: theme.divider), // Light gray border
                                         ),
                                         child: Row(
                                           children: [
                                             // Gray button area
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 12),
-                                              decoration: const BoxDecoration(
-                                                color: Color(0xFFE5E7EB), // Gray background
-                                                borderRadius: BorderRadius.only(
+                                              decoration: BoxDecoration(
+                                                color: theme.background, // Gray background
+                                                borderRadius: const BorderRadius.only(
                                                   topLeft: Radius.circular(3),
                                                   bottomLeft: Radius.circular(3),
                                                 ),
                                               ),
                                               alignment: Alignment.center,
-                                              child: const Text('Choose file', style: TextStyle(color: Color(0xFF374151), fontSize: 13)),
+                                              child: Text('Choose file', style: TextStyle(color: theme.textPrimary, fontSize: 13)),
                                             ),
                                             // Divider
-                                            Container(width: 1, color: const Color(0xFFD1D5DB)),
+                                            Container(width: 1, color: theme.divider),
                                             // Text area
                                             const SizedBox(width: 12),
                                             Expanded(
                                               child: Text(
                                                 _receipt == null ? 'No file chosen' : _receipt!.path.split('/').last,
-                                                style: const TextStyle(color: Color(0xFF1F2937), fontSize: 13),
+                                                style: TextStyle(color: theme.textSecondary, fontSize: 13),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             if (_receipt != null)
-                                              const Padding(
-                                                padding: EdgeInsets.only(right: 8),
-                                                child: Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 8),
+                                                child: Icon(Icons.check_circle, color: ThemeProvider.success, size: 16),
                                               ),
                                           ],
                                         ),
@@ -232,10 +224,10 @@ class _PaymentInvoiceScreenState extends State<PaymentInvoiceScreen> {
                                   child: ElevatedButton(
                                     onPressed: _loading ? null : _submitReceipt,
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1A73E8), // Solid Blue
+                                      backgroundColor: theme.highlight, // Theme highlight
                                       foregroundColor: Colors.white,
                                       padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
                                       elevation: 0,
                                     ),
                                     child: _loading 
