@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:io';
 
@@ -52,12 +53,15 @@ class ApiService {
         );
         // Set header immediately for subsequent sync calls
         _dio.options.headers['Authorization'] = 'Bearer $token';
+          
+        // Pre-fetch terms in background
+        getTermsAndConditions().catchError((_) => null);
       }
       return response;
     } catch (e) {
       if (e is DioException) {
         final message = e.response?.data['message'] ?? e.response?.data['errors']?.toString() ?? e.message;
-        print('Login Error Details: $message');
+        if (kDebugMode) debugPrint('Login Error Details: $message');
       }
       rethrow;
     }
@@ -129,7 +133,7 @@ class ApiService {
     } catch (e) {
       if (e is DioException) {
         final message = e.response?.data['message'] ?? e.response?.data['errors']?.toString() ?? e.message;
-        print('Signup Error Details: $message');
+        if (kDebugMode) debugPrint('Signup Error Details: $message');
       }
       rethrow;
     }
@@ -139,14 +143,14 @@ class ApiService {
     await _storage.delete(key: 'auth_token');
     await _storage.delete(key: 'user');
     _dio.options.headers.remove('Authorization');
-    print('🔑 [API] Token and user data removed from storage and headers');
+    if (kDebugMode) debugPrint('🔑 [API] Token and user data removed from storage and headers');
   }
 
   Future<Response?> updatePin(String pin) async {
     try {
       return await _dio.post('/user/update-pin', data: {'pin': pin});
     } catch (e) {
-      print('❌ [API] Failed to update PIN: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to update PIN: $e');
       rethrow;
     }
   }
@@ -155,7 +159,7 @@ class ApiService {
     try {
       return await _dio.post('/user/update-profile', data: data);
     } catch (e) {
-      print('❌ [API] Failed to update profile: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to update profile: $e');
       rethrow;
     }
   }
@@ -175,16 +179,16 @@ class ApiService {
   Future<bool> deleteBankAccount(int id) async {
     try {
       final response = await _dio.delete('/bank-accounts/$id');
-      print('✅ [API] deleteBankAccount($id) → ${response.statusCode} ${response.data}');
+      if (kDebugMode) debugPrint('✅ [API] deleteBankAccount($id) → ${response.statusCode} ${response.data}');
       return response.statusCode == 200 && response.data['success'] == true;
     } on DioException catch (e) {
-      print('❌ [API] deleteBankAccount($id) failed → status: ${e.response?.statusCode}, body: ${e.response?.data}');
+      if (kDebugMode) debugPrint('❌ [API] deleteBankAccount($id) failed → status: ${e.response?.statusCode}, body: ${e.response?.data}');
       if (e.response?.statusCode == 404) {
         throw '404'; // Special case for UI
       }
       return false;
     } catch (e) {
-      print('❌ [API] deleteBankAccount($id) unexpected error: $e');
+      if (kDebugMode) debugPrint('❌ [API] deleteBankAccount($id) unexpected error: $e');
       rethrow;
     }
   }
@@ -194,7 +198,7 @@ class ApiService {
       final response = await _dio.put('/bank-accounts/$id', data: data);
       return response.statusCode == 200 && response.data['success'] == true;
     } catch (e) {
-      print('❌ [API] updateBankAccount failed: $e');
+      if (kDebugMode) debugPrint('❌ [API] updateBankAccount failed: $e');
       return false;
     }
   }
@@ -203,7 +207,7 @@ class ApiService {
     try {
       return await _dio.get('/business-types');
     } catch (e) {
-      print('❌ [API] Failed to fetch business types: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to fetch business types: $e');
       return null;
     }
   }
@@ -217,7 +221,7 @@ class ApiService {
 
       return await _dio.post('/user/subscription/$subscriptionId/upload-receipt', data: formData);
     } catch (e) {
-      print('❌ [API] Receipt upload failed: $e');
+      if (kDebugMode) debugPrint('❌ [API] Receipt upload failed: $e');
       return null;
     }
   }
@@ -226,7 +230,7 @@ class ApiService {
     try {
       return await _dio.get('/subscription-plans');
     } catch (e) {
-      print('❌ [API] Failed to fetch subscription plans: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to fetch subscription plans: $e');
       return null;
     }
   }
@@ -236,7 +240,7 @@ class ApiService {
       final response = await _dio.get('/user/check-subscription-status');
       return response.data['active'] == true;
     } catch (e) {
-      print('❌ [API] Failed to check subscription status: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to check subscription status: $e');
       return false;
     }
   }
@@ -246,7 +250,7 @@ class ApiService {
     try {
       return await _dio.get('/user/businesses');
     } catch (e) {
-      print('❌ [API] Failed to fetch user businesses: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to fetch user businesses: $e');
       rethrow;
     }
   }
@@ -258,7 +262,61 @@ class ApiService {
         if (email != null && email.isNotEmpty) 'email': email,
       });
     } catch (e) {
-      print('❌ [API] Failed to submit feedback: $e');
+      if (kDebugMode) debugPrint('❌ [API] Failed to submit feedback: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response?> submitDeletionRequest(String reason) async {
+    try {
+      return await _dio.post('/user/deletion-request', data: {
+        'type': 'profile',
+        'reason': reason
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ [API] Failed to submit deletion request: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response?> getDeletionRequestStatus() async {
+    try {
+      return await _dio.get('/user/deletion-request/status');
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ [API] Failed to get deletion request status: $e');
+      rethrow;
+    }
+  }
+
+  Future<Response?> cancelDeletionRequest(int requestId) async {
+    try {
+      return await _dio.post('/user/deletion-request/cancel', data: {
+        'request_id': requestId
+      });
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ [API] Failed to cancel deletion request: $e');
+      rethrow;
+    }
+  }
+
+  static List<dynamic>? cachedTerms;
+
+  Future<Response?> getTermsAndConditions() async {
+    try {
+      if (cachedTerms != null) {
+        return Response(
+          requestOptions: RequestOptions(path: '/terms-and-conditions'),
+          data: {'data': cachedTerms},
+          statusCode: 200,
+        );
+      }
+      final res = await _dio.get('/terms-and-conditions');
+      if (res.statusCode == 200) {
+        cachedTerms = res.data['data'];
+      }
+      return res;
+    } catch (e) {
+      if (kDebugMode) debugPrint('❌ [API] Failed to fetch terms and conditions: $e');
       rethrow;
     }
   }

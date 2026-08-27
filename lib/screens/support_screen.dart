@@ -17,8 +17,37 @@ class _SupportScreenState extends State<SupportScreen> {
   final TextEditingController _feedbackController = TextEditingController();
   bool _feedbackSent = false;
 
-  // FAQ expansion state
+  // FAQ and Terms expansion state
   int? _expandedFaqIndex;
+  int? _expandedTermIndex;
+  
+  List<dynamic> _terms = [];
+  bool _isLoadingTerms = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchTerms();
+  }
+
+  Future<void> _fetchTerms() async {
+    try {
+      final api = ApiService();
+      final res = await api.getTermsAndConditions();
+      if (res != null && res.statusCode == 200) {
+        if (mounted) {
+          setState(() {
+            _terms = res.data['data'] ?? [];
+            _isLoadingTerms = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoadingTerms = false);
+      }
+    }
+  }
 
   final List<Map<String, String>> _faqs = [
     {
@@ -90,6 +119,23 @@ class _SupportScreenState extends State<SupportScreen> {
                 final faq = entry.value;
                 return _buildFaqItem(context, faq['question']!, faq['answer']!, index);
               }).toList(),
+              
+              const SizedBox(height: 24),
+              // Terms & Conditions Section
+              const _SectionHeader(title: 'TERMS & CONDITIONS'),
+              if (_isLoadingTerms)
+                Center(child: Padding(padding: const EdgeInsets.all(16), child: CircularProgressIndicator(color: theme.highlight)))
+              else if (_terms.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  child: Text('No terms & conditions available.', style: TextStyle(color: theme.textSecondary, fontSize: 13, fontWeight: FontWeight.w500)),
+                )
+              else
+                ..._terms.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final term = entry.value;
+                  return _buildTermItem(context, term['title'] ?? '', term['content'] ?? '', index);
+                }).toList(),
               
               const SizedBox(height: 24),
               // Feedback Section
@@ -269,6 +315,57 @@ class _SupportScreenState extends State<SupportScreen> {
     );
   }
 
+  Widget _buildTermItem(BuildContext context, String title, String content, int index) {
+    final theme = ThemeProvider.instance;
+    final isExpanded = _expandedTermIndex == index;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: theme.glassListDecoration,
+      child: Theme(
+        data: ThemeData(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          title: Text(
+            title,
+            style: TextStyle(
+              color: theme.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          expandedAlignment: Alignment.centerLeft,
+          trailing: Icon(
+            isExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+            color: theme.iconColor,
+            size: 22,
+          ),
+          onExpansionChanged: (expanded) {
+            setState(() {
+              _expandedTermIndex = expanded ? index : null;
+            });
+          },
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Text(
+                content,
+                textAlign: TextAlign.left,
+                style: TextStyle(
+                  color: theme.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _launchEmail(String email) async {
     final Uri uri = Uri(scheme: 'mailto', path: email);
     try {
@@ -359,34 +456,37 @@ class _SupportTile extends StatelessWidget {
     final theme = ThemeProvider.instance;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        decoration: theme.glassListDecoration,
-        child: ListTile(
-          onTap: onTap,
-          onLongPress: onLongPress,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: theme.glassListDecoration,
+          child: ListTile(
+            onTap: onTap,
+            onLongPress: onLongPress,
+            shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-            child: Icon(icon, color: theme.highlight, size: 22),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+              child: Icon(icon, color: theme.highlight, size: 22),
+            ),
+            title: Text(title,
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+            subtitle: Text(subtitle,
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+            trailing: showTrailing
+                ? Icon(Icons.chevron_right_rounded,
+                    size: 20, color: theme.iconColor.withOpacity(0.6))
+                : null,
           ),
-          title: Text(title,
-              style: TextStyle(
-                  color: theme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14)),
-          subtitle: Text(subtitle,
-              style: TextStyle(
-                  color: theme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500)),
-          trailing: showTrailing
-              ? Icon(Icons.chevron_right_rounded,
-                  size: 20, color: theme.iconColor.withOpacity(0.6))
-              : null,
         ),
       ),
     );

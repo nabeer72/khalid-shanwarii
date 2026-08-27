@@ -1187,6 +1187,237 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  void _showDeletionRequestDialog() async {
+    final api = ApiService();
+    
+    // Show a loading dialog immediately
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Center(child: CircularProgressIndicator(color: ThemeProvider.instance.highlight)),
+    );
+
+    bool isPending = false;
+    int? pendingRequestId;
+    
+    try {
+      final res = await api.getDeletionRequestStatus();
+      if (res?.statusCode == 200 && res?.data != null) {
+        final data = res?.data['data'] as List?;
+        if (data != null && data.isNotEmpty) {
+          final pendingReq = data.firstWhere((req) => req['status'] == 'pending', orElse: () => null);
+          if (pendingReq != null) {
+            isPending = true;
+            pendingRequestId = pendingReq['id'];
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore error for status check
+    }
+
+    if (!mounted) return;
+    
+    // Close the loading dialog
+    Navigator.pop(context);
+
+    if (isPending && pendingRequestId != null) {
+      bool isSubmitting = false;
+      showDialog(
+        context: context,
+        builder: (ctx) => StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.white,
+              contentPadding: EdgeInsets.zero,
+              content: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                ),
+                width: 400,
+                child: Stack(
+                  children: [
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Pending Request',
+                            style: TextStyle(
+                                color: Color(0xFF1F2937),
+                                fontSize: 20,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5)),
+                        const SizedBox(height: 16),
+                        const Text('You have a pending account deletion request. Do you want to cancel it and keep your account?',
+                            style: TextStyle(color: Color(0xFF4B5563), fontSize: 14)),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: ThemeProvider.success,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                            ),
+                            onPressed: isSubmitting ? null : () async {
+                              setState(() => isSubmitting = true);
+                              try {
+                                await api.cancelDeletionRequest(pendingRequestId!);
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Deletion request cancelled.'), backgroundColor: ThemeProvider.success));
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to cancel request: $e'), backgroundColor: ThemeProvider.error));
+                                }
+                              } finally {
+                                if (mounted) setState(() => isSubmitting = false);
+                              }
+                            },
+                            child: isSubmitting 
+                                ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: ThemeProvider.instance.highlight, strokeWidth: 2))
+                                : const Text('CANCEL DELETION REQUEST', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      top: -12,
+                      right: -12,
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: Icon(Icons.close, color: ThemeProvider.instance.highlight),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        ),
+      );
+      return;
+    }
+
+    final reasonCtrl = TextEditingController();
+    bool isSubmitting = false;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.white,
+            contentPadding: EdgeInsets.zero,
+            content: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+              ),
+              width: 400,
+              child: Stack(
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Delete Account',
+                          style: TextStyle(
+                              color: Color(0xFF1F2937),
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5)),
+                      const SizedBox(height: 16),
+                      const Text('Are you sure you want to request account deletion? Your data will be permanently removed. This action takes 30 days to complete.',
+                          style: TextStyle(color: Color(0xFF4B5563), fontSize: 14)),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: reasonCtrl,
+                        style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
+                        decoration: InputDecoration(
+                          labelText: 'Reason (Optional)',
+                          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
+                          filled: true,
+                          fillColor: const Color(0xFFF9FAFB),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: ThemeProvider.error, width: 1.5),
+                          ),
+                        ),
+                        maxLines: 3,
+                      ),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: ThemeProvider.error,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                          ),
+                          onPressed: isSubmitting ? null : () async {
+                            setState(() => isSubmitting = true);
+                            try {
+                              await api.submitDeletionRequest(reasonCtrl.text.trim());
+                              if (mounted) {
+                                Navigator.pop(ctx);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Deletion request submitted.'), backgroundColor: ThemeProvider.success));
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Failed to submit request: $e'), backgroundColor: ThemeProvider.error));
+                              }
+                            } finally {
+                              if (mounted) setState(() => isSubmitting = false);
+                            }
+                          },
+                          child: isSubmitting 
+                              ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: ThemeProvider.instance.highlight, strokeWidth: 2))
+                              : const Text('SUBMIT REQUEST', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    top: -12,
+                    right: -12,
+                    child: IconButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      icon: Icon(Icons.close, color: ThemeProvider.instance.highlight),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1571,6 +1802,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: 'Premium v1.0.84 - Stable',
                 onTap: () {},
               ),
+              const SizedBox(height: 24),
+              const _SectionHeader(title: 'ACCOUNT MANAGEMENT'),
+              _SettingsTile(
+                icon: Icons.person_remove_rounded,
+                title: 'Delete Account',
+                subtitle: 'Request account deletion',
+                titleColor: ThemeProvider.error,
+                showTrailing: false,
+                onTap: _showDeletionRequestDialog,
+              ),
               const SizedBox(height: 48),
             ],
           ),
@@ -1936,53 +2177,56 @@ class _SettingsTile extends StatelessWidget {
     final theme = ThemeProvider.instance;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        decoration: theme.glassListDecoration,
-        child: ListTile(
-          onTap: onTap,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: Colors.white,
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: theme.glassListDecoration,
+          child: ListTile(
+            onTap: onTap,
+            shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-            child: Icon(icon, color: theme.highlight, size: 22),
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+              child: Icon(icon, color: theme.highlight, size: 22),
+            ),
+            title: Text(title,
+                style: TextStyle(
+                    color: titleColor ?? theme.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+            subtitle: Text(subtitle,
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+            trailing: showTrailing
+                ? Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: theme.highlight.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: theme.highlight.withOpacity(0.1)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.edit_note_rounded,
+                            color: theme.highlight, size: 16),
+                        const SizedBox(width: 4),
+                        Text('EDIT',
+                            style: TextStyle(
+                                color: theme.highlight,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w900)),
+                      ],
+                    ),
+                  )
+                : null,
           ),
-          title: Text(title,
-              style: TextStyle(
-                  color: titleColor ?? theme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14)),
-          subtitle: Text(subtitle,
-              style: TextStyle(
-                  color: theme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500)),
-          trailing: showTrailing
-              ? Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.highlight.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: theme.highlight.withOpacity(0.1)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.edit_note_rounded,
-                          color: theme.highlight, size: 16),
-                      const SizedBox(width: 4),
-                      Text('EDIT',
-                          style: TextStyle(
-                              color: theme.highlight,
-                              fontSize: 10,
-                              fontWeight: FontWeight.w900)),
-                    ],
-                  ),
-                )
-              : null,
         ),
       ),
     );
@@ -2008,32 +2252,35 @@ class _SettingsSwitch extends StatelessWidget {
     final theme = ThemeProvider.instance;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Container(
-        decoration: theme.glassListDecoration,
-        child: ListTile(
-          leading: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: theme.highlight, size: 22),
-          ),
-          title: Text(title,
-              style: TextStyle(
-                  color: theme.textPrimary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14)),
-          subtitle: Text(subtitle,
-              style: TextStyle(
-                  color: theme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500)),
-          trailing: Switch(
-            value: value,
-            onChanged: onChanged,
-            activeColor: theme.switchActiveColor,
-            activeTrackColor: theme.switchActiveColor.withOpacity(0.3),
-            inactiveThumbColor: theme.textHint,
-            inactiveTrackColor: theme.whiteAlpha(0.1),
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: theme.glassListDecoration,
+          child: ListTile(
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                  color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Icon(icon, color: theme.highlight, size: 22),
+            ),
+            title: Text(title,
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+            subtitle: Text(subtitle,
+                style: TextStyle(
+                    color: theme.textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500)),
+            trailing: Switch(
+              value: value,
+              onChanged: onChanged,
+              activeColor: theme.switchActiveColor,
+              activeTrackColor: theme.switchActiveColor.withOpacity(0.3),
+              inactiveThumbColor: theme.textHint,
+              inactiveTrackColor: theme.whiteAlpha(0.1),
+            ),
           ),
         ),
       ),

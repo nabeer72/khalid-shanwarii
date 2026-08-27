@@ -25,9 +25,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final theme = ThemeProvider.instance;
-  final _emailCtrl =
-      TextEditingController(text: kIsWeb ? 'admin@test.com' : '');
-  final _passCtrl = TextEditingController(text: kIsWeb ? 'password' : '');
+  final _emailCtrl = TextEditingController();
+  final _passCtrl = TextEditingController();
   final _api = ApiService();
   final _dbHelper = DatabaseHelper.instance;
   final _storage = const FlutterSecureStorage();
