@@ -234,7 +234,7 @@ class AddPurchaseController with ChangeNotifier {
     notifyListeners();
   }
   void addItem({
-    required int productId,
+    int? productId,
     required String productName,
     String? barcode,
     required double existingStock,
@@ -248,7 +248,7 @@ class AddPurchaseController with ChangeNotifier {
     if (quantity <= 0) return;
 
     // Check if product already exists in items to prevent duplicates
-    if (items.any((item) => item['product_id'] == productId)) {
+    if (productId != null && items.any((item) => item['product_id'] == productId)) {
       _errorMessage = 'Item already added to this purchase';
       notifyListeners();
       return;

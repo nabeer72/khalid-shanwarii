@@ -837,12 +837,15 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 Icon(Icons.calendar_today_rounded,
                     color: theme.highlight, size: 16),
                 const SizedBox(width: 8),
-                Text(
-                  DateFormat('yyyy-MM-dd').format(date),
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    DateFormat('yyyy-MM-dd').format(date),
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
               ],
             ),

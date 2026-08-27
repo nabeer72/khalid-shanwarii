@@ -157,16 +157,18 @@ class POSProductGrid extends StatelessWidget {
                 ),
                 child: Text('📂', style: const TextStyle(fontSize: 20))),
             const SizedBox(height: 8),
-            Text(
-              cat.name.toUpperCase(),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: theme.textPrimary,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
+            Flexible(
+              child: Text(
+                cat.name.toUpperCase(),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
+                ),
               ),
             ),
           ],

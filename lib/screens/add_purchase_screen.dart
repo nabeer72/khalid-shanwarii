@@ -11,7 +11,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 class AddPurchaseScreen extends StatefulWidget {
-  const AddPurchaseScreen({super.key});
+  final int? preSelectedProductId;
+  const AddPurchaseScreen({super.key, this.preSelectedProductId});
 
   @override
   State<AddPurchaseScreen> createState() => _AddPurchaseScreenState();
@@ -30,6 +31,24 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
     _controller.onProductSelected = (productId) {
       _showAddItemDialog(productId: productId);
     };
+
+    if (widget.preSelectedProductId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Wait for products to load before showing dialog
+        if (!_controller.isLoading) {
+          _showAddItemDialog(productId: widget.preSelectedProductId);
+        } else {
+          // If loading, add a one-time listener to show dialog when loaded
+          void onLoaded() {
+            if (!_controller.isLoading) {
+              _controller.removeListener(onLoaded);
+              _showAddItemDialog(productId: widget.preSelectedProductId);
+            }
+          }
+          _controller.addListener(onLoaded);
+        }
+      });
+    }
   }
 
   void _rebuild() {
@@ -774,17 +793,9 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                     color: theme.highlight.withOpacity(0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 4),
-                                   ),
-                                  onChanged: (v) => setDialogState(() {}),
-                                  onTap: () => setDialogState(() {
-                                    if (selectedProductId != null) {
-                                      selectedProductId = null;
-                                      searchCtrl.clear();
-                                    }
-                                  }),
-                                ),
-                              ],
-                            ),
+                                  ),
+                                ],
+                              ),
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(

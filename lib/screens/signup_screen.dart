@@ -716,8 +716,7 @@ class _SignupScreenState extends State<SignupScreen>
           ),
         ),
         if (showPlans) ...[
-          const SizedBox(height: 12), 
-          _buildPlanCarousel(),
+          // left empty — plans now shown above the form on mobile
         ],
         const SizedBox(height: 8),
         Text('Email', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
@@ -881,7 +880,9 @@ class _SignupScreenState extends State<SignupScreen>
                               else ...[
                                 _buildBusinessTypeSection(),
                                 const SizedBox(height: 12),
-                                _buildSignupForm(showPlans: true),
+                                _buildPlanCarousel(),
+                                const SizedBox(height: 12),
+                                _buildSignupForm(showPlans: false),
                               ],
                             ],
                           );

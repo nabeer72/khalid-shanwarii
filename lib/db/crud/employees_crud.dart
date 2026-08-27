@@ -86,13 +86,13 @@ mixin EmployeesCrud on CommonCrud {
   Future<Map<String, dynamic>?> getEmployeeByEmailAndPin(String email, String pin) async {
     final db = await database;
     final cleanEmail = email.toLowerCase().trim();
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    // [FIX] Only filter by email + pin + business_id. user_id is the admin's ID
-    // and causes a mismatch when BusinessConfig holds the staff's own user ID.
+    final cleanPin = pin.trim();
+    // Login runs after session reset, so business_id context is empty.
+    // Staff authenticate with email + PIN only (not admin password).
     final List<Map<String, dynamic>> results = await db.query(
       'employees',
-      where: 'LOWER(email) = ? AND pin = ? AND status = 1 AND business_id = ?',
-      whereArgs: [cleanEmail, pin, bid],
+      where: 'LOWER(email) = ? AND CAST(pin AS TEXT) = ? AND status = 1',
+      whereArgs: [cleanEmail, cleanPin],
       limit: 1,
     );
     return results.isNotEmpty ? results.first : null;

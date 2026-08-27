@@ -1507,9 +1507,11 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Icon(Icons.info_outline_rounded, color: theme.highlight),
                 const SizedBox(width: 8),
-                Text('$moduleName Guide',
-                    style: TextStyle(
-                        color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                Expanded(
+                  child: Text('$moduleName Guide',
+                      style: TextStyle(
+                          color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                ),
               ],
             ),
             content: Column(

@@ -110,51 +110,76 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('CANCEL', style: TextStyle(color: theme.textSecondary)),
+            child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w700)),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              if (titleCtrl.text.isEmpty) return;
-              
-              final newBranch = Branch(
-                id: branch?.id,
-                businessId: BusinessConfig.instance.businessId,
-                userId: BusinessConfig.instance.userId,
-                branchTitle: titleCtrl.text,
-                branchCode: codeCtrl.text.isEmpty ? null : codeCtrl.text,
-                branchAddress: addressCtrl.text.isEmpty ? null : addressCtrl.text,
-                contactNumber: int.tryParse(contactCtrl.text),
-              );
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [theme.highlight, theme.highlight.withOpacity(0.85)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+              boxShadow: [
+                BoxShadow(
+                  color: theme.highlight.withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                onTap: () async {
+                  if (titleCtrl.text.isEmpty) return;
+                  
+                  final newBranch = Branch(
+                    id: branch?.id,
+                    businessId: BusinessConfig.instance.businessId,
+                    userId: BusinessConfig.instance.userId,
+                    branchTitle: titleCtrl.text,
+                    branchCode: codeCtrl.text.isEmpty ? null : codeCtrl.text,
+                    branchAddress: addressCtrl.text.isEmpty ? null : addressCtrl.text,
+                    contactNumber: int.tryParse(contactCtrl.text),
+                  );
 
-              if (branch == null) {
-                // [SUBSCRIPTION CHECK]
-                final currentCount = _branches.length;
-                final canAdd = await BusinessConfig.instance.canAddBranch(currentCount);
-                if (!canAdd) {
-                  final plan = BusinessConfig.instance.subscriptionPlanName;
-                  final max = BusinessConfig.instance.maxBranches;
-                  final status = BusinessConfig.instance.subscriptionStatus;
-                  String msg;
-                  if (status != 'active') {
-                    msg = 'Your subscription is $status. Please renew to add branches.';
+                  if (branch == null) {
+                    final currentCount = _branches.length;
+                    final canAdd = await BusinessConfig.instance.canAddBranch(currentCount);
+                    if (!canAdd) {
+                      final plan = BusinessConfig.instance.subscriptionPlanName;
+                      final max = BusinessConfig.instance.maxBranches;
+                      final status = BusinessConfig.instance.subscriptionStatus;
+                      String msg;
+                      if (status != 'active') {
+                        msg = 'Your subscription is $status. Please renew to add branches.';
+                      } else {
+                        msg = 'You have reached the limit of $max branches for your $plan plan.';
+                      }
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: ThemeProvider.error));
+                      }
+                      return;
+                    }
+                    await DatabaseHelper.instance.insertBranch(newBranch.toMap());
                   } else {
-                    msg = 'You have reached the limit of $max branches for your $plan plan.';
+                    await DatabaseHelper.instance.updateBranch(newBranch.id ?? 0, newBranch.toMap());
                   }
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg), backgroundColor: ThemeProvider.error));
-                  }
-                  return;
-                }
-                await DatabaseHelper.instance.insertBranch(newBranch.toMap());
-              } else {
-                await DatabaseHelper.instance.updateBranch(newBranch.id ?? 0, newBranch.toMap());
-              }
 
-              if (ctx.mounted) Navigator.pop(ctx);
-              _loadBranches();
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: theme.highlight),
-            child: Text(branch == null ? 'ADD BRANCH' : 'UPDATE', style: const TextStyle(color: Colors.white)),
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  _loadBranches();
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Text(
+                    branch == null ? 'ADD BRANCH' : 'UPDATE',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -318,11 +343,43 @@ class _BranchManagementScreenState extends State<BranchManagementScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showBranchDialog(),
-        icon: const Icon(Icons.add_business_rounded),
-        label: const Text('ADD BRANCH'),
-        backgroundColor: theme.highlight,
+      floatingActionButton: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [theme.highlight, theme.highlight.withOpacity(0.85)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: theme.highlight.withOpacity(0.4),
+              blurRadius: 12,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _showBranchDialog(),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.add_business_rounded, color: Colors.white, size: 20),
+                  SizedBox(width: 8),
+                  Text(
+                    'ADD BRANCH',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 0.5),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
