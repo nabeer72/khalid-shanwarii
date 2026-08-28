@@ -85,6 +85,7 @@ class _SetupProfileScreenState extends State<SetupProfileScreen> {
                       decoration: BoxDecoration(
                         color: theme.isDark ? theme.surface : Colors.white,
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: theme.highlight),
                         boxShadow: [
                           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
                         ],

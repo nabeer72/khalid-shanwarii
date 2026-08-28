@@ -78,6 +78,7 @@ class ApiService {
     String? address,
     String? pin,
     File? receipt,
+    bool termsAccepted = true,
   }) async {
     final cleanEmail = email.trim().toLowerCase();
     try {
@@ -97,6 +98,7 @@ class ApiService {
           if (address != null && address.isNotEmpty) 'address': address,
           if (pin != null) 'pin': pin,
           'receipt': await MultipartFile.fromFile(receipt.path, filename: receipt.path.split('/').last),
+          'terms': 1,
         });
       } else {
         requestData = {
@@ -111,6 +113,7 @@ class ApiService {
           if (phone != null && phone.isNotEmpty) 'phone': phone,
           if (address != null && address.isNotEmpty) 'address': address,
           if (pin != null) 'pin': pin,
+          'terms': 1,
         };
       }
 
@@ -133,7 +136,11 @@ class ApiService {
     } catch (e) {
       if (e is DioException) {
         final message = e.response?.data['message'] ?? e.response?.data['errors']?.toString() ?? e.message;
-        if (kDebugMode) debugPrint('Signup Error Details: $message');
+        if (kDebugMode) {
+          debugPrint('Signup Error Details: $message');
+          debugPrint('Signup Full Error Response: ${e.response?.data}');
+          debugPrint('Signup Status Code: ${e.response?.statusCode}');
+        }
       }
       rethrow;
     }

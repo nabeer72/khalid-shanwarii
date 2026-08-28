@@ -398,18 +398,11 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   Widget _buildScrollButton(IconData icon, VoidCallback onPressed) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.card.withOpacity(0.8),
-        shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, 2))],
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: theme.highlight, size: 24),
-        onPressed: onPressed,
-        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-        padding: EdgeInsets.zero,
-      ),
+    return IconButton(
+      icon: Icon(icon, color: theme.highlight, size: 28),
+      onPressed: onPressed,
+      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+      padding: EdgeInsets.zero,
     );
   }
 
@@ -417,411 +410,446 @@ class _SignupScreenState extends State<SignupScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Select Your Business Type',
-            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: SingleChildScrollView(
-                controller: _scrollController,
-                scrollDirection: Axis.horizontal,
-                child: _fetchingTypes
-                    ? Center(child: CircularProgressIndicator(color: theme.highlight))
-                    : Row(
-                        children: _businessTypes.map((bt) {
-                          final typeId = bt['id'] as int;
-                          final typeName = bt['name'] as String;
-                          final selected = _selectedBusinessTypeId == typeId;
-                          final bColor = theme.highlight;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedBusinessTypeId = typeId;
-                                _businessNameCtrl.text = typeName;
-                              });
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 85,
-                              margin: const EdgeInsets.only(right: 12),
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: selected ? bColor : theme.card,
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                                border: Border.all(color: selected ? bColor : theme.divider, width: 2),
-                                boxShadow: selected ? [BoxShadow(color: bColor.withAlpha(60), blurRadius: 12)] : null,
-                              ),
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(_getIcon(typeName), style: const TextStyle(fontSize: 24)),
-                                  const SizedBox(height: 4),
-                                  Text(typeName,
-                                      style: TextStyle(
-                                          color: selected ? Colors.white : theme.textPrimary,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w700),
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis),
-                                ],
-                              ),
+        Text('Business Section',
+            style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 4),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.card,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            border: Border.all(color: theme.highlight),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Select Your Business Type',
+                  style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: SingleChildScrollView(
+                      controller: _scrollController,
+                      scrollDirection: Axis.horizontal,
+                      child: _fetchingTypes
+                          ? Center(child: CircularProgressIndicator(color: theme.highlight))
+                          : Row(
+                              children: _businessTypes.map((bt) {
+                                final typeId = bt['id'] as int;
+                                final typeName = bt['name'] as String;
+                                final selected = _selectedBusinessTypeId == typeId;
+                                final bColor = theme.highlight;
+                                return GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedBusinessTypeId = typeId;
+                                      _businessNameCtrl.text = typeName;
+                                    });
+                                  },
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: 85,
+                                    margin: const EdgeInsets.only(right: 12),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: selected ? bColor : theme.card,
+                                      borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                                      border: Border.all(color: selected ? bColor : theme.divider, width: 2),
+                                      boxShadow: selected ? [BoxShadow(color: bColor.withAlpha(60), blurRadius: 12)] : null,
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(_getIcon(typeName), style: const TextStyle(fontSize: 24)),
+                                        const SizedBox(height: 4),
+                                        Text(typeName,
+                                            style: TextStyle(
+                                                color: selected ? Colors.white : theme.textPrimary,
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700),
+                                            textAlign: TextAlign.center,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
                             ),
-                          );
-                        }).toList(),
-                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: -10,
+                    child: _buildScrollButton(Icons.chevron_left_rounded, () {
+                      _scrollController.animateTo(_scrollController.offset - 100,
+                          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    }),
+                  ),
+                  Positioned(
+                    right: -10,
+                    child: _buildScrollButton(Icons.chevron_right_rounded, () {
+                      _scrollController.animateTo(_plansScrollController.offset + 100,
+                          duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                    }),
+                  ),
+                ],
               ),
-            ),
-            Positioned(
-              left: 0,
-              child: _buildScrollButton(Icons.chevron_left_rounded, () {
-                _scrollController.animateTo(_scrollController.offset - 100, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-              }),
-            ),
-            Positioned(
-              right: 0,
-              child: _buildScrollButton(Icons.chevron_right_rounded, () {
-                _scrollController.animateTo(_scrollController.offset + 100, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-              }),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
-    );
+      );
+
+    
   }
 
   Widget _buildPlanSelectionColumn() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Choose Subscription Plan',
-            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+        Text('Subscription Plan', style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 12),
-        if (_fetchingPlans)
-          Center(child: CircularProgressIndicator(color: theme.highlight))
-        else
-          ..._subscriptionPlans.map((plan) {
-            final isSelected = _selectedPlanId == plan['id'];
-            final isFree = (plan['price'] as num) <= 0;
-            return GestureDetector(
-              onTap: () => setState(() => _selectedPlanId = plan['id']),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isSelected ? theme.highlight.withOpacity(0.1) : theme.card,
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                  border: Border.all(color: isSelected ? theme.highlight : theme.divider, width: 2),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.card,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            border: Border.all(color: theme.highlight),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Choose Subscription Plan', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              if (_fetchingPlans)
+                Center(child: CircularProgressIndicator(color: theme.highlight))
+              else
+                ..._subscriptionPlans.map((plan) {
+                  final isSelected = _selectedPlanId == plan['id'];
+                  final isFree = (plan['price'] as num) <= 0;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedPlanId = plan['id']),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isSelected ? theme.highlight.withOpacity(0.1) : theme.card,
+                        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                        border: Border.all(color: isSelected ? theme.highlight : theme.divider, width: 2),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
                             children: [
-                              Text(plan['name'], style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 2),
-                              Text(plan['description'] ?? '', 
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 11),
-                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(plan['name'], style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 2),
+                                    Text(plan['description'] ?? '', 
+                                        style: TextStyle(color: theme.textSecondary, fontSize: 11),
+                                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                                  ],
+                                ),
+                              ),
+                              if (isSelected) Icon(Icons.check_circle_rounded, color: theme.highlight, size: 24),
                             ],
                           ),
-                        ),
-                        if (isSelected) Icon(Icons.check_circle_rounded, color: theme.highlight, size: 24),
-                      ],
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    Text(isFree ? 'FREE TRIAL' : '${BusinessConfig.instance.currencyDisplay} ${plan['price']} / ${plan['interval']}',
-                        style: TextStyle(color: theme.highlight, fontSize: 16, fontWeight: FontWeight.w900)),
-                    if (isSelected && plan['features'] != null) ...[
-                      const SizedBox(height: 12),
-                      const Divider(height: 1),
-                      const SizedBox(height: 8),
-                      ...(plan['features'] as List).take(3).map((feat) => Padding(
-                        padding: const EdgeInsets.only(bottom: 4),
-                        child: Row(
-                          children: [
-                            Icon(Icons.check, size: 12, color: theme.highlight),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text(feat, style: TextStyle(color: theme.textSecondary, fontSize: 11))),
-                          ],
-                        ),
-                      )).toList(),
-                    ],
-                  ],
-                ),
-              ),
-            );
-          }),
-        const SizedBox(height: 20),
+                  );
+                }).toList(),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
       ],
     );
   }
-
 
   Widget _buildPlanCarousel() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Choose Subscription Plan',
-            style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 8),
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
-              child: _fetchingPlans 
-                ? Center(child: CircularProgressIndicator(color: theme.highlight))
-                : SingleChildScrollView(
-                    controller: _plansScrollController,
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: _subscriptionPlans.map((plan) {
-                        final isSelected = _selectedPlanId == plan['id'];
-                        final isFree = (plan['price'] as num) <= 0;
-                        return GestureDetector(
-                          onTap: () => setState(() => _selectedPlanId = plan['id']),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 160,
-                            margin: const EdgeInsets.only(right: 12),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isSelected ? theme.highlight.withOpacity(0.1) : theme.card,
-                              borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                              border: Border.all(color: isSelected ? theme.highlight : theme.divider, width: 2),
-                              boxShadow: isSelected ? [BoxShadow(color: theme.highlight.withAlpha(40), blurRadius: 10)] : null,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(plan['name'], style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 4),
-                                Text(isFree ? 'FREE TRIAL' : '${BusinessConfig.instance.currencyDisplay} ${plan['price']} / ${plan['interval']}',
-                                    style: TextStyle(color: theme.highlight, fontSize: 12, fontWeight: FontWeight.w900)),
-                                const SizedBox(height: 6),
-                                Text(plan['description'] ?? '', 
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 9, fontStyle: FontStyle.italic),
-                                  maxLines: 2, overflow: TextOverflow.ellipsis),
-                                const SizedBox(height: 8),
-                                Row(
+        Text('Subscription Plan', style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 12),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.card,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            border: Border.all(color: theme.highlight),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Choose Subscription Plan', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              Stack(
+                alignment: Alignment.center,
+                children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: _fetchingPlans
+                    ? Center(child: CircularProgressIndicator(color: theme.highlight))
+                    : SingleChildScrollView(
+                        controller: _plansScrollController,
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: _subscriptionPlans.map((plan) {
+                            final isSelected = _selectedPlanId == plan['id'];
+                            final isFree = (plan['price'] as num) <= 0;
+                            return GestureDetector(
+                              onTap: () => setState(() => _selectedPlanId = plan['id']),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 160,
+                                margin: const EdgeInsets.only(right: 12),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? theme.highlight.withOpacity(0.1) : theme.card,
+                                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+                                  border: Border.all(color: isSelected ? theme.highlight : theme.divider, width: 2),
+                                  boxShadow: isSelected ? [BoxShadow(color: theme.highlight.withAlpha(40), blurRadius: 10)] : null,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.inventory_2_outlined, size: 10, color: theme.textSecondary),
-                                    const SizedBox(width: 4),
-                                    Text('${plan['max_products'] ?? "∞"} Products', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                                    Text(plan['name'], style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 4),
+                                    Text(plan['description'] ?? '',
+                                      style: TextStyle(color: theme.textSecondary, fontSize: 9, fontStyle: FontStyle.italic),
+                                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.inventory_2_outlined, size: 10, color: theme.textSecondary),
+                                        const SizedBox(width: 4),
+                                        Text('${plan['max_products'] ?? "∞"} Products', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.store_outlined, size: 10, color: theme.textSecondary),
+                                        const SizedBox(width: 4),
+                                        Text('${plan['max_branches'] ?? "∞"} Branches', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
+                                      ],
+                                    ),
                                   ],
                                 ),
-                                Row(
-                                  children: [
-                                    Icon(Icons.store_outlined, size: 10, color: theme.textSecondary),
-                                    const SizedBox(width: 4),
-                                    Text('${plan['max_branches'] ?? "∞"} Branches', style: TextStyle(color: theme.textSecondary, fontSize: 10)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-            ),
-            if (!_fetchingPlans) ...[
-              Positioned(
-                left: 0,
-                child: _buildScrollButton(Icons.chevron_left_rounded, () {
-                  _plansScrollController.animateTo(_plansScrollController.offset - 100, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                }),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
               ),
-              Positioned(
-                right: 0,
-                child: _buildScrollButton(Icons.chevron_right_rounded, () {
-                  _plansScrollController.animateTo(_plansScrollController.offset + 100, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
-                }),
-              ),
+              if (!_fetchingPlans) ...[
+                Positioned(
+                  left: -10,
+                  child: _buildScrollButton(Icons.chevron_left_rounded, () {
+                    _plansScrollController.animateTo(_plansScrollController.offset - 100, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                  }),
+                ),
+                Positioned(
+                  right: -10,
+                  child: _buildScrollButton(Icons.chevron_right_rounded, () {
+                    _plansScrollController.animateTo(_plansScrollController.offset + 100, duration: const Duration(milliseconds: 300), curve: Curves.easeInOut);
+                  }),
+                ),
+              ],
             ],
-          ],
-        ),
-      ],
-    );
-  }
+          ),
+        ],
+      ),
+    ),
+  ],
+);
+}
 
 
   Widget _buildSignupForm({bool showPlans = false}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Business Name', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _businessNameCtrl,
-          style: TextStyle(color: theme.textPrimary),
-          decoration: theme.glassInputDecoration('Business Name', Icons.store_outlined, isRequired: true).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: 'Enter your business name',
-            hintStyle: TextStyle(color: theme.textHint),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text('Owner / Admin Name', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _ownerNameCtrl,
-          style: TextStyle(color: theme.textPrimary),
-          textCapitalization: TextCapitalization.words,
-          decoration: theme.glassInputDecoration('Owner Name', Icons.person_outlined, isRequired: true).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: 'Your full name',
-            hintStyle: TextStyle(color: theme.textHint),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text('Phone (optional)', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _phoneCtrl,
-          keyboardType: TextInputType.phone,
-          style: TextStyle(color: theme.textPrimary),
-          decoration: theme.glassInputDecoration('Phone', Icons.phone_outlined).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: '+92 300 0000000',
-            hintStyle: TextStyle(color: theme.textHint),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text('Store Address', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _addressCtrl,
-          keyboardType: TextInputType.streetAddress,
-          maxLines: 2,
-          style: TextStyle(color: theme.textPrimary),
-          decoration: theme.glassInputDecoration('Store Address', Icons.location_on_outlined).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: 'Shop #, Street, City',
-            hintStyle: TextStyle(color: theme.textHint),
-          ),
-        ),
-        if (showPlans) ...[
-          // left empty — plans now shown above the form on mobile
-        ],
-        const SizedBox(height: 8),
-        Text('Email', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _emailCtrl,
-          keyboardType: TextInputType.emailAddress,
-          style: TextStyle(color: theme.textPrimary),
-          decoration: theme.glassInputDecoration('Email', Icons.email_outlined, isRequired: true).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: 'admin@example.com',
-            hintStyle: TextStyle(color: theme.textHint),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text('Password', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _passCtrl,
-          obscureText: _obscurePassword,
-          style: TextStyle(color: theme.textPrimary),
-          decoration: theme.glassInputDecoration('Password', Icons.lock_outlined, isRequired: true).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: '••••••••',
-            hintStyle: TextStyle(color: theme.textHint),
-            suffixIcon: IconButton(
-              icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: theme.iconColor),
-              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text('Confirm Password', style: TextStyle(color: theme.textSecondary, fontSize: 11)),
-        const SizedBox(height: 2),
-        TextField(
-          controller: _confirmPassCtrl,
-          obscureText: _obscureConfirmPassword,
-          style: TextStyle(color: theme.textPrimary),
-          decoration: theme.glassInputDecoration('Confirm Password', Icons.lock_outlined, isRequired: true).copyWith(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            isDense: true,
-            hintText: '••••••••',
-            hintStyle: TextStyle(color: theme.textHint),
-            suffixIcon: IconButton(
-              icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: theme.iconColor),
-              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          height: 44,
-          child: _loading
-              ? Center(child: CircularProgressIndicator(color: theme.highlight))
-              : ElevatedButton(
-                  onPressed: _signup,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: theme.highlight,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                    elevation: 4,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text('CREATE ACCOUNT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward_rounded, size: 20),
-                    ],
-                  ),
-                ),
-        ),
-        const SizedBox(height: 8),
-        Center(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text('Already have an account? ', style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
-                child: Text('Login',
-                    style: TextStyle(
-                        color: theme.highlight,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
-              ),
-            ],
-          ),
-        ),
+        Text('Business Detail', style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
-        Center(
-          child: TextButton.icon(
-            onPressed: () => setState(() => theme.toggleTheme()),
-            icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor, size: 16),
-            label: Text(theme.isDark ? 'Light Mode' : 'Dark Mode', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+        Container(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: theme.card,
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            border: Border.all(color: theme.highlight),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+          TextField(
+            controller: _businessNameCtrl,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Business Name', Icons.store_outlined, isRequired: true).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: 'Enter your business name',
+              hintStyle: TextStyle(color: theme.textHint),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _ownerNameCtrl,
+            style: TextStyle(color: theme.textPrimary),
+            textCapitalization: TextCapitalization.words,
+            decoration: theme.glassInputDecoration('Owner Name', Icons.person_outlined, isRequired: true).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: 'Your full name',
+              hintStyle: TextStyle(color: theme.textHint),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _phoneCtrl,
+            keyboardType: TextInputType.phone,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Phone', Icons.phone_outlined).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: '+92 300 0000000',
+              hintStyle: TextStyle(color: theme.textHint),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _addressCtrl,
+            keyboardType: TextInputType.streetAddress,
+            maxLines: 2,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Store Address', Icons.location_on_outlined).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: 'Shop #, Street, City',
+              hintStyle: TextStyle(color: theme.textHint),
+            ),
+          ),
+          if (showPlans) ...[
+            // left empty — plans now shown above the form on mobile
+          ],
+          const SizedBox(height: 10),
+          TextField(
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Email', Icons.email_outlined, isRequired: true).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: 'admin@example.com',
+              hintStyle: TextStyle(color: theme.textHint),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _passCtrl,
+            obscureText: _obscurePassword,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Password', Icons.lock_outlined, isRequired: true).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: '••••••••',
+              hintStyle: TextStyle(color: theme.textHint),
+              suffixIcon: IconButton(
+                icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: theme.iconColor),
+                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _confirmPassCtrl,
+            obscureText: _obscureConfirmPassword,
+            style: TextStyle(color: theme.textPrimary),
+            decoration: theme.glassInputDecoration('Confirm Password', Icons.lock_outlined, isRequired: true).copyWith(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              isDense: true,
+              hintText: '••••••••',
+              hintStyle: TextStyle(color: theme.textHint),
+              suffixIcon: IconButton(
+                icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: theme.iconColor),
+                onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: _loading
+                ? Center(child: CircularProgressIndicator(color: theme.highlight))
+                : ElevatedButton(
+                    onPressed: _signup,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.highlight,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                      elevation: 4,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text('CREATE ACCOUNT', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                        SizedBox(width: 8),
+                        Icon(Icons.arrow_forward_rounded, size: 20),
+                      ],
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text('Already have an account? ', style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero, minimumSize: const Size(0, 0)),
+                  child: Text('Login',
+                      style: TextStyle(
+                          color: theme.highlight,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          Center(
+            child: TextButton.icon(
+              onPressed: () => setState(() => theme.toggleTheme()),
+              icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor, size: 16),
+              label: Text(theme.isDark ? 'Light Mode' : 'Dark Mode', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+            ),
+          ),
+            ],
           ),
         ),
       ],
     );
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -852,8 +880,7 @@ class _SignupScreenState extends State<SignupScreen>
                               Row(
                                 children: [
                                   IconButton(onPressed: () => Navigator.of(context).pop(), icon: Icon(Icons.arrow_back_rounded, color: theme.iconColor), padding: EdgeInsets.zero, constraints: const BoxConstraints()),
-                                  const SizedBox(width: 12),
-                                  Icon(Icons.person_add_rounded, color: theme.iconColor, size: 28),
+
                                   const SizedBox(width: 10),
                                   Text('Create Account', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: theme.textPrimary)),
                                 ],

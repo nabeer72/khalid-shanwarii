@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/services/api_service.dart';
 
 class PinDialogs {
   /// Dialog asking the user if they want to save their credentials for fast login.
@@ -71,7 +72,36 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
   String _confirmPin = '';
   bool _isConfirming = false;
   String? _error;
+  bool _showTerms = false;
+  bool _termsAccepted = false;
+  bool _isLoadingTermsContent = false;
 
+  List<dynamic> _termsList = [];
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _fetchTermsInline() async {
+    if (_termsList.isNotEmpty) return;
+    setState(() => _isLoadingTermsContent = true);
+    try {
+      final res = await ApiService().getTermsAndConditions();
+      if (!mounted) return;
+      setState(() {
+        _isLoadingTermsContent = false;
+        _termsList = res?.data['data'] as List<dynamic>? ?? [];
+      });
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingTermsContent = false);
+    }
+  }
   void _onDigit(String digit) {
     setState(() {
       _error = null;
@@ -87,7 +117,8 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
         if (_confirmPin.length == 4) {
           if (_pin == _confirmPin) {
             Future.delayed(const Duration(milliseconds: 200), () {
-              Navigator.pop(context, _pin);
+              setState(() => _showTerms = true);
+              _fetchTermsInline();
             });
           } else {
             setState(() {
@@ -141,7 +172,99 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
           alignment: Alignment.center,
           child: icon != null 
             ? Icon(icon, color: theme.textPrimary, size: 28)
-            : Text(text, style: TextStyle(color: theme.textPrimary, fontSize: 28, fontWeight: FontWeight.w600)),
+            : Text(text, style: TextStyle(color: theme.textPrimary, fontSize: text.length > 1 ? 16 : 28, fontWeight: FontWeight.w600)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTermsScreen(BuildContext context) {
+    return Dialog(
+      backgroundColor: theme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Text('Terms & Policies', style: TextStyle(color: theme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 16),
+              if (_isLoadingTermsContent)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (_termsList.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Center(child: Text('No terms available.', style: TextStyle(color: theme.textSecondary))),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: _termsList.length,
+                    itemBuilder: (context, index) {
+                      final term = _termsList[index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${index + 1}. ${term['title'] ?? ''}', style: TextStyle(color: theme.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 4),
+                            Text(term['content'] ?? '', style: TextStyle(color: theme.textSecondary, fontSize: 12)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 16),
+              InkWell(
+                onTap: () => setState(() => _termsAccepted = !_termsAccepted),
+                borderRadius: BorderRadius.circular(8),
+                child: Row(
+                  children: [
+                    Checkbox(
+                      value: _termsAccepted,
+                      onChanged: (val) => setState(() => _termsAccepted = val ?? false),
+                      activeColor: theme.highlight,
+                      side: BorderSide(color: theme.textHint),
+                    ),
+                    Expanded(
+                      child: Text.rich(
+                        TextSpan(
+                          text: 'I agree to the ',
+                          style: TextStyle(color: theme.textPrimary, fontSize: 13),
+                          children: [
+                            TextSpan(text: 'Terms of Service', style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold)),
+                            const TextSpan(text: ' and '),
+                            TextSpan(text: 'Privacy Policy', style: TextStyle(color: theme.highlight, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                  onPressed: _termsAccepted ? () => Navigator.pop(context, _pin) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: theme.highlight,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: theme.divider,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('CREATE ACCOUNT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -149,6 +272,10 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
 
   @override
   Widget build(BuildContext context) {
+    if (_showTerms) {
+      return _buildTermsScreen(context);
+    }
+    
     final currentLength = _isConfirming ? _confirmPin.length : _pin.length;
     return Dialog(
       backgroundColor: theme.surface,
@@ -161,9 +288,11 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                Icon(_isConfirming ? Icons.lock_reset_rounded : Icons.lock_outline_rounded, color: theme.highlight, size: 48),
+                const SizedBox(height: 16),
                 Text(
                 _isConfirming ? 'Confirm PIN' : 'Set 4-Digit PIN',
-                style: TextStyle(color: theme.textPrimary, fontSize: 20, fontWeight: FontWeight.w900),
+                style: TextStyle(color: theme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               Text(
@@ -262,7 +391,7 @@ class _EnterPinDialogState extends State<_EnterPinDialog> {
           alignment: Alignment.center,
           child: icon != null 
             ? Icon(icon, color: theme.textPrimary, size: 28)
-            : Text(text, style: TextStyle(color: theme.textPrimary, fontSize: 28, fontWeight: FontWeight.w600)),
+            : Text(text, style: TextStyle(color: theme.textPrimary, fontSize: text.length > 1 ? 16 : 28, fontWeight: FontWeight.w600)),
         ),
       ),
     );

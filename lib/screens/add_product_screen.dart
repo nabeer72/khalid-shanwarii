@@ -1181,12 +1181,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (context, setDialogState) => Dialog(
           backgroundColor: Colors.transparent,
-          contentPadding: EdgeInsets.zero,
-          content: Container(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
+          child: Container(
             width: MediaQuery.of(context).size.width > 500 ? 400 : double.infinity,
-            constraints: const BoxConstraints(maxHeight: 550),
+            height: 550,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),

@@ -175,7 +175,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       child: Row(
                         children: [
                           _buildTabButton('Active', !_isInactiveView),
-                          _buildTabButton('Deactive', _isInactiveView),
+                          _buildTabButton('Inactive', _isInactiveView),
                         ],
                       ),
                     ),

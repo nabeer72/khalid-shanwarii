@@ -1579,11 +1579,16 @@ class _QuickStat extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(value,
-              style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(value,
+                maxLines: 1,
+                style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800)),
+          ),
           Text(label,
               style: TextStyle(
                   color: theme.textSecondary,
@@ -1641,19 +1646,29 @@ class _StatCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 22),
               ),
               const SizedBox(height: 14),
-              Text(value,
-                  style: TextStyle(
-                      color: theme.textPrimary,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value,
+                    maxLines: 1,
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5)),
+              ),
               const SizedBox(height: 2),
-              Text(label.toUpperCase(),
-                  style: TextStyle(
-                      color: theme.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.0)),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(label.toUpperCase(),
+                    maxLines: 1,
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.5)),
+              ),
             ],
           ),
         ),
