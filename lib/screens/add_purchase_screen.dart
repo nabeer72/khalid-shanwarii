@@ -1000,7 +1000,11 @@ class _PurchaseInfoCard extends StatelessWidget {
                   onTap: onDateTap,
                   child: InputDecorator(
                     decoration: theme.glassInputDecoration('Date', Icons.calendar_today_rounded, isRequired: true),
-                    child: Text(DateFormat('yyyy-MM-dd').format(controller.purchaseDate), style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(DateFormat('yyyy-MM-dd').format(controller.purchaseDate), maxLines: 1, style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600)),
+                    ),
                   ),
                 ),
               ),

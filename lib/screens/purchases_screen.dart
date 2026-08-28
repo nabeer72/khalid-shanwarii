@@ -258,13 +258,18 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                   .glassInputDecoration(
                                       'Date', Icons.calendar_today_rounded)
                                   .copyWith(isDense: true),
-                              child: Text(
-                                  DateFormat('yyyy-MM-dd')
-                                      .format(controller.purchaseDate),
-                                  style: TextStyle(
-                                      color: theme.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12)),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                    DateFormat('yyyy-MM-dd')
+                                        .format(controller.purchaseDate),
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                        color: theme.textPrimary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 12)),
+                              ),
                             ),
                           ),
                         ),
@@ -1824,13 +1829,18 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                   ),
                                   subtitle: Padding(
                                     padding: const EdgeInsets.only(top: 2),
-                                    child: Text(
-                                      DateFormat('MMM dd, yyyy | HH:mm')
-                                          .format(purchase.purchaseDate),
-                                      style: TextStyle(
-                                          color: theme.textSecondary,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500),
+                                    child: FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        DateFormat('MMM dd, yyyy | HH:mm')
+                                            .format(purchase.purchaseDate),
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                            color: theme.textSecondary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w500),
+                                      ),
                                     ),
                                   ),
                                   trailing: Row(

@@ -918,33 +918,37 @@ class _HomeScreenState extends State<HomeScreen> {
                                       fontSize: 13,
                                       fontWeight: FontWeight.w500)),
                               const SizedBox(height: 16),
-                              Wrap(
-                                spacing: 16,
-                                runSpacing: 8,
-                                children: [
-                                  _QuickStat(
-                                      icon: Icons.receipt,
-                                      value: '$_saleCount',
-                                      label: 'SALES'),
-                                  _QuickStat(
-                                    icon: Icons.payments_rounded,
-                                    value:
-                                        '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
-                                    label: 'RECOVERY',
-                                  ),
-                                  _QuickStat(
-                                    icon: Icons.assignment_return_rounded,
-                                    value:
-                                        '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
-                                    label: 'REFUND',
-                                  ),
-                                  _QuickStat(
-                                    icon: BusinessConfig.instance.currencyIcon,
-                                    value:
-                                        '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
-                                    label: 'TODAY',
-                                  ),
-                                ],
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    _QuickStat(
+                                        icon: Icons.receipt,
+                                        value: '$_saleCount',
+                                        label: 'SALES'),
+                                    const SizedBox(width: 16),
+                                    _QuickStat(
+                                      icon: Icons.payments_rounded,
+                                      value:
+                                          '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
+                                      label: 'RECOVERY',
+                                    ),
+                                    const SizedBox(width: 16),
+                                    _QuickStat(
+                                      icon: Icons.assignment_return_rounded,
+                                      value:
+                                          '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
+                                      label: 'REFUND',
+                                    ),
+                                    const SizedBox(width: 16),
+                                    _QuickStat(
+                                      icon: BusinessConfig.instance.currencyIcon,
+                                      value:
+                                          '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
+                                      label: 'TODAY',
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),

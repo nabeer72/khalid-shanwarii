@@ -1186,34 +1186,7 @@ class _LoginScreenState extends State<LoginScreen>
             Container(
               color: Colors.black.withOpacity(0.3),
               child: Center(
-                child: Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: theme.surface,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      CircularProgressIndicator(color: theme.highlight),
-                      const SizedBox(height: 20),
-                      Text(
-                        'Authenticating...',
-                        style: TextStyle(
-                          color: theme.textPrimary,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                child: CircularProgressIndicator(color: theme.highlight),
               ),
             ),
         ],
