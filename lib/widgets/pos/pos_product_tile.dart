@@ -28,60 +28,51 @@ class POSProductTile extends StatelessWidget {
       child: InkWell(
         onTap: onWeightTap ?? onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(8),
+          padding: const EdgeInsets.all(8),
+          decoration: theme.elevatedTileDecoration.copyWith(
             border: Border.all(
               color: product.isFavorite
-                  ? ThemeProvider.warning.withOpacity(0.5)
+                  ? ThemeProvider.warning.withOpacity(0.6)
                   : theme.cardBorder,
-              width: product.isFavorite ? 1.2 : 1.0,
+              width: product.isFavorite ? 1.5 : 1.0,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(theme.isDark ? 0.2 : 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Emoji and Stock
+              // Top Row: Icon and Stock / Favorite badge
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: theme.highlight.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    width: 34,
+                    height: 34,
+                    decoration:
+                        theme.glassCircleDecoration(color: theme.highlight),
                     child: Center(
                       child: Icon(
                         Icons.inventory_2_rounded,
-                        color: theme.primary,
+                        color: theme.highlight,
                         size: 18,
                       ),
                     ),
                   ),
                   if (product.isFavorite)
-                    Icon(Icons.star_rounded,
-                        color: ThemeProvider.warning, size: 14)
+                    Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: theme.badgeDecoration(ThemeProvider.warning),
+                      child: Icon(Icons.star_rounded,
+                          color: ThemeProvider.warning, size: 14),
+                    )
                   else if (!controller.isNoStockProduct(product))
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 4, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: theme.highlight.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                          horizontal: 6, vertical: 3),
+                      decoration:
+                          theme.badgeDecoration(theme.highlight, hollow: true),
                       child: Text(
                         '${product.totalStock - controller.getProductQuantityInCart(product.id)}',
                         style: TextStyle(
@@ -100,34 +91,44 @@ class POSProductTile extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
                   height: 1.1,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    if (product.stocks.length > 1)
-                      Text(
-                        'Multiple Prices',
-                        style: TextStyle(
-                            color: theme.highlight,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800),
-                      )
-                    else
-                      Text(
-                        product.priceRange,
-                        style: TextStyle(
-                            color: theme.highlight,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w900),
-                      ),
-                  ],
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.highlight.withOpacity(0.1),
+                    borderRadius:
+                        BorderRadius.circular(ThemeProvider.radiusList),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (product.stocks.length > 1)
+                        Text(
+                          'Multiple Prices',
+                          style: TextStyle(
+                              color: theme.highlight,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800),
+                        )
+                      else
+                        Text(
+                          product.priceRange,
+                          style: TextStyle(
+                              color: theme.highlight,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w900),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ],

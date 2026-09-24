@@ -23,7 +23,6 @@ import 'package:mobile_app/screens/supplier_payback_screen.dart';
 import 'package:mobile_app/screens/bank_management_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -35,9 +34,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final theme = ThemeProvider.instance;
-  final SyncService _syncService = SyncService();
-  String? _lastSync;
-  Timer? _autoSyncTimer;
 
   int _productCount = 0;
   int _customerCount = 0;
@@ -59,11 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLastSync();
     _loadStats();
     _loadBranches();
 
-    // Listen for real-time data changes across the app (including after background sync)
+    // Listen for real-time data changes across the app
     _dataSubscription = DatabaseHelper.dataStream.listen((_) {
       if (mounted) {
         _loadStats();
@@ -73,14 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (!kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _performSync(silent: true);
         _checkFirstTimeWelcome();
-      });
-      // Auto-sync every 5 minutes so web-dashboard changes reflect without logout
-      _autoSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
-        if (mounted && !_syncService.isSyncing) {
-          _syncService.triggerDebouncedSync(delayMs: 0);
-        }
       });
     }
   }
@@ -100,7 +88,6 @@ class _HomeScreenState extends State<HomeScreen> {
               'Welcome to your business dashboard!',
               'Manage all aspects of your store from this screen.',
               'Tap any card to view detailed module tutorials.',
-              'Use the Sync button regularly to keep data updated.',
             ],
             () {});
       }
@@ -109,15 +96,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _autoSyncTimer?.cancel();
     _dataSubscription?.cancel();
     super.dispose();
-  }
-
-  Future<void> _loadLastSync() async {
-    if (kIsWeb) return;
-    final lastSync = await _syncService.getLastSyncTime();
-    if (mounted) setState(() => _lastSync = lastSync);
   }
 
   /// Reloads subscription data from the local `businesses` table into
@@ -355,46 +335,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _performSync({bool silent = false}) async {
-    if (kIsWeb) {
-      if (!silent) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Sync only available on native app'),
-              backgroundColor: ThemeProvider.warning),
-        );
-      }
-      return;
-    }
-
-    try {
-      final result = await _syncService.syncAll();
-      if (mounted) {
-        await _loadLastSync();
-        await _loadStats();
-        await _refreshSubscriptionStatus(); // [FIX] Reflect renewed subscription without re-login
-        if (!silent) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sync complete!'),
-              backgroundColor: ThemeProvider.success,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted && !silent) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Sync error: $e'),
-              backgroundColor: ThemeProvider.error),
-        );
-      }
-    } finally {
-      if (mounted) setState(() {}); // Refresh last-sync icon color after sync
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -481,34 +421,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             ],
                           ),
                         ),
-                        ListenableBuilder(
-                          listenable: _syncService.isSyncingNotifier,
-                          builder: (context, _) {
-                            if (_syncService.isSyncing) {
-                              return Container(
-                                padding: const EdgeInsets.all(8),
-                                child: SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: theme.highlight,
-                                  ),
-                                ),
-                              );
-                            }
-                            return IconButton(
-                              icon: Icon(
-                                Icons.sync_rounded,
-                                color: _lastSync != null
-                                    ? ThemeProvider.success
-                                    : theme.iconColor,
-                                size: 22,
-                              ),
-                              onPressed: _performSync,
-                            );
-                          },
-                        ),
                         IconButton(
                           icon: Icon(
                               theme.isDark ? Icons.light_mode : Icons.dark_mode,
@@ -526,87 +438,126 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Hero - New Sale (Glass Style)
-                    GestureDetector(
-                      onTap: () async {
-                        if (mounted) {
-                          Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const POSScreen()))
-                              .then((_) => _loadStats());
-                        }
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.all(isTablet ? 24 : 20),
-                        decoration: BoxDecoration(
-                          color: theme.surface,
-                          borderRadius:
-                              BorderRadius.circular(ThemeProvider.radiusCard),
-                          border: Border.all(
-                            color: theme.divider,
-                            width: 1.0,
+                    // Hero - New Sale (Premium Gradient)
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius:
+                            BorderRadius.circular(ThemeProvider.radiusHero),
+                        onTap: () async {
+                          if (mounted) {
+                            Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => const POSScreen()))
+                                .then((_) => _loadStats());
+                          }
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: EdgeInsets.all(isTablet ? 28 : 22),
+                          decoration: theme.statCardDecoration(
+                            ThemeProvider.gradientGold,
                           ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Icon(Icons.point_of_sale,
-                                  color: theme.highlight,
-                                  size: isTablet ? 34 : 26),
-                            ),
-                            Text(
-                              'Launch Register',
-                              style: TextStyle(
-                                color: theme.textPrimary,
-                                fontSize: isTablet ? 26 : 22,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text('Start a new transaction',
-                                style: TextStyle(
-                                    color: theme.textSecondary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500)),
-                            const SizedBox(height: 16),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Row(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
                                 children: [
-                                  _QuickStat(
-                                      icon: Icons.receipt,
-                                      value: '$_saleCount',
-                                      label: 'SALES'),
-                                  const SizedBox(width: 16),
-                                  _QuickStat(
-                                    icon: Icons.payments_rounded,
-                                    value:
-                                        '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
-                                    label: 'RECOVERY',
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.18),
+                                      borderRadius: BorderRadius.circular(
+                                          ThemeProvider.radiusList),
+                                      border: Border.all(
+                                          color:
+                                              Colors.white.withOpacity(0.22)),
+                                    ),
+                                    child: Icon(Icons.point_of_sale_rounded,
+                                        color: Colors.white,
+                                        size: isTablet ? 34 : 28),
                                   ),
-                                  const SizedBox(width: 16),
-                                  _QuickStat(
-                                    icon: Icons.assignment_return_rounded,
-                                    value:
-                                        '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
-                                    label: 'REFUND',
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Launch Register',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: isTablet ? 26 : 22,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: -0.5,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Start a new transaction',
+                                          style: TextStyle(
+                                              color: Colors.white
+                                                  .withOpacity(0.88),
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                  const SizedBox(width: 16),
-                                  _QuickStat(
-                                    icon: BusinessConfig.instance.currencyIcon,
-                                    value:
-                                        '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
-                                    label: 'TODAY',
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.18),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white.withOpacity(0.2)),
+                                    ),
+                                    child: const Icon(
+                                      Icons.arrow_forward_rounded,
+                                      color: Colors.white,
+                                      size: 20,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 20),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: Row(
+                                  children: [
+                                    _QuickStat(
+                                        icon: Icons.receipt_long_rounded,
+                                        value: '$_saleCount',
+                                        label: 'SALES'),
+                                    const SizedBox(width: 14),
+                                    _QuickStat(
+                                      icon: Icons.payments_rounded,
+                                      value:
+                                          '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
+                                      label: 'RECOVERY',
+                                    ),
+                                    const SizedBox(width: 14),
+                                    _QuickStat(
+                                      icon: Icons.assignment_return_rounded,
+                                      value:
+                                          '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
+                                      label: 'REFUND',
+                                    ),
+                                    const SizedBox(width: 14),
+                                    _QuickStat(
+                                      icon:
+                                          BusinessConfig.instance.currencyIcon,
+                                      value:
+                                          '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
+                                      label: 'TODAY',
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -1115,34 +1066,43 @@ class _QuickStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = ThemeProvider.instance;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          child: Icon(icon, color: theme.iconColor, size: 14),
-        ),
-        const SizedBox(width: 10),
-        Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(value,
-                maxLines: 1,
-                style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800)),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.14),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        border: Border.all(color: Colors.white.withOpacity(0.22)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(value,
+                    maxLines: 1,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.3)),
+              ),
+              Text(label,
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8)),
+            ],
           ),
-          Text(label,
-              style: TextStyle(
-                  color: theme.textSecondary,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.5)),
-        ]),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -1153,6 +1113,20 @@ class _StatCard extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback? onTap;
+
+  static List<Color> _gradientFor(Color color) {
+    final c = color;
+    final int r = c.red;
+    final int g = c.green;
+    final int b = c.blue;
+    final darker = Color.fromRGBO(
+      (r * 0.78).round().clamp(0, 255),
+      (g * 0.78).round().clamp(0, 255),
+      (b * 0.78).round().clamp(0, 255),
+      1.0,
+    );
+    return [color, darker];
+  }
 
   const _StatCard({
     required this.icon,
@@ -1165,6 +1139,7 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
+    final gradient = _gradientFor(color);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1172,48 +1147,51 @@ class _StatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-            border: Border.all(
-              color: theme.divider,
-              width: 1.0,
-            ),
-          ),
+          decoration: theme.statCardDecoration(gradient),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                ),
-                child: Icon(icon, color: color, size: 22),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      borderRadius:
+                          BorderRadius.circular(ThemeProvider.radiusList),
+                      border: Border.all(color: Colors.white.withOpacity(0.22)),
+                    ),
+                    child: Icon(icon, color: Colors.white, size: 22),
+                  ),
+                  const Spacer(),
+                  if (onTap != null)
+                    Icon(Icons.chevron_right_rounded,
+                        color: Colors.white.withOpacity(0.9), size: 20),
+                ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(value,
                     maxLines: 1,
-                    style: TextStyle(
-                        color: theme.textPrimary,
-                        fontSize: 18,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -0.5)),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(label.toUpperCase(),
                     maxLines: 1,
                     style: TextStyle(
-                        color: theme.textSecondary,
+                        color: Colors.white.withOpacity(0.88),
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.5)),
+                        letterSpacing: 0.8)),
               ),
             ],
           ),
@@ -1244,34 +1222,62 @@ class _ModuleCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-            border: Border.all(
-              color: theme.divider,
-              width: 1.0,
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: theme.elevatedCardDecoration,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  shape: BoxShape.circle,
+              Flexible(
+                flex: 3,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: theme.glassCircleDecoration(color: color),
+                    child: Icon(icon, color: color, size: 26),
+                  ),
                 ),
-                child: Icon(icon, color: color, size: 32),
               ),
-              const SizedBox(height: 14),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.2,
+              const SizedBox(height: 8),
+              Flexible(
+                flex: 2,
+                fit: FlexFit.loose,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Flexible(
+                flex: 1,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: theme.badgeDecoration(color),
+                    child: Text(
+                      'Open',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

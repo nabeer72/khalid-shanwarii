@@ -2500,7 +2500,7 @@ class _POSScreenState extends State<POSScreen>
 
         final buttons = [
           Container(
-            decoration: theme.glassCircleDecoration,
+            decoration: theme.glassCircleDecoration(),
             child: IconButton(
               icon: Icon(Icons.arrow_back_ios_new_rounded,
                   color: theme.iconColor, size: 20),
@@ -2516,7 +2516,7 @@ class _POSScreenState extends State<POSScreen>
           const ShortcutHelpIcon(),
           const SizedBox(width: 8),
           Container(
-            decoration: theme.glassCircleDecoration,
+            decoration: theme.glassCircleDecoration(),
             child: IconButton(
               icon: Icon(
                   theme.isDark

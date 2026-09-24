@@ -280,7 +280,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(32),
-                                  decoration: theme.glassCircleDecoration,
+                                  decoration: theme.glassCircleDecoration(),
                                   child: Icon(
                                       _isOnlineSearch
                                           ? Icons.cloud_off_rounded

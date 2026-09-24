@@ -315,7 +315,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.all(32),
-                              decoration: theme.glassCircleDecoration,
+                              decoration: theme.glassCircleDecoration(),
                               child: Icon(Icons.people_outline_rounded, size: 60, color: theme.iconColor),
                             ),
                             const SizedBox(height: 16),

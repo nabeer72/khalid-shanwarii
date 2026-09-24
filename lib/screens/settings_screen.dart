@@ -8,7 +8,6 @@ import 'package:mobile_app/data/currency_list.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
-import 'package:mobile_app/screens/currency_notes_screen.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/services/api_service.dart';
@@ -1584,18 +1583,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     onChanged: (_) => _saveGlobalDiscountLimitFromField(),
                   ),
                 ),
-              _SettingsTile(
-                icon: Icons.money_rounded,
-                title: 'Currency Notes',
-                subtitle: 'Manage denominations for cash counting',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const CurrencyNotesScreen()),
-                  );
-                },
-              ),
+              // _SettingsTile(
+              //   icon: Icons.money_rounded,
+              //   title: 'Currency Notes',
+              //   subtitle: 'Manage denominations for cash counting',
+              //   onTap: () {
+              //     Navigator.push(
+              //       context,
+              //       MaterialPageRoute(
+              //           builder: (context) => const CurrencyNotesScreen()),
+              //     );
+              //   },
+              // ),
               // _SettingsTile(
               //   icon: Icons.scale_rounded,
               //   title: 'Manage Units',

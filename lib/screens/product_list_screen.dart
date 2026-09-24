@@ -152,35 +152,48 @@ class _ProductListScreenState extends State<ProductListScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Glass Search Bar
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 child: Row(
                   children: [
                     Expanded(
                       child: Container(
-                        decoration: theme.glassDecoration.copyWith(
+                        decoration: theme.elevatedTileDecoration.copyWith(
                           borderRadius:
-                              BorderRadius.circular(ThemeProvider.radiusList),
-                          color: theme.isDark
-                              ? Colors.white.withOpacity(0.05)
-                              : Colors.white.withOpacity(0.2),
+                              BorderRadius.circular(ThemeProvider.radiusPill),
                         ),
                         child: TextField(
                           style: TextStyle(
                               color: theme.textPrimary,
                               fontWeight: FontWeight.w500),
-                          decoration: InputDecoration(
-                            hintText: 'Search products...',
-                            hintStyle: TextStyle(
-                                color: theme.textHint,
-                                fontWeight: FontWeight.w400),
-                            prefixIcon: Icon(Icons.search_rounded,
-                                color: theme.iconColor),
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 15),
-                          ),
+                          decoration: theme
+                              .glassInputDecoration(
+                                'Search products',
+                                Icons.search_rounded,
+                                hintText: 'Search products...',
+                              )
+                              .copyWith(
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusPill),
+                                  borderSide: BorderSide.none,
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusPill),
+                                  borderSide: BorderSide.none,
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      ThemeProvider.radiusPill),
+                                  borderSide: BorderSide(
+                                      color: theme.highlight, width: 2.0),
+                                ),
+                                filled: true,
+                                fillColor: Colors.transparent,
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 15),
+                              ),
                           onChanged: (val) {
                             setState(
                                 () => _searchQuery = val.trim().toLowerCase());
@@ -193,11 +206,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                       height: 50,
                       width: 160,
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: theme.whiteAlpha(0.05),
+                      decoration: theme.elevatedCardDecoration.copyWith(
                         borderRadius:
-                            BorderRadius.circular(ThemeProvider.radiusList),
-                        border: Border.all(color: theme.whiteAlpha(0.1)),
+                            BorderRadius.circular(ThemeProvider.radiusPill),
                       ),
                       child: Row(
                         children: [
@@ -209,7 +220,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   ],
                 ),
               ),
-
               Expanded(
                   child: _loading
                       ? Center(
@@ -237,24 +247,35 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget _buildProductList() {
     if (_products.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: theme.glassCircleDecoration,
-              child: Icon(Icons.inventory_2_outlined,
-                  size: 60, color: theme.iconColor),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: theme.statCardDecoration(ThemeProvider.gradientInfo),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('🛍️', style: TextStyle(fontSize: 44)),
+                const SizedBox(height: 16),
+                Text('No products found',
+                    style: TextStyle(
+                        fontSize: 18,
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('Add items to your catalog',
+                    style: TextStyle(fontSize: 14, color: theme.textSecondary)),
+                const SizedBox(height: 20),
+                ElevatedButton.icon(
+                  onPressed: () => _openProductScreen(),
+                  style: theme.primaryButtonStyle,
+                  icon: const Icon(Icons.add_rounded, color: Colors.white),
+                  label: const Text('Add Product'),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text('No products found',
-                style: TextStyle(
-                    fontSize: 18,
-                    color: theme.textPrimary,
-                    fontWeight: FontWeight.w800)),
-            Text('Add items to your catalog',
-                style: TextStyle(fontSize: 14, color: theme.textSecondary)),
-          ],
+          ),
         ),
       );
     }
@@ -327,7 +348,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                   },
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
                   child: Container(
-                    decoration: theme.glassListDecoration.copyWith(
+                    decoration: theme.elevatedTileDecoration.copyWith(
                       border: !isActive
                           ? Border.all(
                               color: ThemeProvider.error.withOpacity(0.4),
@@ -335,11 +356,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
                           : null,
                     ),
                     child: Opacity(
-                      opacity: !isActive ? 0.7 : 1.0,
+                      opacity: !isActive ? 0.88 : 1.0,
                       child: Padding(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(16),
                         child: Row(
                           children: [
+                            Container(
+                              decoration: theme.glassCircleDecoration(
+                                  color: theme.highlight),
+                              padding: const EdgeInsets.all(10),
+                              child: Icon(Icons.inventory_2_rounded,
+                                  color: theme.highlight, size: 22),
+                            ),
+                            const SizedBox(width: 12),
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,7 +418,17 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                   ),
                                 ],
                               ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 4),
+                            IconButton(
+                              icon: Icon(Icons.edit_note_rounded,
+                                  color: theme.highlight, size: 20),
+                              onPressed: () =>
+                                  _openProductScreen(product: group.first),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                  minWidth: 36, minHeight: 36),
+                              visualDensity: VisualDensity.compact,
+                            ),
                             if (hasVariants)
                               Icon(
                                 isExpanded
@@ -478,18 +517,20 @@ class _ProductListScreenState extends State<ProductListScreen> {
             padding: const EdgeInsets.only(bottom: 6),
             child: InkWell(
               onTap: () => _openProductScreen(product: p, stock: s),
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: theme.isDark
-                      ? Colors.white.withOpacity(0.03)
-                      : Colors.black.withOpacity(0.02),
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                padding: const EdgeInsets.all(16),
+                decoration: theme.elevatedTileDecoration,
                 child: Row(
                   children: [
+                    Container(
+                      decoration:
+                          theme.glassCircleDecoration(color: theme.highlight),
+                      padding: const EdgeInsets.all(8),
+                      child: Icon(Icons.label_rounded,
+                          color: theme.highlight, size: 18),
+                    ),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,27 +626,22 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget _buildTabButton(String label, bool active) {
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _isInactiveView = (label == 'Deactive')),
+        onTap: () => setState(() => _isInactiveView = (label == 'Inactive')),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          decoration: BoxDecoration(
-            color: active ? theme.highlight : Colors.transparent,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusList - 2),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: theme.highlight.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
-          ),
+          decoration: active
+              ? theme.badgeDecoration(theme.highlight, hollow: true)
+              : BoxDecoration(
+                  color: theme.card,
+                  borderRadius:
+                      BorderRadius.circular(ThemeProvider.radiusPill - 2),
+                  border: Border.all(color: theme.cardBorder, width: 1.0),
+                ),
           child: Center(
             child: Text(
               label.toUpperCase(),
               style: TextStyle(
-                color: active ? Colors.white : theme.textSecondary,
+                color: active ? theme.highlight : theme.textSecondary,
                 fontWeight: active ? FontWeight.w900 : FontWeight.w600,
                 fontSize: 10,
                 letterSpacing: 0.5,

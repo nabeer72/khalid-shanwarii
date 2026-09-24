@@ -267,7 +267,7 @@ class _ShortcutHelpIconState extends State<ShortcutHelpIcon>
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: theme.glassCircleDecoration,
+      decoration: theme.glassCircleDecoration(),
       child: Stack(
         children: [
           AnimatedBuilder(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/pos_controller.dart';
+import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/pos/pos_product_tile.dart';
@@ -116,152 +117,240 @@ class POSProductGrid extends StatelessWidget {
   }
 
   Widget _buildDealTile(BuildContext context, Deal deal, ThemeProvider theme) {
-    return InkWell(
-      onTap: () => onDealTap?.call(deal),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: theme.glassDecoration.copyWith(
-          color: theme.isDark
-              ? Colors.white.withOpacity(0.05)
-              : Colors.white.withOpacity(0.6),
-          border: Border.all(color: theme.cardBorder),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              flex: 3,
-              child: Center(
-                child: Text('🎁', style: const TextStyle(fontSize: 32)),
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.surface,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => onDealTap?.call(deal),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+        child: Container(
+          decoration: theme.elevatedTileDecoration,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            child: Column(
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: ThemeProvider.gradientGold,
+                      ),
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              flex: 3,
+                              fit: FlexFit.loose,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.18),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(0.25)),
+                                  ),
+                                  child: const Text('🎁',
+                                      style: TextStyle(fontSize: 22)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Flexible(
+                              flex: 2,
+                              fit: FlexFit.loose,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.18),
+                                    borderRadius: BorderRadius.circular(
+                                        ThemeProvider.radiusPill),
+                                  ),
+                                  child: Text('DEAL',
+                                      style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 1)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: Text(
-                        deal.name,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: theme.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Flexible(
-                      fit: FlexFit.loose,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.center,
-                        child: Text(
-                          deal.dealPrice.toStringAsFixed(2),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: theme.highlight,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w900,
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    color: theme.card,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: Text(
+                            deal.name,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 3),
+                        Flexible(
+                          fit: FlexFit.loose,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.center,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: theme.highlight.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(
+                                    ThemeProvider.radiusList),
+                              ),
+                              child: Text(
+                                '${BusinessConfig.instance.currencyDisplay} ${deal.dealPrice.toStringAsFixed(2)}',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: theme.highlight,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBackTile(ThemeProvider theme) {
-    return InkWell(
-      onTap: () => controller.setSubCategory(null),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: theme.glassDecoration.copyWith(
-          color: theme.highlight.withOpacity(0.05),
-          border: Border.all(color: theme.highlight.withOpacity(0.2)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.highlight.withOpacity(0.1),
-                shape: BoxShape.circle,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => controller.setSubCategory(null),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: theme.elevatedTileDecoration,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                flex: 3,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration:
+                        theme.glassCircleDecoration(color: theme.highlight),
+                    child: Icon(Icons.arrow_back_rounded,
+                        color: theme.highlight, size: 22),
+                  ),
+                ),
               ),
-              child: Icon(Icons.arrow_back_rounded,
-                  color: theme.highlight, size: 24),
-            ),
-            const SizedBox(height: 8),
-            Text('BACK',
-                style: TextStyle(
-                  color: theme.highlight,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                  letterSpacing: 1.5,
-                )),
-          ],
+              const SizedBox(height: 6),
+              Flexible(
+                flex: 2,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('BACK',
+                      style: TextStyle(
+                        color: theme.textPrimary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                        letterSpacing: 1.5,
+                      )),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildSubCategoryTile(ProductCategory cat, ThemeProvider theme) {
-    return InkWell(
-      onTap: () => controller.setSubCategory(cat.id),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: theme.glassDecoration.copyWith(
-          color: theme.highlight.withOpacity(0.05),
-          border: Border.all(color: theme.highlight.withOpacity(0.1)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: theme.highlight.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-                ),
-                child: Text('📂', style: const TextStyle(fontSize: 20))),
-            const SizedBox(height: 8),
-            Flexible(
-              child: Text(
-                cat.name.toUpperCase(),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => controller.setSubCategory(cat.id),
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: theme.elevatedTileDecoration,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                flex: 3,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration:
+                          theme.glassCircleDecoration(color: theme.highlight),
+                      child: const Text('📂', style: TextStyle(fontSize: 18))),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Flexible(
+                flex: 2,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    cat.name.toUpperCase(),
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: theme.textPrimary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -269,26 +358,33 @@ class POSProductGrid extends StatelessWidget {
 
   Widget _buildEmptyState(ThemeProvider theme) {
     return Center(
-      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Container(
-          padding: const EdgeInsets.all(32),
-          decoration: theme.glassCircleDecoration,
-          child: Text(
-              controller.selectedCategory == 'top_selling' ? '📈' : '📦',
-              style: const TextStyle(fontSize: 48)),
-        ),
-        const SizedBox(height: 16),
-        Text(
-            controller.selectedCategory == 'top_selling'
-                ? 'No sales yet'
-                : 'No products found',
-            style: TextStyle(
-                color: theme.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w800)),
-        Text('Try a different category or search',
-            style: TextStyle(color: theme.textSecondary, fontSize: 13)),
-      ]),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: theme.statCardDecoration(
+                controller.selectedCategory == 'top_selling'
+                    ? ThemeProvider.gradientInfo
+                    : ThemeProvider.gradientAmber),
+            child: Text(
+                controller.selectedCategory == 'top_selling' ? '📈' : '📦',
+                style: const TextStyle(fontSize: 44)),
+          ),
+          const SizedBox(height: 20),
+          Text(
+              controller.selectedCategory == 'top_selling'
+                  ? 'No sales yet'
+                  : 'No products found',
+              style: TextStyle(
+                  color: theme.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800)),
+          const SizedBox(height: 4),
+          Text('Try a different category or search',
+              style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+        ]),
+      ),
     );
   }
 }

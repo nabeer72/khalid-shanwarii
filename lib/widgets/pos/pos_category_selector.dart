@@ -13,10 +13,14 @@ class POSCategorySelector extends StatelessWidget {
 
   String _getCategoryEmoji(String? icon) {
     switch (icon) {
-      case 'devices': return '📱';
-      case 'headphones': return '🎧';
-      case 'cable': return '🔌';
-      default: return '📦';
+      case 'devices':
+        return '📱';
+      case 'headphones':
+        return '🎧';
+      case 'cable':
+        return '🔌';
+      default:
+        return '📦';
     }
   }
 
@@ -42,44 +46,65 @@ class POSCategorySelector extends StatelessWidget {
             runSpacing: 8,
             children: [
               ...categories.map((cat) {
-                final catIdStr = cat.id == -3 ? 'deals' : (cat.id == -1 ? 'top_selling' : (cat.id == -2 ? 'recent' : (cat.id == 0 ? 'all' : cat.id.toString())));
+                final catIdStr = cat.id == -3
+                    ? 'deals'
+                    : (cat.id == -1
+                        ? 'top_selling'
+                        : (cat.id == -2
+                            ? 'recent'
+                            : (cat.id == 0 ? 'all' : cat.id.toString())));
                 final isSelected = controller.selectedCategory == catIdStr;
-                
+
                 return Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: () => controller.setCategory(catIdStr),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius:
+                        BorderRadius.circular(ThemeProvider.radiusPill),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: theme.glassDecoration.copyWith(
-                        color: isSelected
-                            ? theme.highlight
-                            : (theme.isDark
-                                ? Colors.white.withOpacity(0.03)
-                                : Colors.white.withOpacity(0.4)),
-                        border: Border.all(
-                            color: isSelected
-                                ? theme.highlight
-                                : theme.cardBorder),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: isSelected
+                          ? BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: ThemeProvider.gradientGold,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusPill),
+                              boxShadow: theme.cardShadow,
+                              border: Border.all(
+                                  color: theme.highlight.withOpacity(0.4)),
+                            )
+                          : BoxDecoration(
+                              color: theme.card,
+                              borderRadius: BorderRadius.circular(
+                                  ThemeProvider.radiusPill),
+                              border: Border.all(color: theme.cardBorder),
+                              boxShadow: theme.tileShadow,
+                            ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                              cat.id == -3 || cat.id == -1 || cat.id == -2 || cat.id == 0
+                              cat.id == -3 ||
+                                      cat.id == -1 ||
+                                      cat.id == -2 ||
+                                      cat.id == 0
                                   ? cat.icon!
                                   : _getCategoryEmoji(cat.icon),
                               style: const TextStyle(fontSize: 14)),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Text(
                             cat.name,
                             style: TextStyle(
-                              color: isSelected ? Colors.white : theme.textPrimary,
+                              color:
+                                  isSelected ? Colors.white : theme.textPrimary,
                               fontSize: 12,
-                              fontWeight:
-                                  isSelected ? FontWeight.w900 : FontWeight.w600,
+                              fontWeight: isSelected
+                                  ? FontWeight.w900
+                                  : FontWeight.w700,
                             ),
                           ),
                         ],
@@ -90,46 +115,65 @@ class POSCategorySelector extends StatelessWidget {
               }),
             ],
           ),
-          
+
           // Sub-categories row
-          if (controller.selectedCategory != 'all' && 
-              controller.selectedCategory != 'top_selling' && 
+          if (controller.selectedCategory != 'all' &&
+              controller.selectedCategory != 'top_selling' &&
               controller.selectedCategory != 'recent' &&
-              controller.selectedCategory != 'deals')
-            ...[
-              const SizedBox(height: 12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    ...controller.subCategories
-                        .where((sc) => sc.parentId.toString() == controller.selectedCategory)
-                        .map((sc) {
-                          final isSubSelected = controller.selectedSubCategoryId?.toString() == sc.id.toString();
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: ActionChip(
-                              label: Text(sc.name),
-                              backgroundColor: isSubSelected ? theme.highlight : theme.surface,
-                              labelStyle: TextStyle(
-                                color: isSubSelected ? Colors.white : theme.textPrimary,
-                                fontSize: 11,
-                                fontWeight: isSubSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                side: BorderSide(
-                                  color: isSubSelected ? theme.highlight : theme.textHint.withOpacity(0.3),
-                                ),
-                              ),
-                              onPressed: () => controller.setSubCategory(isSubSelected ? null : sc.id),
-                            ),
-                          );
-                        }),
-                  ],
-                ),
+              controller.selectedCategory != 'deals') ...[
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              child: Row(
+                children: [
+                  ...controller.subCategories
+                      .where((sc) =>
+                          sc.parentId.toString() == controller.selectedCategory)
+                      .map((sc) {
+                    final isSubSelected =
+                        controller.selectedSubCategoryId?.toString() ==
+                            sc.id.toString();
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusPill),
+                          onTap: () => controller
+                              .setSubCategory(isSubSelected ? null : sc.id),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: isSubSelected
+                                ? theme.badgeDecoration(theme.highlight,
+                                    hollow: true)
+                                : BoxDecoration(
+                                    color: theme.card,
+                                    borderRadius: BorderRadius.circular(
+                                        ThemeProvider.radiusPill),
+                                    border: Border.all(color: theme.cardBorder),
+                                  ),
+                            child: Text(sc.name,
+                                style: TextStyle(
+                                  color: isSubSelected
+                                      ? theme.highlight
+                                      : theme.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: isSubSelected
+                                      ? FontWeight.w900
+                                      : FontWeight.w700,
+                                )),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               ),
-            ],
+            ),
+          ],
         ],
       ),
     );

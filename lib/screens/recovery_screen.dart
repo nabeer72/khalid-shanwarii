@@ -695,7 +695,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(32),
-            decoration: theme.glassCircleDecoration,
+            decoration: theme.glassCircleDecoration(),
             child: Text(_isHistoryView ? '📋' : '💰',
                 style: const TextStyle(fontSize: 48)),
           ),

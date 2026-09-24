@@ -691,7 +691,7 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(32),
-            decoration: theme.glassCircleDecoration,
+            decoration: theme.glassCircleDecoration(),
             child: Icon(
               _isHistoryView ? Icons.history : Icons.handshake,
               size: 48,

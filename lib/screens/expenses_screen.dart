@@ -502,7 +502,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                           children: [
                             Container(
                               padding: const EdgeInsets.all(32),
-                              decoration: theme.glassCircleDecoration,
+                              decoration: theme.glassCircleDecoration(),
                               child: Icon(Icons.receipt_long_rounded, size: 60, color: theme.iconColor),
                             ),
                             const SizedBox(height: 16),

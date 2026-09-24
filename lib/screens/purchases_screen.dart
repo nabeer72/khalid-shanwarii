@@ -1781,7 +1781,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(32),
-                                  decoration: theme.glassCircleDecoration,
+                                  decoration: theme.glassCircleDecoration(),
                                   child: Icon(Icons.receipt_long_rounded,
                                       size: 60,
                                       color: theme.iconColor.withOpacity(0.5)),
