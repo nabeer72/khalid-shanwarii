@@ -40,16 +40,13 @@ class _DealsListScreenState extends State<DealsListScreen> {
                   border: Border.all(color: theme.cardBorder, width: 1.0),
                 ),
           child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              child: Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  color: active ? theme.highlight : theme.textSecondary,
-                  fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                  fontSize: 11,
-                  letterSpacing: 1,
-                ),
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                color: active ? theme.highlight : theme.textSecondary,
+                fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+                fontSize: 10,
+                letterSpacing: 0.5,
               ),
             ),
           ),
@@ -117,88 +114,89 @@ class _DealsListScreenState extends State<DealsListScreen> {
                 letterSpacing: -0.5),
           ),
           leading: BackButton(color: theme.textPrimary),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(120),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Column(
-                children: [
-                  Material(
-                    color: theme.card,
-                    borderRadius:
-                        BorderRadius.circular(ThemeProvider.radiusPill),
-                    elevation: 0,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: theme.isDark
-                            ? Colors.white.withOpacity(0.05)
-                            : Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(ThemeProvider.radiusPill),
-                        border: Border.all(color: theme.cardBorder, width: 1),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: TextFormField(
-                          controller: _searchCtrl,
-                          style: TextStyle(
-                              color: theme.textPrimary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            icon: Icon(Icons.search_rounded,
-                                color: theme.highlight, size: 20),
-                            hintText: 'Search deals...',
-                            hintStyle: TextStyle(
-                                color: theme.textHint,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500),
-                            contentPadding:
-                                const EdgeInsets.symmetric(vertical: 14),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? GestureDetector(
-                                    onTap: () {
-                                      _searchCtrl.clear();
-                                      setState(() => _searchQuery = '');
-                                    },
-                                    child: Icon(Icons.cancel_rounded,
-                                        color: theme.textHint, size: 18),
-                                  )
-                                : null,
-                          ),
-                          onChanged: (val) =>
-                              setState(() => _searchQuery = val.trim()),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: theme.isDark
-                          ? Colors.white.withOpacity(0.03)
-                          : Colors.grey.shade50,
-                      borderRadius:
-                          BorderRadius.circular(ThemeProvider.radiusPill),
-                    ),
-                    child: Row(
-                      children: [
-                        _buildTabButton('Active', !_isInactiveView),
-                        _buildTabButton('Inactive', _isInactiveView),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ),
         body: theme.glassBackground(
           child: SafeArea(
-            top: false,
-            child: Consumer<DealsController>(
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Material(
+                          color: theme.card,
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusPill),
+                          elevation: 0,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: theme.isDark
+                                  ? Colors.white.withOpacity(0.05)
+                                  : Colors.white,
+                              borderRadius:
+                                  BorderRadius.circular(ThemeProvider.radiusPill),
+                              border: Border.all(color: theme.cardBorder, width: 1),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: TextFormField(
+                                controller: _searchCtrl,
+                                style: TextStyle(
+                                    color: theme.textPrimary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  icon: Icon(Icons.search_rounded,
+                                      color: theme.highlight, size: 20),
+                                  hintText: 'Search deals...',
+                                  hintStyle: TextStyle(
+                                      color: theme.textHint,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500),
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  suffixIcon: _searchQuery.isNotEmpty
+                                      ? GestureDetector(
+                                          onTap: () {
+                                            _searchCtrl.clear();
+                                            setState(() => _searchQuery = '');
+                                          },
+                                          child: Icon(Icons.cancel_rounded,
+                                              color: theme.textHint, size: 18),
+                                        )
+                                      : null,
+                                ),
+                                onChanged: (val) =>
+                                    setState(() => _searchQuery = val.trim()),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Container(
+                        height: 50,
+                        width: 160,
+                        padding: const EdgeInsets.all(4),
+                        decoration: theme.elevatedCardDecoration.copyWith(
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusPill),
+                        ),
+                        child: Row(
+                          children: [
+                            _buildTabButton('Active', !_isInactiveView),
+                            _buildTabButton('Inactive', _isInactiveView),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: Consumer<DealsController>(
               builder: (context, controller, child) {
                 if (controller.isLoading) {
                   return Center(
@@ -267,7 +265,7 @@ class _DealsListScreenState extends State<DealsListScreen> {
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 120, 16, 100),
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
                   itemCount: filtered.length,
                   itemBuilder: (context, index) {
                     final deal = filtered[index];
@@ -306,30 +304,13 @@ class _DealsListScreenState extends State<DealsListScreen> {
                                 child: Row(
                                   children: [
                                     Container(
-                                      width: 52,
-                                      height: 52,
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: ThemeProvider.gradientGold,
-                                        ),
-                                        borderRadius:
-                                            BorderRadius.circular(14),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: ThemeProvider
-                                                .gradientGold.first
-                                                .withOpacity(0.2),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 3),
-                                          ),
-                                        ],
-                                      ),
-                                      child: const Center(
-                                        child: Text('🎁',
-                                            style: TextStyle(fontSize: 24)),
-                                      ),
+                                      decoration: theme.glassCircleDecoration(
+                                          color: theme.highlight),
+                                      padding: const EdgeInsets.all(10),
+                                      child: Icon(
+                                          Icons.card_giftcard_rounded,
+                                          color: theme.highlight,
+                                          size: 22),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -353,116 +334,39 @@ class _DealsListScreenState extends State<DealsListScreen> {
                                           const SizedBox(height: 2),
                                           if ((deal.description ?? '')
                                               .isNotEmpty)
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.only(bottom: 4),
-                                              child: Text(
-                                                deal.description!,
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                    color: theme.textSecondary,
-                                                    fontSize: 11,
-                                                    fontWeight:
-                                                        FontWeight.w500),
-                                              ),
+                                            Text(
+                                              deal.description!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                  color: theme.textSecondary,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w500),
                                             ),
-                                          Wrap(
-                                            spacing: 10,
-                                            runSpacing: 2,
-                                            crossAxisAlignment:
-                                                WrapCrossAlignment.center,
-                                            children: [
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: theme.highlight
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          ThemeProvider
-                                                              .radiusList),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                        Icons
-                                                            .local_offer_outlined,
-                                                        size: 11,
-                                                        color: theme.highlight),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      '${BusinessConfig.instance.currencyDisplay} ${deal.dealPrice.toStringAsFixed(2)}',
-                                                      style: TextStyle(
-                                                        color: theme.highlight,
-                                                        fontSize: 11,
-                                                        fontWeight:
-                                                            FontWeight.w900,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 3),
-                                                decoration: BoxDecoration(
-                                                  color: isActive
-                                                      ? ThemeProvider.success
-                                                          .withOpacity(0.1)
-                                                      : theme.textHint
-                                                          .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                          ThemeProvider
-                                                              .radiusList),
-                                                ),
-                                                child: Row(
-                                                  mainAxisSize:
-                                                      MainAxisSize.min,
-                                                  children: [
-                                                    Icon(
-                                                      isActive
-                                                          ? Icons
-                                                              .check_circle_rounded
-                                                          : Icons
-                                                              .block_rounded,
-                                                      size: 11,
-                                                      color: isActive
-                                                          ? ThemeProvider
-                                                              .success
-                                                          : theme.textHint,
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                    Text(
-                                                      isActive
-                                                          ? 'Active'
-                                                          : 'Inactive',
-                                                      style: TextStyle(
-                                                        color: isActive
-                                                            ? ThemeProvider
-                                                                .success
-                                                            : theme.textHint,
-                                                        fontSize: 10,
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                        letterSpacing: 0.6,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
                                         ],
                                       ),
+                                    ),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '${BusinessConfig.instance.currencyDisplay} ${deal.dealPrice.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                              color: theme.highlight,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 13),
+                                        ),
+                                        Text(
+                                          'DEAL PRICE',
+                                          style: TextStyle(
+                                              color: theme.textHint,
+                                              fontSize: 8,
+                                              fontWeight: FontWeight.w800),
+                                        ),
+                                      ],
                                     ),
                                     const SizedBox(width: 4),
                                     IconButton(
@@ -518,7 +422,10 @@ class _DealsListScreenState extends State<DealsListScreen> {
               },
             ),
           ),
+          ],
         ),
+      ),
+    ),
         floatingActionButton: Builder(
           builder: (ctx) => FloatingActionButton.extended(
             backgroundColor: theme.primary,

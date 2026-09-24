@@ -63,6 +63,11 @@ class CreateDealController with ChangeNotifier {
     return normalTotal > dealPrice ? normalTotal - dealPrice : 0.0;
   }
 
+  double get savingsPercent {
+    if (normalTotal <= 0) return 0.0;
+    return (savings / normalTotal) * 100;
+  }
+
   void addProduct(Product product, Stock stock) {
     // Check if already added
     final existingIndex = _items.indexWhere((i) => i.productId == product.id);

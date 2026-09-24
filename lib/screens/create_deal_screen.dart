@@ -140,7 +140,7 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                   : SafeArea(
                       bottom: false,
                       child: SingleChildScrollView(
-                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                        padding: const EdgeInsets.all(20.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -149,63 +149,55 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                             _buildProductSelection(context, controller),
                             const SizedBox(height: 16),
                             _buildSummary(controller),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final success = await controller.saveDeal();
+                                  if (success) {
+                                    if (context.mounted) {
+                                      Navigator.pop(context, true);
+                                    }
+                                  } else {
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                            backgroundColor:
+                                                ThemeProvider.error,
+                                            content: const Text(
+                                                'Please fill all required fields and add at least one product.')),
+                                      );
+                                    }
+                                  }
+                                },
+                                style: theme.primaryButtonStyle,
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.save_rounded,
+                                        color: Colors.white),
+                                    const SizedBox(width: 10),
+                                    const Text(
+                                      'SAVE DEAL',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 40),
                           ],
                         ),
                       ),
                     ),
             ),
-            floatingActionButton: Container(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-              decoration: BoxDecoration(
-                color: theme.surface,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, -5))
-                ],
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    final success = await controller.saveDeal();
-                    if (success) {
-                      if (context.mounted) {
-                        Navigator.pop(context, true);
-                      }
-                    } else {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              backgroundColor: ThemeProvider.error,
-                              content: const Text(
-                                  'Please fill all required fields and add at least one product.')),
-                        );
-                      }
-                    }
-                  },
-                  style: theme.primaryButtonStyle,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.save_rounded, color: Colors.white),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'SAVE DEAL',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            floatingActionButtonLocation:
-                FloatingActionButtonLocation.centerDocked,
           );
         },
       ),
