@@ -5,7 +5,7 @@ import 'package:mobile_app/models/role.dart';
 class RolesController with ChangeNotifier {
   List<Role> roles = [];
   List<Map<String, dynamic>> allPermissions = [];
-  List<Map<String, dynamic>> branches = [];
+
   bool isLoading = false;
   String? errorMessage;
 
@@ -30,8 +30,7 @@ class RolesController with ChangeNotifier {
 
       print('🔍 [Roles] Found ${roles.length} role(s)');
 
-      final data = await DatabaseHelper.instance.getAllBranches();
-      branches = data.where((b) => b['status'] == 1).toList();
+
     } catch (e) {
       errorMessage = e.toString();
     } finally {
@@ -48,7 +47,7 @@ class RolesController with ChangeNotifier {
 
   Future<bool> saveRole(Role role) async {
     try {
-      print('💾 [SaveRole] Saving role: ${role.name}, id: ${role.id}, branchId: ${role.branchId}, businessId: ${role.businessId}');
+      print('💾 [SaveRole] Saving role: ${role.name}, id: ${role.id}, businessId: ${role.businessId}');
       print('💾 [SaveRole] toMap: ${role.toMap()}');
       print('💾 [SaveRole] permissionIds: ${role.permissionIds}');
       final roleId = await DatabaseHelper.instance.insertRole(role.toMap());

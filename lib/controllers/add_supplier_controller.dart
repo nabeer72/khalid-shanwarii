@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/models/branch.dart';
+
 
 class AddSupplierController with ChangeNotifier {
   final Supplier? initialSupplier;
@@ -16,8 +16,7 @@ class AddSupplierController with ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
-  List<Branch> branches = [];
-  int? selectedBranchId;
+
 
   AddSupplierController({this.initialSupplier}) {
     nameCtrl = TextEditingController(text: initialSupplier?.name ?? '');
@@ -26,7 +25,7 @@ class AddSupplierController with ChangeNotifier {
     emailCtrl = TextEditingController(text: initialSupplier?.email ?? '');
     addressCtrl = TextEditingController(text: initialSupplier?.address ?? '');
     balanceCtrl = TextEditingController(text: initialSupplier?.openingAmount.toString() ?? '0');
-    selectedBranchId = initialSupplier?.branchId ?? BusinessConfig.instance.branchId;
+
   }
 
 
@@ -55,7 +54,6 @@ class AddSupplierController with ChangeNotifier {
     final openingAmount = double.tryParse(balanceCtrl.text.trim()) ?? 0.0;
     final supplierData = {
       'id': initialSupplier?.id,
-      'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
       'name': nameCtrl.text.trim(),
       'contact_person': contactCtrl.text.trim(),
       'phone': phoneCtrl.text.trim(),

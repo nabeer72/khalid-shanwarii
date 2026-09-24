@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -51,9 +52,10 @@ class _SalesScreenState extends State<SalesScreen> {
     if (_cart.isEmpty) return;
 
     final sale = Sale(
-      businessId: BusinessConfig.instance.businessId,
+      businessId: BusinessConfig.instance.businessId ?? 0,
       userId: BusinessConfig.instance.userId,
-      grandTotal: _total,
+      staffId: BusinessConfig.instance.staffId ?? 0,
+      total: _total,
       status: 1,
       isSynced: 0,
     );

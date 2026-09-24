@@ -10,10 +10,6 @@ class DbTables {
         name TEXT NOT NULL,
         business_type_id INTEGER,
         owner_user_id INTEGER,
-        subscription_status TEXT DEFAULT 'none',
-        subscription_plan_id INTEGER,
-        subscription_plan_name TEXT,
-        subscription_end_date TEXT,
         max_branches INTEGER,
         max_products INTEGER,
         status INTEGER DEFAULT 1,
@@ -93,6 +89,10 @@ class DbTables {
         name TEXT NOT NULL,
         image TEXT,
         description TEXT,
+        price REAL DEFAULT 0,
+        purchase_price REAL DEFAULT 0,
+        wholesale_price REAL DEFAULT 0,
+        stock_quantity REAL DEFAULT 0,
         stock_limit INTEGER DEFAULT 5,
         discount_limit REAL DEFAULT 0,
         discount_limit_type TEXT DEFAULT 'percentage',
@@ -784,7 +784,36 @@ class DbTables {
       )
     ''');
 
-    if (kDebugMode) print('Database created with all tables including RBAC, Units, Brands, and Payment Types');
+    // Deals
+    await db.execute('''
+      CREATE TABLE deals (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        business_id INTEGER,
+        name TEXT NOT NULL,
+        description TEXT,
+        deal_price REAL DEFAULT 0,
+        start_date TEXT,
+        end_date TEXT,
+        status INTEGER DEFAULT 1,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    // Deal Items
+    await db.execute('''
+      CREATE TABLE deal_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        deal_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        quantity REAL DEFAULT 1,
+        unit_price REAL DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT
+      )
+    ''');
+
+    if (kDebugMode) print('Database created with all tables including RBAC, Units, Brands, Payment Types, and Deals');
     await DbTables.seedPermissions(db);
     await DbTables.seedPaymentTypes(db);
     await DbTables.seedBusinessUnits(db);
@@ -867,6 +896,12 @@ class DbTables {
           {'name': 'Kilogram', 'short_name': 'kg'},
           {'name': 'Gram', 'short_name': 'g'},
           {'name': 'Liter', 'short_name': 'L'},
+          {'name': 'Half Liter', 'short_name': '0.5L'},
+          {'name': '1 Liter', 'short_name': '1L'},
+          {'name': '1.5 Liter', 'short_name': '1.5L'},
+          {'name': '2 Liter', 'short_name': '2L'},
+          {'name': 'Small Bottle', 'short_name': 's-btl'},
+          {'name': 'Large Bottle', 'short_name': 'l-btl'},
           {'name': 'Carton', 'short_name': 'ctn'},
           {'name': 'Dozen', 'short_name': 'doz'},
           {'name': 'Foot', 'short_name': 'ft'},

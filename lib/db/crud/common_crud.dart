@@ -6,65 +6,13 @@ import 'package:bcrypt/bcrypt.dart';
 mixin CommonCrud {
   Future<Database> get database;
 
-  // Branch Isolation Helpers
-  String getBranchFilter() {
-    final activeBranches = BusinessConfig.instance.activeBranchIds;
-    final brid = BusinessConfig.instance.branchId;
-    final staffId = BusinessConfig.instance.staffId;
-
-    // Staff are strictly isolated to their own branch
-    if (staffId != null) {
-      if (brid != null && brid != 'NONE' && brid != 0) {
-        return ' AND (branch_id = ?)';
-      } else {
-        // If staff has no branch assigned, they should see NOTHING, not all branches.
-        return ' AND (1 = 0)';
-      }
-    }
-
-    // [FIX] Prioritize current branch ID over the list of all active branches.
-    // This prevents sub-branch data from leaking into the main branch view for admins.
-    if (brid != null && brid != 'NONE' && brid != 0) {
-      return ' AND (branch_id = ?)';
-    }
-
-    if (activeBranches.isNotEmpty) {
-      final placeholders = List.filled(activeBranches.length, '?').join(', ');
-      return ' AND (branch_id IN ($placeholders))';
-    }
-    // No branch context = show all data
-    return '';
-  }
-
-  List<dynamic> getBranchArgs() {
-    final activeBranches = BusinessConfig.instance.activeBranchIds;
-    final brid = BusinessConfig.instance.branchId;
-    final staffId = BusinessConfig.instance.staffId;
-
-    // Staff are strictly isolated to their own branch
-    if (staffId != null) {
-      if (brid != null && brid != 'NONE' && brid != 0) {
-        return [getSafeInt(brid)];
-      } else {
-        // If staff has no branch assigned, they see nothing.
-        return [];
-      }
-    }
-
-    // [FIX] Prioritize current branch ID over the list of all active branches.
-    if (brid != null && brid != 'NONE' && brid != 0) {
-      return [getSafeInt(brid)];
-    }
-
-    if (activeBranches.isNotEmpty) {
-      return activeBranches.map((b) => getSafeInt(b)).toList();
-    }
-    return [];
-  }
+  // Branch filter removed - single-store app
+  String getBranchFilter() => '';
+  List<dynamic> getBranchArgs() => [];
 
   // Business Isolation Helpers
   String getBusinessFilter() {
-    return ' AND business_id = ? AND user_id = ?';
+    return ' AND business_id IS ? AND user_id IS ?';
   }
 
   List<dynamic> getBusinessArgs() {
@@ -80,22 +28,7 @@ mixin CommonCrud {
     };
   }
 
-  dynamic getCurrentBranchId() {
-    // Priority:
-    // 1. Specific branchId set in context (e.g. for assignment)
-    final brid = BusinessConfig.instance.branchId;
-    if (brid != null) {
-      return brid;
-    }
-
-    // 2. Fallback to first active branch
-    final activeBranches = BusinessConfig.instance.activeBranchIds;
-    if (activeBranches.isNotEmpty) {
-      return activeBranches.first;
-    }
-
-    return null;
-  }
+  dynamic getCurrentBranchId() => null;
 
   int? getSafeInt(dynamic value) {
     if (value == null) return null;
@@ -301,10 +234,7 @@ mixin CommonCrud {
         'name': b['name'] ?? 'Unknown',
         'business_type_id': b['business_type_id'],
         'owner_user_id': b['owner_user_id'] ?? b['user_id'],
-        'subscription_status': b['subscription_status'],
-        'subscription_plan_id': b['subscription_plan_id'],
-        'subscription_plan_name': b['subscription_plan_name'],
-        'subscription_end_date': b['subscription_end_date'],
+
         'max_branches': b['max_branches'],
         'max_products': b['max_products'],
         'status': active ? 1 : 0,

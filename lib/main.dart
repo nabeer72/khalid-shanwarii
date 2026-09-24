@@ -37,39 +37,10 @@ void main() async {
     };
   }
 
-  // Pre-fetch signup data (Business Types & Subscription Plans) on startup
-  _preFetchSignupData();
-
   runApp(const MyApp());
 }
 
-Future<void> _preFetchSignupData() async {
-  try {
-    final api = ApiService();
-    final config = BusinessConfig.instance;
 
-    // Fetch in parallel for speed
-    final results = await Future.wait([
-      api.getBusinessTypes(),
-      api.getSubscriptionPlans(),
-    ]);
-
-    final typesRes = results[0];
-    final plansRes = results[1];
-
-    if (typesRes != null && typesRes.statusCode == 200) {
-      config.businessTypes = typesRes.data;
-      print('✅ [INIT] Pre-fetched ${config.businessTypes.length} business types');
-    }
-
-    if (plansRes != null && plansRes.statusCode == 200) {
-      config.subscriptionPlans = plansRes.data;
-      print('✅ [INIT] Pre-fetched ${config.subscriptionPlans.length} subscription plans');
-    }
-  } catch (e) {
-    print('⚠️ [INIT] Failed to pre-fetch signup data: $e');
-  }
-}
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -123,11 +94,11 @@ class _MyAppState extends State<MyApp> {
         final theme = ThemeProvider.instance;
         return MaterialApp(
           navigatorKey: navigatorKey, // Assign the global navigator key
-          title: 'SATA POS',
+          title: 'Khalid Shinwari',
           debugShowCheckedModeBanner: false,
           theme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0A2647),
+              seedColor: const Color(0xFFB8860B),
               brightness: theme.isDark ? Brightness.dark : Brightness.light,
             ),
             useMaterial3: true,

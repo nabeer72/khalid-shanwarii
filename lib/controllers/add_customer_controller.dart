@@ -12,7 +12,7 @@ class CustomerFormHelper {
     required String notes,
     required String discountText,
     required String creditLimitText,
-    int? branchId,
+
     required BuildContext context,
   }) async {
     // Enhanced Validation
@@ -47,7 +47,7 @@ class CustomerFormHelper {
       creditLimit: creditLimit,
       status: 1,
       isSynced: 0,
-      branchId: branchId ?? BusinessConfig.instance.branchId,
+
     );
 
     final customerMap = customer.toMap();

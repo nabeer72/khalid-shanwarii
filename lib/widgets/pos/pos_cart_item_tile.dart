@@ -122,8 +122,8 @@ class _POSCartItemTileState extends State<POSCartItemTile> {
     _ensureControllers();
     final val = double.tryParse(_discCtrl!.text) ?? 0.0;
     final item = widget.item;
-    double limitValue = item.stock.discountLimit;
-    String limitType = item.stock.discountLimitType;
+    double limitValue = item.stock?.discountLimit ?? 0.0;
+    String limitType = item.stock?.discountLimitType ?? '';
 
     bool isAllowed = true;
     if (limitValue > 0) {
@@ -206,7 +206,9 @@ class _POSCartItemTileState extends State<POSCartItemTile> {
                 Expanded(
                   flex: 3,
                   child: Text(
-                    item.product.name,
+                    item.isDeal
+                        ? (item.deal?.name ?? 'Deal')
+                        : (item.product?.name ?? 'Unnamed'),
                     style: TextStyle(
                         color: theme.textPrimary,
                         fontWeight: FontWeight.w700,

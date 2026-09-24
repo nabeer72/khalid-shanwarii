@@ -7,27 +7,24 @@ import 'package:mobile_app/utils/logout_helper.dart';
 import 'package:mobile_app/screens/product_list_screen.dart';
 import 'package:mobile_app/screens/customer_list_screen.dart';
 import 'package:mobile_app/screens/sales_history_screen.dart';
+import 'package:mobile_app/screens/deals_list_screen.dart';
 import 'package:mobile_app/screens/stock_report_screen.dart'; // Import Stock Report
 import 'package:mobile_app/screens/support_screen.dart'; // Import Support Screen
 import 'package:mobile_app/screens/reports_screen.dart';
 import 'package:mobile_app/screens/reports_printing_screen.dart';
-import 'package:mobile_app/screens/employee_list_screen.dart';
 import 'package:mobile_app/screens/settings_screen.dart';
-import 'package:mobile_app/screens/gift_cards_screen.dart';
-import 'package:mobile_app/screens/loyalty_screen.dart';
+
 import 'package:mobile_app/screens/expenses_screen.dart';
 import 'package:mobile_app/screens/suppliers_screen.dart';
 import 'package:mobile_app/screens/purchases_screen.dart';
 import 'package:mobile_app/screens/recovery_screen.dart';
 import 'package:mobile_app/screens/supplier_payback_screen.dart';
-import 'package:mobile_app/screens/branch_management_screen.dart';
+
 import 'package:mobile_app/screens/bank_management_screen.dart';
-import 'package:mobile_app/screens/roles_screen.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/db/database_helper.dart';
-import 'package:mobile_app/widgets/shift_dialogs.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -40,11 +37,11 @@ class _HomeScreenState extends State<HomeScreen> {
   final theme = ThemeProvider.instance;
   final SyncService _syncService = SyncService();
   String? _lastSync;
-  Employee? _currentStaff;
   Timer? _autoSyncTimer;
 
   int _productCount = 0;
   int _customerCount = 0;
+  int _dealCount = 0;
   int _saleCount = 0;
   String _topSellingName = '';
   int _topSellingQty = 0;
@@ -65,15 +62,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadLastSync();
     _loadStats();
     _loadBranches();
-    _loadCurrentStaff();
 
     // Listen for real-time data changes across the app (including after background sync)
     _dataSubscription = DatabaseHelper.dataStream.listen((_) {
       if (mounted) {
         _loadStats();
         _loadBranches();
-        _loadCurrentStaff(); // [FIX] Re-check permissions after every sync/data change
-        _refreshSubscriptionStatus(); // [FIX] Reload subscription so renewal is reflected immediately
       }
     });
 
@@ -86,7 +80,6 @@ class _HomeScreenState extends State<HomeScreen> {
       _autoSyncTimer = Timer.periodic(const Duration(minutes: 5), (_) {
         if (mounted && !_syncService.isSyncing) {
           _syncService.triggerDebouncedSync(delayMs: 0);
-          _refreshSubscriptionStatus(); // [FIX] Also refresh subscription on periodic sync tick
         }
       });
     }
@@ -132,109 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// updates automatically once the server approves a renewal (picked up
   /// by the next sync without requiring a logout/login).
   Future<void> _refreshSubscriptionStatus() async {
-    if (kIsWeb) return;
-    final bid = BusinessConfig.instance.businessId;
-    if (bid == null) return;
-    try {
-      final rawDb = await DatabaseHelper.instance.database;
-      final rows = await rawDb.query(
-        'businesses',
-        where: 'id = ?',
-        whereArgs: [bid],
-      );
-      if (rows.isNotEmpty) {
-        final biz = rows.first;
-        BusinessConfig.instance.setSubscription(
-          status: biz['subscription_status']?.toString() ?? 'none',
-          planId: biz['subscription_plan_id'] as int?,
-          planName: biz['subscription_plan_name']?.toString(),
-          endDate: biz['subscription_end_date'] != null
-              ? DateTime.tryParse(biz['subscription_end_date'].toString())
-              : null,
-          branches: biz['max_branches'] as int?,
-          products: biz['max_products'] as int?,
-        );
-        if (mounted) setState(() {});
-      }
-    } catch (e) {
-      if (kDebugMode) print('⚠️ [HOME] Failed to refresh subscription: $e');
-    }
-  }
-
-  Future<void> _loadCurrentStaff() async {
-    dynamic sid = BusinessConfig.instance.staffId;
-    if (sid != null) {
-      final db = DatabaseHelper.instance;
-
-      // [FIX] Use getEmployeeById (only filters by id + business_id).
-      // The old getEmployees() filtered by user_id which is the ADMIN's user ID,
-      // but BusinessConfig.userId held the staff's own user ID — mismatch meant
-      // the employee was never found and _currentStaff stayed null.
-      Map<String, dynamic>? staffData = await db.getEmployeeById(sid);
-
-      if (staffData == null) {
-        // Fallback: staffId in storage may be from users table, not employees table.
-        final String? userEmail =
-            await (const FlutterSecureStorage()).read(key: 'user_email');
-        if (userEmail != null) {
-          staffData = await db.getEmployeeByEmail(userEmail.toLowerCase());
-          if (staffData != null) {
-            BusinessConfig.instance.staffId = staffData['id'];
-            sid = staffData['id'];
-          }
-        }
-      }
-
-      // Backfill userId from the employee record so subsequent DB queries
-      // (which filter by user_id) use the correct admin-scoped user ID.
-      if (staffData != null && staffData['user_id'] != null) {
-        BusinessConfig.instance.userId = staffData['user_id'];
-      }
-
-      final finalStaff = staffData;
-      if (finalStaff != null) {
-        List<String> perms = [];
-
-        // 1. Load legacy permissions column if present
-        if (finalStaff['permissions'] != null) {
-          try {
-            perms = List<String>.from(jsonDecode(finalStaff['permissions']));
-          } catch (e) {}
-        }
-
-        // 2. Load RBAC permissions from assigned roles
-        final rbacPerms =
-            await DatabaseHelper.instance.getEmployeePermissions(sid);
-        for (var p in rbacPerms) {
-          if (!perms.contains(p)) perms.add(p);
-        }
-
-        if (mounted) {
-          setState(() {
-            _currentStaff = Employee(
-              id: finalStaff['id'],
-              name: finalStaff['name'],
-              role: finalStaff['role'] ?? 'cashier',
-              email: finalStaff['email'],
-              phone: finalStaff['phone'],
-              pin: finalStaff['pin'],
-              isActive: finalStaff['status'] == 1,
-              permissions: perms,
-            );
-          });
-        }
-        BusinessConfig.instance.staffName = finalStaff['name'] ?? '';
-      }
-    }
-  }
-
-  bool _hasPerm(String perm) {
-    // Admin has ALL, Staff has ONLY assigned
-    final isStaff = BusinessConfig.instance.staffId != null;
-    if (!isStaff) return true; // Admin case
-
-    // Staff case: explicitly check list of assigned permissions
-    return _currentStaff?.permissions.contains(perm) ?? false;
+    // Subscription concept removed
   }
 
   String? _branchDisplayName(Map<String, dynamic> branch) {
@@ -285,44 +176,12 @@ class _HomeScreenState extends State<HomeScreen> {
     if (kIsWeb) return;
     final bid = BusinessConfig.instance.businessId;
     if (bid == null) return;
-
     try {
-      var brid = BusinessConfig.instance.branchId;
-      if (brid == null) {
-        const storage = FlutterSecureStorage();
-        final stored = await storage.read(key: 'branch_id');
-        if (stored != null && stored.isNotEmpty && stored != 'NONE') {
-          brid = int.tryParse(stored) ?? stored;
-          BusinessConfig.instance.branchId = brid;
-        }
-      }
-
-      final list = await DatabaseHelper.instance.getBranchesForBusiness(bid);
-      String? name;
-      Map<String, dynamic>? currentBranch;
-      for (final b in list) {
-        if (b['id'].toString() == brid?.toString()) {
-          name = _branchDisplayName(b);
-          currentBranch = b;
-          break;
-        }
-      }
-      name ??= await _fetchBranchNameById(bid, brid);
-      if (currentBranch == null && name != null && list.isNotEmpty) {
-        currentBranch = list.firstWhere(
-          (b) => _branchDisplayName(b) == name,
-          orElse: () => list.first,
-        );
-      }
-      name ??= list.isNotEmpty ? _branchDisplayName(list.first) : null;
-      currentBranch ??= list.isNotEmpty ? list.first : null;
-      final address = await _resolveStoreAddress(branch: currentBranch);
-
       if (mounted) {
         setState(() {
-          _branches = list;
-          _currentBranchName = name;
-          _storeAddress = address;
+          _branches = [];
+          _currentBranchName = 'Main Branch';
+          _storeAddress = 'Main Store';
         });
       }
     } catch (e) {
@@ -331,37 +190,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _switchBranch(Map<String, dynamic> branch) async {
-    final id = branch['id'];
-    if (id == null) return;
-
-    BusinessConfig.instance.branchId = id;
-    const storage = FlutterSecureStorage();
-    await storage.write(key: 'branch_id', value: id.toString());
-
-    if (mounted) {
-      final address = await _resolveStoreAddress(branch: branch);
-      setState(() {
-        _currentBranchName = _branchDisplayName(branch);
-        _storeAddress = address;
-      });
-      await _loadStats();
-      DatabaseHelper.notifyDataChanged(triggerSync: false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text('Switched to ${_branchDisplayName(branch) ?? 'branch'}'),
-          backgroundColor: ThemeProvider.success,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    // Branches removed
   }
 
   Widget _buildBranchHeaderIcon() {
-    final isAdmin = BusinessConfig.instance.staffId == null;
-    final showDropdown = isAdmin && _branches.length > 1;
-
-    final iconBox = Container(
+    return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: theme.surface,
@@ -369,66 +202,6 @@ class _HomeScreenState extends State<HomeScreen> {
         border: Border.all(color: theme.divider, width: 1.0),
       ),
       child: Icon(Icons.store_rounded, color: theme.highlight, size: 24),
-    );
-
-    if (!showDropdown) {
-      return iconBox;
-    }
-
-    return PopupMenuButton<Map<String, dynamic>>(
-      offset: const Offset(0, 48),
-      tooltip: 'Switch branch',
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      onSelected: _switchBranch,
-      itemBuilder: (context) {
-        return _branches.map((b) {
-          final selected = b['id'].toString() ==
-              BusinessConfig.instance.branchId?.toString();
-          final isMain = b['is_main_branch'] == 1 || b['is_main_branch'] == '1';
-          return PopupMenuItem<Map<String, dynamic>>(
-            value: b,
-            child: Row(
-              children: [
-                if (selected)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: Icon(Icons.check_circle_rounded,
-                        color: theme.highlight, size: 18),
-                  )
-                else
-                  const SizedBox(width: 26),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _branchDisplayName(b) ?? 'Branch',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w700, fontSize: 14),
-                      ),
-                      if (isMain)
-                        Text(
-                          'Main branch',
-                          style: TextStyle(
-                              fontSize: 11, color: theme.textSecondary),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList();
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          iconBox,
-          Icon(Icons.arrow_drop_down_rounded,
-              color: theme.textSecondary, size: 22),
-        ],
-      ),
     );
   }
 
@@ -487,10 +260,25 @@ class _HomeScreenState extends State<HomeScreen> {
               ?.toInt() ??
           0;
 
+      // 5. Optimized Deals Count
+      final bid = BusinessConfig.instance.businessId;
+      final dealWhere = bid == null
+          ? 'business_id IS NULL'
+          : 'business_id = ${bid is int ? bid : int.tryParse(bid.toString()) ?? 0}';
+      final dealCountRes = await rawDb.rawQuery(
+        'SELECT COUNT(*) as total FROM deals WHERE status = 1 AND $dealWhere',
+      );
+      final dealCount = (dealCountRes.isNotEmpty
+                  ? dealCountRes.first.values.first as num?
+                  : 0)
+              ?.toInt() ??
+          0;
+
       if (mounted) {
         setState(() {
           _productCount = productCount;
           _customerCount = customerCount;
+          _dealCount = dealCount;
           _heldCount = heldCount;
           _topSellingName = topName;
           _topSellingQty = topQty;
@@ -584,17 +372,12 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         await _loadLastSync();
         await _loadStats();
-        await _loadCurrentStaff(); // [FIX] Refresh permissions after manual sync
         await _refreshSubscriptionStatus(); // [FIX] Reflect renewed subscription without re-login
         if (!silent) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(result.success
-                  ? 'Sync complete!'
-                  : 'Sync partial: ${result.pullError ?? result.pushError}'),
-              backgroundColor: result.success
-                  ? ThemeProvider.success
-                  : ThemeProvider.warning,
+            const SnackBar(
+              content: Text('Sync complete!'),
+              backgroundColor: ThemeProvider.success,
             ),
           );
         }
@@ -743,217 +526,90 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Subscription Alert Banner
-                    if (!BusinessConfig.instance.isSubscriptionActive)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 24),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: ThemeProvider.error.withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(ThemeProvider.radiusCard),
-                          border: Border.all(
-                              color:
-                                  ThemeProvider.error.withValues(alpha: 0.4)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.warning_amber_rounded,
-                                color: ThemeProvider.error, size: 28),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    BusinessConfig
-                                                .instance.subscriptionStatus ==
-                                            'expired'
-                                        ? 'Subscription Expired'
-                                        : 'Subscription Inactive',
-                                    style: const TextStyle(
-                                        color: ThemeProvider.error,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                  Text(
-                                    'Please renew your subscription to continue using the register and adding products.',
-                                    style: TextStyle(
-                                        color: theme.textSecondary,
-                                        fontSize: 13),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (BusinessConfig.instance.subscriptionEndDate !=
-                            null &&
-                        BusinessConfig.instance.subscriptionEndDate!
-                                .difference(DateTime.now())
-                                .inDays <=
-                            5)
-                      Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 24),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: ThemeProvider.warning.withValues(alpha: 0.15),
-                          borderRadius:
-                              BorderRadius.circular(ThemeProvider.radiusCard),
-                          border: Border.all(
-                              color:
-                                  ThemeProvider.warning.withValues(alpha: 0.4)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.timer_outlined,
-                                color: ThemeProvider.warning, size: 28),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    'Subscription Expiring Soon',
-                                    style: TextStyle(
-                                        color: ThemeProvider.warning,
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16),
-                                  ),
-                                  Text(
-                                    'Your ${BusinessConfig.instance.subscriptionPlanName} plan expires in ${BusinessConfig.instance.subscriptionEndDate!.difference(DateTime.now()).inDays} days.',
-                                    style: TextStyle(
-                                        color: theme.textSecondary,
-                                        fontSize: 13),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
                     // Hero - New Sale (Glass Style)
-                    if (_hasPerm(AppPermissions.newSale) ||
-                        _hasPerm(AppPermissions.posAccess))
-                      GestureDetector(
-                        onTap: () async {
-                          if (!BusinessConfig.instance.isSubscriptionActive) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    'Access Denied: Your subscription is inactive or expired.'),
-                                backgroundColor: ThemeProvider.error,
-                              ),
-                            );
-                            return;
-                          }
-                          final activeShift =
-                              await DatabaseHelper.instance.getActiveShift();
-                          final bool skipShift =
-                              !BusinessConfig.instance.enableShiftManagement;
-
-                          if (activeShift != null || skipShift) {
-                            if (mounted) {
-                              Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) => const POSScreen()))
-                                  .then((_) => _loadStats());
-                            }
-                          } else {
-                            if (mounted) {
-                              final clockedIn = await showDialog<bool>(
-                                context: context,
-                                barrierDismissible: false,
-                                builder: (ctx) => const ClockInDialog(),
-                              );
-                              if (clockedIn == true && mounted) {
-                                Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => const POSScreen()))
-                                    .then((_) => _loadStats());
-                              }
-                            }
-                          }
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.all(isTablet ? 24 : 20),
-                          decoration: BoxDecoration(
-                            color: theme.surface,
-                            borderRadius:
-                                BorderRadius.circular(ThemeProvider.radiusCard),
-                            border: Border.all(
-                              color: theme.divider,
-                              width: 1.0,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: Icon(Icons.point_of_sale,
-                                    color: theme.highlight,
-                                    size: isTablet ? 34 : 26),
-                              ),
-                              Text(
-                                'Launch Register',
-                                style: TextStyle(
-                                  color: theme.textPrimary,
-                                  fontSize: isTablet ? 26 : 22,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: -0.5,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text('Start a new transaction',
-                                  style: TextStyle(
-                                      color: theme.textSecondary,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w500)),
-                              const SizedBox(height: 16),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: Row(
-                                  children: [
-                                    _QuickStat(
-                                        icon: Icons.receipt,
-                                        value: '$_saleCount',
-                                        label: 'SALES'),
-                                    const SizedBox(width: 16),
-                                    _QuickStat(
-                                      icon: Icons.payments_rounded,
-                                      value:
-                                          '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
-                                      label: 'RECOVERY',
-                                    ),
-                                    const SizedBox(width: 16),
-                                    _QuickStat(
-                                      icon: Icons.assignment_return_rounded,
-                                      value:
-                                          '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
-                                      label: 'REFUND',
-                                    ),
-                                    const SizedBox(width: 16),
-                                    _QuickStat(
-                                      icon: BusinessConfig.instance.currencyIcon,
-                                      value:
-                                          '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
-                                      label: 'TODAY',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                    GestureDetector(
+                      onTap: () async {
+                        if (mounted) {
+                          Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const POSScreen()))
+                              .then((_) => _loadStats());
+                        }
+                      },
+                      child: Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(isTablet ? 24 : 20),
+                        decoration: BoxDecoration(
+                          color: theme.surface,
+                          borderRadius:
+                              BorderRadius.circular(ThemeProvider.radiusCard),
+                          border: Border.all(
+                            color: theme.divider,
+                            width: 1.0,
                           ),
                         ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Icon(Icons.point_of_sale,
+                                  color: theme.highlight,
+                                  size: isTablet ? 34 : 26),
+                            ),
+                            Text(
+                              'Launch Register',
+                              style: TextStyle(
+                                color: theme.textPrimary,
+                                fontSize: isTablet ? 26 : 22,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text('Start a new transaction',
+                                style: TextStyle(
+                                    color: theme.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 16),
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: Row(
+                                children: [
+                                  _QuickStat(
+                                      icon: Icons.receipt,
+                                      value: '$_saleCount',
+                                      label: 'SALES'),
+                                  const SizedBox(width: 16),
+                                  _QuickStat(
+                                    icon: Icons.payments_rounded,
+                                    value:
+                                        '${BusinessConfig.instance.currencyDisplay} ${_todayRecoveryAmount.toStringAsFixed(0)}',
+                                    label: 'RECOVERY',
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _QuickStat(
+                                    icon: Icons.assignment_return_rounded,
+                                    value:
+                                        '${BusinessConfig.instance.currencyDisplay} ${_todayReturnsAmount.toStringAsFixed(0)}',
+                                    label: 'REFUND',
+                                  ),
+                                  const SizedBox(width: 16),
+                                  _QuickStat(
+                                    icon: BusinessConfig.instance.currencyIcon,
+                                    value:
+                                        '${BusinessConfig.instance.currencyDisplay} ${_todaySalesAmount.toStringAsFixed(0)}',
+                                    label: 'TODAY',
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    ),
 
                     // Held Orders Alert removed from here
 
@@ -988,6 +644,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                     MaterialPageRoute(
                                         builder: (_) =>
                                             const CustomerListScreen()))
+                                .then((_) => _loadStats()),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _StatCard(
+                            icon: Icons.local_offer_outlined,
+                            value: '$_dealCount',
+                            label: 'Deals',
+                            color: const Color(0xFFF59E0B),
+                            onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const DealsListScreen()))
                                 .then((_) => _loadStats()),
                           ),
                         ),
@@ -1029,454 +700,324 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       children: [
                         // 1. Products
-                        if (_hasPerm(AppPermissions.productManage) ||
-                            _hasPerm(AppPermissions.products))
-                          _ModuleCard(
-                              icon: Icons.inventory_2_outlined,
-                              label: 'Products',
-                              color: const Color(0xFF3366FF),
-                              onTap: () => _handleModuleTap(
-                                  'products',
-                                  'Products',
-                                  [
-                                    'Add and manage your inventory items.',
-                                    'Set product prices and cost details.',
-                                    'Organize products by categories and units.',
-                                    'Track low stock alerts and favorites.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const ProductListScreen()))
-                                      .then((_) => _loadStats()))),
-
-                        // 2. Purchases
-                        if (_hasPerm(AppPermissions.purchasesManage))
-                          _ModuleCard(
-                              icon: Icons.shopping_cart_outlined,
-                              label: 'Purchases',
-                              color: const Color(0xFF64748B),
-                              onTap: () => _handleModuleTap(
-                                  'purchases',
-                                  'Purchases',
-                                  [
-                                    'Record new stock purchases from suppliers.',
-                                    'Track purchase history and invoices.',
-                                    'Manage unpaid purchase balances.',
-                                    'Update inventory automatically on purchase.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const PurchasesScreen()))
-                                      .then((_) => setState(() {})))),
-
-                        // 3. Expenses
-                        if (_hasPerm(AppPermissions.expensesManage))
-                          _ModuleCard(
-                              icon: Icons.account_balance_wallet_outlined,
-                              label: 'Expenses',
-                              color: const Color(0xFFEF4444),
-                              onTap: () => _handleModuleTap(
-                                  'expenses',
-                                  'Expenses',
-                                  [
-                                    'Log daily business expenses (e.g., rent, bills).',
-                                    'Categorize expenses for better tracking.',
-                                    'View expense history and totals.',
-                                    'Analyze spending to maximize profit.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const ExpensesScreen()))
-                                      .then((_) => setState(() {})))),
-
-                        // 4. Recovery
-                        if (_hasPerm(AppPermissions.recovery))
-                          _ModuleCard(
-                              icon: Icons.payments_outlined,
-                              label: 'Recovery',
-                              color: const Color(0xFF0EA5E9),
-                              onTap: () => _handleModuleTap(
-                                  'recovery',
-                                  'Recovery',
-                                  [
-                                    'Track outstanding customer balances.',
-                                    'Record partial or full payments received.',
-                                    'View payment history for each customer.',
-                                    'Settle credit sales easily.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const RecoveryScreen()))
-                                      .then((_) => _loadStats()))),
-
-                        // 5. Suppliers
-                        if (_hasPerm(AppPermissions.suppliersManage))
-                          _ModuleCard(
-                              icon: Icons.business_outlined,
-                              label: 'Suppliers',
-                              color: const Color(0xFF84CC16),
-                              onTap: () => _handleModuleTap(
-                                  'suppliers',
-                                  'Suppliers',
-                                  [
-                                    'Maintain a list of your vendors and suppliers.',
-                                    'Track contact details and addresses.',
-                                    'Monitor total payable amounts to each supplier.',
-                                    'View purchase history by supplier.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const SuppliersScreen()))
-                                      .then((_) => setState(() {})))),
-
-                        // 5b. Supplier Payback
-                        if (_hasPerm(AppPermissions.paybackManage))
-                          _ModuleCard(
-                              icon: Icons.payments_outlined,
-                              label: 'Payback',
-                              color: const Color(0xFF10B981),
-                              onTap: () => _handleModuleTap(
-                                  'payback',
-                                  'Payback',
-                                  [
-                                    'Manage payments made to your suppliers.',
-                                    'Clear outstanding purchase balances.',
-                                    'Track the history of supplier payments.',
-                                    'Keep accurate vendor accounts.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const SupplierPaybackScreen()))
-                                      .then((_) => _loadStats()))),
-
-                        // 6. Stock
-                        if (_hasPerm(AppPermissions.productManage) ||
-                            _hasPerm(AppPermissions.reportsView) ||
-                            _hasPerm(AppPermissions.stockView))
-                          _ModuleCard(
-                              icon: Icons.analytics_outlined,
-                              label: 'Stock',
-                              color: const Color(0xFF8B5CF6),
-                              onTap: () => _handleModuleTap(
-                                  'stock',
-                                  'Stock',
-                                  [
-                                    'View real-time inventory levels.',
-                                    'Check stock valuation and potential profit.',
-                                    'Identify low-stock and out-of-stock items.',
-                                    'Generate comprehensive stock reports.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const StockReportScreen())))),
-
-                        // 7. Roles
-                        if (_hasPerm(AppPermissions.staffManage))
-                          _ModuleCard(
-                              icon: Icons.badge_outlined,
-                              label: 'Roles',
-                              color: const Color(0xFFF59E0B),
-                              onTap: () => _handleModuleTap(
-                                  'roles',
-                                  'Roles',
-                                  [
-                                    'Create custom roles for your staff.',
-                                    'Assign specific permissions (e.g., cashier, manager).',
-                                    'Control access to sensitive modules.',
-                                    'Ensure secure system management.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const RolesScreen())))),
-
-                        // 7. Sales
-                        if (_hasPerm(AppPermissions.salesHistory))
-                          _ModuleCard(
-                              icon: Icons.receipt_long_outlined,
-                              label: 'Sales',
-                              color: const Color(0xFF22C55E),
-                              onTap: () => _handleModuleTap('sales', 'Sales', [
-                                    'View a complete history of all transactions.',
-                                    'Reprint receipts for past sales.',
-                                    'Process returns and refunds.',
-                                    'Track daily, weekly, and monthly revenue.'
-                                  ], () async {
-                                    final result = await Navigator.push(
+                        _ModuleCard(
+                            icon: Icons.inventory_2_outlined,
+                            label: 'Products',
+                            color: const Color(0xFF3366FF),
+                            onTap: () => _handleModuleTap(
+                                'products',
+                                'Products',
+                                [
+                                  'Add and manage your inventory items.',
+                                  'Set product prices and cost details.',
+                                  'Organize products by categories and units.',
+                                  'Track low stock alerts and favorites.'
+                                ],
+                                () => Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                             builder: (_) =>
-                                                const SalesHistoryScreen()));
-                                    _loadStats();
-                                    if (result != null &&
-                                        result is Map &&
-                                        mounted) {
-                                      final Map<String, dynamic> castedResult =
-                                          Map<String, dynamic>.from(result);
-                                      final activeShift = await DatabaseHelper
-                                          .instance
-                                          .getActiveShift();
-                                      final bool skipShift = !BusinessConfig
-                                          .instance.enableShiftManagement;
-                                      if (activeShift != null || skipShift) {
-                                        Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                    builder: (_) => POSScreen(
-                                                        returnSale:
-                                                            castedResult)))
-                                            .then((_) => _loadStats());
-                                      } else {
-                                        final clockedIn =
-                                            await showDialog<bool>(
-                                          context: context,
-                                          barrierDismissible: false,
-                                          builder: (ctx) =>
-                                              const ClockInDialog(),
-                                        );
-                                        if (clockedIn == true && mounted) {
-                                          Navigator.push(
-                                                  context,
-                                                  MaterialPageRoute(
-                                                      builder: (_) => POSScreen(
-                                                          returnSale:
-                                                              castedResult)))
-                                              .then((_) => _loadStats());
-                                        }
-                                      }
-                                    }
-                                  })),
+                                                const ProductListScreen()))
+                                    .then((_) => _loadStats()))),
+
+                        // 2. Purchases
+                        _ModuleCard(
+                            icon: Icons.shopping_cart_outlined,
+                            label: 'Purchases',
+                            color: const Color(0xFF64748B),
+                            onTap: () => _handleModuleTap(
+                                'purchases',
+                                'Purchases',
+                                [
+                                  'Record new stock purchases from suppliers.',
+                                  'Track purchase history and invoices.',
+                                  'Manage unpaid purchase balances.',
+                                  'Update inventory automatically on purchase.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const PurchasesScreen()))
+                                    .then((_) => setState(() {})))),
+
+                        // 3. Expenses
+                        _ModuleCard(
+                            icon: Icons.account_balance_wallet_outlined,
+                            label: 'Expenses',
+                            color: const Color(0xFFEF4444),
+                            onTap: () => _handleModuleTap(
+                                'expenses',
+                                'Expenses',
+                                [
+                                  'Log daily business expenses (e.g., rent, bills).',
+                                  'Categorize expenses for better tracking.',
+                                  'View expense history and totals.',
+                                  'Analyze spending to maximize profit.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ExpensesScreen()))
+                                    .then((_) => setState(() {})))),
+
+                        // 4. Recovery
+                        _ModuleCard(
+                            icon: Icons.payments_outlined,
+                            label: 'Recovery',
+                            color: const Color(0xFF0EA5E9),
+                            onTap: () => _handleModuleTap(
+                                'recovery',
+                                'Recovery',
+                                [
+                                  'Track outstanding customer balances.',
+                                  'Record partial or full payments received.',
+                                  'View payment history for each customer.',
+                                  'Settle credit sales easily.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RecoveryScreen()))
+                                    .then((_) => _loadStats()))),
+
+                        // 5. Suppliers
+                        _ModuleCard(
+                            icon: Icons.business_outlined,
+                            label: 'Suppliers',
+                            color: const Color(0xFF84CC16),
+                            onTap: () => _handleModuleTap(
+                                'suppliers',
+                                'Suppliers',
+                                [
+                                  'Maintain a list of your vendors and suppliers.',
+                                  'Track contact details and addresses.',
+                                  'Monitor total payable amounts to each supplier.',
+                                  'View purchase history by supplier.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const SuppliersScreen()))
+                                    .then((_) => setState(() {})))),
+
+                        // 5b. Supplier Payback
+                        _ModuleCard(
+                            icon: Icons.payments_outlined,
+                            label: 'Payback',
+                            color: const Color(0xFF10B981),
+                            onTap: () => _handleModuleTap(
+                                'payback',
+                                'Payback',
+                                [
+                                  'Manage payments made to your suppliers.',
+                                  'Clear outstanding purchase balances.',
+                                  'Track the history of supplier payments.',
+                                  'Keep accurate vendor accounts.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const SupplierPaybackScreen()))
+                                    .then((_) => _loadStats()))),
+
+                        // 5c. Deals
+                        _ModuleCard(
+                            icon: Icons.local_offer_outlined,
+                            label: 'Deals',
+                            color: const Color(0xFFF59E0B),
+                            onTap: () => _handleModuleTap(
+                                'deals',
+                                'Deals',
+                                [
+                                  'Create composite product deals.',
+                                  'Offer discounted bundles.',
+                                  'Manage combo items.',
+                                  'Boost sales with special offers.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const DealsListScreen()))
+                                    .then((_) => _loadStats()))),
+
+                        // 6. Stock
+                        _ModuleCard(
+                            icon: Icons.analytics_outlined,
+                            label: 'Stock',
+                            color: const Color(0xFF8B5CF6),
+                            onTap: () => _handleModuleTap(
+                                'stock',
+                                'Stock',
+                                [
+                                  'View real-time inventory levels.',
+                                  'Check stock valuation and potential profit.',
+                                  'Identify low-stock and out-of-stock items.',
+                                  'Generate comprehensive stock reports.'
+                                ],
+                                () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const StockReportScreen())))),
+
+                        // 7. Sales
+                        _ModuleCard(
+                            icon: Icons.receipt_long_outlined,
+                            label: 'Sales',
+                            color: const Color(0xFF22C55E),
+                            onTap: () => _handleModuleTap('sales', 'Sales', [
+                                  'View a complete history of all transactions.',
+                                  'Reprint receipts for past sales.',
+                                  'Process returns and refunds.',
+                                  'Track daily, weekly, and monthly revenue.'
+                                ], () async {
+                                  final result = await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const SalesHistoryScreen()));
+                                  _loadStats();
+                                  if (result != null &&
+                                      result is Map &&
+                                      mounted) {
+                                    final Map<String, dynamic> castedResult =
+                                        Map<String, dynamic>.from(result);
+                                    Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                                builder: (_) => POSScreen(
+                                                    returnSale: castedResult)))
+                                        .then((_) => _loadStats());
+                                  }
+                                })),
 
                         // 8. Reports
-                        if (_hasPerm(AppPermissions.reportsView))
-                          _ModuleCard(
-                              icon: Icons.bar_chart_outlined,
-                              label: 'Reports',
-                              color: const Color(0xFFF59E0B),
-                              onTap: () => _handleModuleTap(
-                                  'reports',
-                                  'Reports',
-                                  [
-                                    'Analyze business performance and profits.',
-                                    'View sales, expense, and tax summaries.',
-                                    'Track best-selling products.',
-                                    'Export data for accounting purposes.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const ReportsScreen()))
-                                      .then((_) => setState(() {})))),
+                        _ModuleCard(
+                            icon: Icons.bar_chart_outlined,
+                            label: 'Reports',
+                            color: const Color(0xFFF59E0B),
+                            onTap: () => _handleModuleTap(
+                                'reports',
+                                'Reports',
+                                [
+                                  'Analyze business performance and profits.',
+                                  'View sales, expense, and tax summaries.',
+                                  'Track best-selling products.',
+                                  'Export data for accounting purposes.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const ReportsScreen()))
+                                    .then((_) => setState(() {})))),
 
                         // 8b. Print Reports
-                        if (_hasPerm(AppPermissions.reportsPrint) ||
-                            _hasPerm(AppPermissions.reportsView))
-                          _ModuleCard(
-                              icon: Icons.print_outlined,
-                              label: 'Print Reports',
-                              color: const Color(0xFF0EA5E9),
-                              onTap: () => _handleModuleTap(
-                                  'print_reports',
-                                  'Print Reports',
-                                  [
-                                    'Generate formatted reports for printing.',
-                                    'Print via Bluetooth or Wi-Fi thermal printers.',
-                                    'Share reports directly via PDF.',
-                                    'Keep physical records of your business.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const ReportsPrintingScreen())))),
-
-                        // 9. Staff
-                        if (_hasPerm(AppPermissions.staffManage))
-                          _ModuleCard(
-                              icon: Icons.badge_outlined,
-                              label: 'Staff',
-                              color: const Color(0xFF6366F1),
-                              onTap: () => _handleModuleTap(
-                                  'staff',
-                                  'Staff',
-                                  [
-                                    'Manage employee profiles and details.',
-                                    'Assign roles and secure login PINs.',
-                                    'Track staff activity and sales.',
-                                    'Manage shift timings and attendance.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const EmployeeListScreen()))
-                                      .then((_) => setState(() {})))),
+                        _ModuleCard(
+                            icon: Icons.print_outlined,
+                            label: 'Print Reports',
+                            color: const Color(0xFF0EA5E9),
+                            onTap: () => _handleModuleTap(
+                                'print_reports',
+                                'Print Reports',
+                                [
+                                  'Generate formatted reports for printing.',
+                                  'Print via Bluetooth or Wi-Fi thermal printers.',
+                                  'Share reports directly via PDF.',
+                                  'Keep physical records of your business.'
+                                ],
+                                () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const ReportsPrintingScreen())))),
 
                         // 10. Settings
-                        if (_hasPerm(AppPermissions.settingsManage))
-                          _ModuleCard(
-                              icon: Icons.settings_outlined,
-                              label: 'Settings',
-                              color: const Color(0xFF6366F1),
-                              onTap: () => _handleModuleTap(
-                                  'settings',
-                                  'Settings',
-                                  [
-                                    'Configure business details and currency.',
-                                    'Set up printer and hardware preferences.',
-                                    'Manage tax rates and application theme.',
-                                    'Backup and restore your database.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const SettingsScreen())))),
-
-                        // 11. Branches
-                        if (_hasPerm(AppPermissions.branchesManage))
-                          _ModuleCard(
-                              icon: Icons.alt_route_rounded,
-                              label: 'Branches',
-                              color: const Color(0xFF8B5CF6),
-                              onTap: () => _handleModuleTap(
-                                  'branches',
-                                  'Branches',
-                                  [
-                                    'Manage multiple store locations.',
-                                    'Switch between different branches.',
-                                    'Track performance across branches.',
-                                    'Centralize multi-store management.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const BranchManagementScreen())))),
-
-                        // 12. Bank
-                        if (_hasPerm(AppPermissions.bankManage))
-                          _ModuleCard(
-                              icon: Icons.account_balance_rounded,
-                              label: 'Bank',
-                              color: const Color(0xFF10B981),
-                              onTap: () => _handleModuleTap(
-                                  'bank',
-                                  'Bank',
-                                  [
-                                    'Manage your linked bank accounts.',
-                                    'Track bank deposits and withdrawals.',
-                                    'Monitor digital payment methods.',
-                                    'Reconcile bank statements.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const BankManagementScreen())))),
+                        _ModuleCard(
+                            icon: Icons.settings_outlined,
+                            label: 'Settings',
+                            color: const Color(0xFF6366F1),
+                            onTap: () => _handleModuleTap(
+                                'settings',
+                                'Settings',
+                                [
+                                  'Configure business details and currency.',
+                                  'Set up printer and hardware preferences.',
+                                  'Manage tax rates and application theme.',
+                                  'Backup and restore your database.'
+                                ],
+                                () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const SettingsScreen())))),
 
                         // 13. Support
-                        if (_hasPerm(AppPermissions.supportView))
-                          _ModuleCard(
-                              icon: Icons.help_outline_rounded,
-                              label: 'Support',
-                              color: const Color(0xFFF59E0B),
-                              onTap: () => _handleModuleTap(
-                                  'support',
-                                  'Support',
-                                  [
-                                    'Contact technical support for help.',
-                                    'View tutorials and guides.',
-                                    'Report bugs or request new features.',
-                                    'Check for application updates.'
-                                  ],
-                                  () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const SupportScreen())))),
+                        _ModuleCard(
+                            icon: Icons.help_outline_rounded,
+                            label: 'Support',
+                            color: const Color(0xFFF59E0B),
+                            onTap: () => _handleModuleTap(
+                                'support',
+                                'Support',
+                                [
+                                  'Contact technical support for help.',
+                                  'View tutorials and guides.',
+                                  'Report bugs or request new features.',
+                                  'Check for application updates.'
+                                ],
+                                () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const SupportScreen())))),
 
                         // 14. Customers
-                        if (_hasPerm(AppPermissions.customerManage))
-                          _ModuleCard(
-                              icon: Icons.groups_outlined,
-                              label: 'Customers',
-                              color: const Color(0xFF06B6D4),
-                              onTap: () => _handleModuleTap(
-                                  'customers',
-                                  'Customers',
-                                  [
-                                    'Maintain a database of your customers.',
-                                    'Track individual purchase history.',
-                                    'Monitor customer credit and balances.',
-                                    'Reward frequent shoppers.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const CustomerListScreen()))
-                                      .then((_) => _loadStats()))),
+                        _ModuleCard(
+                            icon: Icons.groups_outlined,
+                            label: 'Customers',
+                            color: const Color(0xFF06B6D4),
+                            onTap: () => _handleModuleTap(
+                                'customers',
+                                'Customers',
+                                [
+                                  'Maintain a database of your customers.',
+                                  'Track individual purchase history.',
+                                  'Monitor customer credit and balances.',
+                                  'Reward frequent shoppers.'
+                                ],
+                                () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const CustomerListScreen()))
+                                    .then((_) => _loadStats()))),
 
-                        // 15. Gift Cards
-                        if (_hasPerm(AppPermissions.giftCards))
-                          _ModuleCard(
-                              icon: Icons.card_giftcard_outlined,
-                              label: 'Gift Cards',
-                              color: const Color(0xFF14B8A6),
-                              onTap: () => _handleModuleTap(
-                                  'gift_cards',
-                                  'Gift Cards',
-                                  [
-                                    'Create and issue gift cards.',
-                                    'Track gift card balances and usage.',
-                                    'Accept gift cards as payment.',
-                                    'Boost sales with prepaid cards.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const GiftCardsScreen()))
-                                      .then((_) => setState(() {})))),
-
-                        // 16. Loyalty
-                        if (_hasPerm(AppPermissions.loyalty))
-                          _ModuleCard(
-                              icon: Icons.loyalty_outlined,
-                              label: 'Loyalty',
-                              color: const Color(0xFFEAB308),
-                              onTap: () => _handleModuleTap(
-                                  'loyalty',
-                                  'Loyalty',
-                                  [
-                                    'Set up a customer loyalty program.',
-                                    'Award points for customer purchases.',
-                                    'Allow points redemption for discounts.',
-                                    'Increase customer retention.'
-                                  ],
-                                  () => Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                              builder: (_) =>
-                                                  const LoyaltyScreen()))
-                                      .then((_) => setState(() {})))),
+                        // 15. Bank
+                        _ModuleCard(
+                            icon: Icons.account_balance_outlined,
+                            label: 'Bank',
+                            color: const Color(0xFF7C3AED),
+                            onTap: () => _handleModuleTap(
+                                'bank',
+                                'Bank',
+                                [
+                                  'Manage your bank accounts and transactions.',
+                                  'Record deposits, withdrawals, and transfers.',
+                                  'Track bank balances in real time.',
+                                  'View detailed transaction history.'
+                                ],
+                                () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const BankManagementScreen())))),
                       ],
                     ),
                     const SizedBox(height: 40),
@@ -1514,7 +1055,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 Expanded(
                   child: Text('$moduleName Guide',
                       style: TextStyle(
-                          color: theme.textPrimary, fontWeight: FontWeight.bold)),
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.bold)),
                 ),
               ],
             ),

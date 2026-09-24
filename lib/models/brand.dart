@@ -1,7 +1,7 @@
 class Brand {
   final dynamic id;
   final dynamic businessId;
-  final dynamic branchId;
+
   final dynamic userId;
   final String name;
   final int status;
@@ -12,7 +12,7 @@ class Brand {
   Brand({
     this.id,
     required this.businessId,
-    this.branchId,
+
     this.userId,
     required this.name,
     this.status = 1,
@@ -25,7 +25,7 @@ class Brand {
     return Brand(
       id: map['id'],
       businessId: map['business_id'],
-      branchId: map['branch_id'],
+
       userId: map['user_id'],
       name: map['name'] ?? '',
       status: map['status'] ?? 1,
@@ -39,7 +39,7 @@ class Brand {
     return {
       'id': id,
       'business_id': businessId,
-      'branch_id': branchId,
+
       'user_id': userId,
       'name': name,
       'status': status,

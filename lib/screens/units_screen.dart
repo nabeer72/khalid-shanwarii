@@ -25,7 +25,60 @@ class _UnitsScreenState extends State<UnitsScreen> {
 
   Future<void> _loadUnits() async {
     setState(() => _isLoading = true);
-    final units = await db.getUnits();
+    var units = await db.getUnits();
+
+    // FAIL-SAFE: If units list is empty, auto-seed the standard units list
+    if (units.isEmpty) {
+      final standardUnits = [
+        {'name': 'Piece', 'short_name': 'pc'},
+        {'name': 'Pack', 'short_name': 'pk'},
+        {'name': 'Box', 'short_name': 'bx'},
+        {'name': 'Kilogram', 'short_name': 'kg'},
+        {'name': 'Gram', 'short_name': 'g'},
+        {'name': 'Liter', 'short_name': 'L'},
+        {'name': 'Half Liter', 'short_name': '0.5L'},
+        {'name': '1 Liter', 'short_name': '1L'},
+        {'name': '1.5 Liter', 'short_name': '1.5L'},
+        {'name': '2 Liter', 'short_name': '2L'},
+        {'name': 'Small Bottle', 'short_name': 's-btl'},
+        {'name': 'Large Bottle', 'short_name': 'l-btl'},
+        {'name': 'Carton', 'short_name': 'ctn'},
+        {'name': 'Dozen', 'short_name': 'doz'},
+        {'name': 'Foot', 'short_name': 'ft'},
+        {'name': 'Meter', 'short_name': 'm'},
+        {'name': 'Yard', 'short_name': 'yd'},
+        {'name': 'Bag', 'short_name': 'bag'},
+        {'name': 'Bottle', 'short_name': 'btl'},
+        {'name': 'Plate', 'short_name': 'plt'},
+        {'name': 'Nan', 'short_name': 'nan'},
+        {'name': 'Roti', 'short_name': 'roti'},
+      ];
+      for (var u in standardUnits) {
+        await db.insertUnit({'name': u['name'], 'short_name': u['short_name'], 'status': 1});
+      }
+      units = await db.getUnits();
+    } else {
+      // Ensure the 6 new volume/bottle units exist
+      const ensure = [
+        {'name': 'Half Liter', 'short_name': '0.5L'},
+        {'name': '1 Liter', 'short_name': '1L'},
+        {'name': '1.5 Liter', 'short_name': '1.5L'},
+        {'name': '2 Liter', 'short_name': '2L'},
+        {'name': 'Small Bottle', 'short_name': 's-btl'},
+        {'name': 'Large Bottle', 'short_name': 'l-btl'},
+      ];
+      bool changed = false;
+      for (var u in ensure) {
+        final exists = units.any((x) =>
+            x['name'].toString().toLowerCase() == u['name'].toString().toLowerCase());
+        if (!exists) {
+          await db.insertUnit({'name': u['name'], 'short_name': u['short_name'], 'status': 1});
+          changed = true;
+        }
+      }
+      if (changed) units = await db.getUnits();
+    }
+
     setState(() {
       _units = units;
       _isLoading = false;

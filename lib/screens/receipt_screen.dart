@@ -569,7 +569,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             ),
                             const SizedBox(height: 6),
                             const Text(
-                              'Powered by SATA Technologies',
+                              'Powered by Khalid Shinwari',
                               style: TextStyle(
                                 color: Color(0xFF9CA3AF),
                                 fontSize: 9,

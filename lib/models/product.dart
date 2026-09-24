@@ -5,7 +5,7 @@ class Product {
   final dynamic id;
   final dynamic businessId;
   final dynamic userId;
-  final dynamic branchId;
+
   final dynamic categoryId;
   final dynamic subCategoryId;
   final dynamic brandId;
@@ -32,7 +32,7 @@ class Product {
     this.id,
     required this.businessId,
     this.userId,
-    this.branchId,
+
     this.categoryId,
     this.subCategoryId,
     this.brandId,
@@ -57,7 +57,7 @@ class Product {
       id: map['id'],
       businessId: map['business_id'],
       userId: map['user_id'],
-      branchId: map['branch_id'],
+
       categoryId: map['category_id'] ?? map['categoryId'],
       subCategoryId: map['sub_category_id'],
       brandId: map['brand_id'],
@@ -86,7 +86,7 @@ class Product {
       'id': id,
       'business_id': businessId,
       'user_id': userId,
-      'branch_id': branchId,
+
       'category_id': categoryId,
       'sub_category_id': subCategoryId,
       'brand_id': brandId,

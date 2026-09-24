@@ -738,7 +738,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     final openingAmount =
                         double.tryParse(balanceCtrl.text.trim()) ?? 0.0;
                     final supplierData = {
-                      'branch_id': BusinessConfig.instance.branchId,
                       'name': nameCtrl.text.trim(),
                       'contact_person': contactCtrl.text.trim(),
                       'phone': phoneCtrl.text.trim(),

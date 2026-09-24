@@ -8,7 +8,7 @@ class ReportService {
     final pdf = pw.Document();
     final activeShift = data['activeShift'] as Map?;
     final totals = data['totals'] as Map?;
-    final businessName = data['businessName']?.toString() ?? 'SATA POS';
+    final businessName = data['businessName']?.toString() ?? 'Khalid Shinwari';
     final currency = data['currency']?.toString() ?? '\$';
 
     if (activeShift == null || totals == null) {

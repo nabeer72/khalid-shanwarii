@@ -492,13 +492,15 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _formSpacer() => const SizedBox(height: _formGap);
 
-  Widget _buildFormRow(List<Widget> children) {
+  Widget _buildFormRow(List<Widget?> children) {
+    final valid = children.whereType<Widget>().where((w) => w is! SizedBox).toList();
+    if (valid.isEmpty) return const SizedBox.shrink();
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        for (var i = 0; i < children.length; i++) ...[
+        for (var i = 0; i < valid.length; i++) ...[
           if (i > 0) const SizedBox(width: _formGap),
-          Expanded(child: children[i]),
+          Expanded(child: valid[i]),
         ],
       ],
     );
@@ -600,7 +602,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
     String stockLabel = 'Stock Quantity',
     Widget? wholesaleField,
   }) {
-    final stockField = _buildStockQuantityField(label: stockLabel);
+    final stockField = _controller.isNonQuantityUnit ? const SizedBox.shrink() : _buildStockQuantityField(label: stockLabel);
     final wholesale = wholesaleField ??
         _buildTextField(
           controller: _controller.wholesalePrice,
@@ -618,14 +620,16 @@ class _AddProductScreenState extends State<AddProductScreen> {
         );
 
     if (isWide) {
-      return _buildFormRow([wholesale, stockField]);
+      return _buildFormRow([wholesale, _controller.isNonQuantityUnit ? null : stockField]);
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         wholesale,
-        _formSpacer(),
-        stockField,
+        if (!_controller.isNonQuantityUnit) ...[
+          _formSpacer(),
+          stockField,
+        ],
       ],
     );
   }
@@ -709,31 +713,37 @@ class _AddProductScreenState extends State<AddProductScreen> {
   }
 
   Widget _buildStockAlertAndDiscountRow({required bool isWide}) {
-    final alertField = _buildStockAlertField();
+    final alertField = _controller.isNonQuantityUnit ? const SizedBox.shrink() : _buildStockAlertField();
     final discountField = _buildDiscountField();
-    final mfgField = _buildManufactureDateField();
-    final expireField = _buildExpireDateField();
+    final mfgField = _controller.isNonQuantityUnit ? const SizedBox.shrink() : _buildManufactureDateField();
+    final expireField = _controller.isNonQuantityUnit ? const SizedBox.shrink() : _buildExpireDateField();
 
     if (isWide) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildFormRow([alertField, discountField]),
-          _formSpacer(),
-          _buildFormRow([mfgField, expireField]),
+          _buildFormRow([_controller.isNonQuantityUnit ? null : alertField, discountField]),
+          if (!_controller.isNonQuantityUnit) ...[
+            _formSpacer(),
+            _buildFormRow([mfgField, expireField]),
+          ]
         ],
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        alertField,
-        _formSpacer(),
+        if (!_controller.isNonQuantityUnit) ...[
+          alertField,
+          _formSpacer(),
+        ],
         discountField,
-        _formSpacer(),
-        mfgField,
-        _formSpacer(),
-        expireField,
+        if (!_controller.isNonQuantityUnit) ...[
+          _formSpacer(),
+          mfgField,
+          _formSpacer(),
+          expireField,
+        ],
       ],
     );
   }
@@ -1158,12 +1168,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
             items: [
               {'value': null, 'label': 'No Unit'},
               ..._controller.units
-                .where((u) {
-                  final bid = BusinessConfig.instance.businessId?.toString();
-                  final unitBid = u['business_id']?.toString();
-                  return _controller.selectedUnitIds.contains(u['id']) ||
-                         (unitBid != null && unitBid != 'null' && unitBid == bid);
-                })
                 .map((u) => {'value': u['id'], 'label': (u['name'] ?? '') as String})
                 .toList(),
             ],

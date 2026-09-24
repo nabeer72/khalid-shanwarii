@@ -143,14 +143,13 @@ mixin SuppliersCrud on CommonCrud {
           [amountLeftToApply, payback['supplier_credit_purchase_id'], ...getBusinessArgs()],
         );
       } else {
-        // "Floating" payback: apply to oldest open credit purchases for this supplier IN THIS BRANCH
+        // "Floating" payback: apply to oldest open credit purchases for this supplier
         final supplierId = payback['supplier_id'];
-        final branchId = payback['branch_id'] ?? getCurrentBranchId();
         
         final List<Map<String, dynamic>> openPurchases = await txn.query(
           'supplier_credit_purchases',
-          where: 'supplier_id = ? AND branch_id = ? AND remaining_balance > 0 AND status = 1${getBusinessFilter()}',
-          whereArgs: [supplierId, branchId, ...getBusinessArgs()],
+          where: 'supplier_id = ? AND remaining_balance > 0 AND status = 1${getBusinessFilter()}',
+          whereArgs: [supplierId, ...getBusinessArgs()],
           orderBy: 'created_at ASC',
         );
 

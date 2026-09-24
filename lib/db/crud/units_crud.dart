@@ -10,8 +10,26 @@ mixin UnitsCrud on CommonCrud {
     final branchArgs = getBranchArgs();
     
     final bid = BusinessConfig.instance.businessId;
-    String query = 'SELECT * FROM units WHERE status = 1${getBusinessFilter()}$branchFilter ORDER BY name ASC';
-    List<dynamic> args = [...getBusinessArgs(), ...branchArgs];
+    final uid = BusinessConfig.instance.userId;
+
+    final String businessFilter;
+    final List<dynamic> businessArgs;
+
+    if (bid == null && uid == null) {
+      businessFilter = ' AND (business_id IS NULL OR business_id IS NOT NULL)';
+      businessArgs = [];
+    } else {
+      // Include rows matching (bid, uid) exactly, plus rows where both are NULL (master seed)
+      businessFilter =
+          ' AND ((business_id IS ? AND user_id IS ?) OR (business_id IS NULL AND user_id IS NULL))';
+      businessArgs = [
+        (bid is int || bid == null) ? bid : int.tryParse(bid.toString()),
+        (uid is int || uid == null) ? uid : int.tryParse(uid.toString()),
+      ];
+    }
+
+    String query = 'SELECT * FROM units WHERE status = 1$businessFilter$branchFilter ORDER BY name ASC';
+    List<dynamic> args = [...businessArgs, ...branchArgs];
     
     return await db.rawQuery(query, args);
   }

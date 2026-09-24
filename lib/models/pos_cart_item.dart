@@ -1,11 +1,18 @@
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
+import 'package:mobile_app/models/deal.dart';
+import 'package:mobile_app/models/deal_item.dart';
 
 class POSCartItem {
-  final String cartItemId; // product_id + "_" + stock_id
+  final String cartItemId; // product_id + "_" + stock_id or "deal_" + deal_id
   final int? saleItemId; // ID from sale_items table for returns
-  final Product product;
-  final Stock stock;
+  final Product? product;
+  final Stock? stock;
+  
+  // Deal support
+  final bool isDeal;
+  final Deal? deal;
+  final List<DealItem>? dealItems;
   double quantity;
   double price;
   double _discount = 0;
@@ -30,8 +37,11 @@ class POSCartItem {
   POSCartItem({
     required this.cartItemId,
     this.saleItemId,
-    required this.product,
-    required this.stock,
+    this.product,
+    this.stock,
+    this.isDeal = false,
+    this.deal,
+    this.dealItems,
     this.quantity = 1,
     this.price = 0,
     double discount = 0,
@@ -75,18 +85,20 @@ class POSCartItem {
     return {
       'cart_item_id': cartItemId,
       'sale_item_id': saleItemId,
-      'product_id': product.id,
-      'id': product.id,
-      'stock_id': stock.id,
-      'name': product.name,
+      'product_id': isDeal ? null : product?.id,
+      'id': isDeal ? deal?.id : product?.id,
+      'stock_id': isDeal ? null : stock?.id,
+      'name': isDeal ? deal?.name : product?.name,
       'price': price,
       'quantity': quantity,
       'subtotal': subtotal,
       'isWeight': isWeight,
-      'emoji': product.image,
-      'barcode': stock.barcode,
+      'emoji': isDeal ? '🎁' : product?.image,
+      'barcode': isDeal ? '' : stock?.barcode,
       'discount': discount,
-      'discount_limit': stock.discountLimit,
+      'discount_limit': isDeal ? 0 : stock?.discountLimit,
+      'is_deal': isDeal ? 1 : 0,
+      'deal_id': deal?.id,
     };
   }
 
@@ -102,6 +114,9 @@ class POSCartItem {
       saleItemId: saleItemId ?? this.saleItemId,
       product: product,
       stock: stock,
+      isDeal: isDeal,
+      deal: deal,
+      dealItems: dealItems,
       quantity: quantity ?? this.quantity,
       price: price ?? this.price,
       discount: discount ?? this.discount,

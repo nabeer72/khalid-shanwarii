@@ -1,10 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 
-import 'package:mobile_app/models/branch.dart';
+
 
 // Assuming you have these available — adjust imports if needed
 // import 'package:mobile_app/models/employee.dart';           // if you have Employee model
@@ -24,8 +23,7 @@ class AddEmployeeController with ChangeNotifier {
   List<int> selectedRoleIds = [];
   List<Map<String, dynamic>> roles = [];
   int status = 1; // 1 = active, 0 = inactive
-  int? selectedBranchId;
-  List<Branch> branches = [];
+
   List<String> selectedRolePermissions = [];
 
   bool _isLoading = false;
@@ -41,15 +39,13 @@ class AddEmployeeController with ChangeNotifier {
     final emp = initialEmployee;
     if (emp != null) {
       status = emp.isActive ? 1 : 0;
-      selectedBranchId = emp.branchId;
-      selectedRoleIds = List<int>.from(emp.roleIds);
     }
 
     _loadInitialData();
   }
 
   Future<void> _loadInitialData() async {
-    await _loadBranches();
+
     await _loadRoles();
   }
 
@@ -77,36 +73,7 @@ class AddEmployeeController with ChangeNotifier {
     selectedRolePermissions = allPerms.toList();
   }
 
-  Future<void> _loadBranches() async {
-    try {
-      final data = await DatabaseHelper.instance.getAllBranches();
-      // Ensure the currently selected branch (including main) is present in the list.
-      final currentId = BusinessConfig.instance.branchId;
-      if (currentId != null && !data.any((b) => b['id'] == currentId)) {
-        // Fetch the branch explicitly by ID and prepend it.
-        final mainBranch = await DatabaseHelper.instance.getBranchById(currentId);
-        if (mainBranch != null) {
-          data.insert(0, mainBranch);
-        }
-      }
-      branches = data.map((b) => Branch.fromMap(b)).toList();
-      
-      // Default to business branch if nothing is currently selected
-      if (selectedBranchId == null && currentId != null) {
-        selectedBranchId = currentId;
-      }
 
-      // If the pre-selected branch no longer exists, clear the selection
-      if (selectedBranchId != null) {
-        if (!branches.any((b) => b.id == selectedBranchId)) {
-          selectedBranchId = null;
-        }
-      }
-      notifyListeners();
-    } catch (e) {
-      print('Error loading branches: $e');
-    }
-  }
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -159,10 +126,7 @@ class AddEmployeeController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setBranch(int? branchId) {
-    selectedBranchId = branchId;
-    notifyListeners();
-  }
+
 
   Future<bool> save() async {
     _isLoading = true;
@@ -190,14 +154,11 @@ class AddEmployeeController with ChangeNotifier {
       final empMap = {
         'id': initialEmployee?.id,
         'name': name.text.trim(),
-        'role': roleName, 
+        'role': roleName,
         'pin': password.text.trim().isEmpty ? null : password.text.trim(),
-        'email': email.text.trim().toLowerCase(), 
+        'email': email.text.trim().toLowerCase(),
         'phone': phone.text.trim().isEmpty ? null : phone.text.trim(),
         'status': status,
-        'role_id': selectedRoleIds.isNotEmpty ? selectedRoleIds.first : null,
-        'branch_id': selectedBranchId,
-        'permissions': jsonEncode(initialEmployee?.permissions ?? []), // Keep existing or empty if new
         'updated_at': DateTime.now().toIso8601String(),
       };
 

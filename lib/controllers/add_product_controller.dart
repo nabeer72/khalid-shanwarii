@@ -6,7 +6,7 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/models/branch.dart';
+
 import 'package:mobile_app/models/brand.dart';
 import 'package:mobile_app/db/crud/units_crud.dart';
 import 'package:mobile_app/services/sync_service.dart';
@@ -46,8 +46,7 @@ class AddProductController with ChangeNotifier {
   bool isFavorite = false;
   int status = 1;
   bool _isLoading = true;
-  List<Branch> branches = [];
-  dynamic selectedBranchId;
+
 
   String? _errorMessage;
   List<Brand> brands = [];
@@ -109,7 +108,7 @@ class AddProductController with ChangeNotifier {
     selectedSubCategoryId = initialProduct?.subCategoryId;
     isFavorite = initialProduct?.isFavorite ?? false;
     status = initialProduct?.status ?? 1;
-    selectedBranchId = initialProduct?.branchId ?? BusinessConfig.instance.branchId;
+
     selectedBrandId = initialProduct?.brandId;
     selectedUnitId = initialProduct?.unitId;
     if (selectedUnitId != null) {
@@ -189,6 +188,13 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
   }
 
+  bool get isNonQuantityUnit {
+    if (selectedUnitId == null) return false;
+    final unit = units.firstWhere((u) => u['id'] == selectedUnitId, orElse: () => {});
+    final name = (unit['name'] ?? '').toString().toLowerCase();
+    return ['plate', 'nan', 'roti', 'kilogram', 'kg'].contains(name);
+  }
+
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isEditMode => initialProduct != null;
@@ -265,24 +271,37 @@ class AddProductController with ChangeNotifier {
   }
 
   Future<void> _fetchUnits() async {
+    // Cleanup 'Botel' mistake if it was inserted previously
+    final db = await DatabaseHelper.instance.database;
+    await db.delete('units', where: "name = 'Botel'");
+
     List<Map<String, dynamic>> allUnits = await DatabaseHelper.instance.getAllUnitsWithBusiness();
     
     // FAIL-SAFE: If database is empty, auto-seeding standard units locally
+    final standardUnits = [
+      {'name': 'Piece', 'short_name': 'pc'},
+      {'name' : 'Pack', 'short_name': 'pk'},
+      {'name' : 'Box', 'short_name' : 'bx'},
+      {'name' : 'Kilogram', 'short_name': 'kg'},
+      {'name' : 'Gram', 'short_name' : 'g'},
+      {'name' : 'Liter', 'short_name': 'L'},
+      {'name': 'Half Liter', 'short_name': '0.5L'},
+      {'name': '1 Liter', 'short_name': '1L'},
+      {'name': '1.5 Liter', 'short_name': '1.5L'},
+      {'name': '2 Liter', 'short_name': '2L'},
+      {'name': 'Small Bottle', 'short_name': 's-btl'},
+      {'name': 'Large Bottle', 'short_name': 'l-btl'},
+      {'name' : 'Carton', 'short_name': 'ctn'},
+      {'name' : 'Dozen', 'short_name': 'doz'},
+      {'name' : 'Bag', 'short_name': 'bag'},
+      {'name' : 'Bottle', 'short_name': 'btl'},
+      {'name' : 'Plate', 'short_name': 'plt'},
+      {'name' : 'Nan', 'short_name': 'nan'},
+      {'name' : 'Roti', 'short_name': 'roti'},
+    ];
+
     if (allUnits.isEmpty) {
       if (kDebugMode) print('📦 [UI] Local units empty, auto-seeding standard units...');
-      final standardUnits = [
-        {'name': 'Piece', 'short_name': 'pc'},
-        {'name' : 'Pack', 'short_name': 'pk'},
-        {'name' : 'Box', 'short_name' : 'bx'},
-        {'name' : 'Kilogram', 'short_name': 'kg'},
-        {'name' : 'Gram', 'short_name' : 'g'},
-        {'name' : 'Liter', 'short_name': 'L'},
-        {'name' : 'Carton', 'short_name': 'ctn'},
-        {'name' : 'Dozen', 'short_name': 'doz'},
-        {'name' : 'Bag', 'short_name': 'bag'},
-        {'name' : 'Bottle', 'short_name': 'btl'},
-      ];
-
       for (var unit in standardUnits) {
         await DatabaseHelper.instance.insertUnit({
           ...unit,
@@ -292,6 +311,28 @@ class AddProductController with ChangeNotifier {
       // Refresh after seeding
       await loadCategories();
       return;
+    } else {
+      // Ensure custom units requested by user are present even if DB was already seeded
+      const requiredUnits = [
+        'Plate', 'Nan', 'Roti',
+        'Half Liter', '1 Liter', '1.5 Liter', '2 Liter',
+        'Small Bottle', 'Large Bottle',
+      ];
+      bool addedNew = false;
+      for (var requiredUnit in requiredUnits) {
+        if (!allUnits.any((u) => u['name'].toString().toLowerCase() == requiredUnit.toLowerCase())) {
+          final unitData = standardUnits.firstWhere((u) => u['name'] == requiredUnit,
+              orElse: () => {'name': requiredUnit, 'short_name': ''});
+          await DatabaseHelper.instance.insertUnit({
+            ...unitData,
+            'status': 1,
+          });
+          addedNew = true;
+        }
+      }
+      if (addedNew) {
+        allUnits = await DatabaseHelper.instance.getAllUnitsWithBusiness();
+      }
     }
 
     final bid = BusinessConfig.instance.businessId;
@@ -495,14 +536,12 @@ class AddProductController with ChangeNotifier {
       int newId;
       if (parentId == null) {
         newId = await DatabaseHelper.instance.insertCategory({
-          'business_id': BusinessConfig.instance.businessId!,
           'name': name,
           'status': 1,
           'updated_at': DateTime.now().toIso8601String(),
         });
       } else {
         newId = await DatabaseHelper.instance.insertSubCategory({
-          'business_id': BusinessConfig.instance.businessId!,
           'category_id': parentId,
           'name': name,
           'status': 1,
@@ -512,17 +551,9 @@ class AddProductController with ChangeNotifier {
       if (kDebugMode) print('✅ [CONTROLLER] Category/Sub added with ID: $newId');
 
       if (parentId == null) {
-        final newCat = ProductCategory(
-          id: newId,
-          businessId: BusinessConfig.instance.businessId!,
-          name: name,
-          parentId: null,
-          status: 1,
-        );
-        categories.add(newCat);
-        selectedCategory = newCat.id;
-        subCategories = []; // Reset subcategories when parent changes
-        selectedSubCategoryId = null;
+        if (kDebugMode) print('📂 [CONTROLLER] Reloading categories for new ID: $newId');
+        selectedCategory = newId;
+        await _fetchCategories();
       } else {
         if (kDebugMode) print('📂 [CONTROLLER] Reloading subcategories for new ID: $newId under parent: $parentId');
         await reloadSubCategories(selectId: newId, forCategoryId: parentId);
@@ -587,10 +618,7 @@ class AddProductController with ChangeNotifier {
     notifyListeners();
   }
 
-  void setBranch(dynamic value) {
-    selectedBranchId = value;
-    notifyListeners();
-  }
+
 
   Future<Map<String, dynamic>> saveProduct() async {
     _errorMessage = null;
@@ -651,29 +679,11 @@ class AddProductController with ChangeNotifier {
 
     final productId = isEditMode ? initialProduct!.id : null;
 
-    // [SUBSCRIPTION CHECK] Verify limits before saving new product
-    if (!isEditMode) {
-      final currentCount = await DatabaseHelper.instance.getProductCount();
-      final canAdd = await BusinessConfig.instance.canAddProduct(currentCount);
-      if (!canAdd) {
-        final plan = BusinessConfig.instance.subscriptionPlanName;
-        final max = BusinessConfig.instance.maxProducts;
-        final status = BusinessConfig.instance.subscriptionStatus;
 
-        if (status != 'active') {
-          _errorMessage = 'Your subscription is $status. Please renew to add products.';
-        } else {
-          _errorMessage = 'You have reached the limit of $max products for your $plan plan. Please upgrade to add more.';
-        }
-        notifyListeners();
-        return {'success': false, 'message': _errorMessage};
-      }
-    }
 
     final productMap = {
       'id': productId,
       'business_id': BusinessConfig.instance.businessId,
-      'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
       'category_id': selectedCategory,
       'sub_category_id': selectedSubCategoryId,
       'brand_id': selectedBrandId,

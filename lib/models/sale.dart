@@ -1,7 +1,7 @@
 class Sale {
   final int? id;
   final int businessId;
-  final int? branchId;
+
   final int? userId;
   final int? customerId;
   final int staffId;
@@ -22,7 +22,7 @@ class Sale {
   Sale({
     this.id,
     required this.businessId,
-    this.branchId,
+
     this.userId,
     this.customerId,
     required this.staffId,
@@ -45,7 +45,7 @@ class Sale {
     return Sale(
       id: map['id'] is int ? map['id'] : int.tryParse(map['id']?.toString() ?? ''),
       businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? '') ?? 0,
-      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
+
       userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? ''),
       customerId: map['customer_id'] is int ? map['customer_id'] : int.tryParse(map['customer_id']?.toString() ?? ''),
       staffId: map['staff_id'] is int ? map['staff_id'] : int.tryParse(map['staff_id']?.toString() ?? '') ?? 0,
@@ -69,7 +69,7 @@ class Sale {
     return {
       'id': id,
       'business_id': businessId,
-      'branch_id': branchId,
+
       'user_id': userId,
       'customer_id': customerId,
       'staff_id': staffId,
@@ -100,7 +100,7 @@ class SaleDetail {
   final double discount;
   final int? businessId;
   final int? userId;
-  final int? branchId;
+  final int? id;
 
   SaleDetail({
     this.id,
@@ -113,7 +113,7 @@ class SaleDetail {
     this.discount = 0.0,
     this.businessId,
     this.userId,
-    this.branchId,
+
   });
 
   factory SaleDetail.fromMap(Map<String, dynamic> map) {
@@ -128,7 +128,7 @@ class SaleDetail {
       discount: (map['discount'] as num?)?.toDouble() ?? 0.0,
       businessId: map['business_id'] is int ? map['business_id'] : int.tryParse(map['business_id']?.toString() ?? ''),
       userId: map['user_id'] is int ? map['user_id'] : int.tryParse(map['user_id']?.toString() ?? ''),
-      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
+
     );
   }
 
@@ -144,7 +144,7 @@ class SaleDetail {
       'discount': discount,
       'business_id': businessId,
       'user_id': userId,
-      'branch_id': branchId,
+
     };
   }
 }

@@ -1,7 +1,7 @@
 class CreditSale {
   final int? id;
   final int businessId;
-  final int branchId;
+
   final int? userId;
   final int customerId;
   final int saleId;
@@ -15,7 +15,7 @@ class CreditSale {
   CreditSale({
     this.id,
     required this.businessId,
-    required this.branchId,
+
     this.userId,
     required this.customerId,
     required this.saleId,
@@ -31,7 +31,7 @@ class CreditSale {
     return CreditSale(
       id: map['id'],
       businessId: map['business_id'] ?? 0,
-      branchId: map['branch_id'] ?? 0,
+
       userId: map['user_id'],
       customerId: map['customer_id'] ?? 0,
       saleId: map['sale_id'] ?? 0,
@@ -48,7 +48,7 @@ class CreditSale {
     return {
       if (id != null) 'id': id,
       'business_id': businessId,
-      'branch_id': branchId,
+
       'user_id': userId,
       'customer_id': customerId,
       'sale_id': saleId,

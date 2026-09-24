@@ -4,7 +4,7 @@ import 'sale.dart';
 class Return {
   final int? id;
   final int? businessId;
-  final int? branchId;
+
   final int? userId;
   final int? saleId;
   final int? customerId;
@@ -28,7 +28,7 @@ class Return {
   Return({
     this.id,
     this.businessId,
-    this.branchId,
+
     this.userId,
     this.saleId,
     this.customerId,
@@ -54,7 +54,7 @@ class Return {
     return {
       'id': id,
       'business_id': businessId,
-      'branch_id': branchId,
+
       'user_id': userId,
       'sale_id': saleId,
       'customer_id': customerId ?? customer?.id,
@@ -78,7 +78,7 @@ class Return {
     return Return(
       id: map['id'],
       businessId: map['business_id'],
-      branchId: map['branch_id'],
+
       userId: map['user_id'],
       saleId: map['sale_id'],
       customerId: map['customer_id'],

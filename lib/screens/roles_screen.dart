@@ -44,26 +44,6 @@ class _RolesScreenState extends State<RolesScreen> {
   void _showRoleDialog([Role? role]) {
     final nameController = TextEditingController(text: role?.name ?? '');
     final descController = TextEditingController(text: role?.description ?? '');
-    int? selectedBranchId = role?.branchId ?? BusinessConfig.instance.branchId;
-
-    // Ensure the selectedBranchId actually exists in the loaded branches list.
-    // If not, fall back to the first available branch, or null if empty.
-    bool branchExists = _controller.branches.any((b) {
-      final bId =
-          b['id'] is int ? b['id'] : int.tryParse(b['id']?.toString() ?? '');
-      return bId == selectedBranchId;
-    });
-
-    if (!branchExists) {
-      if (_controller.branches.isNotEmpty) {
-        selectedBranchId = _controller.branches.first['id'] is int
-            ? _controller.branches.first['id'] as int
-            : int.tryParse(_controller.branches.first['id']?.toString() ?? '');
-      } else {
-        selectedBranchId = null;
-      }
-    }
-
     List<int> selectedPerms = List.from(role?.permissionIds ?? []);
 
     showDialog(
@@ -140,25 +120,7 @@ class _RolesScreenState extends State<RolesScreen> {
                       decoration: theme.glassInputDecoration(
                           'Description', Icons.description_outlined),
                     ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<int?>(
-                      value: selectedBranchId,
-                      dropdownColor: theme.surface,
-                      style: TextStyle(color: theme.textPrimary),
-                      decoration: theme.glassInputDecoration(
-                          'Assign to Branch', Icons.storefront_outlined),
-                      items: [
-                        ..._controller.branches.map((b) => DropdownMenuItem(
-                              value: b['id'] is int
-                                  ? b['id']
-                                  : int.tryParse(b['id']?.toString() ?? ''),
-                              child: Text(b['branch_title'] ?? 'Branch'),
-                            )),
-                      ],
-                      onChanged: (val) =>
-                          setDialogState(() => selectedBranchId = val),
-                    ),
-                    const SizedBox(height: 24),
+// Dropdown removed
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -301,19 +263,10 @@ class _RolesScreenState extends State<RolesScreen> {
                     return;
                   }
 
-                  if (selectedBranchId == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content:
-                              Text('Please select a branch for this role')),
-                    );
-                    return;
-                  }
-
+                  // Branch check removed
                   final newRole = Role(
                     id: role?.id,
                     businessId: BusinessConfig.instance.businessId ?? 0,
-                    branchId: selectedBranchId,
                     name: nameController.text.trim(),
                     description: descController.text.trim(),
                     permissionIds: selectedPerms,

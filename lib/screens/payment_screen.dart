@@ -293,7 +293,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
       final sale = {
         'business_id': BusinessConfig.instance.businessId,
-        'branch_id': BusinessConfig.instance.branchId,
         'customer_id': _selectedCustomer?.id,
         'user_id': BusinessConfig.instance.userId,
         'total': _grandTotal * sign,
@@ -326,7 +325,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (widget.isReturn) {
         final returnData = {
           'business_id': BusinessConfig.instance.businessId,
-          'branch_id': BusinessConfig.instance.branchId,
           'sale_id': widget.originalSaleId,
           'customer_id': _selectedCustomer?.id,
           'user_id': BusinessConfig.instance.userId,
@@ -374,7 +372,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
         final creditSale = {
           'business_id': BusinessConfig.instance.businessId,
-          'branch_id': BusinessConfig.instance.branchId,
           'customer_id': _selectedCustomer!.id,
           'sale_id': saleId,
           'amount': creditAmount,
@@ -393,7 +390,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
         if (_selectedPayment == 'Credit' && _amountTendered > 0) {
           final payment = {
             'business_id': BusinessConfig.instance.businessId,
-            'branch_id': BusinessConfig.instance.branchId,
             'credit_sale_id': creditSaleId,
             'customer_id': _selectedCustomer!.id,
             'amount': _amountTendered,
@@ -406,7 +402,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           // Non-credit method but partial (edge case): record what was paid
           final payment = {
             'business_id': BusinessConfig.instance.businessId,
-            'branch_id': BusinessConfig.instance.branchId,
             'credit_sale_id': creditSaleId,
             'customer_id': _selectedCustomer!.id,
             'amount': _amountTendered,
@@ -421,7 +416,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       final saleForReceipt = {
         'id': saleId,
         'business_id': BusinessConfig.instance.businessId,
-        'branch_id': BusinessConfig.instance.branchId,
         'customer_id': _selectedCustomer?.id,
         'user_id': BusinessConfig.instance.userId,
         'total': _grandTotal * sign,

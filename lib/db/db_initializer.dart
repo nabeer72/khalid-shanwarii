@@ -48,7 +48,7 @@ class DbInitializer {
       return await dbFactory.openDatabase(
         path, 
         options: OpenDatabaseOptions(
-          version: 83,
+          version: 85,
           onCreate: DbTables.createDB,
           onUpgrade: DbMigrations.upgradeDB,
         ),
@@ -60,7 +60,7 @@ class DbInitializer {
     final path = join(dbPath, filePath);
     return await sqlcipher.openDatabase(
       path, 
-      version: 83,
+      version: 85,
       password: password,
       onCreate: DbTables.createDB, 
       onUpgrade: DbMigrations.upgradeDB,

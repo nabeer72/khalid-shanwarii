@@ -24,6 +24,7 @@ class POSCategorySelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
     final categories = [
+      ProductCategory(id: -3, name: 'Deals', icon: '🎁', businessId: 0),
       ProductCategory(id: -1, name: 'Top Selling', icon: '📈', businessId: 0),
       ProductCategory(id: -2, name: 'Recent', icon: '🕐', businessId: 0),
       ProductCategory(id: 0, name: 'All Items', icon: '📝', businessId: 0),
@@ -41,7 +42,7 @@ class POSCategorySelector extends StatelessWidget {
             runSpacing: 8,
             children: [
               ...categories.map((cat) {
-                final catIdStr = cat.id == -1 ? 'top_selling' : (cat.id == -2 ? 'recent' : (cat.id == 0 ? 'all' : cat.id.toString()));
+                final catIdStr = cat.id == -3 ? 'deals' : (cat.id == -1 ? 'top_selling' : (cat.id == -2 ? 'recent' : (cat.id == 0 ? 'all' : cat.id.toString())));
                 final isSelected = controller.selectedCategory == catIdStr;
                 
                 return Material(
@@ -67,7 +68,7 @@ class POSCategorySelector extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                              cat.id == -1 || cat.id == -2 || cat.id == 0
+                              cat.id == -3 || cat.id == -1 || cat.id == -2 || cat.id == 0
                                   ? cat.icon!
                                   : _getCategoryEmoji(cat.icon),
                               style: const TextStyle(fontSize: 14)),
@@ -93,7 +94,8 @@ class POSCategorySelector extends StatelessWidget {
           // Sub-categories row
           if (controller.selectedCategory != 'all' && 
               controller.selectedCategory != 'top_selling' && 
-              controller.selectedCategory != 'recent')
+              controller.selectedCategory != 'recent' &&
+              controller.selectedCategory != 'deals')
             ...[
               const SizedBox(height: 12),
               SingleChildScrollView(

@@ -29,22 +29,19 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   // Premium Dark theme colors
-  static const darkBackground = Color(0xFF0F0F1E);
-  static const darkSurface = Color(0xFF1A1A2E);
-  static const darkCard = Color(0xFF16213E);
-  static const darkPrimary = Color(0xFF0F3460);
-  static const darkAccent = Color(0xFF533483);
-  static const darkHighlight = Color(0xFFBC1823);
-
+  static const darkBackground = Color(0xFF050504);
+  static const darkSurface = Color(0xFF151514);
+  static const darkCard = Color(0xFF1E1E1C);
+  static const darkPrimary = Color(0xFFB8860B);
+  static const darkAccent = Color(0xFF996515);
+  static const darkHighlight = Color(0xFFB8860B);
   // Premium Light theme colors
   static const lightBackground = Color(0xFFF8F9FA);
-  static const lightSurface =
-      Color(0xFFF1F5F9); // Slightly darker for clear visibility
-  static const lightCard =
-      Color(0xFFF1F5F9); // Slightly darker for clear visibility
-  static const lightPrimary = Color(0xFF1A73E8);
-  static const lightAccent = Color(0xFF4285F4);
-  static const lightHighlight = Color(0xFFBC1823);
+  static const lightSurface = Color(0xFFF1F5F9); 
+  static const lightCard = Color(0xFFF1F5F9); 
+  static const lightPrimary = Color(0xFF8B6914);
+  static const lightAccent = Color(0xFF996515);
+  static const lightHighlight = Color(0xFF8B6914);
 
   // Status colors
   static const success = Color(0xFF00D26A);

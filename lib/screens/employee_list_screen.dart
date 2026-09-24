@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -18,9 +16,7 @@ class EmployeeListScreen extends StatefulWidget {
 class _EmployeeListScreenState extends State<EmployeeListScreen> {
   final theme = ThemeProvider.instance;
   List<Employee> _employees = [];
-  // ignore: unused_field
-  Map<dynamic, String> _permissionLabels = {};
-  Map<dynamic, String> _branchNames = {};
+
   StreamSubscription<void>? _dbSubscription;
 
   @override
@@ -42,90 +38,22 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
   Future<void> _loadEmployees() async {
     try {
       final data = await DatabaseHelper.instance.getAllEmployees();
-      // Load roles using the centralized method to ensure branch isolation
-      final roles = await DatabaseHelper.instance.getRoles();
-      final roleMap = <int, Map<String, dynamic>>{};
-      for (var r in roles) {
-        final id = r['id'] is int ? r['id'] as int : int.tryParse(r['id']?.toString() ?? '');
-        if (id != null) roleMap[id] = r;
-      }
-      
+
       final List<Employee> tempEmployees = [];
-      // ignore: unused_local_variable
-      final currentUserId = BusinessConfig.instance.userId;
-
       for (var e in data) {
-        // Removed: if (e['id'] == currentAdminId) continue;
-        // The admin is in the 'users' table, while staff are in the 'employees' table.
-        // Comparing their primary keys is incorrect as they can overlap.
-
-        Set<String> perms = {};
-        // 1. Direct permissions
-        if (e['permissions'] != null && e['permissions'].toString().isNotEmpty) {
-          try {
-            final decoded = e['permissions'] is String ? jsonDecode(e['permissions']) : e['permissions'];
-            if (decoded is List) {
-              perms.addAll(List<String>.from(decoded));
-            }
-          } catch (err) {
-            print('Error decoding permissions for ${e['name']}: $err');
-          }
-        }
-        
-        // 2. Role-based permissions & Role IDs (Multi-Role Support)
-        final roleIds = await DatabaseHelper.instance.getEmployeeRoleIds(e['id']);
-        final Set<String> roleNames = {};
-        for (var rid in roleIds) {
-          final rolePermissions = await DatabaseHelper.instance.getRolePermissions(rid);
-          perms.addAll(rolePermissions.map((p) => p.toString()));
-          
-          final r = roleMap[rid];
-          if (r != null) {
-            roleNames.add(r['name']?.toString().toLowerCase() ?? 'staff');
-          }
-        }
-        
-        // Backward compatibility for display
-        final displayRole = roleNames.isNotEmpty ? roleNames.first : (e['role'] ?? 'cashier');
-
-        // DEBUG: Log merged permissions
-        if (kDebugMode) {
-          print('🔑 [DEBUG] Merged permissions for ${e['name']}: $perms');
-        }
-        
         tempEmployees.add(Employee(
           id: e['id'],
           name: e['name'],
-          role: displayRole,
+          role: e['role'] ?? 'cashier',
           pin: e['pin'],
           email: e['email'],
           phone: e['phone'],
           isActive: e['status'] == 1,
-          permissions: perms.toList(),
-          branchId: e['branch_id'],
-          roleId: roleIds.isNotEmpty ? roleIds.first : null,
-          roleIds: roleIds,
         ));
-      }
-
-      // Load Permission Labels
-      final permsList = await DatabaseHelper.instance.getPermissions();
-      final Map<dynamic, String> labels = {};
-      for (var p in permsList) {
-        labels[p['id'] ?? p['name']] = p['label'] ?? p['name'];
-      }
-
-      // Load Branch Names
-      final branchesList = await DatabaseHelper.instance.getAllBranches();
-      final Map<dynamic, String> bNames = {};
-      for (var b in branchesList) {
-        bNames[b['id']] = b['branch_title'] ?? 'Branch';
       }
 
       if (mounted) {
         setState(() {
-          _permissionLabels = labels;
-          _branchNames = bNames;
           _employees = tempEmployees;
           // Sort: active employees first, then inactive
           _employees.sort((a, b) => b.isActive ? 1 : -1);
@@ -259,34 +187,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                         ),
                       ),
                       // Permissions display removed as per user request
-                      if (controller.branches.isNotEmpty) ...[
-                        const SizedBox(height: 16),
-                        DropdownButtonFormField<int?>(
-                          value: (controller.selectedBranchId == null || controller.branches.any((b) => b.id == controller.selectedBranchId))
-                              ? controller.selectedBranchId
-                              : null,
-                          dropdownColor: theme.surface,
-                          style: TextStyle(color: theme.textPrimary, fontSize: 13),
-                          decoration: theme.glassInputDecoration('Assign to Branch', Icons.storefront_outlined).copyWith(
-                                isDense: true,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                              ),
-                          items: [
-                            const DropdownMenuItem<int?>(
-                              value: null,
-                              child: Text('All Branches (Global)'),
-                            ),
-                            ...controller.branches.map((b) => DropdownMenuItem<int?>(
-                                  value: b.id,
-                                  child: Text(b.branchTitle),
-                                )),
-                          ],
-                          onChanged: (val) {
-                            controller.setBranch(val);
-                            setDialogState(() {});
-                          },
-                        ),
-                      ],
+// Branch dropdown removed
                       const SizedBox(height: 16),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -520,8 +421,8 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                   ),
                                   Wrap(
                                     spacing: 4,
-                                    children: emp.roleIds.map((rid) {
-                                      return Container(
+                                    children: [
+                                      Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: _getRoleColor(emp.role).withOpacity(0.1),
@@ -529,11 +430,11 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                           border: Border.all(color: _getRoleColor(emp.role).withOpacity(0.2)),
                                         ),
                                         child: Text(
-                                          (rid.toString()).toUpperCase(),
+                                          emp.role.toUpperCase(),
                                           style: TextStyle(color: _getRoleColor(emp.role), fontSize: 7, fontWeight: FontWeight.w900),
                                         ),
-                                      );
-                                    }).toList(),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -543,7 +444,7 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                   Padding(
                                     padding: const EdgeInsets.only(top: 2),
                                     child: Text(
-                                      '${emp.phone ?? 'No Phone'} | Branch: ${_branchNames[emp.branchId] ?? 'Global'}',
+                                      emp.phone ?? 'No Phone',
                                       style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
                                     ),
                                   )                                  // Permissions display removed as per user request
@@ -561,7 +462,6 @@ class _EmployeeListScreenState extends State<EmployeeListScreen> {
                                       'name': emp.name,
                                       'role': emp.role,
                                       'pin': emp.pin,
-                                      'permissions': emp.permissions,
                                       'status': v ? 1 : 0,
                                       'updated_at': DateTime.now().toIso8601String(),
                                     };

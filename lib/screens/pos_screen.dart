@@ -8,11 +8,11 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
+import 'package:mobile_app/models/deal_item.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/customer_list_screen.dart';
 import 'package:mobile_app/screens/payment_screen.dart';
 import 'package:mobile_app/models/held_order.dart';
-import 'package:mobile_app/widgets/shift_dialogs.dart';
 import 'package:mobile_app/screens/sales_history_screen.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -329,11 +329,16 @@ class _POSScreenState extends State<POSScreen>
                       child: InkWell(
                         onTap: () {
                           Navigator.pop(ctx);
-                          if (s.quantity <= 0) {
+                          final bool skipStock =
+                              _controller.isNoStockProduct(p);
+                          if (s.quantity <= 0 && !skipStock) {
                             _showStockNotFoundDialog(p, s);
+                          } else if (_controller.isWeightProduct(p)) {
+                            _showWeightDialog(p, s);
                           } else {
                             final success = _controller.addToCart(p, s);
-                            if (!success) _showStockNotFoundDialog(p, s);
+                            if (!success && !skipStock)
+                              _showStockNotFoundDialog(p, s);
                           }
                         },
                         borderRadius: BorderRadius.circular(12),
@@ -1663,12 +1668,15 @@ class _POSScreenState extends State<POSScreen>
       final entry = matchingStocks.first;
       final product = entry.key;
       final stock = entry.value;
+      final bool skipStock = _controller.isNoStockProduct(product);
 
-      if (stock.quantity <= 0) {
+      if (stock.quantity <= 0 && !skipStock) {
         _showStockNotFoundDialog(product, stock);
+      } else if (_controller.isWeightProduct(product)) {
+        _showWeightDialog(product, stock);
       } else {
         final success = _controller.addToCart(product, stock);
-        if (!success) {
+        if (!success && !skipStock) {
           _showStockNotFoundDialog(product, stock);
         }
       }
@@ -1752,8 +1760,10 @@ class _POSScreenState extends State<POSScreen>
                     }
 
                     if (stock == null) return const SizedBox.shrink();
-                    final inStock = stock.quantity > 0;
-                    final bool isLowStock = stock.quantity <= v.stockLimit;
+                    final bool skipStock = _controller.isNoStockProduct(v);
+                    final inStock = skipStock || stock.quantity > 0;
+                    final bool isLowStock =
+                        !skipStock && stock.quantity <= v.stockLimit;
 
                     return Material(
                       color: Colors.transparent,
@@ -1764,10 +1774,14 @@ class _POSScreenState extends State<POSScreen>
                             return;
                           }
                           Navigator.pop(ctx);
-                          final success = _controller.addToCart(v, stock!);
-                          if (!success) {
-                            // ignore: unnecessary_non_null_assertion
-                            _showStockNotFoundDialog(v, stock!);
+                          if (_controller.isWeightProduct(v)) {
+                            _showWeightDialog(v, stock!);
+                          } else {
+                            final success = _controller.addToCart(v, stock!);
+                            if (!success && !skipStock) {
+                              // ignore: unnecessary_non_null_assertion
+                              _showStockNotFoundDialog(v, stock!);
+                            }
                           }
                         },
                         borderRadius: BorderRadius.circular(12),
@@ -2295,11 +2309,14 @@ class _POSScreenState extends State<POSScreen>
       if (targetV.stocks.isEmpty) return;
 
       final stock = targetV.stocks.first;
-      if (stock.quantity <= 0) {
+      final bool skipStock = _controller.isNoStockProduct(targetV);
+      if (stock.quantity <= 0 && !skipStock) {
         _showStockNotFoundDialog(targetV, stock);
+      } else if (_controller.isWeightProduct(targetV)) {
+        _showWeightDialog(targetV, stock);
       } else {
         final success = _controller.addToCart(targetV, stock);
-        if (!success) {
+        if (!success && !skipStock) {
           _showStockNotFoundDialog(targetV, stock);
         }
       }
@@ -2334,6 +2351,18 @@ class _POSScreenState extends State<POSScreen>
               POSProductGrid(
                 controller: _controller,
                 onProductTap: _handleProductTap,
+                onDealTap: (deal) async {
+                  try {
+                    final rawItems =
+                        await DatabaseHelper.instance.getDealItems(deal.id);
+                    final dealItems =
+                        rawItems.map((m) => DealItem.fromMap(m)).toList();
+                    _controller.addDealToCart(deal, dealItems);
+                  } catch (e) {
+                    debugPrint('Deal add error: $e');
+                    _controller.addDealToCart(deal, []);
+                  }
+                },
               ),
               if (_searchCtrl.text.isNotEmpty && _searchFocusNode.hasFocus)
                 Positioned(
@@ -2361,7 +2390,7 @@ class _POSScreenState extends State<POSScreen>
                           itemBuilder: (ctx, i) {
                             final product = _controller.filteredProducts[i];
                             final isInCart = _controller.cart
-                                .any((item) => item.product.id == product.id);
+                                .any((item) => item.product?.id == product.id);
 
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(
@@ -2376,7 +2405,7 @@ class _POSScreenState extends State<POSScreen>
                                     for (int j = 0;
                                         j < _controller.cart.length;
                                         j++) {
-                                      if (_controller.cart[j].product.id ==
+                                      if (_controller.cart[j].product?.id ==
                                           product.id) {
                                         indices.add(j);
                                       }
@@ -2415,7 +2444,7 @@ class _POSScreenState extends State<POSScreen>
                                   for (int j = 0;
                                       j < _controller.cart.length;
                                       j++) {
-                                    if (_controller.cart[j].product.id ==
+                                    if (_controller.cart[j].product?.id ==
                                         product.id) {
                                       indices.add(j);
                                     }
@@ -2483,66 +2512,6 @@ class _POSScreenState extends State<POSScreen>
               },
             ),
           ),
-          if (BusinessConfig.instance.enableShiftManagement) ...[
-            const SizedBox(width: 8),
-            Container(
-              decoration: theme.glassCircleDecoration,
-              child: IconButton(
-                icon: Icon(Icons.logout_rounded,
-                    color: ThemeProvider.error, size: 20),
-                tooltip: 'Clock Out',
-                onPressed: () async {
-                  final activeShift =
-                      await DatabaseHelper.instance.getActiveShift();
-                  if (activeShift != null && mounted) {
-                    final confirm = await showDialog<bool>(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: theme.surface,
-                        title: const Text('Clock Out'),
-                        content: const Text(
-                            'Are you sure you want to clock out? This will end your current shift.'),
-                        actions: [
-                          TextButton(
-                              onPressed: () => Navigator.pop(ctx, false),
-                              child: const Text('No')),
-                          ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                  backgroundColor: ThemeProvider.error),
-                              onPressed: () => Navigator.pop(ctx, true),
-                              child: const Text('Yes, Clock Out')),
-                        ],
-                      ),
-                    );
-
-                    if (confirm != true || !mounted) return;
-
-                    final closingData = await showDialog<Map<String, dynamic>>(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (ctx) => const ClockOutDenominationsDialog(),
-                    );
-
-                    if (closingData == null || !mounted) return;
-
-                    final clockedOut = await showDialog<bool>(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (ctx) => ClockOutDialog(
-                        activeShift: activeShift,
-                        closingCash: closingData['total'],
-                        closingDenominations: closingData['denominations'],
-                      ),
-                    );
-
-                    if (clockedOut == true && mounted) {
-                      Navigator.pop(context);
-                    }
-                  }
-                },
-              ),
-            ),
-          ],
           const SizedBox(width: 12),
           const ShortcutHelpIcon(),
           const SizedBox(width: 8),
@@ -2559,16 +2528,6 @@ class _POSScreenState extends State<POSScreen>
               onPressed: () => setState(() => theme.toggleTheme()),
             ),
           ),
-          if (BusinessConfig.instance.enableShiftManagement) ...[
-            const SizedBox(width: 12),
-            _buildHeaderActionButton(
-              icon: Icons.history_rounded,
-              label: 'Shift History',
-              showLabel: showLabel,
-              color: theme.highlight,
-              onTap: _showShiftHistory,
-            ),
-          ],
           const SizedBox(width: 8),
           _buildHeaderActionButton(
             icon: Icons.receipt_long_rounded,

@@ -13,12 +13,9 @@ class BusinessConfig {
   String businessAddress = '';
   String businessPhone = '';
    dynamic businessId;
-   dynamic branchId;
    dynamic userId;
    dynamic staffId;
   String staffName = '';
-  List<dynamic> activeBranchIds = [];
-  List<dynamic> inactiveBranchIds = [];
   String receiptFooter = 'Thank you!';
   double taxRate = 0.0;
   bool enableTax = false;
@@ -31,17 +28,11 @@ class BusinessConfig {
   bool soundEnabled = true;
   bool hasSeenOnboarding = false;
 
-  // Subscription Info
-  String subscriptionStatus = 'none'; // none, active, expired, pending
-  int? subscriptionPlanId;
-  String subscriptionPlanName = 'No Plan';
-  DateTime? subscriptionEndDate;
-  int? maxBranches;
-  int? maxProducts;
+
   
   // App-wide cached data
   List<dynamic> businessTypes = [];
-  List<dynamic> subscriptionPlans = [];
+
 
   
   final ValueNotifier<String> currencyNotifier = ValueNotifier<String>('\$');
@@ -80,17 +71,13 @@ class BusinessConfig {
 
   bool weightMode = false;
   String weightUnit = 'kg'; // kg, lb
-  bool enableShiftManagement = false;
 
   void reset({bool keepContext = false}) {
     if (!keepContext) {
        businessId = null;
-       branchId = null;
        userId = null;
        staffId = null;
       staffName = '';
-      activeBranchIds = [];
-      inactiveBranchIds = [];
     }
     businessType = 'general';
     businessName = 'My Business';
@@ -110,14 +97,7 @@ class BusinessConfig {
     weightMode = false;
     weightUnit = 'kg';
     hasSeenOnboarding = false;
-    enableShiftManagement = false;
-    
-    subscriptionStatus = 'none';
-    subscriptionPlanId = null;
-    subscriptionPlanName = 'No Plan';
-    subscriptionEndDate = null;
-    maxBranches = null;
-    maxProducts = null;
+
   }
 
 
@@ -125,62 +105,26 @@ class BusinessConfig {
    void setContext({
      required dynamic bid,
      required dynamic uid,
-     dynamic brid,
      String? bName,
      String? bType,
-     List<dynamic>? activeBranches,
    }) {
      businessId = bid;
      userId = uid;
-     branchId = brid;
     if (bName != null) businessName = bName;
     if (bType != null) businessType = bType;
-    if (activeBranches != null) {
-      activeBranchIds = activeBranches;
-    } else if (brid != null) {
-      activeBranchIds = [brid];
-    }
 
     if (bid != null) {
       // Logic to load subscription info from DB will be in loadSettings
     }
   }
 
-  void setSubscription({
-    required String status,
-    int? planId,
-    String? planName,
-    DateTime? endDate,
-    int? branches,
-    int? products,
-  }) {
-    subscriptionStatus = status;
-    subscriptionPlanId = planId;
-    subscriptionPlanName = planName ?? 'No Plan';
-    subscriptionEndDate = endDate;
-    maxBranches = branches;
-    maxProducts = products;
-  }
 
-  bool get isSubscriptionActive {
-    if (subscriptionStatus != 'active') return false;
-    if (subscriptionEndDate != null && subscriptionEndDate!.isBefore(DateTime.now())) {
-      return false;
-    }
-    return true;
-  }
 
-  Future<bool> canAddProduct(int currentCount) async {
-    if (!isSubscriptionActive) return false;
-    if (maxProducts == null) return true;
-    return currentCount < maxProducts!;
-  }
 
-  Future<bool> canAddBranch(int currentCount) async {
-    if (!isSubscriptionActive) return false;
-    if (maxBranches == null) return true;
-    return currentCount < maxBranches!;
-  }
+
+
+
+
 }
 
 /// Mock data store for web testing (in-memory)
@@ -239,10 +183,6 @@ class Employee {
   final String? email;
   final String? phone;
   final bool isActive;
-  final List<String> permissions;
-  final int? branchId;
-  final int? roleId; // Legacy/Primary role
-  final List<int> roleIds;
 
   Employee({
     this.id,
@@ -252,106 +192,9 @@ class Employee {
     this.email,
     this.phone,
     required this.isActive,
-    this.permissions = const [],
-    this.branchId,
-    this.roleId,
-    this.roleIds = const [],
   });
 }
 
-class AppPermissions {
-  static const String posAccess = 'pos_access';
-  static const String newSale = 'new_sale';
-  static const String reportsView = 'reports_view';
-  static const String productManage = 'product_manage';
-  static const String products = 'products';
-  static const String customerManage = 'customer_manage';
-  static const String staffManage = 'staff_manage';
-  static const String settingsManage = 'settings_manage';
-  static const String expensesManage = 'expenses_manage';
-  static const String suppliersManage = 'suppliers_manage';
-  static const String purchasesManage = 'purchases_manage';
-  static const String salesHistory = 'sales_history';
-  static const String giftCards = 'gift_cards';
-  static const String loyalty = 'loyalty';
-  static const String recovery = 'recovery';
-  static const String reportsPrint = 'reports_print';
-  static const String stockView = 'stock_view';
-  static const String supportView = 'support_view';
-  static const String paybackManage = 'payback_manage';
-  static const String branchesManage = 'branches_manage';
-  static const String bankManage = 'bank_manage';
-
-  static const List<String> all = [
-    posAccess,
-    newSale,
-    reportsView,
-    reportsPrint,
-    productManage,
-    products,
-    customerManage,
-    staffManage,
-    settingsManage,
-    expensesManage,
-    suppliersManage,
-    purchasesManage,
-    salesHistory,
-    giftCards,
-    loyalty,
-    recovery,
-    stockView,
-    supportView,
-    paybackManage,
-    branchesManage,
-    bankManage,
-  ];
-
-  static String getLabel(String permission) {
-    switch (permission) {
-      case '1':
-      case posAccess: return 'POS Access';
-      case '2':
-      case newSale: return 'New Sale';
-      case '3':
-      case reportsView: return 'View Reports';
-      case '4':
-      case productManage: return 'Manage Products';
-      case '5':
-      case customerManage: return 'Manage Customers';
-      case '6':
-      case staffManage: return 'Manage Staff';
-      case '7':
-      case settingsManage: return 'Manage Settings';
-      case '8':
-      case expensesManage: return 'Manage Expenses';
-      case '9':
-      case suppliersManage: return 'Manage Suppliers';
-      case '10':
-      case purchasesManage: return 'Manage Purchases';
-      case '11':
-      case salesHistory: return 'View Sales History';
-      case '12':
-      case recovery: return 'Credit Recovery';
-      case '13':
-      case stockView: return 'View Stock Reports';
-      case '14':
-      case giftCards: return 'Manage Gift Cards';
-      case '15':
-      case loyalty: return 'Manage Loyalty';
-      case '16':
-      case supportView: return 'Contact Support';
-      case '17':
-      case paybackManage: return 'Manage Supplier Payback';
-      case '18':
-      case branchesManage: return 'Manage Branches';
-      case '19':
-      case bankManage: return 'Manage Bank';
-      case '20':
-      case reportsPrint: return 'Print Reports';
-      default: return permission;
-    }
-  }
-}
 
 // ... (QuickKey, ExpenseHead, Expense models overlap) ...
 
@@ -365,7 +208,7 @@ class Supplier {
   final String? address;
   final double creditBalance;
   final double openingAmount;
-  final int? branchId;
+
 
   Supplier({
     this.id,
@@ -376,7 +219,7 @@ class Supplier {
     this.address,
     this.creditBalance = 0,
     this.openingAmount = 0,
-    this.branchId,
+
   });
 
   factory Supplier.fromMap(Map<String, dynamic> map) {
@@ -389,7 +232,7 @@ class Supplier {
       address: map['address']?.toString(),
       creditBalance: (map['credit_balance'] as num?)?.toDouble() ?? 0,
       openingAmount: (map['opening_amount'] as num?)?.toDouble() ?? 0,
-      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
+
     );
   }
 
@@ -403,7 +246,7 @@ class Supplier {
       'address': address,
       'credit_balance': creditBalance,
       'opening_amount': openingAmount,
-      'branch_id': branchId,
+
     };
   }
 }
@@ -418,7 +261,7 @@ class Purchase {
   final String? notes;
   final String? paymentType;
   final double totalAmount;
-  final int? branchId;
+
 
   Purchase({
     this.id,
@@ -429,7 +272,7 @@ class Purchase {
     this.notes,
     this.paymentType,
     required this.totalAmount,
-    this.branchId,
+
   });
 
   factory Purchase.fromMap(Map<String, dynamic> map) {
@@ -442,7 +285,7 @@ class Purchase {
       notes: map['notes']?.toString(),
       paymentType: map['payment_type']?.toString(),
       totalAmount: (map['total_amount'] as num?)?.toDouble() ?? 0,
-      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
+
     );
   }
 }
@@ -521,7 +364,7 @@ class Expense {
   final double amount;
   final String? description;
   final DateTime date;
-  final int? branchId;
+
 
   Expense({
     this.id,
@@ -530,7 +373,7 @@ class Expense {
     required this.amount,
     this.description,
     required this.date,
-    this.branchId,
+
   });
 
   factory Expense.fromMap(Map<String, dynamic> map, {String? headName}) {
@@ -541,7 +384,7 @@ class Expense {
       amount: (map['amount'] as num?)?.toDouble() ?? 0,
       description: (map['remarks'] ?? map['remark'] ?? map['description'] ?? map['title'])?.toString(),
       date: DateTime.tryParse(map['date']?.toString() ?? '') ?? DateTime.now(),
-      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
+
     );
   }
 
@@ -552,7 +395,7 @@ class Expense {
       'amount': amount,
       'description': description,
       'date': date.toIso8601String(),
-      'branch_id': branchId,
+
     };
   }
 }

@@ -19,10 +19,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
   List<Product> _products = [];
   // ignore: unused_field
   List<ProductCategory> _categories = [];
+  Set<dynamic> _noStockUnitIds = {};
   bool _loading = true;
   String _searchQuery = '';
   final Set<String> _expandedGroups = {};
   bool _isInactiveView = false;
+
+  bool _isNoStockProduct(Product p) {
+    return p.unitId != null && _noStockUnitIds.contains(p.unitId);
+  }
 
   @override
   void initState() {
@@ -36,9 +41,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
       final productsData =
           await DatabaseHelper.instance.getProducts(includeInactive: true);
       final categoriesData = await DatabaseHelper.instance.getCategories();
+      Set<dynamic> noStock = {};
+      try {
+        final units = await DatabaseHelper.instance.getUnits();
+        const noStockShortNames = {'kg', 'g', 'L', 'l', 'plt', 'nan', 'roti'};
+        const noStockFullNames = {
+          'kilogram',
+          'gram',
+          'liter',
+          'litre',
+          'plate',
+          'nan',
+          'roti'
+        };
+        for (final u in units) {
+          final sn = (u['short_name'] ?? '').toString().trim().toLowerCase();
+          final nm = (u['name'] ?? '').toString().trim().toLowerCase();
+          if (noStockShortNames.contains(sn) || noStockFullNames.contains(nm)) {
+            noStock.add(u['id']);
+          }
+        }
+      } catch (_) {}
 
       if (mounted) {
         setState(() {
+          _noStockUnitIds = noStock;
           _products = productsData.map((pData) {
             final stocksData =
                 List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
@@ -263,6 +290,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         // Aggregate Data
         final totalStock = group.fold(0.0, (sum, p) => sum + p.totalStock);
         final isActive = group.any((p) => p.status == 1);
+        final isNoStock = group.every((p) => _isNoStockProduct(p));
 
         // Collect all Prices
         final Set<double> uniquePrices = {};
@@ -329,7 +357,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Stock: ${totalStock.toStringAsFixed(0)} | ${group.length} variants',
+                                    isNoStock
+                                        ? '${group.length} variants'
+                                        : 'Stock: ${totalStock.toStringAsFixed(0)} | ${group.length} variants',
                                     style: TextStyle(
                                         color: theme.textSecondary,
                                         fontSize: 12,

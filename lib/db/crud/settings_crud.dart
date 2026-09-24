@@ -81,18 +81,7 @@ mixin SettingsCrud {
       BusinessConfig.instance.staffId = int.tryParse(sid);
     }
 
-    var inactiveStr = await storage.read(key: 'inactive_branches');
-    List<int> inactiveIds = [];
-    if (inactiveStr != null) {
-      inactiveIds = inactiveStr.split(',').where((e) => e.isNotEmpty).map((e) => int.tryParse(e)).whereType<int>().toList();
-    }
-    BusinessConfig.instance.inactiveBranchIds = inactiveIds;
 
-    var brIdString = await storage.read(key: 'branch_id');
-    if (BusinessConfig.instance.branchId == null && brIdString != null && brIdString.isNotEmpty && brIdString != 'NONE') {
-      final brIdInt = int.tryParse(brIdString);
-      BusinessConfig.instance.branchId = brIdInt;
-    }
 
     // 2. Load business-specific settings using the now-loaded IDs
     final currency = await getSetting('currency_symbol');
@@ -142,52 +131,11 @@ mixin SettingsCrud {
     final onboarding = await getSetting('has_seen_onboarding');
     if (onboarding != null) BusinessConfig.instance.hasSeenOnboarding = onboarding == '1';
 
-    final shifts = await getSetting('enable_shift_management');
-    if (shifts != null) BusinessConfig.instance.enableShiftManagement = shifts == '1';
 
-    // By default, dynamically compute active branches by explicitly excluding inactive ones.
-    if (inactiveStr == null || brIdString == null || brIdString == 'NONE') {
-      try {
-        final db = await database;
-        final bid = BusinessConfig.instance.businessId;
-        if (bid != null) {
-          final allBranches = await db.query(
-            'branches',
-            columns: ['id'],
-            where: 'status = 1 AND business_id = ?',
-            whereArgs: [bid],
-          );
-          final allBranchIds = allBranches.map((b) => b['id'] as int).toList();
-          BusinessConfig.instance.activeBranchIds =
-              allBranchIds.where((id) => !inactiveIds.contains(id)).toList();
-        }
-      } catch (e) {
-        // Ignore if before migration
-      }
-    }
 
-    print('📦 [DB] Loaded businessId: ${BusinessConfig.instance.businessId}, userId: ${BusinessConfig.instance.userId}, activeBranches: ${BusinessConfig.instance.activeBranchIds}');
 
-    // 3. Load Subscription Info from Businesses table
-    if (BusinessConfig.instance.businessId != null) {
-      final db = await database;
-      final bizResults = await db.query(
-        'businesses',
-        where: 'id = ?',
-        whereArgs: [BusinessConfig.instance.businessId],
-      );
-      if (bizResults.isNotEmpty) {
-        final biz = bizResults.first;
-        BusinessConfig.instance.setSubscription(
-          status: biz['subscription_status']?.toString() ?? 'none',
-          planId: biz['subscription_plan_id'] as int?,
-          planName: biz['subscription_plan_name']?.toString(),
-          endDate: biz['subscription_end_date'] != null ? DateTime.tryParse(biz['subscription_end_date'].toString()) : null,
-          branches: biz['max_branches'] as int?,
-          products: biz['max_products'] as int?,
-        );
-      }
-    }
+
+
 
     // Backfill NULL credit balances for legacy records
     if (BusinessConfig.instance.businessId != null && BusinessConfig.instance.userId != null) {
@@ -213,46 +161,17 @@ mixin SettingsCrud {
         userId ??
         BusinessConfig.instance.userId;
 
-    Future<List<Map<String, dynamic>>> loadBranches(dynamic businessId) async {
-      final db = await database;
-      return db.query(
-        'branches',
-        where: 'status = 1 AND business_id = ?',
-        whereArgs: [businessId],
-      );
-    }
-
-    Map<String, dynamic> pickMainBranch(List<Map<String, dynamic>> branches) {
-      if (branches.isEmpty) return {'id': null};
-      return branches.firstWhere(
-        (b) => b['is_main_branch'] == 1 || b['is_main_branch'] == '1',
-        orElse: () => branches.first,
-      );
-    }
-
-    var branches = await loadBranches(bid);
-    var mainBranch = pickMainBranch(branches);
-
     BusinessConfig.instance.setContext(
       bid: bid,
       uid: aid,
-      brid: mainBranch['id'],
       bName: business['name']?.toString(),
       bType: business['business_type_id']?.toString(),
-      activeBranches: branches.map((b) => b['id']).toList(),
     );
 
     await storage.write(key: 'business_id', value: bid.toString());
     if (aid != null) {
       await storage.write(key: 'user_id', value: aid.toString());
     }
-    if (mainBranch['id'] != null) {
-      await storage.write(
-        key: 'branch_id',
-        value: mainBranch['id'].toString(),
-      );
-    }
-    BusinessConfig.instance.branchId = mainBranch['id'];
 
     if (business['name'] != null) {
       await setSetting('business_name', business['name'].toString());
@@ -261,32 +180,6 @@ mixin SettingsCrud {
       'business_type_id',
       business['business_type_id']?.toString() ?? '1',
     );
-
-    if (syncFromServer) {
-      try {
-        await SyncService().syncPull(forceFull: true);
-      } catch (e) {
-        print('⚠️ [DB] activateBusiness sync failed: $e');
-      }
-
-      branches = await loadBranches(bid);
-      mainBranch = pickMainBranch(branches);
-      BusinessConfig.instance.setContext(
-        bid: bid,
-        uid: aid,
-        brid: mainBranch['id'],
-        bName: business['name']?.toString(),
-        bType: business['business_type_id']?.toString(),
-        activeBranches: branches.map((b) => b['id']).toList(),
-      );
-      if (mainBranch['id'] != null) {
-        await storage.write(
-          key: 'branch_id',
-          value: mainBranch['id'].toString(),
-        );
-        BusinessConfig.instance.branchId = mainBranch['id'];
-      }
-    }
 
     await loadSettings();
     DatabaseHelper.notifyDataChanged(triggerSync: false);

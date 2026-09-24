@@ -3,15 +3,19 @@ import 'package:mobile_app/controllers/pos_controller.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/pos/pos_product_tile.dart';
+import 'package:mobile_app/models/deal.dart';
+import 'package:mobile_app/db/database_helper.dart';
 
 class POSProductGrid extends StatelessWidget {
   final POSController controller;
   final Function(Product) onProductTap;
+  final Function(Deal)? onDealTap;
 
   const POSProductGrid({
     super.key,
     required this.controller,
     required this.onProductTap,
+    this.onDealTap,
   });
 
   @override
@@ -25,7 +29,9 @@ class POSProductGrid extends StatelessWidget {
             : (screenWidth > 800 ? 6 : (screenWidth > 500 ? 4 : 3)));
 
     final filteredProducts = controller.filteredProducts;
-    final int itemCount = _getItemCount(filteredProducts);
+    final int itemCount = controller.selectedCategory == 'deals'
+        ? controller.deals.length
+        : _getItemCount(filteredProducts);
 
     if (itemCount == 0) {
       return _buildEmptyState(theme);
@@ -50,12 +56,14 @@ class POSProductGrid extends StatelessWidget {
     int count = products.length;
     if (controller.selectedSubCategoryId != null) {
       count += 1; // Back button
-    } else if (controller.selectedCategory != 'top_selling' && 
-               controller.selectedCategory != 'recent' && 
-               controller.selectedCategory != 'all') {
+    } else if (controller.selectedCategory != 'top_selling' &&
+        controller.selectedCategory != 'recent' &&
+        controller.selectedCategory != 'all') {
       final subCats = controller.subCategories.where((c) {
         if (c.parentId?.toString() != controller.selectedCategory) return false;
-        final pCount = controller.products.where((p) => p.subCategoryId?.toString() == c.id.toString()).length;
+        final pCount = controller.products
+            .where((p) => p.subCategoryId?.toString() == c.id.toString())
+            .length;
         return pCount > 1;
       }).toList();
       count += subCats.length;
@@ -63,7 +71,11 @@ class POSProductGrid extends StatelessWidget {
     return count;
   }
 
-  Widget _buildGridItem(BuildContext context, int index, List<Product> products, ThemeProvider theme) {
+  Widget _buildGridItem(BuildContext context, int index, List<Product> products,
+      ThemeProvider theme) {
+    if (controller.selectedCategory == 'deals') {
+      return _buildDealTile(context, controller.deals[index], theme);
+    }
     // 1. Back button
     if (controller.selectedSubCategoryId != null) {
       if (index == 0) {
@@ -73,13 +85,15 @@ class POSProductGrid extends StatelessWidget {
     }
 
     // 2. Subcategories
-    if (controller.selectedSubCategoryId == null && 
-        controller.selectedCategory != 'top_selling' && 
-        controller.selectedCategory != 'recent' && 
+    if (controller.selectedSubCategoryId == null &&
+        controller.selectedCategory != 'top_selling' &&
+        controller.selectedCategory != 'recent' &&
         controller.selectedCategory != 'all') {
       final subCats = controller.subCategories.where((c) {
         if (c.parentId?.toString() != controller.selectedCategory) return false;
-        final pCount = controller.products.where((p) => p.subCategoryId?.toString() == c.id.toString()).length;
+        final pCount = controller.products
+            .where((p) => p.subCategoryId?.toString() == c.id.toString())
+            .length;
         return pCount > 1;
       }).toList();
       if (index < subCats.length) {
@@ -101,6 +115,83 @@ class POSProductGrid extends StatelessWidget {
     );
   }
 
+  Widget _buildDealTile(BuildContext context, Deal deal, ThemeProvider theme) {
+    return InkWell(
+      onTap: () => onDealTap?.call(deal),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        decoration: theme.glassDecoration.copyWith(
+          color: theme.isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.white.withOpacity(0.6),
+          border: Border.all(color: theme.cardBorder),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Text('🎁', style: const TextStyle(fontSize: 32)),
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.surface,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: Text(
+                        deal.name,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: theme.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Flexible(
+                      fit: FlexFit.loose,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: Text(
+                          deal.dealPrice.toStringAsFixed(2),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: theme.highlight,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBackTile(ThemeProvider theme) {
     return InkWell(
       onTap: () => controller.setSubCategory(null),
@@ -119,18 +210,17 @@ class POSProductGrid extends StatelessWidget {
                 color: theme.highlight.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.arrow_back_rounded, color: theme.highlight, size: 24),
+              child: Icon(Icons.arrow_back_rounded,
+                  color: theme.highlight, size: 24),
             ),
             const SizedBox(height: 8),
-            Text(
-              'BACK', 
-              style: TextStyle(
-                color: theme.highlight, 
-                fontWeight: FontWeight.w900,
-                fontSize: 12,
-                letterSpacing: 1.5,
-              )
-            ),
+            Text('BACK',
+                style: TextStyle(
+                  color: theme.highlight,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                  letterSpacing: 1.5,
+                )),
           ],
         ),
       ),
@@ -179,29 +269,26 @@ class POSProductGrid extends StatelessWidget {
 
   Widget _buildEmptyState(ThemeProvider theme) {
     return Center(
-      child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: theme.glassCircleDecoration,
-              child: Text(
-                  controller.selectedCategory == 'top_selling' ? '📈' : '📦',
-                  style: const TextStyle(fontSize: 48)),
-            ),
-            const SizedBox(height: 16),
-            Text(
-                controller.selectedCategory == 'top_selling'
-                    ? 'No sales yet'
-                    : 'No products found',
-                style: TextStyle(
-                    color: theme.textPrimary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800)),
-            Text('Try a different category or search',
-                style: TextStyle(
-                    color: theme.textSecondary, fontSize: 13)),
-          ]),
+      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: theme.glassCircleDecoration,
+          child: Text(
+              controller.selectedCategory == 'top_selling' ? '📈' : '📦',
+              style: const TextStyle(fontSize: 48)),
+        ),
+        const SizedBox(height: 16),
+        Text(
+            controller.selectedCategory == 'top_selling'
+                ? 'No sales yet'
+                : 'No products found',
+            style: TextStyle(
+                color: theme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w800)),
+        Text('Try a different category or search',
+            style: TextStyle(color: theme.textSecondary, fontSize: 13)),
+      ]),
     );
   }
 }

@@ -4,43 +4,155 @@ import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'tables.dart';
 
 class DbMigrations {
-  static Future<void> upgradeDB(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 83) {
-      if (kDebugMode) print('Upgrading DB to version 83: Adding tax_enabled and tax_rate to products...');
+  static Future<void> upgradeDB(
+      Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 85) {
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 85: Adding short_name to units + new volume/bottle units...');
+
+      // 1. Ensure short_name column exists in units (older v55 migration lacked it)
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN tax_enabled INTEGER DEFAULT 0');
+        final unitCols = await db.rawQuery('PRAGMA table_info(units)');
+        final unitColNames = unitCols.map((c) => c['name'] as String).toList();
+        if (!unitColNames.contains('short_name')) {
+          await db.execute("ALTER TABLE units ADD COLUMN short_name TEXT");
+        }
       } catch (e) {
-        if (kDebugMode) print('tax_enabled column already exists in products: $e');
+        if (kDebugMode) print('short_name column add skipped: $e');
+      }
+
+      final businesses = await db.query('businesses');
+      final newUnits = [
+        {'name': 'Half Liter', 'short_name': '0.5L'},
+        {'name': '1 Liter', 'short_name': '1L'},
+        {'name': '1.5 Liter', 'short_name': '1.5L'},
+        {'name': '2 Liter', 'short_name': '2L'},
+        {'name': 'Small Bottle', 'short_name': 's-btl'},
+        {'name': 'Large Bottle', 'short_name': 'l-btl'},
+      ];
+
+      await db.transaction((txn) async {
+        for (var business in businesses) {
+          final bId = business['id'];
+          final uid = business['owner_user_id'] ?? business['user_id'];
+          for (var u in newUnits) {
+            // Seed only if unit name does not already exist for this business
+            final existing = await txn.query('units',
+                where: 'business_id IS ? AND name = ?',
+                whereArgs: [bId, u['name']]);
+            if (existing.isEmpty) {
+              await txn.insert('units', {
+                'business_id': bId,
+                'user_id': uid,
+                'name': u['name'],
+                'short_name': u['short_name'],
+                'status': 1,
+                'is_synced': 0,
+                'created_at': DateTime.now().toIso8601String(),
+                'updated_at': DateTime.now().toIso8601String(),
+              });
+            }
+          }
+        }
+      });
+    }
+
+    if (oldVersion < 84) {
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 84: Adding Deals module tables and altering sale_items...');
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS deals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            business_id INTEGER,
+            name TEXT NOT NULL,
+            description TEXT,
+            deal_price REAL DEFAULT 0,
+            start_date TEXT,
+            end_date TEXT,
+            status INTEGER DEFAULT 1,
+            created_at TEXT,
+            updated_at TEXT
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS deal_items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            deal_id INTEGER NOT NULL,
+            product_id INTEGER NOT NULL,
+            quantity REAL DEFAULT 1,
+            unit_price REAL DEFAULT 0,
+            created_at TEXT,
+            updated_at TEXT
+          )
+        ''');
+      } catch (e) {
+        if (kDebugMode) print('Deals tables already exist: $e');
+      }
+
+      try {
+        await db.execute(
+            "ALTER TABLE sale_items ADD COLUMN item_type TEXT DEFAULT 'product'");
+      } catch (e) {
+        if (kDebugMode)
+          print('item_type column already exists in sale_items: $e');
+      }
+
+      try {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN deal_id INTEGER');
+      } catch (e) {
+        if (kDebugMode)
+          print('deal_id column already exists in sale_items: $e');
+      }
+    }
+
+    if (oldVersion < 83) {
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 83: Adding tax_enabled and tax_rate to products...');
+      try {
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN tax_enabled INTEGER DEFAULT 0');
+      } catch (e) {
+        if (kDebugMode)
+          print('tax_enabled column already exists in products: $e');
       }
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN tax_rate REAL DEFAULT 0');
+        await db
+            .execute('ALTER TABLE products ADD COLUMN tax_rate REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('tax_rate column already exists in products: $e');
       }
     }
 
     if (oldVersion < 80) {
-      if (kDebugMode) print('Upgrading DB to version 80: Adding person_name and receipt_image to bank_accounts...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 80: Adding person_name and receipt_image to bank_accounts...');
       try {
-        await db.execute('ALTER TABLE bank_accounts ADD COLUMN person_name TEXT');
+        await db
+            .execute('ALTER TABLE bank_accounts ADD COLUMN person_name TEXT');
       } catch (e) {
-        if (kDebugMode) print('person_name column already exists in bank_accounts: $e');
+        if (kDebugMode)
+          print('person_name column already exists in bank_accounts: $e');
       }
       try {
-        await db.execute('ALTER TABLE bank_accounts ADD COLUMN receipt_image TEXT');
+        await db
+            .execute('ALTER TABLE bank_accounts ADD COLUMN receipt_image TEXT');
       } catch (e) {
-        if (kDebugMode) print('receipt_image column already exists in bank_accounts: $e');
+        if (kDebugMode)
+          print('receipt_image column already exists in bank_accounts: $e');
       }
     }
 
     if (oldVersion < 82) {
-      if (kDebugMode) print('Upgrading DB to version 82: Adding business_type_id and subscription columns to businesses...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 82: Adding business_type_id and subscription columns to businesses...');
       final bizCols = [
         'business_type_id INTEGER',
-        'subscription_status TEXT DEFAULT \'none\'',
-        'subscription_plan_id INTEGER',
-        'subscription_plan_name TEXT',
-        'subscription_end_date TEXT',
         'max_branches INTEGER',
         'max_products INTEGER',
       ];
@@ -54,59 +166,95 @@ class DbMigrations {
     }
 
     if (oldVersion < 81) {
-      if (kDebugMode) print('Upgrading DB to version 81: Resetting bank_accounts sequence...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 81: Resetting bank_accounts sequence...');
       try {
         await db.execute('DELETE FROM bank_accounts');
-        await db.execute("DELETE FROM sqlite_sequence WHERE name = 'bank_accounts'");
+        await db.execute(
+            "DELETE FROM sqlite_sequence WHERE name = 'bank_accounts'");
       } catch (e) {
         if (kDebugMode) print('Error resetting bank_accounts sequence: $e');
       }
     }
 
     if (oldVersion < 64) {
-      if (kDebugMode) print('Upgrading DB to version 64: Renaming admin_id to user_id...');
+      if (kDebugMode)
+        print('Upgrading DB to version 64: Renaming admin_id to user_id...');
       await db.transaction((txn) async {
         final tablesToRenameOnlyAdmin = [
-          'categories', 'subcategories', 'stocks', 'customers', 'employees',
-          'sale_items', 'gift_cards', 'held_orders', 'held_order_items',
-          'return_items', 'expense_heads', 'expenses', 'suppliers', 'purchases',
-          'purchase_items', 'credit_sales', 'credit_payments',
-          'supplier_credit_purchases', 'supplier_paybacks', 'bank_accounts',
-          'roles', 'currency_notes', 'payment_types', 'brands'
+          'categories',
+          'subcategories',
+          'stocks',
+          'customers',
+          'employees',
+          'sale_items',
+          'gift_cards',
+          'held_orders',
+          'held_order_items',
+          'return_items',
+          'expense_heads',
+          'expenses',
+          'suppliers',
+          'purchases',
+          'purchase_items',
+          'credit_sales',
+          'credit_payments',
+          'supplier_credit_purchases',
+          'supplier_paybacks',
+          'bank_accounts',
+          'roles',
+          'currency_notes',
+          'payment_types',
+          'brands'
         ];
 
         final tablesWithCollisions = [
-          'products', 'sales', 'returns', 'shifts', 'branches', 'units'
+          'products',
+          'sales',
+          'returns',
+          'shifts',
+          'branches',
+          'units'
         ];
 
         // 1. Handle tables with collisions (Rename existing user_id to staff_id first)
         for (var table in tablesWithCollisions) {
           try {
-            await txn.execute('ALTER TABLE $table RENAME COLUMN user_id TO staff_id');
-            await txn.execute('ALTER TABLE $table RENAME COLUMN admin_id TO user_id');
+            await txn.execute(
+                'ALTER TABLE $table RENAME COLUMN user_id TO staff_id');
+            await txn.execute(
+                'ALTER TABLE $table RENAME COLUMN admin_id TO user_id');
           } catch (e) {
-            if (kDebugMode) print('Migration v64 partial fail for table $table: $e');
+            if (kDebugMode)
+              print('Migration v64 partial fail for table $table: $e');
           }
         }
 
         // 2. Handle tables with only admin_id
         for (var table in tablesToRenameOnlyAdmin) {
           try {
-            await txn.execute('ALTER TABLE $table RENAME COLUMN admin_id TO user_id');
+            await txn.execute(
+                'ALTER TABLE $table RENAME COLUMN admin_id TO user_id');
           } catch (e) {
-            if (kDebugMode) print('Migration v64 partial fail for table $table: $e');
+            if (kDebugMode)
+              print('Migration v64 partial fail for table $table: $e');
           }
         }
       });
     }
 
     if (oldVersion < 61) {
-      if (kDebugMode) print('Upgrading DB to version 61: Repairing customer data (admin_id/business_id)...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 61: Repairing customer data (admin_id/business_id)...');
       try {
         final bid = BusinessConfig.instance.businessId;
         final aid = BusinessConfig.instance.userId;
         if (bid != null && aid != null) {
-          await db.rawUpdate('UPDATE customers SET business_id = ?, admin_id = ? WHERE business_id IS NULL OR admin_id IS NULL', [bid, aid]);
+          await db.rawUpdate(
+              'UPDATE customers SET business_id = ?, admin_id = ? WHERE business_id IS NULL OR admin_id IS NULL',
+              [bid, aid]);
         }
       } catch (e) {
         if (kDebugMode) print('Repair failed for customers: $e');
@@ -114,19 +262,25 @@ class DbMigrations {
     }
 
     if (oldVersion < 60) {
-      if (kDebugMode) print('Upgrading DB to version 60: Adding credit_limit to customers...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 60: Adding credit_limit to customers...');
       try {
-        await db.execute('ALTER TABLE customers ADD COLUMN credit_limit REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE customers ADD COLUMN credit_limit REAL DEFAULT 0');
       } catch (e) {
-        if (kDebugMode) print('credit_limit column already exists in customers: $e');
+        if (kDebugMode)
+          print('credit_limit column already exists in customers: $e');
       }
     }
 
     if (oldVersion < 29) {
-      if (kDebugMode) print('Upgrading DB to version 29: Adding branch_id to isolated tables...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 29: Adding branch_id to isolated tables...');
       final tables = [
-        'categories', 'stocks', 'customers', 'sales', 
-        'expense_heads', 'expenses', 'suppliers', 
+        'categories', 'stocks', 'customers', 'sales',
+        'expense_heads', 'expenses', 'suppliers',
         'purchases', 'credit_sales', 'credit_payments',
         'products', 'employees' // Added missing tables
       ];
@@ -134,21 +288,33 @@ class DbMigrations {
         try {
           await db.execute('ALTER TABLE $table ADD COLUMN branch_id TEXT');
         } catch (e) {
-          if (kDebugMode) print('branch_id column already exists in $table: $e');
+          if (kDebugMode)
+            print('branch_id column already exists in $table: $e');
         }
       }
     }
 
     if (oldVersion < 30) {
-      if (kDebugMode) print('Upgrading DB to version 30: Ensuring branch_id columns exist...');
-      
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 30: Ensuring branch_id columns exist...');
+
       // 1. Ensure all relevant tables have branch_id
       final tables = [
-        'categories', 'products', 'stocks', 'customers', 'sales', 
-        'expense_heads', 'expenses', 'suppliers', 'purchases', 
-        'credit_sales', 'credit_payments', 'employees'
+        'categories',
+        'products',
+        'stocks',
+        'customers',
+        'sales',
+        'expense_heads',
+        'expenses',
+        'suppliers',
+        'purchases',
+        'credit_sales',
+        'credit_payments',
+        'employees'
       ];
-      
+
       for (var table in tables) {
         try {
           await db.execute('ALTER TABLE $table ADD COLUMN branch_id TEXT');
@@ -160,8 +326,9 @@ class DbMigrations {
     }
 
     if (oldVersion < 31) {
-      if (kDebugMode) print('Upgrading DB to version 31: Adding RBAC tables...');
-      
+      if (kDebugMode)
+        print('Upgrading DB to version 31: Adding RBAC tables...');
+
       // 1. Create Roles Table
       await db.execute('''
         CREATE TABLE IF NOT EXISTS roles (
@@ -201,50 +368,62 @@ class DbMigrations {
     }
 
     if (oldVersion < 32) {
-      if (kDebugMode) print('Upgrading DB to version 32: Adding branch_id to roles and seeding permissions...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 32: Adding branch_id to roles and seeding permissions...');
       try {
         await db.execute('ALTER TABLE roles ADD COLUMN branch_id TEXT');
       } catch (e) {}
       await DbTables.seedPermissions(db);
     }
     if (oldVersion < 33) {
-      if (kDebugMode) print('Upgrading DB to version 33: Adding business, admin, and branch IDs to bank_accounts...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 33: Adding business, admin, and branch IDs to bank_accounts...');
       try {
-        await db.execute('ALTER TABLE bank_accounts ADD COLUMN business_id TEXT');
+        await db
+            .execute('ALTER TABLE bank_accounts ADD COLUMN business_id TEXT');
         await db.execute('ALTER TABLE bank_accounts ADD COLUMN admin_id TEXT');
         await db.execute('ALTER TABLE bank_accounts ADD COLUMN branch_id TEXT');
       } catch (e) {}
     }
     if (oldVersion < 28) {
-      if (kDebugMode) print('Upgrading DB to version 28: Standardizing stocks schema...');
+      if (kDebugMode)
+        print('Upgrading DB to version 28: Standardizing stocks schema...');
       final columns = await db.rawQuery('PRAGMA table_info(stocks)');
       final columnNames = columns.map((c) => c['name'] as String).toList();
-      
+
       if (!columnNames.contains('wholesale_price')) {
-        await db.execute('ALTER TABLE stocks ADD COLUMN wholesale_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE stocks ADD COLUMN wholesale_price REAL DEFAULT 0');
         if (columnNames.contains('whole_sale_price')) {
-          await db.execute('UPDATE stocks SET wholesale_price = whole_sale_price');
+          await db
+              .execute('UPDATE stocks SET wholesale_price = whole_sale_price');
         }
       }
     }
     if (oldVersion < 27) {
-      if (kDebugMode) print('Upgrading DB to version 27: Adding missing columns to products...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 27: Adding missing columns to products...');
       final columns = await db.rawQuery('PRAGMA table_info(products)');
       final columnNames = columns.map((c) => c['name'] as String).toList();
-      
+
       if (!columnNames.contains('barcode')) {
         await db.execute('ALTER TABLE products ADD COLUMN barcode TEXT');
       }
       if (!columnNames.contains('stock_limit')) {
-        await db.execute('ALTER TABLE products ADD COLUMN stock_limit INTEGER DEFAULT 5');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN stock_limit INTEGER DEFAULT 5');
       }
       if (!columnNames.contains('discount_limit')) {
         await db.execute('ALTER TABLE products ADD COLUMN discount_limit REAL');
       }
     }
     if (oldVersion < 26) {
-      if (kDebugMode) print('Upgrading DB to version 26: Moving products to stocks...');
-      
+      if (kDebugMode)
+        print('Upgrading DB to version 26: Moving products to stocks...');
+
       // 1. Create stocks table if not exists
       await db.execute('''
         CREATE TABLE IF NOT EXISTS stocks (
@@ -279,7 +458,7 @@ class DbMigrations {
       // 2. Add new columns to products if they don't exist
       final columns = await db.rawQuery('PRAGMA table_info(products)');
       final columnNames = columns.map((c) => c['name'] as String).toList();
-      
+
       final newProductColumns = {
         'user_id': 'TEXT',
         'branch_id': 'TEXT',
@@ -294,7 +473,8 @@ class DbMigrations {
 
       for (var entry in newProductColumns.entries) {
         if (!columnNames.contains(entry.key)) {
-          await db.execute('ALTER TABLE products ADD COLUMN ${entry.key} ${entry.value}');
+          await db.execute(
+              'ALTER TABLE products ADD COLUMN ${entry.key} ${entry.value}');
         }
       }
 
@@ -302,14 +482,16 @@ class DbMigrations {
       try {
         await db.execute('ALTER TABLE sale_items ADD COLUMN stock_id TEXT');
       } catch (e) {
-        if (kDebugMode) print('Column stock_id already exists in sale_items: $e');
+        if (kDebugMode)
+          print('Column stock_id already exists in sale_items: $e');
       }
-      
-      // Add stock_id to purchase_items 
+
+      // Add stock_id to purchase_items
       try {
         await db.execute('ALTER TABLE purchase_items ADD COLUMN stock_id TEXT');
       } catch (e) {
-        if (kDebugMode) print('Column stock_id already exists in purchase_items: $e');
+        if (kDebugMode)
+          print('Column stock_id already exists in purchase_items: $e');
       }
 
       // 3. Migrate existing data: Create a stock entry for each product that has stock or pricing
@@ -317,31 +499,33 @@ class DbMigrations {
       for (var p in products) {
         final productId = p['id'] as String;
         final stockQty = (p['stock_quantity'] as num? ?? 0).toDouble();
-        
-          // Even if stock is 0, if it has prices, we create an initial stock batch
-          if (stockQty > 0 || (p['price'] as num? ?? 0) > 0) {
-            final now = DateTime.now().toIso8601String();
-            
-            await db.insert('stocks', {
-              'business_id': p['business_id'],
-              'product_id': productId,
-              'barcode': p['barcode'],
-              'quantity': stockQty,
-              'cost_price': (p['purchase_price'] as num? ?? 0).toDouble(),
-              'sale_price': (p['price'] as num? ?? 0).toDouble(),
-              'wholesale_price': (p['wholesale_price'] as num? ?? 0).toDouble(),
-              'status': 1,
-              'created_at': now,
-              'updated_at': now,
-            });
-          }
+
+        // Even if stock is 0, if it has prices, we create an initial stock batch
+        if (stockQty > 0 || (p['price'] as num? ?? 0) > 0) {
+          final now = DateTime.now().toIso8601String();
+
+          await db.insert('stocks', {
+            'business_id': p['business_id'],
+            'product_id': productId,
+            'barcode': p['barcode'],
+            'quantity': stockQty,
+            'cost_price': (p['purchase_price'] as num? ?? 0).toDouble(),
+            'sale_price': (p['price'] as num? ?? 0).toDouble(),
+            'wholesale_price': (p['wholesale_price'] as num? ?? 0).toDouble(),
+            'status': 1,
+            'created_at': now,
+            'updated_at': now,
+          });
+        }
       }
     }
     if (oldVersion < 25) {
       try {
-        await db.execute('ALTER TABLE suppliers ADD COLUMN credit_balance REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE suppliers ADD COLUMN credit_balance REAL DEFAULT 0');
       } catch (e) {
-        if (kDebugMode) print('Column credit_balance already exists in suppliers: $e');
+        if (kDebugMode)
+          print('Column credit_balance already exists in suppliers: $e');
       }
       try {
         await db.execute('''
@@ -388,36 +572,45 @@ class DbMigrations {
     }
     if (oldVersion < 20) {
       try {
-        await db.execute('ALTER TABLE credit_payments ADD COLUMN updated_at TEXT');
+        await db
+            .execute('ALTER TABLE credit_payments ADD COLUMN updated_at TEXT');
       } catch (e) {
-        if (kDebugMode) print('Column updated_at already exists in credit_payments: $e');
+        if (kDebugMode)
+          print('Column updated_at already exists in credit_payments: $e');
       }
       try {
-        await db.execute('ALTER TABLE credit_payments ADD COLUMN is_synced INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE credit_payments ADD COLUMN is_synced INTEGER DEFAULT 0');
       } catch (e) {
-        if (kDebugMode) print('Column is_synced already exists in credit_payments: $e');
+        if (kDebugMode)
+          print('Column is_synced already exists in credit_payments: $e');
       }
     }
     if (oldVersion < 19) {
       try {
         await db.execute('ALTER TABLE purchase_items ADD COLUMN barcode TEXT');
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN existing_stock REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN existing_stock REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Column already exists: $e');
       }
     }
     if (oldVersion < 18) {
       try {
-        await db.execute('ALTER TABLE purchases ADD COLUMN payment_reference TEXT');
-        await db.execute('ALTER TABLE purchases ADD COLUMN is_synced INTEGER DEFAULT 0');
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN is_synced INTEGER DEFAULT 0');
+        await db
+            .execute('ALTER TABLE purchases ADD COLUMN payment_reference TEXT');
+        await db.execute(
+            'ALTER TABLE purchases ADD COLUMN is_synced INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN is_synced INTEGER DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Column already exists: $e');
       }
     }
     if (oldVersion < 14) {
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN wholesale_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN wholesale_price REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Column already exists: $e');
       }
@@ -425,31 +618,36 @@ class DbMigrations {
 
     if (oldVersion < 13) {
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN wholesale_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN wholesale_price REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Column already exists: $e');
       }
     }
-    
+
     if (oldVersion < 12) {
       try {
-        await db.execute('ALTER TABLE customers ADD COLUMN discount REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE customers ADD COLUMN discount REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Column already exists: $e');
       }
     }
-    
+
     if (oldVersion < 2) {
       // Add new columns if upgrading from version 1
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN is_price_per_weight INTEGER DEFAULT 0');
-        await db.execute('ALTER TABLE products ADD COLUMN is_favorite INTEGER DEFAULT 0');
-        await db.execute('ALTER TABLE customers ADD COLUMN loyalty_points INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN is_price_per_weight INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN is_favorite INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE customers ADD COLUMN loyalty_points INTEGER DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Column already exists: $e');
       }
     }
-    
+
     if (oldVersion < 3) {
       // Add businesses table and update users table
       try {
@@ -465,11 +663,13 @@ class DbMigrations {
             updated_at TEXT
           )
         ''');
-        
+
         // Add new columns to users table
         await db.execute('ALTER TABLE users ADD COLUMN password TEXT');
-        await db.execute('ALTER TABLE users ADD COLUMN role TEXT DEFAULT "admin"');
-        await db.execute('ALTER TABLE users ADD COLUMN is_synced INTEGER DEFAULT 0');
+        await db
+            .execute('ALTER TABLE users ADD COLUMN role TEXT DEFAULT "admin"');
+        await db.execute(
+            'ALTER TABLE users ADD COLUMN is_synced INTEGER DEFAULT 0');
         await db.execute('ALTER TABLE users ADD COLUMN created_at TEXT');
       } catch (e) {
         if (kDebugMode) print('Upgrade to v3 error: $e');
@@ -479,7 +679,8 @@ class DbMigrations {
     if (oldVersion < 4) {
       // Add purchase_price to products
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN purchase_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN purchase_price REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('Upgrade to v4 error: $e');
       }
@@ -487,7 +688,15 @@ class DbMigrations {
 
     if (oldVersion < 5) {
       // Add admin_id to all relevant tables
-      final tables = ['categories', 'products', 'customers', 'employees', 'sales', 'gift_cards', 'held_orders'];
+      final tables = [
+        'categories',
+        'products',
+        'customers',
+        'employees',
+        'sales',
+        'gift_cards',
+        'held_orders'
+      ];
       for (var table in tables) {
         try {
           await db.execute('ALTER TABLE $table ADD COLUMN admin_id TEXT');
@@ -496,16 +705,17 @@ class DbMigrations {
         }
       }
     }
-    
+
     if (oldVersion < 6) {
       // Add permissions to employees
       try {
         await db.execute('ALTER TABLE employees ADD COLUMN permissions TEXT');
       } catch (e) {
-        if (kDebugMode) print('Permissions column already exists in employees: $e');
+        if (kDebugMode)
+          print('Permissions column already exists in employees: $e');
       }
     }
-    
+
     if (oldVersion < 7) {
       // Logic removed here and combined into v8 for safety
     }
@@ -583,7 +793,7 @@ class DbMigrations {
       } catch (e) {
         if (kDebugMode) print('suppliers table already exists: $e');
       }
-      
+
       // Add purchases table
       try {
         await db.execute('''
@@ -630,23 +840,28 @@ class DbMigrations {
     if (oldVersion < 11) {
       // Add payment_reference to purchases
       try {
-        await db.execute('ALTER TABLE purchases ADD COLUMN payment_reference TEXT');
+        await db
+            .execute('ALTER TABLE purchases ADD COLUMN payment_reference TEXT');
       } catch (e) {
-        if (kDebugMode) print('payment_reference column already exists in purchases: $e');
+        if (kDebugMode)
+          print('payment_reference column already exists in purchases: $e');
       }
     }
 
     if (oldVersion < 15) {
       // Add credit_balance to customers
       try {
-        await db.execute('ALTER TABLE customers ADD COLUMN credit_balance REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE customers ADD COLUMN credit_balance REAL DEFAULT 0');
       } catch (e) {
-        if (kDebugMode) print('credit_balance column already exists in customers: $e');
+        if (kDebugMode)
+          print('credit_balance column already exists in customers: $e');
       }
 
       // Add credit_sales table
       try {
-        await db.execute('''\n          CREATE TABLE IF NOT EXISTS credit_sales (
+        await db
+            .execute('''\n          CREATE TABLE IF NOT EXISTS credit_sales (
             id TEXT PRIMARY KEY,
             business_id TEXT,
             admin_id TEXT,
@@ -667,7 +882,8 @@ class DbMigrations {
 
       // Add credit_payments table
       try {
-        await db.execute('''\n          CREATE TABLE IF NOT EXISTS credit_payments (
+        await db
+            .execute('''\n          CREATE TABLE IF NOT EXISTS credit_payments (
             id TEXT PRIMARY KEY,
             business_id TEXT,
             admin_id TEXT,
@@ -691,20 +907,30 @@ class DbMigrations {
     if (oldVersion < 16) {
       // Add stock_limit to products
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN stock_limit INTEGER DEFAULT 5');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN stock_limit INTEGER DEFAULT 5');
       } catch (e) {
-        if (kDebugMode) print('stock_limit column already exists in products: $e');
+        if (kDebugMode)
+          print('stock_limit column already exists in products: $e');
       }
     }
 
     if (oldVersion < 17) {
       // Add is_synced to missing tables
-      final tables = ['expense_heads', 'expenses', 'suppliers', 'credit_sales', 'credit_payments'];
+      final tables = [
+        'expense_heads',
+        'expenses',
+        'suppliers',
+        'credit_sales',
+        'credit_payments'
+      ];
       for (var table in tables) {
         try {
-          await db.execute('ALTER TABLE $table ADD COLUMN is_synced INTEGER DEFAULT 0');
+          await db.execute(
+              'ALTER TABLE $table ADD COLUMN is_synced INTEGER DEFAULT 0');
         } catch (e) {
-          if (kDebugMode) print('is_synced column already exists in $table: $e');
+          if (kDebugMode)
+            print('is_synced column already exists in $table: $e');
         }
       }
     }
@@ -795,13 +1021,31 @@ class DbMigrations {
     }
 
     if (oldVersion < 34) {
-      if (kDebugMode) print('Upgrading DB to v34: Seeding new permissions (payback, branches, bank)...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v34: Seeding new permissions (payback, branches, bank)...');
       final newPerms = [
-        {'id': 'gift_cards', 'name': 'gift_cards', 'label': 'Manage Gift Cards'},
+        {
+          'id': 'gift_cards',
+          'name': 'gift_cards',
+          'label': 'Manage Gift Cards'
+        },
         {'id': 'loyalty', 'name': 'loyalty', 'label': 'Manage Loyalty'},
-        {'id': 'support_view', 'name': 'support_view', 'label': 'Contact Support'},
-        {'id': 'payback_manage', 'name': 'payback_manage', 'label': 'Manage Supplier Payback'},
-        {'id': 'branches_manage', 'name': 'branches_manage', 'label': 'Manage Branches'},
+        {
+          'id': 'support_view',
+          'name': 'support_view',
+          'label': 'Contact Support'
+        },
+        {
+          'id': 'payback_manage',
+          'name': 'payback_manage',
+          'label': 'Manage Supplier Payback'
+        },
+        {
+          'id': 'branches_manage',
+          'name': 'branches_manage',
+          'label': 'Manage Branches'
+        },
         {'id': 'bank_manage', 'name': 'bank_manage', 'label': 'Manage Bank'},
       ];
       final now = DateTime.now().toIso8601String();
@@ -816,7 +1060,8 @@ class DbMigrations {
     }
 
     if (oldVersion < 35) {
-      if (kDebugMode) print('Upgrading DB to v35: Adding branch_id to shifts table...');
+      if (kDebugMode)
+        print('Upgrading DB to v35: Adding branch_id to shifts table...');
       try {
         await db.execute('ALTER TABLE shifts ADD COLUMN branch_id TEXT');
       } catch (e) {
@@ -825,8 +1070,15 @@ class DbMigrations {
     }
 
     if (oldVersion < 36) {
-      if (kDebugMode) print('Upgrading DB to v36: Adding created_at to various tables...');
-      final tables = ['categories', 'customers', 'employees', 'roles', 'permissions'];
+      if (kDebugMode)
+        print('Upgrading DB to v36: Adding created_at to various tables...');
+      final tables = [
+        'categories',
+        'customers',
+        'employees',
+        'roles',
+        'permissions'
+      ];
       for (var table in tables) {
         try {
           await db.execute('ALTER TABLE $table ADD COLUMN created_at TEXT');
@@ -837,7 +1089,8 @@ class DbMigrations {
     }
 
     if (oldVersion < 37) {
-      if (kDebugMode) print('Upgrading DB to v37: Adding branch_id to pivot tables...');
+      if (kDebugMode)
+        print('Upgrading DB to v37: Adding branch_id to pivot tables...');
       final pivotTables = ['sale_items', 'purchase_items'];
       for (var table in pivotTables) {
         try {
@@ -849,18 +1102,25 @@ class DbMigrations {
     }
 
     if (oldVersion < 39) {
-      if (kDebugMode) print('Upgrading DB to v39: Adding pricing and stock columns to products...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v39: Adding pricing and stock columns to products...');
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN price REAL DEFAULT 0');
-        await db.execute('ALTER TABLE products ADD COLUMN purchase_price REAL DEFAULT 0');
-        await db.execute('ALTER TABLE products ADD COLUMN wholesale_price REAL DEFAULT 0');
-        await db.execute('ALTER TABLE products ADD COLUMN stock_quantity REAL DEFAULT 0');
+        await db
+            .execute('ALTER TABLE products ADD COLUMN price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN purchase_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN wholesale_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN stock_quantity REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v39 products schema error: $e');
       }
     }
     if (oldVersion < 41) {
-      if (kDebugMode) print('Upgrading DB to v41: Adding missing columns for backfill...');
+      if (kDebugMode)
+        print('Upgrading DB to v41: Adding missing columns for backfill...');
       try {
         await db.execute('ALTER TABLE roles ADD COLUMN admin_id INTEGER');
         await db.execute('ALTER TABLE branches ADD COLUMN admin_id INTEGER');
@@ -869,15 +1129,19 @@ class DbMigrations {
         if (kDebugMode) print('v41 schema error: $e');
       }
     }
-    
+
     if (oldVersion < 42) {
-      if (kDebugMode) print('Upgrading DB to v42: Recreating roles and permissions tables for INTEGER normalization...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v42: Recreating roles and permissions tables for INTEGER normalization...');
       try {
         await db.transaction((txn) async {
           // 1. Rename old tables
           await txn.execute('ALTER TABLE roles RENAME TO old_roles');
-          await txn.execute('ALTER TABLE permissions RENAME TO old_permissions');
-          await txn.execute('ALTER TABLE role_permissions RENAME TO old_role_permissions');
+          await txn
+              .execute('ALTER TABLE permissions RENAME TO old_permissions');
+          await txn.execute(
+              'ALTER TABLE role_permissions RENAME TO old_role_permissions');
 
           // 2. Create new tables
           await txn.execute('''
@@ -919,7 +1183,7 @@ class DbMigrations {
             SELECT CAST(id AS INTEGER), CAST(business_id AS INTEGER), CAST(admin_id AS INTEGER), CAST(branch_id AS INTEGER), name, description, status, is_synced, created_at, updated_at
             FROM old_roles WHERE CAST(id AS INTEGER) > 0
           ''');
-          
+
           await txn.execute('''
             INSERT INTO permissions (id, name, label, updated_at)
             SELECT CAST(id AS INTEGER), name, label, updated_at
@@ -943,7 +1207,8 @@ class DbMigrations {
     }
 
     if (oldVersion < 43) {
-      if (kDebugMode) print('Upgrading DB to v43: Adding parent_id to categories...');
+      if (kDebugMode)
+        print('Upgrading DB to v43: Adding parent_id to categories...');
       try {
         await db.execute('ALTER TABLE categories ADD COLUMN parent_id INTEGER');
       } catch (e) {
@@ -952,7 +1217,9 @@ class DbMigrations {
     }
 
     if (oldVersion < 44) {
-      if (kDebugMode) print('Upgrading DB to v44: Creating persistent holds and returns tables...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v44: Creating persistent holds and returns tables...');
       await db.transaction((txn) async {
         // Held Orders
         await txn.execute('''
@@ -1035,7 +1302,8 @@ class DbMigrations {
       }
     }
     if (oldVersion < 46) {
-      if (kDebugMode) print('Upgrading DB to v46: Creating subcategories table...');
+      if (kDebugMode)
+        print('Upgrading DB to v46: Creating subcategories table...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS subcategories (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1052,32 +1320,37 @@ class DbMigrations {
           FOREIGN KEY (category_id) REFERENCES categories(id)
         )
       ''');
-      
+
       // Optional: Migrate existing subcategories (where parent_id is not null)
       try {
-          final subCats = await db.query('categories', where: 'parent_id IS NOT NULL');
-          for (var sc in subCats) {
-              await db.insert('subcategories', {
-                  'id': sc['id'],
-                  'category_id': sc['parent_id'],
-                  'business_id': sc['business_id'],
-                  'branch_id': sc['branch_id'],
-                  'user_id': sc['admin_id'] ?? sc['user_id'],
-                  'name': sc['name'],
-                  'status': sc['status'],
-                  'is_synced': sc['is_synced'],
-                  'created_at': sc['created_at'],
-                  'updated_at': sc['updated_at'],
-              }, conflictAlgorithm: ConflictAlgorithm.ignore);
-          }
-          // Remove from categories table
-          await db.delete('categories', where: 'parent_id IS NOT NULL');
+        final subCats =
+            await db.query('categories', where: 'parent_id IS NOT NULL');
+        for (var sc in subCats) {
+          await db.insert(
+              'subcategories',
+              {
+                'id': sc['id'],
+                'category_id': sc['parent_id'],
+                'business_id': sc['business_id'],
+                'branch_id': sc['branch_id'],
+                'user_id': sc['admin_id'] ?? sc['user_id'],
+                'name': sc['name'],
+                'status': sc['status'],
+                'is_synced': sc['is_synced'],
+                'created_at': sc['created_at'],
+                'updated_at': sc['updated_at'],
+              },
+              conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
+        // Remove from categories table
+        await db.delete('categories', where: 'parent_id IS NOT NULL');
       } catch (e) {
-          if (kDebugMode) print('v46 migration data move error: $e');
+        if (kDebugMode) print('v46 migration data move error: $e');
       }
     }
     if (oldVersion < 47) {
-      if (kDebugMode) print('Upgrading DB to v47: Ensuring shift_id exists in sales...');
+      if (kDebugMode)
+        print('Upgrading DB to v47: Ensuring shift_id exists in sales...');
       try {
         var columns = await db.rawQuery('PRAGMA table_info(sales)');
         bool hasShiftId = columns.any((c) => c['name'] == 'shift_id');
@@ -1089,21 +1362,26 @@ class DbMigrations {
       }
     }
     if (oldVersion < 48) {
-      if (kDebugMode) print('Upgrading DB to v48: Adding discount column to sale_items and return_items...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v48: Adding discount column to sale_items and return_items...');
       try {
-        await db.execute('ALTER TABLE sale_items ADD COLUMN discount REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE sale_items ADD COLUMN discount REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v48 sale_items discount error: $e');
       }
       try {
-        await db.execute('ALTER TABLE return_items ADD COLUMN discount REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE return_items ADD COLUMN discount REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v48 return_items discount error: $e');
       }
     }
 
     if (oldVersion < 49) {
-      if (kDebugMode) print('Upgrading DB to v49: Creating currency_notes table...');
+      if (kDebugMode)
+        print('Upgrading DB to v49: Creating currency_notes table...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS currency_notes (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1119,16 +1397,19 @@ class DbMigrations {
     }
 
     if (oldVersion < 50) {
-      if (kDebugMode) print('Upgrading DB to v50: Adding opening_amount to suppliers...');
+      if (kDebugMode)
+        print('Upgrading DB to v50: Adding opening_amount to suppliers...');
       try {
-        await db.execute('ALTER TABLE suppliers ADD COLUMN opening_amount REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE suppliers ADD COLUMN opening_amount REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v50 suppliers opening_amount error: $e');
       }
     }
 
     if (oldVersion < 51) {
-      if (kDebugMode) print('Upgrading DB to v51: Creating user_businesses table...');
+      if (kDebugMode)
+        print('Upgrading DB to v51: Creating user_businesses table...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS user_businesses (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1143,16 +1424,19 @@ class DbMigrations {
     }
 
     if (oldVersion < 52) {
-      if (kDebugMode) print('Upgrading DB to v52: Adding is_synced to user_businesses...');
+      if (kDebugMode)
+        print('Upgrading DB to v52: Adding is_synced to user_businesses...');
       try {
-        await db.execute('ALTER TABLE user_businesses ADD COLUMN is_synced INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE user_businesses ADD COLUMN is_synced INTEGER DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v52 user_businesses is_synced error: $e');
       }
     }
 
     if (oldVersion < 53) {
-      if (kDebugMode) print('Upgrading DB to v53: Creating employee_roles table...');
+      if (kDebugMode)
+        print('Upgrading DB to v53: Creating employee_roles table...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS employee_roles (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1164,7 +1448,9 @@ class DbMigrations {
       ''');
     }
     if (oldVersion < 55) {
-      if (kDebugMode) print('Upgrading DB to v55: Creating units and payment_types tables...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v55: Creating units and payment_types tables...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS units (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1193,7 +1479,9 @@ class DbMigrations {
     }
 
     if (oldVersion < 56) {
-      if (kDebugMode) print('Upgrading DB to v56: Creating brands table and adding unit_id to products...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v56: Creating brands table and adding unit_id to products...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS brands (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1214,86 +1502,108 @@ class DbMigrations {
       }
     }
     if (oldVersion < 57) {
-      if (kDebugMode) print('Upgrading DB to v57: Adding unit_id to purchase_items...');
+      if (kDebugMode)
+        print('Upgrading DB to v57: Adding unit_id to purchase_items...');
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN unit_id INTEGER');
+        await db
+            .execute('ALTER TABLE purchase_items ADD COLUMN unit_id INTEGER');
       } catch (e) {
         if (kDebugMode) print('v57 purchase_items unit_id error: $e');
       }
     }
     if (oldVersion < 58) {
-      if (kDebugMode) print('Upgrading DB to v58: Adding admin_id and branch_id to currency_notes...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v58: Adding admin_id and branch_id to currency_notes...');
       try {
-        await db.execute('ALTER TABLE currency_notes ADD COLUMN admin_id INTEGER');
-        await db.execute('ALTER TABLE currency_notes ADD COLUMN branch_id INTEGER');
+        await db
+            .execute('ALTER TABLE currency_notes ADD COLUMN admin_id INTEGER');
+        await db
+            .execute('ALTER TABLE currency_notes ADD COLUMN branch_id INTEGER');
       } catch (e) {
         if (kDebugMode) print('v58 currency_notes error: $e');
       }
     }
 
     if (oldVersion < 59) {
-      if (kDebugMode) print('Upgrading DB to v59: Repairing currency_notes metadata...');
+      if (kDebugMode)
+        print('Upgrading DB to v59: Repairing currency_notes metadata...');
       try {
         final bid = BusinessConfig.instance.businessId;
         final aid = BusinessConfig.instance.userId;
-        final brid = BusinessConfig.instance.branchId;
-        
+
         if (bid != null && aid != null) {
-           await db.update('currency_notes', {
-             'business_id': bid,
-             'user_id': aid,
-             'branch_id': (brid == 'NONE' || brid == 0) ? null : brid,
-             'is_synced': 0, // Force re-sync with valid data
-           }, where: 'business_id IS NULL OR user_id IS NULL OR admin_id IS NULL');
+          await db.update(
+              'currency_notes',
+              {
+                'business_id': bid,
+                'user_id': aid,
+                'is_synced': 0,
+              },
+              where:
+                  'business_id IS NULL OR user_id IS NULL OR admin_id IS NULL');
         }
       } catch (e) {
         if (kDebugMode) print('v59 currency_notes repair error: $e');
       }
     }
     if (oldVersion < 65) {
-      if (kDebugMode) print('Upgrading DB to v65: Adding staff_id to stock_audits...');
+      if (kDebugMode)
+        print('Upgrading DB to v65: Adding staff_id to stock_audits...');
       try {
-        await db.execute('ALTER TABLE stock_audits ADD COLUMN staff_id INTEGER');
+        await db
+            .execute('ALTER TABLE stock_audits ADD COLUMN staff_id INTEGER');
       } catch (e) {
         if (kDebugMode) print('v65 stock_audits staff_id error: $e');
       }
     }
 
     if (oldVersion < 66) {
-      if (kDebugMode) print('Upgrading DB to v66: Adding old price columns to purchase_items...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v66: Adding old price columns to purchase_items...');
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_cost_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN old_cost_price REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v66 purchase_items old_cost_price error: $e');
       }
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_sale_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN old_sale_price REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v66 purchase_items old_sale_price error: $e');
       }
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_wholesale_price REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN old_wholesale_price REAL DEFAULT 0');
       } catch (e) {
-        if (kDebugMode) print('v66 purchase_items old_wholesale_price error: $e');
+        if (kDebugMode)
+          print('v66 purchase_items old_wholesale_price error: $e');
       }
     }
 
     if (oldVersion < 67) {
-      if (kDebugMode) print('Upgrading DB to v67: Adding quantity columns to purchase_items...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v67: Adding quantity columns to purchase_items...');
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN old_quantity REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN old_quantity REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v67 purchase_items old_quantity error: $e');
       }
       try {
-        await db.execute('ALTER TABLE purchase_items ADD COLUMN new_quantity REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE purchase_items ADD COLUMN new_quantity REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v67 purchase_items new_quantity error: $e');
       }
     }
 
     if (oldVersion < 68) {
-      if (kDebugMode) print('Upgrading DB to v68: Adding code column to brands table...');
+      if (kDebugMode)
+        print('Upgrading DB to v68: Adding code column to brands table...');
       try {
         await db.execute('ALTER TABLE brands ADD COLUMN code TEXT');
       } catch (e) {
@@ -1302,123 +1612,173 @@ class DbMigrations {
     }
 
     if (oldVersion < 69) {
-      if (kDebugMode) print('Upgrading DB to v69: Adding total_spent and visit_count to customers...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v69: Adding total_spent and visit_count to customers...');
       try {
-        await db.execute('ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE customers ADD COLUMN total_spent REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v69 customers total_spent error: $e');
       }
       try {
-        await db.execute('ALTER TABLE customers ADD COLUMN visit_count INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE customers ADD COLUMN visit_count INTEGER DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v69 customers visit_count error: $e');
       }
     }
     if (oldVersion < 70) {
-      if (kDebugMode) print('Upgrading DB to v70: Adding discount_limit to products...');
+      if (kDebugMode)
+        print('Upgrading DB to v70: Adding discount_limit to products...');
       try {
-        await db.execute('ALTER TABLE products ADD COLUMN discount_limit REAL DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE products ADD COLUMN discount_limit REAL DEFAULT 0');
       } catch (e) {
         if (kDebugMode) print('v70 products discount_limit error: $e');
       }
     }
     if (oldVersion < 71) {
-      if (kDebugMode) print('Upgrading DB to v71: Adding payment_type_id to sales...');
+      if (kDebugMode)
+        print('Upgrading DB to v71: Adding payment_type_id to sales...');
       try {
-        await db.execute('ALTER TABLE sales ADD COLUMN payment_type_id INTEGER');
+        await db
+            .execute('ALTER TABLE sales ADD COLUMN payment_type_id INTEGER');
       } catch (e) {
         if (kDebugMode) print('v71 sales payment_type_id error: $e');
       }
     }
     if (oldVersion < 72) {
-      if (kDebugMode) print('Upgrading DB to v72: Adding payment_type_id and payment_method to returns...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v72: Adding payment_type_id and payment_method to returns...');
       try {
-        await db.execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
+        await db
+            .execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
       } catch (e) {
         if (kDebugMode) print('v72 returns payment_type_id error: $e');
       }
       try {
-        await db.execute("ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+        await db.execute(
+            "ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
       } catch (e) {
         if (kDebugMode) print('v72 returns payment_method error: $e');
       }
     }
 
     if (oldVersion < 73) {
-      if (kDebugMode) print('Upgrading DB to v73: Ensuring all columns exist in returns and return_items...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to v73: Ensuring all columns exist in returns and return_items...');
       await db.transaction((txn) async {
         // Safe check for Returns columns
         final returnColumns = await txn.rawQuery('PRAGMA table_info(returns)');
-        final returnColNames = returnColumns.map((c) => c['name'] as String).toList();
-        
-        if (!returnColNames.contains('sub_total')) await txn.execute('ALTER TABLE returns ADD COLUMN sub_total REAL DEFAULT 0');
-        if (!returnColNames.contains('tax')) await txn.execute('ALTER TABLE returns ADD COLUMN tax REAL DEFAULT 0');
-        if (!returnColNames.contains('discount')) await txn.execute('ALTER TABLE returns ADD COLUMN discount REAL DEFAULT 0');
+        final returnColNames =
+            returnColumns.map((c) => c['name'] as String).toList();
+
+        if (!returnColNames.contains('sub_total'))
+          await txn.execute(
+              'ALTER TABLE returns ADD COLUMN sub_total REAL DEFAULT 0');
+        if (!returnColNames.contains('tax'))
+          await txn
+              .execute('ALTER TABLE returns ADD COLUMN tax REAL DEFAULT 0');
+        if (!returnColNames.contains('discount'))
+          await txn.execute(
+              'ALTER TABLE returns ADD COLUMN discount REAL DEFAULT 0');
         if (!returnColNames.contains('total')) {
-            await txn.execute('ALTER TABLE returns ADD COLUMN total REAL DEFAULT 0');
-            if (returnColNames.contains('total_amount')) {
-                await txn.execute('UPDATE returns SET total = total_amount');
-            }
+          await txn
+              .execute('ALTER TABLE returns ADD COLUMN total REAL DEFAULT 0');
+          if (returnColNames.contains('total_amount')) {
+            await txn.execute('UPDATE returns SET total = total_amount');
+          }
         }
-        if (!returnColNames.contains('total_tip')) await txn.execute('ALTER TABLE returns ADD COLUMN total_tip REAL DEFAULT 0');
-        if (!returnColNames.contains('payment_method')) await txn.execute("ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
-        if (!returnColNames.contains('payment_type_id')) await txn.execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
-        if (!returnColNames.contains('is_return')) await txn.execute('ALTER TABLE returns ADD COLUMN is_return INTEGER DEFAULT 1');
-        if (!returnColNames.contains('staff_id')) await txn.execute('ALTER TABLE returns ADD COLUMN staff_id INTEGER');
+        if (!returnColNames.contains('total_tip'))
+          await txn.execute(
+              'ALTER TABLE returns ADD COLUMN total_tip REAL DEFAULT 0');
+        if (!returnColNames.contains('payment_method'))
+          await txn.execute(
+              "ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+        if (!returnColNames.contains('payment_type_id'))
+          await txn.execute(
+              'ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
+        if (!returnColNames.contains('is_return'))
+          await txn.execute(
+              'ALTER TABLE returns ADD COLUMN is_return INTEGER DEFAULT 1');
+        if (!returnColNames.contains('staff_id'))
+          await txn.execute('ALTER TABLE returns ADD COLUMN staff_id INTEGER');
 
         // Safe check for Return Items columns
-        final itemColumns = await txn.rawQuery('PRAGMA table_info(return_items)');
-        final itemColNames = itemColumns.map((c) => c['name'] as String).toList();
-        
-        if (!itemColNames.contains('business_id')) await txn.execute('ALTER TABLE return_items ADD COLUMN business_id INTEGER');
-        if (!itemColNames.contains('user_id')) await txn.execute('ALTER TABLE return_items ADD COLUMN user_id INTEGER');
-        if (!itemColNames.contains('discount')) await txn.execute('ALTER TABLE return_items ADD COLUMN discount REAL DEFAULT 0');
+        final itemColumns =
+            await txn.rawQuery('PRAGMA table_info(return_items)');
+        final itemColNames =
+            itemColumns.map((c) => c['name'] as String).toList();
+
+        if (!itemColNames.contains('business_id'))
+          await txn.execute(
+              'ALTER TABLE return_items ADD COLUMN business_id INTEGER');
+        if (!itemColNames.contains('user_id'))
+          await txn
+              .execute('ALTER TABLE return_items ADD COLUMN user_id INTEGER');
+        if (!itemColNames.contains('discount'))
+          await txn.execute(
+              'ALTER TABLE return_items ADD COLUMN discount REAL DEFAULT 0');
         if (!itemColNames.contains('sub_total')) {
-            await txn.execute('ALTER TABLE return_items ADD COLUMN sub_total REAL DEFAULT 0');
-            if (itemColNames.contains('subtotal')) {
-                await txn.execute('UPDATE return_items SET sub_total = subtotal');
-            }
+          await txn.execute(
+              'ALTER TABLE return_items ADD COLUMN sub_total REAL DEFAULT 0');
+          if (itemColNames.contains('subtotal')) {
+            await txn.execute('UPDATE return_items SET sub_total = subtotal');
+          }
         }
       });
     }
 
     if (oldVersion < 74) {
-      if (kDebugMode) print('CRITICAL: Upgrading DB to v74 - Forced column repair for returns table...');
+      if (kDebugMode)
+        print(
+            'CRITICAL: Upgrading DB to v74 - Forced column repair for returns table...');
       try {
-        await db.execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
+        await db
+            .execute('ALTER TABLE returns ADD COLUMN payment_type_id INTEGER');
       } catch (e) {
-        if (kDebugMode) print('Note: payment_type_id already exists or error: $e');
+        if (kDebugMode)
+          print('Note: payment_type_id already exists or error: $e');
       }
       try {
-        await db.execute('ALTER TABLE returns ADD COLUMN sub_total REAL DEFAULT 0');
+        await db
+            .execute('ALTER TABLE returns ADD COLUMN sub_total REAL DEFAULT 0');
       } catch (e) {}
       try {
         await db.execute('ALTER TABLE returns ADD COLUMN tax REAL DEFAULT 0');
       } catch (e) {}
       try {
-        await db.execute('ALTER TABLE returns ADD COLUMN discount REAL DEFAULT 0');
+        await db
+            .execute('ALTER TABLE returns ADD COLUMN discount REAL DEFAULT 0');
       } catch (e) {}
       try {
         await db.execute('ALTER TABLE returns ADD COLUMN total REAL DEFAULT 0');
       } catch (e) {}
       try {
-        await db.execute('ALTER TABLE returns ADD COLUMN total_tip REAL DEFAULT 0');
+        await db
+            .execute('ALTER TABLE returns ADD COLUMN total_tip REAL DEFAULT 0');
       } catch (e) {}
       try {
-        await db.execute("ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
+        await db.execute(
+            "ALTER TABLE returns ADD COLUMN payment_method TEXT DEFAULT 'cash'");
       } catch (e) {}
       try {
-        await db.execute('ALTER TABLE returns ADD COLUMN is_return INTEGER DEFAULT 1');
+        await db.execute(
+            'ALTER TABLE returns ADD COLUMN is_return INTEGER DEFAULT 1');
       } catch (e) {}
       try {
         await db.execute('ALTER TABLE returns ADD COLUMN staff_id INTEGER');
       } catch (e) {}
-      
+
       if (kDebugMode) print('CRITICAL: Migration v74 complete.');
     }
 
     if (oldVersion < 75) {
-      if (kDebugMode) print('Upgrading DB to v75: Adding phone and cnic to users table...');
+      if (kDebugMode)
+        print('Upgrading DB to v75: Adding phone and cnic to users table...');
       try {
         await db.execute('ALTER TABLE users ADD COLUMN phone TEXT');
       } catch (e) {
@@ -1432,7 +1792,8 @@ class DbMigrations {
     }
 
     if (oldVersion < 76) {
-      if (kDebugMode) print('Upgrading DB to v76: Creating bank related tables...');
+      if (kDebugMode)
+        print('Upgrading DB to v76: Creating bank related tables...');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS banks (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -1462,9 +1823,11 @@ class DbMigrations {
         )
       ''');
     }
-    
+
     if (oldVersion < 77) {
-      if (kDebugMode) print('Upgrading DB to version 77: Fixing bank_accounts for relational bank_id...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 77: Fixing bank_accounts for relational bank_id...');
       await db.execute('DROP TABLE IF EXISTS bank_accounts');
       await db.execute('''
         CREATE TABLE bank_accounts (
@@ -1489,12 +1852,13 @@ class DbMigrations {
     }
 
     if (oldVersion < 78) {
-      if (kDebugMode) print('Upgrading DB to version 78: Isolating settings table...');
+      if (kDebugMode)
+        print('Upgrading DB to version 78: Isolating settings table...');
       await db.transaction((txn) async {
         try {
           // 1. Rename existing table
           await txn.execute('ALTER TABLE settings RENAME TO settings_old');
-          
+
           // 2. Create new isolated table
           await txn.execute('''
             CREATE TABLE settings (
@@ -1505,16 +1869,16 @@ class DbMigrations {
               PRIMARY KEY (key, business_id, user_id)
             )
           ''');
-          
+
           // 3. Copy existing data (associating with current user context if available)
           final bid = BusinessConfig.instance.businessId;
           final uid = BusinessConfig.instance.userId;
-          
+
           await txn.execute('''
             INSERT INTO settings (key, value, business_id, user_id)
             SELECT key, value, ?, ? FROM settings_old
           ''', [bid, uid]);
-          
+
           // 4. Drop old table
           await txn.execute('DROP TABLE settings_old');
         } catch (e) {
@@ -1524,15 +1888,18 @@ class DbMigrations {
     }
 
     if (oldVersion < 79) {
-      if (kDebugMode) print('Upgrading DB to version 79: Adding person_name and receipt_image to bank_accounts...');
+      if (kDebugMode)
+        print(
+            'Upgrading DB to version 79: Adding person_name and receipt_image to bank_accounts...');
       try {
-        await db.execute('ALTER TABLE bank_accounts ADD COLUMN person_name TEXT');
-        await db.execute('ALTER TABLE bank_accounts ADD COLUMN receipt_image TEXT');
+        await db
+            .execute('ALTER TABLE bank_accounts ADD COLUMN person_name TEXT');
+        await db
+            .execute('ALTER TABLE bank_accounts ADD COLUMN receipt_image TEXT');
       } catch (e) {
-        if (kDebugMode) print('Migration v79 failed (columns might already exist): $e');
+        if (kDebugMode)
+          print('Migration v79 failed (columns might already exist): $e');
       }
     }
   }
 }
-
-

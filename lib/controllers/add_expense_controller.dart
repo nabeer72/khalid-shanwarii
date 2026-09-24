@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/models/branch.dart';
+
 import 'package:mobile_app/models/bank.dart';
 import 'package:mobile_app/models/bank_detail.dart';
 
@@ -19,8 +19,7 @@ class AddExpenseController with ChangeNotifier {
   DateTime selectedDate = DateTime.now();
   
   List<ExpenseHead> expenseHeads = [];
-  List<Branch> branches = [];
-  int? selectedBranchId;
+
   bool isLoading = false;
 
   // [NEW] Payment selection
@@ -36,9 +35,6 @@ class AddExpenseController with ChangeNotifier {
       descCtrl.text = initialExpense!.description ?? '';
       selectedHeadId = initialExpense!.expenseHeadId;
       selectedDate = initialExpense!.date;
-      selectedBranchId = initialExpense!.branchId;
-    } else {
-      selectedBranchId = BusinessConfig.instance.branchId;
     }
     loadData();
   }
@@ -144,7 +140,6 @@ class AddExpenseController with ChangeNotifier {
         'amount': amount,
         'description': finalDescription.isNotEmpty ? finalDescription : null,
         'date': selectedDate.toIso8601String(),
-        'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
         'status': 1,
       };
 
@@ -164,7 +159,6 @@ class AddExpenseController with ChangeNotifier {
             'transaction_type': 'Withdrawal',
             'remarks': 'Expense: ${descCtrl.text.trim()}',
             'date': selectedDate.toIso8601String(),
-            'branch_id': selectedBranchId ?? BusinessConfig.instance.branchId,
             'status': 1,
           });
         }

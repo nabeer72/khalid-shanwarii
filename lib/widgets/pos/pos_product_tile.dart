@@ -74,7 +74,7 @@ class POSProductTile extends StatelessWidget {
                   if (product.isFavorite)
                     Icon(Icons.star_rounded,
                         color: ThemeProvider.warning, size: 14)
-                  else
+                  else if (!controller.isNoStockProduct(product))
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 4, vertical: 1),

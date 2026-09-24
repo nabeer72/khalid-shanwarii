@@ -20,7 +20,7 @@ class DebugInspect {
     ];
 
     print('--------------- 🛡️ BUSINESS ISOLATION AUDIT 🛡️ ---------------');
-    print('Current Session: Business=${BusinessConfig.instance.businessId}, Owner=${BusinessConfig.instance.userId}, Branch=${BusinessConfig.instance.branchId}');
+    print('Current Session: Business=${BusinessConfig.instance.businessId}, Owner=${BusinessConfig.instance.userId}');
     print('');
 
     for (var table in tables) {

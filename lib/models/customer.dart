@@ -11,7 +11,7 @@ class Customer {
   final double creditLimit;
   final int status;
   final int isSynced;
-  final int? branchId;
+
 
   Customer({
     this.id,
@@ -26,7 +26,7 @@ class Customer {
     this.creditLimit = 0.0,
     this.status = 1,
     this.isSynced = 0,
-    this.branchId,
+
   });
 
   factory Customer.fromMap(Map<String, dynamic> map) {
@@ -43,7 +43,7 @@ class Customer {
       creditLimit: (map['credit_limit'] as num?)?.toDouble() ?? 0.0,
       status: (map['status'] as num?)?.toInt() ?? 1,
       isSynced: (map['is_synced'] as num?)?.toInt() ?? 0,
-      branchId: map['branch_id'] is int ? map['branch_id'] : int.tryParse(map['branch_id']?.toString() ?? ''),
+
     );
   }
 
@@ -61,7 +61,7 @@ class Customer {
       'credit_limit': creditLimit,
       'status': status,
       'is_synced': isSynced,
-      'branch_id': branchId,
+
     };
   }
 

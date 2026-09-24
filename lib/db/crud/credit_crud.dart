@@ -103,12 +103,11 @@ mixin CreditCrud on CommonCrud {
           [amountLeftToApply, payment['credit_sale_id'], ...getBusinessArgs()],
         );
       } else {
-        // "Floating" payment: apply to oldest open credit sales for this customer IN THIS BRANCH
-        final branchId = payment['branch_id'] ?? getCurrentBranchId();
+        // "Floating" payment: apply to oldest open credit sales for this customer
         final List<Map<String, dynamic>> openSales = await txn.query(
           'credit_sales',
-          where: 'customer_id = ? AND branch_id = ? AND remaining_balance > 0 AND status = 1${getBusinessFilter()}',
-          whereArgs: [customerId, branchId, ...getBusinessArgs()],
+          where: 'customer_id = ? AND remaining_balance > 0 AND status = 1${getBusinessFilter()}',
+          whereArgs: [customerId, ...getBusinessArgs()],
           orderBy: 'created_at ASC',
         );
 

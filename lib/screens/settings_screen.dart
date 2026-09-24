@@ -36,7 +36,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _autoReceipt = BusinessConfig.instance.autoReceipt;
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   bool _soundEnabled = BusinessConfig.instance.soundEnabled;
-  bool _enableShiftManagement = BusinessConfig.instance.enableShiftManagement;
   bool _enableTax = BusinessConfig.instance.enableTax;
   bool _enableGlobalDiscount = BusinessConfig.instance.enableGlobalDiscount;
   double _globalDiscountLimit = BusinessConfig.instance.globalDiscountLimit;
@@ -686,19 +685,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               await db.addUserBusiness(userId, bid);
                             }
 
-                            // 3. Create default branch for this business
-                            await db.insertBranch({
-                              'business_id': bid,
-                              'user_id': userId,
-                              'name': 'Main Branch',
-                              'branch_title': 'Main Branch',
-                              'branch_code': 'MAIN',
-                              'status': 1,
-                              'is_main_branch': '1',
-                              'is_synced': 0,
-                              'created_at': now,
-                              'updated_at': now,
-                            });
+
 
                             if (mounted) {
                               Navigator.pop(ctx);
@@ -1477,18 +1464,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => _showEditBusinessDialog(focusIndex: 3),
                 showTrailing: false,
               ),
-              _SettingsTile(
-                icon: BusinessConfig.instance.currencyIcon,
-                title: 'Currency Unit',
-                subtitle: BusinessConfig.instance.currency,
-                onTap: _showCurrencyDialog,
-              ),
-              _SettingsTile(
-                icon: Icons.business_center_rounded,
-                title: 'Manage Businesses',
-                subtitle: 'Toggle between or add new business entities',
-                onTap: _showManageBusinessesDialog,
-              ),
+
 
               const SizedBox(height: 24),
               const _SectionHeader(title: 'FINANCIAL CONFIG'),
@@ -1704,37 +1680,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       .setSetting('sound_enabled', v ? '1' : '0');
                 },
               ),
-              _SettingsSwitch(
-                icon: Icons.timer_outlined,
-                title: 'Clock In/Out Management',
-                subtitle: 'Enable shifts and cash drawer balancing',
-                value: _enableShiftManagement,
-                onChanged: (v) async {
-                  setState(() => _enableShiftManagement = v);
-                  BusinessConfig.instance.enableShiftManagement = v;
-                  await DatabaseHelper.instance
-                      .setSetting('enable_shift_management', v ? '1' : '0');
-                },
-              ),
 
-              const SizedBox(height: 24),
-              const _SectionHeader(title: 'MAINTENANCE'),
-              _SettingsTile(
-                icon: Icons.cloud_sync_rounded,
-                title: 'Cloud Synchronization',
-                subtitle: 'Last synced: 2 hours ago',
-                onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Syncing with cloud...'),
-                        backgroundColor: ThemeProvider.info)),
-              ),
-              _SettingsTile(
-                icon: Icons.storage_rounded,
-                title: 'Manage Local Storage',
-                subtitle: 'Cleanup old synced records to save space',
-                showTrailing: false,
-                onTap: _showManageStorageDialog,
-              ),
+
+
 
               const _SectionHeader(title: 'SECURITY'),
               _SettingsTile(
@@ -1801,16 +1749,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: 'Build Version',
                 subtitle: 'Premium v1.0.84 - Stable',
                 onTap: () {},
-              ),
-              const SizedBox(height: 24),
-              const _SectionHeader(title: 'ACCOUNT MANAGEMENT'),
-              _SettingsTile(
-                icon: Icons.person_remove_rounded,
-                title: 'Delete Account',
-                subtitle: 'Request account deletion',
-                titleColor: ThemeProvider.error,
-                showTrailing: false,
-                onTap: _showDeletionRequestDialog,
               ),
               const SizedBox(height: 48),
             ],
@@ -1919,19 +1857,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Text('Starting synchronization...'),
         backgroundColor: ThemeProvider.info));
     try {
-      final result = await _syncService.syncAll();
+      await _syncService.syncAll();
       if (mounted) {
-        if (result.success) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-              content: Text('Sync complete! Now you can safely cleanup.'),
-              backgroundColor: ThemeProvider.success));
-          _confirmCleanup();
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content:
-                  Text('Sync partial: ${result.pushError ?? result.pullError}'),
-              backgroundColor: ThemeProvider.warning));
-        }
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Sync complete! Now you can safely cleanup.'),
+            backgroundColor: ThemeProvider.success));
+        _confirmCleanup();
       }
     } catch (e) {
       if (mounted) {

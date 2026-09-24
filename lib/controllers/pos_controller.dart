@@ -7,13 +7,18 @@ import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/models/pos_cart_item.dart';
 import 'package:mobile_app/models/held_order.dart';
+import 'package:mobile_app/models/deal.dart';
+import 'package:mobile_app/models/deal_item.dart';
 
 class POSController with ChangeNotifier {
   List<ProductCategory> _categories = [];
   List<ProductCategory> _subCategories = [];
   List<Product> _products = [];
+  List<Deal> _deals = [];
   List<dynamic> _topSellingProductIds = [];
   List<POSCartItem> _cart = [];
+  Set<dynamic> _weightUnitIds = {};
+  Set<dynamic> _noStockUnitIds = {};
 
   String _selectedCategory = 'all';
   dynamic _selectedSubCategoryId;
@@ -39,6 +44,7 @@ class POSController with ChangeNotifier {
   List<ProductCategory> get categories => _categories;
   List<ProductCategory> get subCategories => _subCategories;
   List<Product> get products => _products;
+  List<Deal> get deals => _deals;
   List<POSCartItem> get cart => _cart;
   String get selectedCategory => _selectedCategory;
   dynamic get selectedSubCategoryId => _selectedSubCategoryId;
@@ -55,6 +61,24 @@ class POSController with ChangeNotifier {
   int? get originalSaleId => _originalSaleId;
   Customer? get selectedCustomer => _selectedCustomer;
   String get searchQuery => _searchQuery;
+
+  bool isWeightUnit(dynamic unitId) {
+    if (unitId == null) return false;
+    return _weightUnitIds.contains(unitId);
+  }
+
+  bool isWeightProduct(Product product) {
+    return isWeightUnit(product.unitId);
+  }
+
+  bool isNoStockUnit(dynamic unitId) {
+    if (unitId == null) return false;
+    return _noStockUnitIds.contains(unitId);
+  }
+
+  bool isNoStockProduct(Product product) {
+    return isNoStockUnit(product.unitId);
+  }
 
   POSController() {
     loadData();
@@ -82,6 +106,47 @@ class POSController with ChangeNotifier {
       final subCategoriesData =
           await DatabaseHelper.instance.getSubCategories();
 
+      try {
+        final unitsData = await DatabaseHelper.instance.getUnits();
+        const weightShortNames = {'kg', 'g', 'L', 'l', 'm', 'ft', 'yd'};
+        const weightFullNames = {
+          'kilogram',
+          'gram',
+          'liter',
+          'litre',
+          'meter',
+          'metre',
+          'foot',
+          'yard'
+        };
+        const noStockShortNames = {'kg', 'g', 'L', 'l', 'plt', 'nan', 'roti'};
+        const noStockFullNames = {
+          'kilogram',
+          'gram',
+          'liter',
+          'litre',
+          'plate',
+          'nan',
+          'roti'
+        };
+        _weightUnitIds = <dynamic>{};
+        _noStockUnitIds = <dynamic>{};
+        for (final u in unitsData) {
+          final sn = (u['short_name'] ?? '').toString().trim().toLowerCase();
+          final nm = (u['name'] ?? '').toString().trim().toLowerCase();
+          if (weightShortNames.contains(sn) || weightFullNames.contains(nm)) {
+            _weightUnitIds.add(u['id']);
+          }
+          if (noStockShortNames.contains(sn) || noStockFullNames.contains(nm)) {
+            _noStockUnitIds.add(u['id']);
+          }
+        }
+      } catch (ue) {
+        debugPrint('Error loading weight/noStock units: $ue');
+        _weightUnitIds = {};
+        _noStockUnitIds = {};
+      }
+
       _products = productsData.map((p) {
         final stocksData = (p['stocks'] as List<Map<String, dynamic>>? ?? []);
         return Product.fromMap(p,
@@ -98,8 +163,12 @@ class POSController with ChangeNotifier {
               }))
           .toList();
 
-      // We can also store them in a separate list if we want to show a subcategory selector
       _subCategories = subCats;
+
+      // Load active deals
+      final dealsData =
+          await DatabaseHelper.instance.getAllDeals(activeOnly: true);
+      _deals = dealsData.map((d) => Deal.fromMap(d)).toList();
 
       _topSellingProductIds = [];
       try {
@@ -220,7 +289,8 @@ class POSController with ChangeNotifier {
 
     final double currentCartQty =
         existingIndex >= 0 ? _cart[existingIndex].quantity : 0;
-    if (currentCartQty + qty > stock.quantity) return false;
+    final bool skipStock = isNoStockProduct(product);
+    if (!skipStock && currentCartQty + qty > stock.quantity) return false;
 
     MockDataStore.instance.addToRecent(product.id);
 
@@ -250,6 +320,36 @@ class POSController with ChangeNotifier {
     return true;
   }
 
+  bool addDealToCart(Deal deal, List<DealItem> dealItems, {double qty = 1}) {
+    final cartItemId = 'deal_${deal.id}';
+    final existingIndex =
+        _cart.indexWhere((item) => item.cartItemId == cartItemId);
+
+    if (existingIndex >= 0) {
+      _cart[existingIndex].quantity += qty;
+      _cart[existingIndex].updateSubtotal();
+    } else {
+      for (final item in _cart) {
+        item.isNew = false;
+      }
+      final newItem = POSCartItem(
+        cartItemId: cartItemId,
+        isDeal: true,
+        deal: deal,
+        dealItems: dealItems,
+        quantity: qty,
+        price: deal.dealPrice,
+        isWeight: false,
+        discountType: 'fixed',
+        discountValue: 0,
+      );
+      newItem.isNew = true;
+      _cart.add(newItem);
+    }
+    calculateTotals();
+    return true;
+  }
+
   void removeFromCart(int index) {
     if (index < 0 || index >= _cart.length) return;
     _cart.removeAt(index);
@@ -266,7 +366,10 @@ class POSController with ChangeNotifier {
     if (nextQty <= 0) {
       _cart.removeAt(index);
     } else {
-      if (nextQty > item.stock.quantity) return;
+      if (!item.isDeal && item.stock != null && item.product != null) {
+        final bool skipStock = isNoStockProduct(item.product!);
+        if (!skipStock && nextQty > item.stock!.quantity) return;
+      }
       item.setQuantity(nextQty);
     }
     calculateTotals();
@@ -279,7 +382,10 @@ class POSController with ChangeNotifier {
       _cart.removeAt(index);
     } else {
       final item = _cart[index];
-      if (value > item.stock.quantity) return;
+      if (!item.isDeal && item.stock != null && item.product != null) {
+        final bool skipStock = isNoStockProduct(item.product!);
+        if (!skipStock && value > item.stock!.quantity) return;
+      }
       item.setQuantity(value);
     }
     calculateTotals();
@@ -292,9 +398,10 @@ class POSController with ChangeNotifier {
         _selectedCustomer!.discount > 0) {
       for (var item in _cart) {
         if (item.isManual) continue; // Skip auto-discount for manual overrides
+        if (item.isDeal) continue; // Skip auto-discount for deals
 
-        double limitValue = item.stock.discountLimit;
-        String limitType = item.stock.discountLimitType;
+        double limitValue = item.stock?.discountLimit ?? 0;
+        String limitType = item.stock?.discountLimitType ?? 'percentage';
         double customerPercent = _selectedCustomer!.discount;
 
         double calculatedDiscount = 0;
@@ -367,7 +474,7 @@ class POSController with ChangeNotifier {
 
   double getProductQuantityInCart(dynamic productId) {
     return _cart
-        .where((item) => item.product.id == productId)
+        .where((item) => item.product?.id == productId)
         .fold(0.0, (sum, item) => sum + item.quantity);
   }
 

@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
-import 'package:mobile_app/screens/signup_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -25,8 +24,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final theme = ThemeProvider.instance;
-  final _emailCtrl = TextEditingController();
-  final _passCtrl = TextEditingController();
+  final _emailCtrl = TextEditingController(text: 'Khalid@gmail.com');
+  final _passCtrl = TextEditingController(text: 'Khalid@123');
   final _api = ApiService();
   final _dbHelper = DatabaseHelper.instance;
   final _storage = const FlutterSecureStorage();
@@ -102,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen>
         await db.delete('users', where: 'LOWER(email) = ?', whereArgs: [email]);
         await db.delete('employees', where: 'LOWER(email) = ?', whereArgs: [email]);
         print('🧹 [CLEANUP] Removed user/employee $email from local database');
-      }).catchError((e) => print('⚠️ Failed to cleanup local user record: $e'));
+      }).catchError((e) { print('⚠️ Failed to cleanup local user record: $e'); });
 
       if (_savedAccounts.isEmpty) {
         setState(() => _showLoginForm = true);
@@ -133,7 +132,6 @@ class _LoginScreenState extends State<LoginScreen>
 
       // [FIX] Store business and branch IDs to allow skipping re-selection during Quick Login
       final bid = BusinessConfig.instance.businessId;
-      final brid = BusinessConfig.instance.branchId;
 
       final account = {
         'email': email,
@@ -141,7 +139,6 @@ class _LoginScreenState extends State<LoginScreen>
         'name': name,
         'pin': pin,
         'business_id': bid,
-        'branch_id': brid,
       };
 
       // Remove existing account with same email if exists
@@ -306,10 +303,8 @@ class _LoginScreenState extends State<LoginScreen>
       }
 
       final response = await _api.getUserBusinesses();
-      if (response?.statusCode != 200) return [];
-
-      final raw = response!.data['businesses'];
-      if (raw is! List || raw.isEmpty) return [];
+      final raw = response;
+      if (raw.isEmpty) return [];
 
       final businesses = <Map<String, dynamic>>[];
       for (final item in raw) {
@@ -330,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen>
   Future<void> _handleAdminBusinessSelection(dynamic userId) async {
     final fallbackBid = BusinessConfig.instance.businessId;
     BusinessConfig.instance.businessId = null;
-    BusinessConfig.instance.branchId = null;
+    
 
     var businesses = await _fetchAdminBusinessesFromApi(userId);
     if (businesses.isEmpty) {
@@ -490,9 +485,9 @@ class _LoginScreenState extends State<LoginScreen>
         BusinessConfig.instance.setContext(
           bid: bid, 
           uid: aid,
-          brid: user['branch_id'],
+
         );
-        // [FIX] Await the sync so that subscription data is written to the local
+        // [FIX] Await the sync so that data is written to the local
         // businesses table BEFORE loadSettings() reads it.
         await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after admin login failed: $e'));
         
@@ -531,15 +526,11 @@ class _LoginScreenState extends State<LoginScreen>
         BusinessConfig.instance.userId = staff['user_id'];
         BusinessConfig.instance.staffId = staff['id'];
         BusinessConfig.instance.staffName = staff['name'] ?? 'Staff';
-        // [FIX] Await the sync so that subscription data is written to the local
-        // businesses table BEFORE loadSettings() reads it. Without this await,
-        // subscriptionStatus stays 'none' and triggers a false "please renew" error.
+        // [FIX] Await the sync so that data is written to the local
+        // businesses table BEFORE loadSettings() reads it.
         await SyncService().syncPull(forceFull: true).catchError((e) => print('⚠️ Sync after staff login failed: $e'));
 
-        if (staff['branch_id'] != null) {
-          BusinessConfig.instance.branchId = staff['branch_id'];
-          await _storage.write(key: 'branch_id', value: staff['branch_id'].toString());
-        }
+
 
         if (staff['business_id'] != null) {
           final business = await _dbHelper.getBusiness(staff['business_id']);
@@ -585,6 +576,8 @@ class _LoginScreenState extends State<LoginScreen>
 
           if (pullData['user'] != null) {
             final u = pullData['user'];
+            // [FIX] Inject the plaintext password so it's hashed and saved locally for offline login
+            u['password'] = password;
             await _dbHelper.insertUser(u);
             final uid = u['id'] is int ? (u['id'] as int) : int.tryParse(u['id']?.toString() ?? '');
             loginUserId = uid;
@@ -629,7 +622,6 @@ class _LoginScreenState extends State<LoginScreen>
               BusinessConfig.instance.setContext(
                 bid: bid,
                 uid: effectiveUserId,
-                brid: brid,
               );
               BusinessConfig.instance.staffId = resolvedStaffId;
               BusinessConfig.instance.staffName = u['name'] ?? 'User';
@@ -665,7 +657,7 @@ class _LoginScreenState extends State<LoginScreen>
           // Let business selection choose the active business (admin only)
           if (BusinessConfig.instance.staffId == null) {
             BusinessConfig.instance.businessId = null;
-            BusinessConfig.instance.branchId = null;
+            
           }
 
           print('✅ [LOGIN] Initial setup complete!');
@@ -722,30 +714,6 @@ class _LoginScreenState extends State<LoginScreen>
         await _dbHelper.updateUserSyncStatus(localUser['id'], 1);
       }
     } catch (e) {
-      if (e is DioException && e.response?.statusCode == 422) {
-        print('💡 [LOGIN] Login mismatch/missing, checking for auto-signup...');
-
-        final localUser = await _dbHelper.getUserByEmail(email);
-        if (localUser != null && localUser['is_synced'] == 0) {
-          print('📝 [LOGIN] Attempting auto-signup for local-only user...');
-          try {
-            await _api.signup(
-              email: email,
-              password: password,
-              businessName:
-                  // ignore: dead_null_aware_expression
-                  BusinessConfig.instance.businessName ?? 'My Business',
-              businessTypeId: int.tryParse(BusinessConfig.instance.businessType ?? '1') ?? 1,
-              planId: 1, // Default to Free Trial for auto-signup
-            );
-            print('✅ [LOGIN] Backend signup successful');
-            await _dbHelper.updateUserSyncStatus(localUser['id'], 1);
-            return;
-          } catch (signupError) {
-            print('❌ [LOGIN] Auto-signup failed: $signupError');
-          }
-        }
-      }
       print('⚠️ [LOGIN] Backend sync failed: $e');
     }
   }
@@ -782,7 +750,7 @@ class _LoginScreenState extends State<LoginScreen>
                                         color: theme.iconColor, size: 32),
                                     const SizedBox(width: 12),
                                     Text(
-                                      'SATA POS',
+                                      'Khalid Shinwari',
                                       style: TextStyle(
                                         fontSize: 26,
                                         fontWeight: FontWeight.w900,
@@ -1106,33 +1074,6 @@ class _LoginScreenState extends State<LoginScreen>
                         const SizedBox(height: 12),
 
                         // Footer Section
-                        if (!kIsWeb)
-                          Center(
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Don\'t have an account?',
-                                  style: TextStyle(
-                                      color: theme.textSecondary,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                        builder: (_) => const SignupScreen()),
-                                  ),
-                                  child: Text(
-                                    'Create Account',
-                                    style: TextStyle(
-                                        color: theme.highlight,
-                                        fontWeight: FontWeight.w800),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
                         const SizedBox(height: 16),
 
                         // Theme toggle

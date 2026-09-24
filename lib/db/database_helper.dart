@@ -13,7 +13,7 @@ import 'crud/purchases_crud.dart';
 import 'crud/expenses_crud.dart';
 import 'crud/credit_crud.dart';
 import 'crud/shifts_crud.dart';
-import 'crud/branches_crud.dart';
+
 import 'crud/holds_crud.dart';
 import 'crud/returns_crud.dart';
 import 'crud/currency_notes_crud.dart';
@@ -21,6 +21,7 @@ import 'crud/units_crud.dart';
 import 'crud/payment_types_crud.dart';
 import 'crud/brands_crud.dart';
 import 'crud/banks_crud.dart';
+import 'crud/deals_crud.dart';
 
 class DatabaseHelper
     with
@@ -36,14 +37,15 @@ class DatabaseHelper
         ExpensesCrud,
         CreditCrud,
         ShiftsCrud,
-        BranchesCrud,
+
         HoldsCrud,
         ReturnsCrud,
         CurrencyNotesCrud,
         UnitsCrud,
         PaymentTypesCrud,
         BrandsCrud,
-        BanksCrud {
+        BanksCrud,
+        DealsCrud {
   static final DatabaseHelper instance = DatabaseHelper._init();
 
   // Stream for data changes (to trigger immediate UI refreshes)

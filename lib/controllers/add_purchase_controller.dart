@@ -319,7 +319,6 @@ class AddPurchaseController with ChangeNotifier {
 
     final purchase = {
       'id': null,
-      'branch_id': BusinessConfig.instance.branchId,
       'supplier_id': selectedSupplierId,
       'invoice_number': invoiceCtrl.text.trim(),
       'purchase_date': purchaseDate.toIso8601String(),
@@ -351,7 +350,6 @@ class AddPurchaseController with ChangeNotifier {
           'id': null,
           'supplier_id': selectedSupplierId,
           'purchase_id': purchaseId,
-          'branch_id': BusinessConfig.instance.branchId, // Ensures reconcileSupplierBalances finds this record under the correct branch filter
           'amount': totalAmount,
           'remaining_balance': credit,
           'is_synced': 0,
