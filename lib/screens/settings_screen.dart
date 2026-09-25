@@ -1,7 +1,10 @@
 // ignore_for_file: unused_element
 
+import 'dart:io';
+import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/db/db_initializer.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/data/currency_list.dart';
@@ -286,6 +289,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               await db.updateBusinessSyncStatus(
                                   BusinessConfig.instance.businessId, 0);
                             }
+                            DatabaseHelper.notifyDataChanged(
+                              triggerSync: false);
 
                             for (var node in focusNodes) {
                               node.dispose();
@@ -1404,6 +1409,96 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _backupDatabase() async {
+    try {
+      final db = await DatabaseHelper.instance.database;
+      final dbFile = File(db.path);
+      if (!await dbFile.exists()) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Database file not found'), backgroundColor: ThemeProvider.error),
+        );
+        return;
+      }
+      final dirPath = await FileSelectorPlatform.instance.getDirectoryPath(
+        confirmButtonText: 'Select',
+      );
+      if (dirPath == null) return;
+      final timestamp = DateTime.now().toString().replaceAll(':', '-').replaceAll('.', '-');
+      final backupFile = File('$dirPath/khalid_shinwari_backup_$timestamp.db');
+      await DbInitializer.closeDatabase();
+      try {
+        await dbFile.copy(backupFile.path);
+      } finally {
+        await DbInitializer.resetDatabase();
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Backup saved: ${backupFile.path}'),
+            backgroundColor: ThemeProvider.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Backup failed: $e'), backgroundColor: ThemeProvider.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _importDatabase() async {
+    try {
+      final files = await FileSelectorPlatform.instance.openFiles(
+        confirmButtonText: 'Select',
+      );
+      if (files.isEmpty) return;
+      final filePath = files.first.path;
+      if (!filePath.toLowerCase().endsWith('.db') &&
+          !filePath.toLowerCase().endsWith('.sqlite')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Please select a .db or .sqlite backup file'),
+                backgroundColor: ThemeProvider.error),
+          );
+        }
+        return;
+      }
+      final selectedFile = File(filePath);
+      if (!await selectedFile.exists()) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('File not found'), backgroundColor: ThemeProvider.error),
+          );
+        }
+        return;
+      }
+      final db = await DatabaseHelper.instance.database;
+      final dbFile = File(db.path);
+      await DbInitializer.closeDatabase();
+      await selectedFile.copy(dbFile.path);
+      await DbInitializer.resetDatabase();
+      await DatabaseHelper.instance.loadSettings();
+      DatabaseHelper.notifyDataChanged(triggerSync: false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Database imported successfully!'),
+            backgroundColor: ThemeProvider.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Import failed: $e'), backgroundColor: ThemeProvider.error),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1742,12 +1837,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
 
               const SizedBox(height: 24),
-              const _SectionHeader(title: 'SYSTEM INFO'),
+              const _SectionHeader(title: 'DATA MANAGEMENT'),
               _SettingsTile(
-                icon: Icons.terminal_rounded,
-                title: 'Build Version',
-                subtitle: 'Premium v1.0.84 - Stable',
-                onTap: () {},
+                icon: Icons.backup_rounded,
+                title: 'Backup Database',
+                subtitle: 'Save a complete copy of all data',
+                onTap: _backupDatabase,
+                showTrailing: false,
+              ),
+              _SettingsTile(
+                icon: Icons.upload_rounded,
+                title: 'Import Database',
+                subtitle: 'Restore data from a backup file',
+                onTap: _importDatabase,
+                showTrailing: false,
               ),
               const SizedBox(height: 48),
             ],

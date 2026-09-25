@@ -14,9 +14,21 @@ class DbInitializer {
   static const _secureStorage = FlutterSecureStorage();
   static const _dbKeyName = 'db_encryption_key';
 
+  static Future<void> closeDatabase() async {
+    if (_database != null) {
+      await _database!.close();
+      _database = null;
+    }
+  }
+
+  static Future<void> resetDatabase() async {
+    await closeDatabase();
+    await getDatabase();
+  }
+
   static Future<Database> getDatabase() async {
     if (_database != null) return _database!;
-    _database = await _initDB('sata_pos.db');
+    _database = await _initDB('khalid_shinwari.db');
     return _database!;
   }
 
@@ -44,26 +56,30 @@ class DbInitializer {
       final dbPath = await dbFactory.getDatabasesPath();
       final path = join(dbPath, filePath);
 
-      // For now, skip encryption on desktop (to avoid OpenSSL dependency)
-      return await dbFactory.openDatabase(
-        path, 
-        options: OpenDatabaseOptions(
-          version: 85,
-          onCreate: DbTables.createDB,
-          onUpgrade: DbMigrations.upgradeDB,
-        ),
-      );
+    // For now, skip encryption on desktop (to avoid OpenSSL dependency)
+    final db = await dbFactory.openDatabase(
+      path, 
+      options: OpenDatabaseOptions(
+        version: 85,
+        onCreate: DbTables.createDB,
+        onUpgrade: DbMigrations.upgradeDB,
+      ),
+    );
+    await DbTables.seedDefaultAdmin(db);
+    return db;
     }
 
     // On mobile platforms (Android/iOS), we use SQLCipher encryption via sqflite_sqlcipher.
     final dbPath = await sqlcipher.databaseFactory.getDatabasesPath();
     final path = join(dbPath, filePath);
-    return await sqlcipher.openDatabase(
+    final db = await sqlcipher.openDatabase(
       path, 
       version: 85,
       password: password,
       onCreate: DbTables.createDB, 
       onUpgrade: DbMigrations.upgradeDB,
     );
+    await DbTables.seedDefaultAdmin(db);
+    return db;
   }
 }

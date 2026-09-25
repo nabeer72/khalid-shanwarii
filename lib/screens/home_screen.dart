@@ -160,8 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _branches = [];
-          _currentBranchName = 'Main Branch';
-          _storeAddress = 'Main Store';
+          _currentBranchName = BusinessConfig.instance.businessPhone.trim();
+          _storeAddress = BusinessConfig.instance.businessAddress.trim();
         });
       }
     } catch (e) {
@@ -181,7 +181,12 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
         border: Border.all(color: theme.divider, width: 1.0),
       ),
-      child: Icon(Icons.store_rounded, color: theme.highlight, size: 24),
+      child: Image.asset(
+        'asset/icon.png',
+        width: 44,
+        height: 44,
+        fit: BoxFit.contain,
+      ),
     );
   }
 

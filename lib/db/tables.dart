@@ -814,6 +814,7 @@ class DbTables {
     ''');
 
     if (kDebugMode) print('Database created with all tables including RBAC, Units, Brands, Payment Types, and Deals');
+    await DbTables.seedDefaultAdmin(db);
     await DbTables.seedPermissions(db);
     await DbTables.seedPaymentTypes(db);
     await DbTables.seedBusinessUnits(db);
@@ -925,5 +926,33 @@ class DbTables {
         }
       }
     });
+  }
+
+  static Future<void> seedDefaultAdmin(Database db) async {
+    final admins = await db.query('users', where: 'email = ?', whereArgs: ['khalid@gmail.com']);
+    if (admins.isNotEmpty) return;
+    final uid = await db.insert('users', {
+      'business_id': 0,
+      'name': 'Khalid Shinwari',
+      'email': 'khalid@gmail.com',
+      'password': 'Khalid@123',
+      'role': 'admin',
+      'status': 1,
+      'is_synced': 0,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
+    final businesses = await db.query('businesses');
+    if (businesses.isNotEmpty) return;
+    final bId = await db.insert('businesses', {
+      'name': 'My Business',
+      'business_type_id': 1,
+      'owner_user_id': uid,
+      'status': 1,
+      'is_synced': 0,
+      'created_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toIso8601String(),
+    });
+    await db.update('users', {'business_id': bId}, where: 'id = ?', whereArgs: [uid]);
   }
 }

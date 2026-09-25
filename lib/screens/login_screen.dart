@@ -10,7 +10,6 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/services/sync_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -188,7 +187,7 @@ class _LoginScreenState extends State<LoginScreen>
         _passCtrl.text = account['password'];
       });
       // [FIX] Pass the specific account info to login to allow updating the name later
-      _login(isQuickLogin: true, existingPin: account['pin']);
+      _login(isQuickLogin: true);
     } else {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -398,8 +397,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   /// FIXED: Business selection only for admins, not employees
-  Future<void> _proceedToHome(bool isQuickLogin, String email,
-      {bool isPinLogin = false}) async {
+  Future<void> _proceedToHome(bool isQuickLogin, String email) async {
     if (!mounted) return;
 
     print('🏠 [LOGIN] Auth successful, checking saved credentials...');
@@ -485,7 +483,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  void _login({bool isQuickLogin = false, String? existingPin}) async {
+  void _login({bool isQuickLogin = false}) async {
     print('🔐 [LOGIN] Starting login process...');
     print('📧 [LOGIN] Email: ${_emailCtrl.text}');
     print('🌐 [LOGIN] Is Web: $kIsWeb');
@@ -565,7 +563,7 @@ class _LoginScreenState extends State<LoginScreen>
               .syncPull()
               .catchError((e) => print('⚠️ Background sync failed: $e'));
 
-          await _proceedToHome(isQuickLogin, cleanEmail, isPinLogin: false);
+          await _proceedToHome(isQuickLogin, cleanEmail);
           return;
         }
 
@@ -613,7 +611,7 @@ class _LoginScreenState extends State<LoginScreen>
               .catchError((e) => print('⚠️ Background sync failed: $e'));
 
           // When logging in via Quick Login (PIN), indicate that this is a PIN login to avoid showing PIN setup again
-          await _proceedToHome(isQuickLogin, email, isPinLogin: true);
+          await _proceedToHome(isQuickLogin, email);
           return;
         }
       }
@@ -661,9 +659,6 @@ class _LoginScreenState extends State<LoginScreen>
           final brid = u['branch_id'] is int
               ? (u['branch_id'] as int)
               : int.tryParse(u['branch_id']?.toString() ?? '');
-          final aid = u['admin_id'] is int
-              ? (u['admin_id'] as int)
-              : int.tryParse(u['admin_id']?.toString() ?? '');
 
           // [FIX] Ensure current user-business link exists locally
           if (uid != null && bid != null) {
@@ -817,37 +812,36 @@ class _LoginScreenState extends State<LoginScreen>
             child: SafeArea(
               child: FadeTransition(
                 opacity: _fadeAnim,
-                child: Center(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 24, vertical: 32),
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: isWide ? 960 : 440,
-                      ),
-                      child: isWide
-                          ? Row(
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: [
-                                Expanded(child: _buildHeroPanel()),
-                                const SizedBox(width: 32),
-                                SizedBox(
-                                  width: 420,
-                                  child: _buildAuthColumn(),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              children: [
-                                _buildHeroPanel(),
-                                const SizedBox(height: 28),
-                                _buildAuthColumn(),
-                              ],
+                child: isWide
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildHeroPanel(isWide: isWide)),
+                          Expanded(
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 32),
+                                child: _buildAuthColumn(),
+                              ),
                             ),
-                    ),
-                  ),
-                ),
+                          ),
+                        ],
+                      )
+                    : Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 32),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _buildHeroPanel(isWide: isWide),
+                              const SizedBox(height: 28),
+                              _buildAuthColumn(),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ),
           ),
@@ -889,7 +883,19 @@ class _LoginScreenState extends State<LoginScreen>
     );
   }
 
-  Widget _buildHeroPanel() {
+  Widget _buildHeroPanel({bool isWide = false}) {
+    if (isWide) {
+      // [FIX] Image now fills the entire left side edge-to-edge, no
+      // empty space, no rounding, no scroll.
+      return SizedBox.expand(
+        child: Image.asset(
+          'asset/images.png',
+          fit: BoxFit.cover,
+          width: double.infinity,
+        ),
+      );
+    }
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -907,28 +913,6 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
         ),
-        const SizedBox(height: 22),
-        Text(
-          'Welcome Back',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: ThemeProvider.fontHeadline,
-            fontWeight: FontWeight.w900,
-            color: theme.textPrimary,
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Khalid Shinwari — Premium POS',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: theme.textSecondary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 14),
         if (kIsWeb)
           Center(
             child: Container(

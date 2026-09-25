@@ -14,7 +14,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "pk.sata.pos"
+    namespace = "pk.khalid.shinwari"
     compileSdk = 36
 
     compileOptions {
@@ -38,7 +38,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "pk.sata.pos"
+        applicationId = "pk.khalid.shinwari"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

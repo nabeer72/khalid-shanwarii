@@ -1901,5 +1901,7 @@ class DbMigrations {
           print('Migration v79 failed (columns might already exist): $e');
       }
     }
+
+    await DbTables.seedDefaultAdmin(db);
   }
 }

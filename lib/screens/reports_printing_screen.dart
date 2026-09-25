@@ -51,8 +51,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent:
-                        MediaQuery.of(context).size.width > 600 ? 210 : 160,
-                    mainAxisExtent: 115,
+                        MediaQuery.of(context).size.width > 600 ? 240 : 160,
+                    mainAxisExtent: 140,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -61,42 +61,42 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                       title: 'Grand Summary',
                       subtitle: 'All reports combined',
                       icon: Icons.summarize_rounded,
-                      color: const Color(0xFF4F46E5), // Indigo 600
+                      color: theme.highlight,
                       onTap: _handlePrintGrandSummary,
                     ),
                     _buildReportCard(
                       title: 'Sales Report',
                       subtitle: 'Full sales overview',
                       icon: Icons.receipt_long_rounded,
-                      color: const Color(0xFF6366F1), // Indigo
+                      color: ThemeProvider.gradientPrimary.first,
                       onTap: _handlePrintGeneralSales,
                     ),
                     _buildReportCard(
                       title: 'Category Wise',
                       subtitle: 'Sales by category',
                       icon: Icons.category_rounded,
-                      color: const Color(0xFF10B981),
+                      color: ThemeProvider.success,
                       onTap: _handlePrintCategoryWise,
                     ),
                     _buildReportCard(
                       title: 'Top Selling',
                       subtitle: 'Popular products',
                       icon: Icons.trending_up_rounded,
-                      color: const Color(0xFFF59E0B),
+                      color: ThemeProvider.warning,
                       onTap: _handlePrintTopSelling,
                     ),
                     _buildReportCard(
                       title: 'Employee Wise',
                       subtitle: 'Staff performance',
                       icon: Icons.people_rounded,
-                      color: const Color(0xFF3B82F6),
+                      color: ThemeProvider.info,
                       onTap: _handlePrintEmployeeWise,
                     ),
                     _buildReportCard(
                       title: 'Product Wise',
                       subtitle: 'Detailed product sales',
                       icon: Icons.list_alt_rounded,
-                      color: const Color(0xFF6366F1),
+                      color: theme.accent,
                       onTap: _handlePrintProductWise,
                     ),
                   ]),
@@ -109,8 +109,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent:
-                        MediaQuery.of(context).size.width > 600 ? 210 : 160,
-                    mainAxisExtent: 115,
+                        MediaQuery.of(context).size.width > 600 ? 240 : 160,
+                    mainAxisExtent: 140,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -119,7 +119,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                       title: 'Current Stock',
                       subtitle: 'All products status',
                       icon: Icons.inventory_rounded,
-                      color: const Color(0xFF8B5CF6),
+                      color: ThemeProvider.gradientPurple.first,
                       onTap: _handlePrintStockReport,
                     ),
                     _buildReportCard(
@@ -139,8 +139,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 sliver: SliverGrid(
                   gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent:
-                        MediaQuery.of(context).size.width > 600 ? 210 : 160,
-                    mainAxisExtent: 115,
+                        MediaQuery.of(context).size.width > 600 ? 240 : 160,
+                    mainAxisExtent: 140,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                   ),
@@ -149,7 +149,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                       title: 'Expense Summary',
                       subtitle: 'Operational expenses',
                       icon: Icons.account_balance_wallet_rounded,
-                      color: const Color(0xFFEF4444),
+                      color: ThemeProvider.error,
                       onTap: _handlePrintExpenseReport,
                     ),
                   ]),
@@ -170,10 +170,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         child: Text(
           title,
           style: TextStyle(
-            color: theme.textSecondary.withValues(alpha: 0.7),
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2.0,
+            color: theme.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.5,
           ),
         ),
       ),
@@ -187,46 +187,75 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final bool isLoading = _generatingReportTitle == title;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: _generatingReportTitle != null ? null : onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
         child: Container(
-          decoration: BoxDecoration(
-            color: theme.surface,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-            border: Border.all(
-              color: theme.divider.withValues(alpha: 0.5),
-              width: 1.0,
-            ),
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          decoration: theme.elevatedCardDecoration,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  shape: BoxShape.circle,
+              Flexible(
+                flex: 3,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: theme.glassCircleDecoration(color: color),
+                    child: isLoading
+                        ? SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: color))
+                        : Icon(icon, color: color, size: 26),
+                  ),
                 ),
-                child: _generatingReportTitle == title
-                    ? SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: color))
-                    : Icon(icon, color: color, size: 28),
               ),
-              const SizedBox(height: 10),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: theme.textPrimary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+              const SizedBox(height: 8),
+              Flexible(
+                flex: 2,
+                fit: FlexFit.loose,
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: theme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    height: 1.2,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Flexible(
+                flex: 1,
+                fit: FlexFit.loose,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: theme.badgeDecoration(color),
+                    child: Text(
+                      'PRINT',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -1361,10 +1390,10 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       BusinessConfig business, pw.Font font, pw.Font boldFont,
       {String userId = 'ADMIN', String? subtitle}) {
     final reportDate =
-        DateFormat('dd MMM yyyy • HH:mm a').format(DateTime.now());
+        DateFormat('dd MMM yyyy â€¢ HH:mm a').format(DateTime.now());
     final reportNum =
         'REP-${DateFormat('yyyyMMdd').format(DateTime.now())}-${business.businessId ?? "001"}';
-    final primaryColor = PdfColor.fromHex('#EF4444'); // Red color used in app
+    final primaryColor = PdfColor.fromHex('#8B6914'); // Gold brand color (theme)
 
     return pw.Container(
         margin: const pw.EdgeInsets.only(bottom: 20),
@@ -1445,14 +1474,14 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
       padding: const pw.EdgeInsets.only(top: 5),
       decoration: pw.BoxDecoration(
         border: pw.Border(
-            top: pw.BorderSide(width: 1, color: PdfColor.fromHex('#EF4444'))),
+            top: pw.BorderSide(width: 1, color: PdfColor.fromHex('#8B6914'))),
       ),
       child: pw.Text(
         'PAGE ${context.pageNumber} OF ${context.pagesCount}',
         style: pw.TextStyle(
             font: font,
             fontSize: 8,
-            color: PdfColor.fromHex('#EF4444'),
+            color: PdfColor.fromHex('#8B6914'),
             fontWeight: pw.FontWeight.bold),
       ),
     );
@@ -1667,7 +1696,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               8: pw.Alignment.center,
             },
             headerDecoration:
-                pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
+                pw.BoxDecoration(color: PdfColor.fromHex('#8B6914')),
           ));
 
           // 2. Returns Details (Move before summary)
@@ -1720,7 +1749,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                 7: pw.Alignment.center,
               },
               headerDecoration:
-                  pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
+                  pw.BoxDecoration(color: PdfColor.fromHex('#8B6914')),
             ));
           }
 
@@ -1788,7 +1817,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                         font: boldFont,
                         fontWeight: pw.FontWeight.bold,
                         fontSize: 13,
-                        color: PdfColor.fromHex('#EF4444'))),
+                        color: PdfColor.fromHex('#8B6914'))),
                 pw.SizedBox(height: 12),
                 pw.Divider(color: PdfColor.fromHex('#CBD5E1'), thickness: 1),
                 pw.SizedBox(height: 12),
@@ -1815,7 +1844,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                   pw.SizedBox(height: 4),
                   summaryRow('GRAND TOTAL (NET)',
                       '${business.currency} ${finalNetAmount.toStringAsFixed(2)}',
-                      bold: true, color: PdfColor.fromHex('#EF4444')),
+                      bold: true, color: PdfColor.fromHex('#8B6914')),
                 ],
                 pw.SizedBox(height: 10),
                 pw.Divider(
@@ -1973,7 +2002,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               cellAlignment: pw.Alignment.centerLeft,
               cellAlignments: cellAlignments,
               headerDecoration:
-                  pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
+                  pw.BoxDecoration(color: PdfColor.fromHex('#8B6914')),
             ),
           ];
         }).toList(),
@@ -2041,7 +2070,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             cellStyle: pw.TextStyle(
                 font: font, fontSize: 9, color: PdfColor.fromHex('#334155')),
             headerDecoration:
-                pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
+                pw.BoxDecoration(color: PdfColor.fromHex('#8B6914')),
           ),
           pw.SizedBox(height: 5),
           pw.Container(
@@ -2123,7 +2152,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
             cellStyle: pw.TextStyle(
                 font: font, fontSize: 9, color: PdfColor.fromHex('#334155')),
             headerDecoration:
-                pw.BoxDecoration(color: PdfColor.fromHex('#EF4444')),
+                pw.BoxDecoration(color: PdfColor.fromHex('#8B6914')),
           ),
           pw.SizedBox(height: 5),
           pw.Container(
