@@ -5,6 +5,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/deal.dart';
 import 'package:mobile_app/screens/create_deal_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 
 class DealsListScreen extends StatefulWidget {
   const DealsListScreen({super.key});
@@ -226,14 +227,7 @@ class _DealsListScreenState extends State<DealsListScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Container(
-                            width: 84,
-                            height: 84,
-                            decoration:
-                                theme.glassCircleDecoration(color: theme.highlight),
-                            child: const Text('🎁',
-                                style: TextStyle(fontSize: 36)),
-                          ),
+                            const EmptyStateIcon(icon: Icons.card_giftcard_rounded),
                           const SizedBox(height: 18),
                           Text(
                             _isInactiveView

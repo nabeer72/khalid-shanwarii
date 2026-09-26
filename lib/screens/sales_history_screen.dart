@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/screens/receipt_screen.dart';
 
 import 'package:mobile_app/services/sync_service.dart';
@@ -278,15 +279,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(32),
-                                  decoration: theme.glassCircleDecoration(),
-                                  child: Icon(
-                                      _isOnlineSearch
-                                          ? Icons.cloud_off_rounded
-                                          : Icons.receipt_long_rounded,
-                                      size: 60,
-                                      color: theme.iconColor),
+                                EmptyStateIcon(
+                                  icon: _isOnlineSearch
+                                      ? Icons.cloud_off_rounded
+                                      : Icons.receipt_long_rounded,
                                 ),
                                 const SizedBox(height: 20),
                                 Text(

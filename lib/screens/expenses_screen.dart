@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/expenses_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/controllers/add_expense_controller.dart';
 import 'package:mobile_app/models/bank.dart';
@@ -500,11 +501,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: theme.glassCircleDecoration(),
-                              child: Icon(Icons.receipt_long_rounded, size: 60, color: theme.iconColor),
-                            ),
+                            const EmptyStateIcon(icon: Icons.receipt_long_rounded),
                             const SizedBox(height: 16),
                             Text(
                               'No expenses listed',

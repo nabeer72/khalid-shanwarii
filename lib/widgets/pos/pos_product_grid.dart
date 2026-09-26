@@ -3,6 +3,7 @@ import 'package:mobile_app/controllers/pos_controller.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/widgets/pos/pos_product_tile.dart';
 import 'package:mobile_app/models/deal.dart';
 import 'package:mobile_app/db/database_helper.dart';
@@ -361,15 +362,10 @@ class POSProductGrid extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: theme.statCardDecoration(
-                controller.selectedCategory == 'top_selling'
-                    ? ThemeProvider.gradientInfo
-                    : ThemeProvider.gradientAmber),
-            child: Text(
-                controller.selectedCategory == 'top_selling' ? '📈' : '📦',
-                style: const TextStyle(fontSize: 44)),
+          EmptyStateIcon(
+            icon: controller.selectedCategory == 'top_selling'
+                ? Icons.trending_up_rounded
+                : Icons.inventory_2_rounded,
           ),
           const SizedBox(height: 20),
           Text(

@@ -4,6 +4,7 @@ import 'package:mobile_app/controllers/create_deal_controller.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/deal.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/widgets/product_picker_dialog.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
@@ -304,13 +305,10 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration:
-                        theme.glassCircleDecoration(color: theme.highlight),
-                    child: Icon(Icons.shopping_basket_outlined,
-                        color: theme.highlight, size: 28),
+                  const EmptyStateIcon(
+                    icon: Icons.shopping_basket_outlined,
+                    size: 28,
+                    padding: 18,
                   ),
                   const SizedBox(height: 14),
                   Text('No products in this deal yet',

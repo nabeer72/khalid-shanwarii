@@ -85,7 +85,12 @@ mixin SettingsCrud {
 
     // 2. Load business-specific settings using the now-loaded IDs
     final currency = await getSetting('currency_symbol');
-    if (currency != null) BusinessConfig.instance.currency = currency;
+    if (currency == '\$') {
+      await setSetting('currency_symbol', 'Rs');
+      BusinessConfig.instance.currency = 'Rs';
+    } else if (currency != null) {
+      BusinessConfig.instance.currency = currency;
+    }
 
     final name = await getSetting('business_name');
     if (name != null) BusinessConfig.instance.businessName = name;

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/suppliers_controller.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/controllers/add_supplier_controller.dart';
 
 class SuppliersScreen extends StatefulWidget {
@@ -242,15 +243,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(24),
-                            decoration: BoxDecoration(
-                              color: theme.iconColor.withOpacity(0.1),
-                              shape: BoxShape.circle,
-                              border: Border.all(color: theme.iconColor.withOpacity(0.2)),
-                            ),
-                            child: Icon(Icons.business_outlined, size: 64, color: theme.iconColor),
-                          ),
+                          const EmptyStateIcon(icon: Icons.business_outlined),
                           const SizedBox(height: 24),
                           Text(
                             'No suppliers yet',

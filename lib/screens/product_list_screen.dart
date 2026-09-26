@@ -4,6 +4,7 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/screens/add_product_screen.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
 
@@ -249,32 +250,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(28),
-          child: Container(
-            padding: const EdgeInsets.all(28),
-            decoration: theme.statCardDecoration(ThemeProvider.gradientInfo),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('🛍️', style: TextStyle(fontSize: 44)),
-                const SizedBox(height: 16),
-                Text('No products found',
-                    style: TextStyle(
-                        fontSize: 18,
-                        color: theme.textPrimary,
-                        fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text('Add items to your catalog',
-                    style: TextStyle(fontSize: 14, color: theme.textSecondary)),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => _openProductScreen(),
-                  style: theme.primaryButtonStyle,
-                  icon: const Icon(Icons.add_rounded, color: Colors.white),
-                  label: const Text('Add Product'),
-                ),
-              ],
-            ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const EmptyStateIcon(icon: Icons.inventory_2_rounded),
+              const SizedBox(height: 16),
+              Text('No products found',
+                  style: TextStyle(
+                      fontSize: 18,
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Add items to your catalog',
+                  style: TextStyle(fontSize: 14, color: theme.textSecondary)),
+            ],
           ),
         ),
       );

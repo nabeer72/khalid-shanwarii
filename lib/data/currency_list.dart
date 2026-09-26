@@ -42,7 +42,7 @@ const List<Currency> currencyList = [
   Currency(code: 'MYR', name: 'Malaysian Ringgit', symbol: 'RM'),
   Currency(code: 'RON', name: 'Romanian Leu', symbol: 'lei'),
   Currency(code: 'NGN', name: 'Nigerian Naira', symbol: '₦'),
-  Currency(code: 'PKR', name: 'Pakistani Rupee', symbol: '₨'),
+  Currency(code: 'PKR', name: 'Pakistani Rupee', symbol: 'Rs'),
   Currency(code: 'BDT', name: 'Bangladeshi Taka', symbol: '৳'),
   Currency(code: 'VND', name: 'Vietnamese Dong', symbol: '₫'),
   Currency(code: 'EGP', name: 'Egyptian Pound', symbol: 'E£'),

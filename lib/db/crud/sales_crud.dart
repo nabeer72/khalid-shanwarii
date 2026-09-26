@@ -244,7 +244,7 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN stocks st ON si.stock_id = st.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON s.staff_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter$catFilter
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter$dateFilter$userFilter$catFilter AND s.status = 1
       ORDER BY s.created_at DESC
     ''', args);
   }
@@ -255,7 +255,6 @@ mixin SalesCrud on CommonCrud {
     // ignore: unused_local_variable
     final bid = getSafeInt(BusinessConfig.instance.businessId);
     // ignore: unused_local_variable
-    final uid = getSafeInt(BusinessConfig.instance.userId);
     final branchFilter =
         getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();

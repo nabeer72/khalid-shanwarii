@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_app/controllers/add_purchase_controller.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/screens/scanner_screen.dart';
 import 'package:mobile_app/screens/add_supplier_screen.dart';
 import 'package:mobile_app/screens/add_product_screen.dart';
@@ -1106,7 +1107,11 @@ class _EmptyItemsState extends StatelessWidget {
       decoration: theme.glassDecoration,
       child: Column(
         children: [
-          Icon(Icons.inventory_2_outlined, color: theme.iconColor, size: 48),
+          const EmptyStateIcon(
+            icon: Icons.inventory_2_outlined,
+            size: 48,
+            padding: 16,
+          ),
           const SizedBox(height: 16),
           Text('No items added yet', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w600)),
           const SizedBox(height: 4),

@@ -3,6 +3,7 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/models/credit_sale.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:intl/intl.dart';
 
@@ -73,7 +74,7 @@ class _CustomerCreditSalesScreenState extends State<CustomerCreditSalesScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.receipt_long_rounded, size: 64, color: theme.whiteAlpha(0.2)),
+                          const EmptyStateIcon(icon: Icons.receipt_long_rounded),
                           const SizedBox(height: 16),
                           Text('No credit transactions found', style: TextStyle(color: theme.textSecondary)),
                         ],

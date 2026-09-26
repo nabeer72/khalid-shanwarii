@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/controllers/add_purchase_controller.dart';
 import 'package:mobile_app/controllers/add_supplier_controller.dart';
 import 'package:mobile_app/services/sync_service.dart';
@@ -303,8 +304,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                         ),
                         child: Column(
                           children: [
-                            Icon(Icons.inventory_2_outlined,
-                                color: theme.textHint, size: 30),
+                            const EmptyStateIcon(
+                              icon: Icons.inventory_2_outlined,
+                              size: 30,
+                              padding: 12,
+                            ),
                             const SizedBox(height: 8),
                             Text('No items added',
                                 style: TextStyle(
@@ -1779,13 +1783,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.all(32),
-                                  decoration: theme.glassCircleDecoration(),
-                                  child: Icon(Icons.receipt_long_rounded,
-                                      size: 60,
-                                      color: theme.iconColor.withOpacity(0.5)),
-                                ),
+                                const EmptyStateIcon(icon: Icons.receipt_long_rounded),
                                 const SizedBox(height: 24),
                                 Text('No purchases yet',
                                     style: TextStyle(

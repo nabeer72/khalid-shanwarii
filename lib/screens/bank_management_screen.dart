@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/models/bank_account.dart';
 import 'package:intl/intl.dart';
 import 'manage_banks_screen.dart';
@@ -688,9 +689,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.account_balance_rounded,
-                              size: 80,
-                              color: theme.iconColor.withOpacity(0.5)),
+                            const EmptyStateIcon(icon: Icons.account_balance_rounded),
                           const SizedBox(height: 16),
                           Text('No bank entries found',
                               style: TextStyle(

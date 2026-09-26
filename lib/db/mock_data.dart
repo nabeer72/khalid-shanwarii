@@ -35,15 +35,12 @@ class BusinessConfig {
 
 
   
-  final ValueNotifier<String> currencyNotifier = ValueNotifier<String>('\$');
+  final ValueNotifier<String> currencyNotifier = ValueNotifier<String>('Rs');
   String get currency => currencyNotifier.value;
   set currency(String value) {
     currencyNotifier.value = value;
   }
   String get currencyDisplay {
-    if (currency.toLowerCase().startsWith('rs') && !currency.contains('.')) {
-      return '$currency.';
-    }
     return currency;
   }
   
@@ -84,7 +81,7 @@ class BusinessConfig {
     businessAddress = '';
     businessPhone = '';
     receiptFooter = 'Thank you!';
-    currency = '\$';
+    currency = 'Rs';
     taxRate = 0.0;
     enableTax = false;
     enableGlobalDiscount = true;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:intl/intl.dart';
 
 class SupplierPaybackScreen extends StatefulWidget {
@@ -689,14 +690,10 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: theme.glassCircleDecoration(),
-            child: Icon(
-              _isHistoryView ? Icons.history : Icons.handshake,
-              size: 48,
-              color: theme.highlight,
-            ),
+          EmptyStateIcon(
+            icon: _isHistoryView
+                ? Icons.history_rounded
+                : Icons.handshake_rounded,
           ),
           const SizedBox(height: 16),
           Text(

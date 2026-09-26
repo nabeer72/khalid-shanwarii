@@ -9,7 +9,7 @@ class ReportService {
     final activeShift = data['activeShift'] as Map?;
     final totals = data['totals'] as Map?;
     final businessName = data['businessName']?.toString() ?? 'Khalid Shinwari';
-    final currency = data['currency']?.toString() ?? '\$';
+    final currency = data['currency']?.toString() ?? 'Rs';
 
     if (activeShift == null || totals == null) {
       throw Exception('Shift data or totals missing');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
+import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/models/customer.dart';
 import 'package:mobile_app/controllers/add_customer_controller.dart';
 
@@ -313,11 +314,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: theme.glassCircleDecoration(),
-                              child: Icon(Icons.people_outline_rounded, size: 60, color: theme.iconColor),
-                            ),
+                            const EmptyStateIcon(icon: Icons.people_outline_rounded),
                             const SizedBox(height: 16),
                             Text('No customers found', 
                               style: TextStyle(fontSize: 18, color: theme.textPrimary, fontWeight: FontWeight.w800)),

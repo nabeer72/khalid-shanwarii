@@ -86,13 +86,6 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                       onTap: _handlePrintTopSelling,
                     ),
                     _buildReportCard(
-                      title: 'Employee Wise',
-                      subtitle: 'Staff performance',
-                      icon: Icons.people_rounded,
-                      color: ThemeProvider.info,
-                      onTap: _handlePrintEmployeeWise,
-                    ),
-                    _buildReportCard(
                       title: 'Product Wise',
                       subtitle: 'Detailed product sales',
                       icon: Icons.list_alt_rounded,
@@ -1161,82 +1154,6 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
           returnItems: returns,
           paymentMethodSummary: paymentSummary,
           periodExpenses: totalPeriodExpenses);
-      _showPreview(pdf, title);
-    } finally {
-      setState(() => _generatingReportTitle = null);
-    }
-  }
-
-  Future<void> _handlePrintEmployeeWise() async {
-    final employees = await DatabaseHelper.instance
-        .getEmployees(); // Using getEmployees from EmployeesCrud
-    final result = await _showReportOptionsDialog<Map<String, dynamic>>(
-      title: 'Employee Performance',
-      options: [
-        {'id': null, 'name': 'All Employees'},
-        ...employees,
-      ],
-      labelMapping: (e) => e['name'],
-      icon: Icons.person_rounded,
-    );
-
-    if (result == null) return;
-
-    final selectedEmployee = result['selection'] as Map?;
-    final start =
-        (result['startDate'] as DateTime).toIso8601String().split('T')[0] +
-            'T00:00:00';
-    final end =
-        (result['endDate'] as DateTime).toIso8601String().split('T')[0] +
-            'T23:59:59';
-
-    setState(() => _generatingReportTitle = 'Employee Wise');
-    try {
-      final salesSummary =
-          await DatabaseHelper.instance.getEmployeeSalesSummary(
-        userId: selectedEmployee?['id'],
-        startTime: start,
-        endTime: end,
-      );
-      final returnsSummary =
-          await DatabaseHelper.instance.getEmployeeReturnsSummary(
-        userId: selectedEmployee?['id'],
-        startTime: start,
-        endTime: end,
-      );
-
-      final title = selectedEmployee?['id'] == null
-          ? 'Employee Performance Report'
-          : 'Employee Report: ${selectedEmployee?['name']}';
-
-      final pdf = await _generateSummaryPdf(title, [
-        {
-          'title': 'SALES SUMMARY',
-          'headers': [
-            'Employee',
-            'Count',
-            'Gross',
-            'Discount',
-            'Net Amount',
-            'Profit'
-          ],
-          'keys': [
-            'employee_name',
-            'total_sales_count',
-            'total_gross',
-            'total_discount',
-            'total_amount',
-            'total_profit'
-          ],
-          'data': salesSummary,
-        },
-        {
-          'title': 'RETURNS SUMMARY',
-          'headers': ['Employee', 'Returns Count', 'Refund Amount'],
-          'keys': ['employee_name', 'total_returns_count', 'total_amount'],
-          'data': returnsSummary,
-        }
-      ]);
       _showPreview(pdf, title);
     } finally {
       setState(() => _generatingReportTitle = null);
