@@ -13,7 +13,6 @@ class BankAccount {
   final String? receiptImage;
   final DateTime? date;
   final int status;
-  final int isSynced;
 
   BankAccount({
     this.id,
@@ -30,7 +29,6 @@ class BankAccount {
     this.receiptImage,
     this.date,
     this.status = 1,
-    this.isSynced = 0,
   });
 
   factory BankAccount.fromMap(Map<String, dynamic> map) {
@@ -49,7 +47,6 @@ class BankAccount {
       receiptImage: map['receipt_image']?.toString(),
       date: map['date'] != null ? DateTime.tryParse(map['date'].toString()) : null,
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 0,
     );
   }
 
@@ -69,7 +66,6 @@ class BankAccount {
       'receipt_image': receiptImage,
       'date': date?.toIso8601String(),
       'status': status,
-      'is_synced': isSynced,
     };
   }
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/customer.dart';

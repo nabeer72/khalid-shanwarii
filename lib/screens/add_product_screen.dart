@@ -704,46 +704,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
     );
   }
 
-  Widget _buildStockAndWholesaleRow({
-    required bool isWide,
-    String stockLabel = 'Stock Quantity',
-    Widget? wholesaleField,
-  }) {
-    final stockField = _controller.isNonQuantityUnit
-        ? const SizedBox.shrink()
-        : _buildStockQuantityField(label: stockLabel);
-    final wholesale = wholesaleField ??
-        _buildTextField(
-          controller: _controller.wholesalePrice,
-          label: 'Wholesale Price',
-          icon: Icons.business_center_outlined,
-          keyboardType: TextInputType.number,
-          validator: (v) {
-            if (v == null || v.trim().isEmpty) return null;
-            final parsed = num.tryParse(v);
-            if (parsed == null) return 'Must be a number';
-            if (parsed < 0) return 'Cannot be negative';
-            if (parsed != parsed.toInt()) return 'Must be a whole number';
-            return null;
-          },
-        );
-
-    if (isWide) {
-      return _buildFormRow(
-          [wholesale, _controller.isNonQuantityUnit ? null : stockField]);
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        wholesale,
-        if (!_controller.isNonQuantityUnit) ...[
-          _formSpacer(),
-          stockField,
-        ],
-      ],
-    );
-  }
-
   Widget _buildStockAndWholesaleRowOnlyStock({
     required bool isWide,
     String stockLabel = 'Stock Quantity',
@@ -885,51 +845,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
           validator: (v) => null,
         ),
       ),
-    );
-  }
-
-  Widget _buildStockAlertAndDiscountRow({required bool isWide}) {
-    final alertField = _controller.isNonQuantityUnit
-        ? const SizedBox.shrink()
-        : _buildStockAlertField();
-    final discountField = _buildDiscountField();
-    final mfgField = _controller.isNonQuantityUnit
-        ? const SizedBox.shrink()
-        : _buildManufactureDateField();
-    final expireField = _controller.isNonQuantityUnit
-        ? const SizedBox.shrink()
-        : _buildExpireDateField();
-
-    if (isWide) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildFormRow([
-            _controller.isNonQuantityUnit ? null : alertField,
-            discountField
-          ]),
-          if (!_controller.isNonQuantityUnit) ...[
-            _formSpacer(),
-            _buildFormRow([mfgField, expireField]),
-          ]
-        ],
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (!_controller.isNonQuantityUnit) ...[
-          alertField,
-          _formSpacer(),
-        ],
-        discountField,
-        if (!_controller.isNonQuantityUnit) ...[
-          _formSpacer(),
-          mfgField,
-          _formSpacer(),
-          expireField,
-        ],
-      ],
     );
   }
 

@@ -26,7 +26,6 @@ mixin ShiftsCrud on CommonCrud {
       ...shiftData,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': getCurrentBranchId(),
-      'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
     
     DatabaseHelper.notifyDataChanged();
@@ -40,7 +39,6 @@ mixin ShiftsCrud on CommonCrud {
         ...closingData,
         'status': 0,
         'updated_at': DateTime.now().toIso8601String(),
-        'is_synced': 0,
       },
       where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()],

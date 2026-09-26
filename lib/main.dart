@@ -6,12 +6,9 @@ import 'package:mobile_app/screens/onboarding_screen.dart';
 import 'package:mobile_app/screens/pos_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:shake/shake.dart';
-
-// Conditional import for desktop SQLite
 import 'package:mobile_app/db/db_init.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/services/api_service.dart';
 import 'package:window_manager/window_manager.dart';
 
 // Global navigator key to allow navigation from anywhere (like a shake event)

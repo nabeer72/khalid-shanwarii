@@ -5,9 +5,6 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/controllers/add_purchase_controller.dart';
-import 'package:mobile_app/controllers/add_supplier_controller.dart';
-import 'package:mobile_app/services/sync_service.dart';
-import 'package:mobile_app/screens/add_supplier_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -27,8 +24,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   bool _isLoading = true;
   String _query = '';
   final TextEditingController _searchCtrl = TextEditingController();
-  final SyncService _syncService = SyncService();
-  bool _isOnlineSearch = false;
 
   @override
   void initState() {
@@ -42,7 +37,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       final localData = await DatabaseHelper.instance.getPurchases();
       List<Map<String, dynamic>> finalData = localData;
 
-      if (_query.isNotEmpty && !_isOnlineSearch) {
+      if (_query.isNotEmpty) {
         final q = _query.toLowerCase();
         final localFiltered = localData.where((p) {
           final supplier = (p['supplier_name'] ?? '').toString().toLowerCase();
@@ -51,16 +46,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
           return supplier.contains(q) || id.contains(q) || date.contains(q);
         }).toList();
 
-        if (localFiltered.isEmpty) {
-          final onlineData =
-              await _syncService.searchOnline(_query, 'purchases');
-          if (onlineData.isNotEmpty) {
-            finalData = onlineData;
-            _isOnlineSearch = true;
-          }
-        }
-      } else if (_isOnlineSearch) {
-        finalData = await _syncService.searchOnline(_query, 'purchases');
+        finalData = localFiltered;
       }
 
       if (mounted) {
@@ -800,7 +786,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
   void _showAddItemDialog(
       BuildContext parentCtx, AddPurchaseController controller) {
     int? selectedProductId;
-    int? selectedCategoryId;
     int? selectedUnitId;
     final qtyCtrl = TextEditingController(text: '1');
     final costCtrl = TextEditingController();
@@ -809,7 +794,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     final piecesCtrl = TextEditingController(text: '1');
 
     double cost = 0, ws = 0, sp = 0, stk = 0;
-    bool isBoxUnit = false;
 
     final searchCtrl = TextEditingController();
     bool isScannerOpen = false;
@@ -818,7 +802,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
     AudioPlayer? audioPlayer;
     DateTime? lastScanTime;
     List<Map<String, dynamic>> queuedItems = [];
-    final filteredProducts = controller.products;
 
     try {
       if (!kIsWeb &&
@@ -1707,21 +1690,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
-        actions: [
-          if (_isOnlineSearch)
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  _isOnlineSearch = false;
-                  _query = '';
-                  _searchCtrl.clear();
-                  _loadPurchases();
-                });
-              },
-              child: const Text('LOCAL',
-                  style: TextStyle(fontWeight: FontWeight.w900)),
-            ),
-        ],
       ),
       body: theme.glassBackground(
         child: SafeArea(
@@ -1736,9 +1704,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                     controller: _searchCtrl,
                     onChanged: (v) {
                       _query = v;
-                      if (v.isEmpty && _isOnlineSearch) {
-                        setState(() => _isOnlineSearch = false);
-                      }
                       _loadPurchases();
                     },
                     style: TextStyle(
@@ -1755,24 +1720,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                   ),
                 ),
               ),
-              if (_isOnlineSearch)
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_done_rounded,
-                          color: theme.highlight, size: 14),
-                      const SizedBox(width: 8),
-                      Text('SHOWING RESULTS FROM SERVER',
-                          style: TextStyle(
-                              color: theme.highlight,
-                              fontSize: 9,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 1)),
-                    ],
-                  ),
-                ),
               Expanded(
                 child: _isLoading
                     ? Center(
@@ -1856,24 +1803,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                                                 fontWeight: FontWeight.w900,
                                                 fontSize: 13),
                                           ),
-                                          if (_isOnlineSearch)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                      horizontal: 4,
-                                                      vertical: 1),
-                                              decoration: BoxDecoration(
-                                                  color: theme.highlight
-                                                      .withOpacity(0.1),
-                                                  borderRadius:
-                                                      BorderRadius.circular(4)),
-                                              child: Text('ONLINE',
-                                                  style: TextStyle(
-                                                      color: theme.highlight,
-                                                      fontSize: 7,
-                                                      fontWeight:
-                                                          FontWeight.w900)),
-                                            ),
                                           Text(
                                             'PURCHASE',
                                             style: TextStyle(

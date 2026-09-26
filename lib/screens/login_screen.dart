@@ -1,14 +1,13 @@
 import 'dart:ui';
 import 'dart:convert';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_app/services/api_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/services/sync_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
 
@@ -411,8 +410,6 @@ class _LoginScreenState extends State<LoginScreen>
         print('🏢 [LOGIN] Staff login - skipping business selection');
         final bid = BusinessConfig.instance.businessId;
         if (bid != null) {
-          print('🔄 [LOGIN] Pulling business data for staff context...');
-          await SyncService().syncPull(forceFull: true);
           await _dbHelper.loadSettings();
         }
       } else {
@@ -542,12 +539,6 @@ class _LoginScreenState extends State<LoginScreen>
             bid: bid,
             uid: aid,
           );
-          // [FIX] Await the sync so that data is written to the local
-          // businesses table BEFORE loadSettings() reads it.
-          await SyncService()
-              .syncPull(forceFull: true)
-              .catchError((e) => print('⚠️ Sync after admin login failed: $e'));
-
           BusinessConfig.instance.staffName = user['name'] ?? 'Admin';
           BusinessConfig.instance.staffId = null;
           BusinessConfig.instance.userId = uid;
@@ -558,10 +549,7 @@ class _LoginScreenState extends State<LoginScreen>
           await _storage.delete(key: 'staff_id');
 
           // Ensure API token exists so business list can be fetched from server
-          await _syncLoginToBackend();
-          SyncService()
-              .syncPull()
-              .catchError((e) => print('⚠️ Background sync failed: $e'));
+            await _loginToBackend();
 
           await _proceedToHome(isQuickLogin, cleanEmail);
           return;
@@ -588,12 +576,6 @@ class _LoginScreenState extends State<LoginScreen>
           BusinessConfig.instance.userId = staff['user_id'];
           BusinessConfig.instance.staffId = staff['id'];
           BusinessConfig.instance.staffName = staff['name'] ?? 'Staff';
-          // [FIX] Await the sync so that data is written to the local
-          // businesses table BEFORE loadSettings() reads it.
-          await SyncService()
-              .syncPull(forceFull: true)
-              .catchError((e) => print('⚠️ Sync after staff login failed: $e'));
-
           if (staff['business_id'] != null) {
             final business = await _dbHelper.getBusiness(staff['business_id']);
             if (business != null) {
@@ -605,10 +587,7 @@ class _LoginScreenState extends State<LoginScreen>
           }
 
           await _dbHelper.loadSettings();
-          _syncLoginToBackend();
-          SyncService()
-              .syncPull()
-              .catchError((e) => print('⚠️ Background sync failed: $e'));
+            _loginToBackend();
 
           // When logging in via Quick Login (PIN), indicate that this is a PIN login to avoid showing PIN setup again
           await _proceedToHome(isQuickLogin, email);
@@ -623,126 +602,6 @@ class _LoginScreenState extends State<LoginScreen>
       print('📡 [LOGIN] Calling API login...');
       await _api.login(cleanEmail, password);
       print('✅ [LOGIN] API call successful!');
-
-      // Start initial sync to get company data (businesses) but don't commit the timestamp yet
-      print('🔄 [LOGIN] Running initial sync...');
-      final pullData = await SyncService().syncPull(saveTimestamp: false);
-
-      if (pullData != null) {
-        final storage = const FlutterSecureStorage();
-        dynamic loginUserId;
-
-        // CRITICAL: Update BusinessConfig IMMEDIATELY so UI has access to IDs
-        if (pullData['business'] != null) {
-          final b = pullData['business'];
-          BusinessConfig.instance.businessId = b['id'] is int
-              ? (b['id'] as int)
-              : int.tryParse(b['id']?.toString() ?? '');
-          BusinessConfig.instance.businessName = b['name'];
-          BusinessConfig.instance.businessType =
-              b['business_type_id']?.toString() ?? '1';
-          await _dbHelper.insertBusiness(b);
-        }
-
-        if (pullData['user'] != null) {
-          final u = pullData['user'];
-          // [FIX] Inject the plaintext password so it's hashed and saved locally for offline login
-          u['password'] = password;
-          await _dbHelper.insertUser(u);
-          final uid = u['id'] is int
-              ? (u['id'] as int)
-              : int.tryParse(u['id']?.toString() ?? '');
-          loginUserId = uid;
-          final bid = u['business_id'] is int
-              ? (u['business_id'] as int)
-              : int.tryParse(u['business_id']?.toString() ?? '');
-          final brid = u['branch_id'] is int
-              ? (u['branch_id'] as int)
-              : int.tryParse(u['branch_id']?.toString() ?? '');
-
-          // [FIX] Ensure current user-business link exists locally
-          if (uid != null && bid != null) {
-            await _dbHelper.addUserBusiness(uid, bid);
-          }
-
-          if (uid != null) {
-            final String role = u['role']?.toString().toLowerCase() ?? '';
-            final isStaff = role == 'staff' || role == 'employee';
-
-            int? resolvedStaffId;
-            int? resolvedAdminUserId;
-
-            if (isStaff) {
-              // [FIX] getEmployeeByEmail now only filters by email + business_id
-              // so it correctly finds the employee regardless of userId mismatch.
-              final staffRecord = await _dbHelper.getEmployeeByEmail(
-                  u['email']?.toString().toLowerCase() ?? '');
-              resolvedStaffId = staffRecord?['id'];
-              // The employee's user_id = admin's user ID (who created the employee).
-              // This is the value needed for all business-scoped DB queries.
-              resolvedAdminUserId = staffRecord?['user_id'] != null
-                  ? int.tryParse(staffRecord!['user_id'].toString())
-                  : null;
-              if (kDebugMode) {
-                print(
-                    '👤 [LOGIN] Resolved Staff ID: $resolvedStaffId, AdminUserId: $resolvedAdminUserId for email: ${u['email']}');
-              }
-            }
-
-            // For the business context, use the admin's user_id from the employee
-            // record if available, otherwise fall back to uid (staff's own user ID).
-            final effectiveUserId = (isStaff && resolvedAdminUserId != null)
-                ? resolvedAdminUserId
-                : uid;
-
-            BusinessConfig.instance.setContext(
-              bid: bid,
-              uid: effectiveUserId,
-            );
-            BusinessConfig.instance.staffId = resolvedStaffId;
-            BusinessConfig.instance.staffName = u['name'] ?? 'User';
-
-            if (isStaff) {
-              await storage.write(
-                  key: 'user_id', value: effectiveUserId.toString());
-              await storage.write(
-                  key: 'staff_id',
-                  value: resolvedStaffId?.toString() ?? uid.toString());
-            } else {
-              await storage.write(key: 'user_id', value: uid.toString());
-              await storage.delete(key: 'staff_id');
-              BusinessConfig.instance.staffId = null;
-            }
-            if (brid != null)
-              await storage.write(key: 'branch_id', value: brid.toString());
-          }
-
-          if (uid != null && bid != null) {
-            await _dbHelper.addUserBusiness(uid, bid);
-          }
-          await storage.write(key: 'user_email', value: u['email']);
-        }
-
-        // Link all synced businesses to this admin user
-        final changes = pullData['changes'];
-        if (changes != null &&
-            changes['businesses'] != null &&
-            loginUserId != null) {
-          for (final b in changes['businesses'] as List) {
-            final bId = b['id'];
-            if (bId != null) {
-              await _dbHelper.addUserBusiness(loginUserId, bId);
-            }
-          }
-        }
-
-        // Let business selection choose the active business (admin only)
-        if (BusinessConfig.instance.staffId == null) {
-          BusinessConfig.instance.businessId = null;
-        }
-
-        print('✅ [LOGIN] Initial setup complete!');
-      }
 
       if (mounted) {
         await _proceedToHome(isQuickLogin, email);
@@ -780,23 +639,15 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
-  // Background sync to verify credentials or register with backend
-  Future<void> _syncLoginToBackend() async {
+  Future<void> _loginToBackend() async {
     final email = _emailCtrl.text.trim().toLowerCase();
     final password = _passCtrl.text.trim();
 
     try {
-      print('🔄 [LOGIN] Syncing login with backend...');
       await _api.login(email, password);
       print('✅ [LOGIN] Backend login successful');
-
-      // Mark local user as synced if they exist
-      final localUser = await _dbHelper.getUserByEmail(email);
-      if (localUser != null && localUser['is_synced'] == 0) {
-        await _dbHelper.updateUserSyncStatus(localUser['id'], 1);
-      }
     } catch (e) {
-      print('⚠️ [LOGIN] Backend sync failed: $e');
+      print('⚠️ [LOGIN] Backend login failed: $e');
     }
   }
 

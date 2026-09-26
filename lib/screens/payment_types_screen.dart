@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/database_helper.dart';
-import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/services/sync_service.dart';
-import 'package:mobile_app/services/connectivity_service.dart';
 
 class PaymentTypesScreen extends StatefulWidget {
   const PaymentTypesScreen({super.key});
@@ -111,12 +108,6 @@ class _PaymentTypesScreenState extends State<PaymentTypesScreen> {
 
                 await db.insertPaymentType(ptData);
 
-                // Directly add to live database if internet is available
-                if (await ConnectivityService.instance.getConnectionStatus() ==
-                    ConnectionStatus.online) {
-                  SyncService().syncPush();
-                }
-
                 Navigator.pop(ctx);
                 _loadPaymentTypes();
               },
@@ -150,10 +141,6 @@ class _PaymentTypesScreenState extends State<PaymentTypesScreen> {
 
     if (confirm == true) {
       await db.deletePaymentType(id);
-      if (await ConnectivityService.instance.getConnectionStatus() ==
-          ConnectionStatus.online) {
-        SyncService().syncPush();
-      }
       _loadPaymentTypes();
     }
   }

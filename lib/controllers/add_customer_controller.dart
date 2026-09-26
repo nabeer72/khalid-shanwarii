@@ -46,7 +46,6 @@ class CustomerFormHelper {
       discount: discount,
       creditLimit: creditLimit,
       status: 1,
-      isSynced: 0,
 
     );
 

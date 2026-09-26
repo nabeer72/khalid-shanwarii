@@ -38,7 +38,7 @@ mixin CommonCrud {
   }
 
   // Users
-  Future<int> insertUser(Map<String, dynamic> user, {int? isSynced}) async {
+  Future<int> insertUser(Map<String, dynamic> user) async {
     final db = await database;
     // Sanitize user data to match schema
     String? hashedPassword;
@@ -63,8 +63,6 @@ mixin CommonCrud {
       'status': (user['status'] == true || user['status'] == 1) ? 1 : 0,
       'phone': user['phone'],
       'cnic': user['cnic'],
-      'is_synced':
-          isSynced ?? (user['is_synced'] ?? 1), // Default to 1 if not specified
       'created_at': user['created_at'],
       'updated_at': user['updated_at'],
     };
@@ -119,27 +117,14 @@ mixin CommonCrud {
     return null;
   }
 
-  Future<List<Map<String, dynamic>>> getUnsyncedUsers() async {
-    final db = await database;
-    return await db.query('users', where: 'is_synced = 0');
-  }
-
   Future<void> updateUserPin(dynamic id, String pin) async {
     final db = await database;
     await db.update(
         'users',
         {
           'pin': pin,
-          'is_synced': 0,
           'updated_at': DateTime.now().toIso8601String(),
         },
-        where: 'id = ? AND business_id = ?',
-        whereArgs: [id, getSafeInt(BusinessConfig.instance.businessId)]);
-  }
-
-  Future<void> updateUserSyncStatus(dynamic id, int synced) async {
-    final db = await database;
-    await db.update('users', {'is_synced': synced},
         where: 'id = ? AND business_id = ?',
         whereArgs: [id, getSafeInt(BusinessConfig.instance.businessId)]);
   }
@@ -150,7 +135,6 @@ mixin CommonCrud {
         'users',
         {
           ...fields,
-          'is_synced': 0,
           'updated_at': DateTime.now().toIso8601String(),
         },
         where: 'id = ? AND business_id = ?',
@@ -159,8 +143,7 @@ mixin CommonCrud {
   }
 
   // Businesses
-  Future<int> insertBusiness(Map<String, dynamic> business,
-      {int? isSynced}) async {
+  Future<int> insertBusiness(Map<String, dynamic> business) async {
     final db = await database;
     // Sanitize business data to match schema
     final sanitized = {
@@ -169,7 +152,6 @@ mixin CommonCrud {
       'business_type_id': business['business_type_id'],
       'owner_user_id': business['owner_user_id'] ?? business['user_id'],
       'status': (business['status'] == true || business['status'] == 1) ? 1 : 0,
-      'is_synced': isSynced ?? (business['is_synced'] ?? 1),
       'created_at': business['created_at'],
       'updated_at': business['updated_at'],
     };
@@ -185,17 +167,6 @@ mixin CommonCrud {
     final results = await db.query('businesses',
         where: 'id = ?', whereArgs: [id], limit: 1);
     return results.isNotEmpty ? results.first : null;
-  }
-
-  Future<List<Map<String, dynamic>>> getUnsyncedBusinesses() async {
-    final db = await database;
-    return await db.query('businesses', where: 'is_synced = 0');
-  }
-
-  Future<void> updateBusinessSyncStatus(dynamic id, int synced) async {
-    final db = await database;
-    await db.update('businesses', {'is_synced': synced},
-        where: 'id = ?', whereArgs: [id]);
   }
 
   Future<List<Map<String, dynamic>>> getBusinesses() async {
@@ -214,7 +185,7 @@ mixin CommonCrud {
     ''', [userId, userId]);
   }
 
-  /// Persist a business row from API/sync and link it to the admin user.
+  /// Persist a business row from the API and link it to the admin user.
   Future<void> saveBusinessFromServer(
       Map<String, dynamic> b, dynamic userId) async {
     final db = await database;
@@ -238,7 +209,6 @@ mixin CommonCrud {
         'max_branches': b['max_branches'],
         'max_products': b['max_products'],
         'status': active ? 1 : 0,
-        'is_synced': 1,
         'created_at': b['created_at'],
         'updated_at': b['updated_at'],
       },
@@ -266,7 +236,6 @@ mixin CommonCrud {
           {
             'user_id': userId,
             'business_id': businessId,
-            'is_synced': 0,
             'created_at': DateTime.now().toIso8601String(),
             'updated_at': DateTime.now().toIso8601String(),
           },
@@ -311,7 +280,6 @@ mixin CommonCrud {
       'business_id': bid,
       'user_id': uid,
       'branch_id': transaction['branch_id'] ?? getCurrentBranchId(),
-      'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     };
 
@@ -336,58 +304,10 @@ mixin CommonCrud {
     if (hardDelete) {
       await db.delete('bank_accounts', where: 'id = ?', whereArgs: [id]);
     } else {
-      await db.update('bank_accounts', {'status': 0, 'is_synced': 0},
+      await db.update('bank_accounts', {'status': 0},
           where: 'id = ?', whereArgs: [id]);
     }
     DatabaseHelper.notifyDataChanged();
   }
 
-  // ========== Cleanup Operations ==========
-
-  Future<int> cleanupSyncedRecords({int daysOld = 7}) async {
-    final db = await database;
-    final dateThreshold =
-        DateTime.now().subtract(Duration(days: daysOld)).toIso8601String();
-
-    int totalDeleted = 0;
-    final tables = [
-      'sales',
-      'sale_items',
-      'returns',
-      'return_items',
-      'expenses',
-      'purchases',
-      'purchase_items',
-      'bank_accounts',
-      'credit_sales',
-      'credit_payments',
-      'supplier_paybacks',
-      'supplier_credit_purchases'
-    ];
-
-    await db.transaction((txn) async {
-      for (var table in tables) {
-        // Special case for tables that might not have created_at but have 'date'
-        String dateColumn = 'created_at';
-        if (table == 'bank_accounts' ||
-            table == 'credit_payments' ||
-            table == 'supplier_paybacks') {
-          dateColumn = 'date';
-        }
-
-        try {
-          final count = await txn.delete(
-            table,
-            where: 'is_synced = 1 AND $dateColumn < ?',
-            whereArgs: [dateThreshold],
-          );
-          totalDeleted += count;
-        } catch (e) {
-          print('Cleanup error for table $table: $e');
-        }
-      }
-    });
-
-    return totalDeleted;
-  }
 }

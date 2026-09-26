@@ -4,8 +4,6 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/controllers/add_expense_controller.dart';
-import 'package:mobile_app/models/bank.dart';
-import 'package:mobile_app/models/bank_detail.dart';
 
 class ExpensesScreen extends StatefulWidget {
   const ExpensesScreen({super.key});
@@ -410,11 +408,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
             icon: Icon(theme.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded, color: theme.iconColor),
             onPressed: () => setState(() => theme.toggleTheme()),
           ),
-          if (_controller.isOnlineSearch)
-            TextButton(
-              onPressed: () => _controller.clearOnlineSearch(),
-              child: const Text('LOCAL', style: TextStyle(fontWeight: FontWeight.w900)),
-            ),
         ],
       ),
       body: theme.glassBackground(
@@ -439,18 +432,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                   ),
                 ),
               ),
-              if (_controller.isOnlineSearch)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  child: Row(
-                    children: [
-                      Icon(Icons.cloud_done_rounded, color: theme.highlight, size: 14),
-                      const SizedBox(width: 8),
-                      Text('SHOWING RESULTS FROM SERVER', 
-                        style: TextStyle(color: theme.highlight, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                    ],
-                  ),
-                ),
               // Summary Card
               Padding(
                 padding: const EdgeInsets.all(16),
@@ -555,13 +536,6 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                         '${BusinessConfig.instance.currency}. ${expense.amount.toStringAsFixed(2)}',
                                         style: const TextStyle(color: ThemeProvider.error, fontWeight: FontWeight.w900, fontSize: 13),
                                       ),
-                                      if (_controller.isOnlineSearch)
-                                        Container(
-                                          margin: const EdgeInsets.only(top: 2),
-                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                          decoration: BoxDecoration(color: theme.highlight.withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
-                                          child: Text('ONLINE', style: TextStyle(color: theme.highlight, fontSize: 7, fontWeight: FontWeight.w900)),
-                                        ),
                                       Text(
                                         'EXPENSE',
                                         style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),

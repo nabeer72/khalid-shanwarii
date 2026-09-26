@@ -7,7 +7,6 @@ class BankDetail {
   final String? accountNumber;
   final String? accountType;
   final int status;
-  final int isSynced;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -20,7 +19,6 @@ class BankDetail {
     this.accountNumber,
     this.accountType,
     this.status = 1,
-    this.isSynced = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -35,7 +33,6 @@ class BankDetail {
       accountNumber: map['account_number'],
       accountType: map['account_type'],
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 0,
       createdAt: map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
       updatedAt: map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
     );
@@ -51,7 +48,6 @@ class BankDetail {
       'account_number': accountNumber,
       'account_type': accountType,
       'status': status,
-      'is_synced': isSynced,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

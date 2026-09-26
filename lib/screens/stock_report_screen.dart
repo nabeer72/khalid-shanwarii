@@ -3,7 +3,6 @@ import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/stock.dart';
-import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/db/mock_data.dart'; // For BusinessConfig if needed.
 import 'package:mobile_app/screens/add_purchase_screen.dart';
 
@@ -221,8 +220,6 @@ class _StockReportScreenState extends State<StockReportScreen> {
   }
 
   Widget _buildSummaryCard(String title, double value, IconData icon, Color color, {bool isCurrency = true, VoidCallback? onTap}) {
-    // ignore: unused_local_variable
-    final currency = BusinessConfig.instance.currency;
     return GestureDetector(
       onTap: onTap,
       child: Container(

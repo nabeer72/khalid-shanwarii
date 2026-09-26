@@ -8,7 +8,6 @@ class CreditSale {
   final double amount;
   final double remainingBalance;
   final int status;
-  final int isSynced;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -22,7 +21,6 @@ class CreditSale {
     required this.amount,
     required this.remainingBalance,
     this.status = 1,
-    this.isSynced = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -38,7 +36,6 @@ class CreditSale {
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
       remainingBalance: (map['remaining_balance'] as num?)?.toDouble() ?? 0.0,
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 0,
       createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null,
       updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at']) : null,
     );
@@ -55,7 +52,6 @@ class CreditSale {
       'amount': amount,
       'remaining_balance': remainingBalance,
       'status': status,
-      'is_synced': isSynced,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

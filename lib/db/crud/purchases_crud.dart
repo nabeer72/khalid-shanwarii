@@ -30,7 +30,6 @@ mixin PurchasesCrud on CommonCrud {
         ...purchase,
         ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
         'branch_id': brid,
-        'is_synced': 0,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
 
       final pid = purchase['id'] ?? generatedPurchaseId;
@@ -80,7 +79,6 @@ mixin PurchasesCrud on CommonCrud {
           'old_cost_price': oldCostPrice,
           'old_sale_price': oldSalePrice,
           'old_wholesale_price': oldWholesalePrice,
-          'is_synced': 0,
         });
 
         // find existing stock batch with matching prices (matching logic as in products_crud)
@@ -116,7 +114,6 @@ mixin PurchasesCrud on CommonCrud {
           await txn.update('stocks', {
             'quantity': newQty,
             'user_id': nUid,
-            'is_synced': 0, 
             'updated_at': now,
           }, where: 'id = ? AND business_id = ?', whereArgs: [finalStockId, nBid]);
           isNewBatch = false;
@@ -135,7 +132,6 @@ mixin PurchasesCrud on CommonCrud {
             'sale_price': newSellingPrice,
             'wholesale_price': newWholesalePrice,
             'status': 1,
-            'is_synced': 0,
             'created_at': now,
             'updated_at': now,
           });
@@ -157,7 +153,6 @@ mixin PurchasesCrud on CommonCrud {
           'remarks': isNewBatch 
               ? 'Purchase entry (New Batch): ${purchase['invoice_number'] ?? 'INV'}'
               : 'Purchase entry (Restock): ${purchase['invoice_number'] ?? 'INV'}',
-          'is_synced': 0,
           'created_at': now,
           'updated_at': now,
         });
@@ -194,7 +189,6 @@ mixin PurchasesCrud on CommonCrud {
     final db = await database;
     await db.update('purchases', {
       'status': 0,
-      'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     }, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     

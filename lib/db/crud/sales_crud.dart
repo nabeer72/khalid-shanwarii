@@ -52,20 +52,20 @@ mixin SalesCrud on CommonCrud {
 
     return await db.rawQuery(
       '''
-      SELECT 
-        s.id, s.business_id, s.branch_id, s.user_id, s.customer_id, s.staff_id, s.sub_total as subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.total_tip as tip, s.status, s.is_synced, s.created_at as created_at, s.updated_at, s.shift_id,
-        c.name as customer_name, 
+      SELECT
+        s.id, s.business_id, s.branch_id, s.user_id, s.customer_id, s.staff_id, s.sub_total as subtotal, s.tax, s.discount, s.total, s.payment_method, s.is_return, s.total_tip as tip, s.status, s.created_at as created_at, s.updated_at, s.shift_id,
+        c.name as customer_name,
         c.phone as customer_phone,
         u.name as employee_name
       FROM sales s
       LEFT JOIN customers c ON s.customer_id = c.id
       LEFT JOIN users u ON s.staff_id = u.id
-      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilterS$extraFilterS 
-      
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilterS$extraFilterS
+
       UNION ALL
 
       SELECT
-        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.sub_total as subtotal, 0 as tax, 0 as discount, r.total as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.is_synced, r.created_at as created_at, r.updated_at, 
+        r.id, r.business_id, r.branch_id, r.user_id, r.customer_id, r.staff_id, r.sub_total as subtotal, 0 as tax, 0 as discount, r.total as total, 'cash' as payment_method, 1 as is_return, 0 as tip, r.status, r.created_at as created_at, r.updated_at,
         $shiftIdSelect,
         c.name as customer_name,
         c.phone as customer_phone,
@@ -75,7 +75,7 @@ mixin SalesCrud on CommonCrud {
       LEFT JOIN customers c ON r.customer_id = c.id
       LEFT JOIN users u ON r.staff_id = u.id
       WHERE ${getBusinessFilter().replaceAll('business_id', 'r.business_id').replaceAll('user_id', 'r.user_id').replaceFirst(' AND ', '')}$branchFilterR$extraFilterR
-      
+
       ORDER BY 16 DESC${limit != null ? ' LIMIT $limit' : ''}
       ''',
       args,
@@ -96,7 +96,6 @@ mixin SalesCrud on CommonCrud {
         'user_id': uid,
         'branch_id': brid,
         'shift_id': sale['shift_id'],
-        'is_synced': 0
       };
 
       int insertedId;
@@ -127,7 +126,6 @@ mixin SalesCrud on CommonCrud {
           'business_id': bid,
           'user_id': uid,
           'branch_id': brid,
-          'is_synced': 0
         });
 
         // Update Stock (Batch-specific)
@@ -150,7 +148,6 @@ mixin SalesCrud on CommonCrud {
               'stocks',
               {
                 'quantity': newStock,
-                'is_synced': 0,
                 'updated_at': DateTime.now().toIso8601String(),
               },
               where: 'id = ?',
@@ -187,7 +184,7 @@ mixin SalesCrud on CommonCrud {
       FROM sale_items si
       INNER JOIN sales s ON si.sale_id = s.id
       LEFT JOIN products p ON si.product_id = p.id
-      WHERE si.sale_id = ? 
+      WHERE si.sale_id = ?
       AND (si.business_id IS NULL OR (si.business_id = ? AND si.user_id = ?))
       AND (p.id IS NULL OR (p.business_id = ? AND p.user_id = ?))
       $branchFilter
@@ -227,13 +224,13 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         si.id, si.sale_id, si.product_id, si.stock_id, si.business_id, si.user_id,
         si.quantity, si.price,
         COALESCE(si.sub_total, si.price * si.quantity) as subtotal,
         COALESCE(si.discount, 0) as discount,
-        si.branch_id, si.is_synced,
-        p.name as product_name, 
+        si.branch_id,
+        p.name as product_name,
         COALESCE(st.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) as purchase_price,
         COALESCE(c.name, 'Uncategorized') as category_name,
         s.created_at,
@@ -252,11 +249,8 @@ mixin SalesCrud on CommonCrud {
   Future<List<Map<String, dynamic>>> getCategorySalesSummary(
       {int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
-    // ignore: unused_local_variable
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    // ignore: unused_local_variable
     final branchFilter =
-        getBranchFilter().replaceAll('branch_id', 's.branch_id');
+      getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';
@@ -274,7 +268,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         COALESCE(c.name, 'Uncategorized') as category_name,
         SUM(si.quantity) as total_qty,
         SUM(CASE WHEN si.sub_total IS NULL OR si.sub_total = 0 THEN (si.price * si.quantity) ELSE si.sub_total END) as total_amount,
@@ -315,15 +309,15 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         COALESCE(u.name, 'Unknown') as employee_name,
         COUNT(DISTINCT s.id) as total_sales_count,
         SUM(COALESCE(s.sub_total, 0)) as total_gross,
         SUM(COALESCE(s.discount, 0)) as total_discount,
         SUM(COALESCE(s.total, 0)) as total_amount,
-        SUM(COALESCE((SELECT SUM((CASE WHEN si2.sub_total IS NULL OR si2.sub_total = 0 THEN (si2.price * si2.quantity) ELSE si2.sub_total END) - COALESCE(si2.discount, 0) - (COALESCE(st2.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si2.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) * si2.quantity)) 
-             FROM sale_items si2 
-             LEFT JOIN stocks st2 ON si2.stock_id = st2.id 
+        SUM(COALESCE((SELECT SUM((CASE WHEN si2.sub_total IS NULL OR si2.sub_total = 0 THEN (si2.price * si2.quantity) ELSE si2.sub_total END) - COALESCE(si2.discount, 0) - (COALESCE(st2.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si2.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) * si2.quantity))
+             FROM sale_items si2
+             LEFT JOIN stocks st2 ON si2.stock_id = st2.id
              WHERE si2.sale_id = s.id), 0)) as total_profit
       FROM sales s
       LEFT JOIN users u ON s.staff_id = u.id
@@ -350,7 +344,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         p.id as product_id,
         COALESCE(p.name, 'Unknown Product') as product_name,
         SUM(si.quantity) as total_qty,
@@ -392,7 +386,7 @@ mixin SalesCrud on CommonCrud {
 
     // Sales by payment method
     final salesByMethod = await db.rawQuery('''
-      SELECT 
+      SELECT
         s.payment_method,
         COUNT(DISTINCT s.id) as total_count,
         SUM(s.total) as total_amount
@@ -414,7 +408,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     final returnsSummary = await db.rawQuery('''
-      SELECT 
+      SELECT
         COUNT(DISTINCT r.id) as total_count,
         SUM(r.total) as total_amount
       FROM returns r
@@ -452,7 +446,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         DATE(s.created_at) as sale_date,
         COUNT(DISTINCT s.id) as total_sales_count,
         SUM(COALESCE(s.total, 0)) as total_amount
@@ -486,7 +480,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         COALESCE(c.name, 'Uncategorized') as category_name,
         SUM(ri.quantity) as total_qty,
         SUM(CASE WHEN ri.sub_total IS NULL OR ri.sub_total = 0 THEN (ri.price * ri.quantity) ELSE ri.sub_total END) as total_amount,
@@ -525,7 +519,7 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         COALESCE(u.name, 'Unknown') as employee_name,
         COUNT(DISTINCT r.id) as total_returns_count,
         SUM(COALESCE(r.total, 0)) as total_amount
@@ -554,11 +548,11 @@ mixin SalesCrud on CommonCrud {
     }
 
     return await db.rawQuery('''
-      SELECT 
+      SELECT
         ri.id, ri.return_id, ri.product_id, ri.stock_id, ri.quantity, ri.price,
         COALESCE(ri.sub_total, ri.price * ri.quantity) as subtotal,
         COALESCE(ri.discount, 0) as discount,
-        p.name as product_name, 
+        p.name as product_name,
         c.name as category_name,
         r.created_at,
         u.name as employee_name,

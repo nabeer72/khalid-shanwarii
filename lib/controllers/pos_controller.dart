@@ -428,13 +428,11 @@ class POSController with ChangeNotifier {
 
     // 2. Sum up final figures
     _subtotal = 0;
-    double itemDiscounts = 0;
 
     for (var item in _cart) {
       // The user wants item-level discounts to be 'hidden' from the bottom discount row
       // So we make the subtotal reflect the value AFTER item discounts
       _subtotal += item.subtotal;
-      itemDiscounts += item.discount;
     }
 
     if (BusinessConfig.instance.enableTax) {

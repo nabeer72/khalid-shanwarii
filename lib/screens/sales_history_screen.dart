@@ -5,7 +5,6 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/screens/receipt_screen.dart';
 
-import 'package:mobile_app/services/sync_service.dart';
 
 class SalesHistoryScreen extends StatefulWidget {
   final String? startTime;
@@ -31,8 +30,6 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _query = '';
   bool _showOnlyRefunds = false;
-  bool _isOnlineSearch = false;
-  final SyncService _syncService = SyncService();
 
   List<Map<String, dynamic>> _sales = [];
   bool _isLoading = true;
@@ -52,47 +49,16 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
   Future<void> _loadSales() async {
     setState(() => _isLoading = true);
     try {
-      // 1. Try local search first
       final localData = await DatabaseHelper.instance.getSales(
         startTime: widget.startTime,
         endTime: widget.endTime,
         shiftId: widget.shiftId,
       );
 
-      List<Map<String, dynamic>> finalData = localData;
-
-      // 2. If locally empty and searching, try online automatically
-      if (_query.isNotEmpty && !_isOnlineSearch) {
-        // Filter local first to see if we REALLY have nothing
-        final q = _query.toLowerCase();
-        final localFiltered = localData.where((s) {
-          final customerName =
-              (s['customer_name'] ?? '').toString().toLowerCase();
-          final customerPhone =
-              (s['customer_phone'] ?? '').toString().toLowerCase();
-          final invoiceNum = s['id'].toString();
-          final date = (s['created_at'] ?? '').toString().toLowerCase();
-          return customerName.contains(q) ||
-              customerPhone.contains(q) ||
-              invoiceNum.contains(q) ||
-              date.contains(q);
-        }).toList();
-
-        if (localFiltered.isEmpty) {
-          final onlineData = await _syncService.searchOnline(_query, 'sales');
-          if (onlineData.isNotEmpty) {
-            finalData = onlineData;
-            _isOnlineSearch = true;
-          }
-        }
-      } else if (_isOnlineSearch) {
-        // We are already in online mode, just refresh from server
-        finalData = await _syncService.searchOnline(_query, 'sales');
-      }
 
       if (mounted) {
         setState(() {
-          _sales = finalData;
+          _sales = localData;
           _isLoading = false;
         });
       }
@@ -134,8 +100,7 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
       filtered = filtered.where((s) => s['is_return'] != 1).toList();
     }
 
-    // Apply search query (Local filter only if NOT online search)
-    if (_query.isNotEmpty && !_isOnlineSearch) {
+    if (_query.isNotEmpty) {
       final q = _query.toLowerCase();
       filtered = filtered.where((s) {
         final customerName =
@@ -279,24 +244,21 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                EmptyStateIcon(
-                                  icon: _isOnlineSearch
-                                      ? Icons.cloud_off_rounded
-                                      : Icons.receipt_long_rounded,
-                                ),
+                                const EmptyStateIcon(
+                                  icon: Icons.receipt_long_rounded),
                                 const SizedBox(height: 20),
                                 Text(
-                                    _isOnlineSearch
-                                        ? 'No records found on server'
-                                        : 'No activity recorded',
+                                    _query.isNotEmpty
+                                      ? 'No records found'
+                                      : 'No activity recorded',
                                     style: TextStyle(
                                         color: theme.textPrimary,
                                         fontSize: 18,
                                         fontWeight: FontWeight.w800)),
                                 Text(
-                                    _isOnlineSearch
-                                        ? 'Try a different search term'
-                                        : 'Transactions will appear here',
+                                    _query.isNotEmpty
+                                      ? 'Try a different search term'
+                                      : 'Transactions will appear here',
                                     style: TextStyle(
                                         color: theme.textSecondary,
                                         fontSize: 14)),
@@ -305,37 +267,6 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                           )
                         : Column(
                             children: [
-                              if (_isOnlineSearch)
-                                Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 8),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.cloud_done_rounded,
-                                          color: theme.highlight, size: 16),
-                                      const SizedBox(width: 8),
-                                      Text('SHOWING RESULTS FROM SERVER',
-                                          style: TextStyle(
-                                              color: theme.highlight,
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w900,
-                                              letterSpacing: 1)),
-                                      const Spacer(),
-                                      TextButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _isOnlineSearch = false;
-                                            _loadSales();
-                                          });
-                                        },
-                                        child: const Text('BACK TO LOCAL',
-                                            style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w900)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
                               Expanded(
                                 child: ListView.builder(
                                   padding:
@@ -348,24 +279,10 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
                                       onTap: () => _showSaleDetail(sale),
                                       onPrint: () => _showSaleDetail(sale),
                                       onRefund: () => _handleRefund(sale),
-                                      isOnline: _isOnlineSearch,
                                     );
                                   },
                                 ),
                               ),
-                              if (!_isOnlineSearch &&
-                                  _query.isNotEmpty &&
-                                  _filteredSales.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 24),
-                                  child: Text(
-                                      'SEARCHING LOCAL ONLY. TRY MORE SPECIFIC QUERY FOR ONLINE AUTO-SEARCH.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: theme.textHint,
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.w700)),
-                                ),
                             ],
                           ),
               ),
@@ -467,14 +384,12 @@ class _SaleTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onPrint;
   final VoidCallback onRefund;
-  final bool isOnline;
 
   const _SaleTile({
     required this.sale,
     required this.onTap,
     required this.onPrint,
     required this.onRefund,
-    this.isOnline = false,
   });
 
   @override
@@ -489,9 +404,14 @@ class _SaleTile extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       decoration: theme.glassListDecoration,
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        onTap: onTap,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
+        clipBehavior: Clip.antiAlias,
+        child: ListTile(
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          onTap: onTap,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -558,20 +478,6 @@ class _SaleTile extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                       fontSize: 13),
                 ),
-                if (isOnline)
-                  Container(
-                    margin: const EdgeInsets.only(top: 2),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: theme.highlight.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(4)),
-                    child: Text('ONLINE',
-                        style: TextStyle(
-                            color: theme.highlight,
-                            fontSize: 7,
-                            fontWeight: FontWeight.w900)),
-                  ),
                 Text(
                   '${paymentMethod.toUpperCase()}${paymentTypeId != null ? " ($paymentTypeId)" : ""}',
                   style: TextStyle(
@@ -607,6 +513,7 @@ class _SaleTile extends StatelessWidget {
                 tooltip: 'Refund Sale',
               ),
           ],
+        ),
         ),
       ),
     );

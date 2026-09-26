@@ -9,7 +9,7 @@ mixin SuppliersCrud on CommonCrud {
     final db = await database;
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
-    
+
     final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
@@ -24,21 +24,20 @@ mixin SuppliersCrud on CommonCrud {
       ...supplier,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': supplier['branch_id'] ?? getCurrentBranchId(),
-      'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
-    
+
     DatabaseHelper.notifyDataChanged();
   }
 
   Future<void> deleteSupplier(dynamic id) async {
     final db = await database;
     await db.update(
-      'suppliers', 
-      {'status': 0, 'is_synced': 0}, 
-      where: 'id = ?${getBusinessFilter()}', 
+      'suppliers',
+      {'status': 0},
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()]
     );
-    
+
     DatabaseHelper.notifyDataChanged();
   }
 
@@ -88,9 +87,8 @@ mixin SuppliersCrud on CommonCrud {
       ...creditPurchase,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': creditPurchase['branch_id'] ?? getCurrentBranchId(),
-      'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
-    
+
     DatabaseHelper.notifyDataChanged();
   }
 
@@ -121,17 +119,11 @@ mixin SuppliersCrud on CommonCrud {
 
   Future<void> insertSupplierPayback(Map<String, dynamic> payback) async {
     final db = await database;
-    // ignore: unused_local_variable
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    // ignore: unused_local_variable
-    final uid = getSafeInt(BusinessConfig.instance.userId);
-    
     await db.transaction((txn) async {
       await txn.insert('supplier_paybacks', {
         ...payback,
         ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
         'branch_id': payback['branch_id'] ?? getCurrentBranchId(),
-        'is_synced': 0,
       });
 
       double amountLeftToApply = (payback['amount'] as num).toDouble();
@@ -139,13 +131,13 @@ mixin SuppliersCrud on CommonCrud {
       if (payback['supplier_credit_purchase_id'] != null) {
         // Specific purchase targeted
         await txn.rawUpdate(
-          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ? WHERE id = ?${getBusinessFilter()}',
           [amountLeftToApply, payback['supplier_credit_purchase_id'], ...getBusinessArgs()],
         );
       } else {
         // "Floating" payback: apply to oldest open credit purchases for this supplier
         final supplierId = payback['supplier_id'];
-        
+
         final List<Map<String, dynamic>> openPurchases = await txn.query(
           'supplier_credit_purchases',
           where: 'supplier_id = ? AND remaining_balance > 0 AND status = 1${getBusinessFilter()}',
@@ -161,7 +153,7 @@ mixin SuppliersCrud on CommonCrud {
           final applyAmount = amountLeftToApply > remaining ? remaining : amountLeftToApply;
 
           await txn.rawUpdate(
-            'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+            'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ? WHERE id = ?${getBusinessFilter()}',
             [applyAmount, purchaseId, ...getBusinessArgs()],
           );
           amountLeftToApply -= applyAmount;
@@ -170,11 +162,11 @@ mixin SuppliersCrud on CommonCrud {
 
       final totalPaybackAmount = (payback['amount'] as num).toDouble();
       await txn.rawUpdate(
-        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ? ${getBusinessFilter()}',
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) - ? WHERE id = ? ${getBusinessFilter()}',
         [totalPaybackAmount, payback['supplier_id'], ...getBusinessArgs()],
       );
     });
-    
+
     DatabaseHelper.notifyDataChanged();
   }
 
@@ -196,12 +188,12 @@ mixin SuppliersCrud on CommonCrud {
       // 2. Revert old amount
       if (purchaseId != null) {
         await txn.rawUpdate(
-          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance + ? WHERE id = ?${getBusinessFilter()}',
           [oldAmount, purchaseId, ...getBusinessArgs()],
         );
       }
       await txn.rawUpdate(
-        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?${getBusinessFilter()}',
         [oldAmount, supplierId, ...getBusinessArgs()],
       );
 
@@ -209,24 +201,23 @@ mixin SuppliersCrud on CommonCrud {
       final double newAmount = (data['amount'] as num).toDouble();
       if (purchaseId != null) {
         await txn.rawUpdate(
-          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance - ? WHERE id = ?${getBusinessFilter()}',
           [newAmount, purchaseId, ...getBusinessArgs()],
         );
       }
       await txn.rawUpdate(
-        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) - ? WHERE id = ?${getBusinessFilter()}',
         [newAmount, supplierId, ...getBusinessArgs()],
       );
 
       // 4. Update the record
       await txn.update(
-        'supplier_paybacks', 
+        'supplier_paybacks',
         {
           ...data,
-          'is_synced': 0,
           'updated_at': DateTime.now().toIso8601String(),
-        }, 
-        where: 'id = ?', 
+        },
+        where: 'id = ?',
         whereArgs: [paybackId]
       );
     });
@@ -251,14 +242,14 @@ mixin SuppliersCrud on CommonCrud {
       // 2. Reverse effect on supplier_credit_purchases if applicable
       if (purchaseId != null) {
         await txn.rawUpdate(
-          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE supplier_credit_purchases SET remaining_balance = remaining_balance + ? WHERE id = ?${getBusinessFilter()}',
           [amount, purchaseId, ...getBusinessArgs()],
         );
       }
 
       // 3. Reverse effect on supplier balance
       await txn.rawUpdate(
-        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?${getBusinessFilter()}',
         [amount, supplierId, ...getBusinessArgs()],
       );
 
@@ -273,10 +264,10 @@ mixin SuppliersCrud on CommonCrud {
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
     final businessArgs = getBusinessArgs();
-    
+
     final bid = businessArgs[0];
     final uid = businessArgs[1];
-    
+
     String bFilter = branchFilter.replaceAll('branch_id', 'sp.branch_id');
 
     return await db.rawQuery('''
@@ -291,7 +282,7 @@ mixin SuppliersCrud on CommonCrud {
   Future<void> updateSupplierCreditBalance(dynamic supplierId, double amount) async {
     final db = await database;
     await db.rawUpdate(
-      'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+      'UPDATE suppliers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?${getBusinessFilter()}',
       [amount, supplierId, ...getBusinessArgs()],
     );
   }
@@ -299,9 +290,9 @@ mixin SuppliersCrud on CommonCrud {
   Future<double> getSupplierCreditBalance(dynamic supplierId) async {
     final db = await database;
     final res = await db.query(
-      'suppliers', 
-      columns: ['credit_balance'], 
-      where: 'id = ?${getBusinessFilter()}', 
+      'suppliers',
+      columns: ['credit_balance'],
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [supplierId, ...getBusinessArgs()]
     );
     if (res.isNotEmpty) {
@@ -329,9 +320,9 @@ mixin SuppliersCrud on CommonCrud {
     // 1. Reset credit balances to 0 for current tenant
     if (bid != null && uid != null) {
       await txn.update(
-        'suppliers', 
-        {'credit_balance': 0}, 
-        where: 'business_id = ? AND user_id = ?', 
+        'suppliers',
+        {'credit_balance': 0},
+        where: 'business_id = ? AND user_id = ?',
         whereArgs: [bid, uid]
       );
     } else {

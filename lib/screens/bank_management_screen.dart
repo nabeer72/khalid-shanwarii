@@ -11,7 +11,6 @@ import 'package:mobile_app/models/bank.dart';
 import 'package:mobile_app/models/bank_detail.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
-import 'package:path/path.dart' as path;
 import 'package:mobile_app/services/api_service.dart';
 import 'dart:convert';
 
@@ -448,15 +447,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
                     'date': newEntry.date?.toIso8601String(),
                     'status': 1,
                   };
-                  final success =
-                      await _api.updateBankAccount(transaction!.id!, payload);
-
-                  if (success) {
-                    // Mark as synced locally if server update worked
-                    await DatabaseHelper.instance.database.then((db) =>
-                        db.update('bank_accounts', {'is_synced': 1},
-                            where: 'id = ?', whereArgs: [transaction!.id]));
-                  }
+                    await _api.updateBankAccount(transaction!.id!, payload);
                 }
 
                 if (ctx.mounted) Navigator.pop(ctx);

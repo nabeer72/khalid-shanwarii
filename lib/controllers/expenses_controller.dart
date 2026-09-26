@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/db/mock_data.dart';
-import 'package:mobile_app/services/sync_service.dart';
 
 class ExpensesController with ChangeNotifier {
   final DatabaseHelper _db = DatabaseHelper.instance;
@@ -11,8 +10,6 @@ class ExpensesController with ChangeNotifier {
 
   bool _isLoading = true;
   String? _errorMessage;
-  final SyncService _syncService = SyncService();
-  bool isOnlineSearch = false;
   String query = '';
 
   ExpensesController() {
@@ -40,8 +37,7 @@ class ExpensesController with ChangeNotifier {
       final headMap = {for (var h in heads) h.id: h.name};
       expenseHeads = heads;
 
-      if (query.isNotEmpty && !isOnlineSearch) {
-        // Local Filter
+      if (query.isNotEmpty) {
         final localData = await _db.getExpenses();
         final q = query.toLowerCase();
         final localFiltered = localData.where((e) {
@@ -50,21 +46,9 @@ class ExpensesController with ChangeNotifier {
           final date = (e['date'] ?? '').toString().toLowerCase();
           return desc.contains(q) || headName.contains(q) || date.contains(q);
         }).toList();
-
-        if (localFiltered.isEmpty) {
-          final onlineData = await _syncService.searchOnline(query, 'expenses');
-          if (onlineData.isNotEmpty) {
-            expenses = onlineData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
-            isOnlineSearch = true;
-          } else {
-            expenses = [];
-          }
-        } else {
-          expenses = localFiltered.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
-        }
-      } else if (isOnlineSearch) {
-        final onlineData = await _syncService.searchOnline(query, 'expenses');
-        expenses = onlineData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
+        expenses = localFiltered
+            .map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']]))
+            .toList();
       } else {
         final expensesData = await _db.getExpenses();
         expenses = expensesData.map((e) => Expense.fromMap(e, headName: headMap[e['expense_head_id']])).toList();
@@ -79,13 +63,6 @@ class ExpensesController with ChangeNotifier {
 
   void setSearch(String q) {
     query = q;
-    if (q.isEmpty) isOnlineSearch = false;
-    loadData();
-  }
-
-  void clearOnlineSearch() {
-    isOnlineSearch = false;
-    query = '';
     loadData();
   }
 
@@ -95,7 +72,6 @@ class ExpensesController with ChangeNotifier {
     final head = {
       'name': name.trim(),
       'status': 1,
-      'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };
@@ -121,7 +97,6 @@ class ExpensesController with ChangeNotifier {
       'description': description?.trim().isNotEmpty == true ? description!.trim() : null,
       'date': date.toIso8601String(),
       'status': 1,
-      'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     };

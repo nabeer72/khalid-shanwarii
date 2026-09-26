@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter/material.dart';
@@ -39,14 +38,11 @@ class _HomeScreenState extends State<HomeScreen> {
   int _customerCount = 0;
   int _dealCount = 0;
   int _saleCount = 0;
-  String _topSellingName = '';
   int _topSellingQty = 0;
   double _todaySalesAmount = 0.0;
   double _todayRecoveryAmount = 0.0;
   double _todayReturnsAmount = 0.0;
-  int _heldCount = 0;
 
-  List<Map<String, dynamic>> _branches = [];
   String? _currentBranchName;
   String _storeAddress = '';
 
@@ -100,58 +96,6 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  /// Reloads subscription data from the local `businesses` table into
-  /// [BusinessConfig] and triggers a rebuild so the subscription banner
-  /// updates automatically once the server approves a renewal (picked up
-  /// by the next sync without requiring a logout/login).
-  Future<void> _refreshSubscriptionStatus() async {
-    // Subscription concept removed
-  }
-
-  String? _branchDisplayName(Map<String, dynamic> branch) {
-    final title = branch['branch_title']?.toString().trim();
-    if (title != null && title.isNotEmpty) return title;
-    final name = branch['name']?.toString().trim();
-    if (name != null && name.isNotEmpty) return name;
-    return null;
-  }
-
-  String? _branchAddress(Map<String, dynamic> branch) {
-    final addr = branch['branch_address']?.toString().trim();
-    if (addr != null && addr.isNotEmpty) return addr;
-    return null;
-  }
-
-  Future<String> _resolveStoreAddress({Map<String, dynamic>? branch}) async {
-    final branchAddr = branch != null ? _branchAddress(branch) : null;
-    if (branchAddr != null) return branchAddr;
-
-    var address = BusinessConfig.instance.businessAddress.trim();
-    if (address.isEmpty) {
-      final fromDb =
-          await DatabaseHelper.instance.getSetting('business_address');
-      address = fromDb?.trim() ?? '';
-      if (address.isNotEmpty) {
-        BusinessConfig.instance.businessAddress = address;
-      }
-    }
-    return address;
-  }
-
-  Future<String?> _fetchBranchNameById(
-      dynamic businessId, dynamic branchId) async {
-    if (businessId == null || branchId == null) return null;
-    final rawDb = await DatabaseHelper.instance.database;
-    final rows = await rawDb.query(
-      'branches',
-      where: 'business_id = ? AND id = ? AND status = 1',
-      whereArgs: [businessId, branchId],
-      limit: 1,
-    );
-    if (rows.isEmpty) return null;
-    return _branchDisplayName(rows.first);
-  }
-
   Future<void> _loadBranches() async {
     if (kIsWeb) return;
     final bid = BusinessConfig.instance.businessId;
@@ -159,7 +103,6 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       if (mounted) {
         setState(() {
-          _branches = [];
           _currentBranchName = BusinessConfig.instance.businessPhone.trim();
           _storeAddress = BusinessConfig.instance.businessAddress.trim();
         });
@@ -167,10 +110,6 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       if (kDebugMode) print('⚠️ [HOME] Failed to load branches: $e');
     }
-  }
-
-  Future<void> _switchBranch(Map<String, dynamic> branch) async {
-    // Branches removed
   }
 
   Widget _buildBranchHeaderIcon() {
@@ -216,10 +155,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       // 2. Top selling item (by quantity sold)
       final topItems = await db.getTopSellingItems(limit: 1);
-      String topName = '';
       int topQty = 0;
       if (topItems.isNotEmpty) {
-        topName = topItems.first['product_name']?.toString().trim() ?? '';
         topQty = (topItems.first['total_qty'] as num?)?.toInt() ?? 0;
       }
 
@@ -234,18 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ?.toInt() ??
           0;
 
-      // 4. Optimized Held Orders Count
-      final heldCountRes = await rawDb.rawQuery(
-        'SELECT COUNT(*) as total FROM held_orders WHERE 1=1$bFilter$brFilter',
-        queryArgs,
-      );
-      final heldCount = (heldCountRes.isNotEmpty
-                  ? heldCountRes.first.values.first as num?
-                  : 0)
-              ?.toInt() ??
-          0;
-
-      // 5. Optimized Deals Count
+      // Deals count
       final bid = BusinessConfig.instance.businessId;
       final dealWhere = bid == null
           ? 'business_id IS NULL'
@@ -264,8 +190,6 @@ class _HomeScreenState extends State<HomeScreen> {
           _productCount = productCount;
           _customerCount = customerCount;
           _dealCount = dealCount;
-          _heldCount = heldCount;
-          _topSellingName = topName;
           _topSellingQty = topQty;
         });
       }
@@ -344,8 +268,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
-    // ignore: unused_local_variable
-    final heldCount = _heldCount;
 
     return Scaffold(
       extendBodyBehindAppBar: true,

@@ -35,7 +35,6 @@ mixin ReturnsCrud on CommonCrud {
         ...Map.fromIterables(['business_id', 'user_id'], businessArgs),
         'branch_id': brid,
         'status': 1,
-        'is_synced': 0,
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
@@ -53,7 +52,6 @@ mixin ReturnsCrud on CommonCrud {
           'sales',
           {
             'is_return': 1,
-            'is_synced': 0,
             'updated_at': DateTime.now().toIso8601String(),
           },
           where: 'id = ?',
@@ -89,7 +87,6 @@ mixin ReturnsCrud on CommonCrud {
               'stocks',
               {
                 'quantity': newStock,
-                'is_synced': 0,
                 'updated_at': DateTime.now().toIso8601String(),
               },
               where: 'id = ?',

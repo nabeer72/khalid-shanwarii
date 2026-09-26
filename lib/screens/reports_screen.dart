@@ -242,10 +242,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
     return val;
   }
 
-  double get _netProfit {
-    final val = _salesProfit - _returnsProfit - _totalExpenses;
-    return val;
-  }
+  double get _profitBeforeExpenses => _salesProfit - _returnsProfit;
+
+  double get _netProfit => _profitBeforeExpenses - _totalExpenses;
 
   Map<String, double> get _salesByPaymentMethod {
     final Map<String, double> result = {};
@@ -255,21 +254,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
       result[method] = (result[method] ?? 0) + amount;
     }
     return result;
-  }
-
-  // ignore: unused_element
-  Map<String, int> get _topProducts {
-    final Map<String, int> result = {};
-    for (var sale in _salesForPeriod) {
-      final items = sale['items'] as List? ?? [];
-      for (var item in items) {
-        final name = item['name'] ?? 'Unknown';
-        final qty = item['quantity'] as int? ?? 1;
-        result[name] = (result[name] ?? 0) + qty;
-      }
-    }
-    return Map.fromEntries(
-        result.entries.toList()..sort((a, b) => b.value.compareTo(a.value)));
   }
 
   String get _periodLabel {
@@ -631,7 +615,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
           Divider(height: 1, color: theme.divider.withValues(alpha: 0.5)),
           _BreakdownGroup(
-            title: 'Profit',
+            title: 'Profit Before Expenses',
             color: theme.highlight,
             children: [
               _BreakdownRow(
@@ -645,12 +629,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     value: -_returnsProfit,
                     icon: Icons.remove_circle_outline_rounded,
                     iconColor: theme.highlight),
-              if (_totalExpenses > 0)
-                _BreakdownRow(
-                    label: 'Expenses',
-                    value: -_totalExpenses,
-                    icon: Icons.money_off_rounded,
-                    iconColor: theme.highlight),
+            ],
+          ),
+          Divider(height: 1, color: theme.divider.withValues(alpha: 0.5)),
+          _BreakdownGroup(
+            title: 'Other',
+            color: theme.highlight,
+            children: [
+              _BreakdownRow(
+                  label: 'Tax Collected',
+                  value: _totalTax,
+                  icon: Icons.receipt_outlined,
+                  iconColor: theme.highlight),
+              _BreakdownRow(
+                  label: 'Service Tips',
+                  value: _totalTips,
+                  icon: Icons.volunteer_activism_outlined,
+                  iconColor: theme.highlight),
+            ],
+          ),
+          Divider(height: 1, color: theme.divider.withValues(alpha: 0.5)),
+          _BreakdownGroup(
+            title: 'Expenses',
+            color: theme.highlight,
+            children: [
+              _BreakdownRow(
+                label: 'Total Expenses',
+                value: -_totalExpenses,
+                icon: Icons.money_off_rounded,
+                iconColor: theme.highlight,
+              ),
             ],
           ),
           Padding(
@@ -680,7 +688,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Final Business Profit',
+                          'Net Profit After Expenses',
                           style: TextStyle(
                             color: theme.textSecondary,
                             fontSize: 12,
@@ -703,23 +711,6 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ],
               ),
             ),
-          ),
-          Divider(height: 1, color: theme.divider.withValues(alpha: 0.5)),
-          _BreakdownGroup(
-            title: 'Other',
-            color: theme.highlight,
-            children: [
-              _BreakdownRow(
-                  label: 'Tax Collected',
-                  value: _totalTax,
-                  icon: Icons.receipt_outlined,
-                  iconColor: theme.highlight),
-              _BreakdownRow(
-                  label: 'Service Tips',
-                  value: _totalTips,
-                  icon: Icons.volunteer_activism_outlined,
-                  iconColor: theme.highlight),
-            ],
           ),
         ],
       ),

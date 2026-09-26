@@ -54,7 +54,6 @@ mixin UnitsCrud on CommonCrud {
       'business_id': BusinessConfig.instance.businessId,
       'branch_id': getSafeInt(unit['branch_id'] ?? getCurrentBranchId()),
       'user_id': getSafeInt(unit['user_id'] ?? BusinessConfig.instance.userId),
-      'is_synced': 0,
       'created_at': unit['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -67,7 +66,6 @@ mixin UnitsCrud on CommonCrud {
     final db = await database;
     final result = await db.update('units', {
       'status': 0,
-      'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     }, where: 'id = ?', whereArgs: [getSafeInt(id)]);
     

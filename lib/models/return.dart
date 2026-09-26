@@ -18,7 +18,6 @@ class Return {
   final double totalTip;
   final String? reason;
   final int status;
-  final int isSynced;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<ReturnItem> items;
@@ -42,7 +41,6 @@ class Return {
     this.totalTip = 0,
     this.reason,
     this.status = 1,
-    this.isSynced = 0,
     required this.createdAt,
     required this.updatedAt,
     this.items = const [],
@@ -68,7 +66,6 @@ class Return {
       'total_tip': totalTip,
       'reason': reason,
       'status': status,
-      'is_synced': isSynced,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -92,7 +89,6 @@ class Return {
       totalTip: (map['total_tip'] as num?)?.toDouble() ?? 0,
       reason: map['reason'],
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 0,
       createdAt: DateTime.parse(map['created_at']),
       updatedAt: DateTime.parse(map['updated_at']),
       items: items,

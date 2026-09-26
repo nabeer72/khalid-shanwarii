@@ -6,7 +6,6 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/widgets/pos/pos_product_tile.dart';
 import 'package:mobile_app/models/deal.dart';
-import 'package:mobile_app/db/database_helper.dart';
 
 class POSProductGrid extends StatelessWidget {
   final POSController controller;

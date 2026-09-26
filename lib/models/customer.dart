@@ -10,7 +10,6 @@ class Customer {
   final double? creditBalance;
   final double creditLimit;
   final int status;
-  final int isSynced;
 
 
   Customer({
@@ -25,7 +24,6 @@ class Customer {
     this.creditBalance = 0.0,
     this.creditLimit = 0.0,
     this.status = 1,
-    this.isSynced = 0,
 
   });
 
@@ -42,7 +40,6 @@ class Customer {
       creditBalance: (map['credit_balance'] as num?)?.toDouble() ?? 0.0,
       creditLimit: (map['credit_limit'] as num?)?.toDouble() ?? 0.0,
       status: (map['status'] as num?)?.toInt() ?? 1,
-      isSynced: (map['is_synced'] as num?)?.toInt() ?? 0,
 
     );
   }
@@ -60,7 +57,6 @@ class Customer {
       'credit_balance': creditBalance,
       'credit_limit': creditLimit,
       'status': status,
-      'is_synced': isSynced,
 
     };
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
-import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/controllers/pos_controller.dart';
 
 class POSProductTile extends StatelessWidget {

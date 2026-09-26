@@ -1,6 +1,4 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
-import '../../models/bank.dart';
-import '../../models/bank_detail.dart';
 import '../database_helper.dart';
 import '../mock_data.dart';
 
@@ -28,7 +26,6 @@ mixin BanksCrud {
       ...bank,
       'business_id': BusinessConfig.instance.businessId,
       'user_id': BusinessConfig.instance.userId,
-      'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -38,7 +35,7 @@ mixin BanksCrud {
 
   Future<void> deleteBank(int id) async {
     final db = await database;
-    await db.update('banks', {'status': 0, 'is_synced': 0}, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
+    await db.update('banks', {'status': 0}, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     DatabaseHelper.notifyDataChanged();
   }
 
@@ -67,7 +64,6 @@ mixin BanksCrud {
       ...detail,
       'business_id': BusinessConfig.instance.businessId,
       'user_id': BusinessConfig.instance.userId,
-      'is_synced': 0,
       'created_at': DateTime.now().toIso8601String(),
       'updated_at': DateTime.now().toIso8601String(),
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -77,7 +73,7 @@ mixin BanksCrud {
 
   Future<void> deleteBankDetail(int id) async {
     final db = await database;
-    await db.update('bank_details', {'status': 0, 'is_synced': 0}, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
+    await db.update('bank_details', {'status': 0}, where: 'id = ?${getBusinessFilter()}', whereArgs: [id, ...getBusinessArgs()]);
     DatabaseHelper.notifyDataChanged();
   }
 }

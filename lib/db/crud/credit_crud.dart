@@ -1,5 +1,4 @@
 import 'package:sqflite_sqlcipher/sqflite.dart';
-import 'package:mobile_app/db/mock_data.dart';
 import '../database_helper.dart';
 import 'common_crud.dart';
 
@@ -33,7 +32,6 @@ mixin CreditCrud on CommonCrud {
       ...creditSale,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': creditSale['branch_id'] ?? getCurrentBranchId(),
-      'is_synced': 0,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
     
     DatabaseHelper.notifyDataChanged();
@@ -79,10 +77,6 @@ mixin CreditCrud on CommonCrud {
   Future<int> insertCreditPayment(Map<String, dynamic> payment) async {
     int insertedId = 0;
     final db = await database;
-    // ignore: unused_local_variable
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    // ignore: unused_local_variable
-    final uid = getSafeInt(BusinessConfig.instance.userId);
     
     await db.transaction((txn) async {
       final customerId = payment['customer_id'];
@@ -95,11 +89,10 @@ mixin CreditCrud on CommonCrud {
           ...payment,
           ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
           'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
-          'is_synced': 0,
         });
 
         await txn.rawUpdate(
-          'UPDATE credit_sales SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE credit_sales SET remaining_balance = remaining_balance - ? WHERE id = ?${getBusinessFilter()}',
           [amountLeftToApply, payment['credit_sale_id'], ...getBusinessArgs()],
         );
       } else {
@@ -127,11 +120,10 @@ mixin CreditCrud on CommonCrud {
             ...portionPayment,
             ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
             'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
-            'is_synced': 0,
           });
 
           await txn.rawUpdate(
-            'UPDATE credit_sales SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+            'UPDATE credit_sales SET remaining_balance = remaining_balance - ? WHERE id = ?${getBusinessFilter()}',
             [applyAmount, saleId, ...getBusinessArgs()],
           );
           
@@ -146,7 +138,6 @@ mixin CreditCrud on CommonCrud {
             ...remainderPayment,
             ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
             'branch_id': payment['branch_id'] ?? getCurrentBranchId(),
-            'is_synced': 0,
           });
         }
       }
@@ -154,7 +145,7 @@ mixin CreditCrud on CommonCrud {
       // 3. Update customer credit balance (Master source of truth for UI speed)
       final totalPaidAmount = (payment['amount'] as num).toDouble();
       await txn.rawUpdate(
-        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) - ? WHERE id = ?${getBusinessFilter()}',
         [totalPaidAmount, customerId, ...getBusinessArgs()],
       );
     });
@@ -181,12 +172,12 @@ mixin CreditCrud on CommonCrud {
       // 2. Revert the old amount
       if (saleId != null) {
         await txn.rawUpdate(
-          'UPDATE credit_sales SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE credit_sales SET remaining_balance = remaining_balance + ? WHERE id = ?${getBusinessFilter()}',
           [oldAmount, saleId, ...getBusinessArgs()],
         );
       }
       await txn.rawUpdate(
-        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?${getBusinessFilter()}',
         [oldAmount, customerId, ...getBusinessArgs()],
       );
 
@@ -194,12 +185,12 @@ mixin CreditCrud on CommonCrud {
       final double newAmount = (data['amount'] as num).toDouble();
       if (saleId != null) {
         await txn.rawUpdate(
-          'UPDATE credit_sales SET remaining_balance = remaining_balance - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE credit_sales SET remaining_balance = remaining_balance - ? WHERE id = ?${getBusinessFilter()}',
           [newAmount, saleId, ...getBusinessArgs()],
         );
       }
       await txn.rawUpdate(
-        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) - ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) - ? WHERE id = ?${getBusinessFilter()}',
         [newAmount, customerId, ...getBusinessArgs()],
       );
 
@@ -208,7 +199,6 @@ mixin CreditCrud on CommonCrud {
         'credit_payments', 
         {
           ...data,
-          'is_synced': 0,
           'updated_at': DateTime.now().toIso8601String(),
         }, 
         where: 'id = ?', 
@@ -236,14 +226,14 @@ mixin CreditCrud on CommonCrud {
       // 2. Reverse effect on credit_sales if applicable
       if (saleId != null) {
         await txn.rawUpdate(
-          'UPDATE credit_sales SET remaining_balance = remaining_balance + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+          'UPDATE credit_sales SET remaining_balance = remaining_balance + ? WHERE id = ?${getBusinessFilter()}',
           [amount, saleId, ...getBusinessArgs()],
         );
       }
 
       // 3. Reverse effect on customer balance
       await txn.rawUpdate(
-        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+        'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?${getBusinessFilter()}',
         [amount, customerId, ...getBusinessArgs()],
       );
 
@@ -306,7 +296,7 @@ mixin CreditCrud on CommonCrud {
   Future<void> updateCustomerCreditBalance(dynamic customerId, double amount) async {
     final db = await database;
     await db.rawUpdate(
-      'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ?, is_synced = 0 WHERE id = ?${getBusinessFilter()}',
+      'UPDATE customers SET credit_balance = COALESCE(credit_balance, 0) + ? WHERE id = ?${getBusinessFilter()}',
       [amount, customerId, ...getBusinessArgs()],
     );
   }
@@ -324,11 +314,6 @@ mixin CreditCrud on CommonCrud {
   }
 
   Future<void> _executeReconciliation(DatabaseExecutor txn) async {
-    // ignore: unused_local_variable
-    final bid = getSafeInt(BusinessConfig.instance.businessId);
-    // ignore: unused_local_variable
-    final uid = getSafeInt(BusinessConfig.instance.userId);
-
     // 1. Reset credit balances to 0 for current tenant
     final businessArgs = getBusinessArgs();
     final hasContext = businessArgs.every((arg) => arg != null);

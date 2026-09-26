@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:sqflite_sqlcipher/sqflite.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:mobile_app/services/sync_service.dart';
 import '../database_helper.dart';
 
 mixin SettingsCrud {
@@ -187,7 +186,7 @@ mixin SettingsCrud {
     );
 
     await loadSettings();
-    DatabaseHelper.notifyDataChanged(triggerSync: false);
+    DatabaseHelper.notifyDataChanged();
   }
 
   // Clears session-specific context from storage and memory without wiping the database
@@ -202,10 +201,6 @@ mixin SettingsCrud {
       }
     }
     
-    // Safety Force: Specifically ensure sync timestamps are gone to force fresh check on next login
-    await storage.delete(key: 'last_synced_at');
-    await storage.delete(key: 'last_synced_push');
-
     // [REMOVED] Deleting settings from the DB is no longer necessary now that the
     // settings table is isolated by (key, business_id, user_id).
     // The reset() call below ensures the next user doesn't see this session's state.
@@ -292,8 +287,6 @@ mixin SettingsCrud {
     }
     
     // Safety Force: Specifically ensure sync timestamps are gone
-    await storage.delete(key: 'last_synced_at');
-    await storage.delete(key: 'last_synced_push');
     
     BusinessConfig.instance.reset(keepContext: false);
   }

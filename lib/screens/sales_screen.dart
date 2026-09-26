@@ -6,7 +6,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/product.dart';
 import 'package:mobile_app/models/sale.dart';
-import 'package:mobile_app/services/sync_service.dart';
 
 class SalesScreen extends StatefulWidget {
   const SalesScreen({super.key});
@@ -57,7 +56,6 @@ class _SalesScreenState extends State<SalesScreen> {
       staffId: BusinessConfig.instance.staffId ?? 0,
       total: _total,
       status: 1,
-      isSynced: 0,
     );
 
     try {
@@ -69,15 +67,12 @@ class _SalesScreenState extends State<SalesScreen> {
         'discount': 0.0,
       }).toList();
 
-      // ignore: unused_local_variable
-      final id = await _db.insertSale({
+      await _db.insertSale({
         ...sale.toMap(),
         'total': _total,
         'subtotal': _total,
       }, saleItems);
       
-      SyncService().syncPush();
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

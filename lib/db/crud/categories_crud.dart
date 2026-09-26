@@ -24,7 +24,6 @@ mixin CategoriesCrud on CommonCrud {
       ...category,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': getSafeInt(category['branch_id'] ?? getCurrentBranchId()),
-      'is_synced': 0,
       'created_at': category['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -88,7 +87,6 @@ mixin CategoriesCrud on CommonCrud {
       ...subcategory,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': getSafeInt(subcategory['branch_id'] ?? getCurrentBranchId()),
-      'is_synced': 0,
       'created_at': subcategory['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);

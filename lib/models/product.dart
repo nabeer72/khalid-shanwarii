@@ -140,7 +140,6 @@ class ProductCategory {
   final String? icon;
   final dynamic parentId;
   final int status;
-  final int isSynced;
 
   ProductCategory({
     this.id,
@@ -150,7 +149,6 @@ class ProductCategory {
     this.icon,
     this.parentId,
     this.status = 1,
-    this.isSynced = 1,
   });
 
   factory ProductCategory.fromMap(Map<String, dynamic> map) {
@@ -162,7 +160,6 @@ class ProductCategory {
       icon: map['icon'],
       parentId: map['parent_id'],
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 1,
     );
   }
 
@@ -175,7 +172,6 @@ class ProductCategory {
       'icon': icon,
       'parent_id': parentId,
       'status': status,
-      'is_synced': isSynced,
     };
   }
 }

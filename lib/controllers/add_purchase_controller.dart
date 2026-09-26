@@ -352,7 +352,6 @@ class AddPurchaseController with ChangeNotifier {
           'purchase_id': purchaseId,
           'amount': totalAmount,
           'remaining_balance': credit,
-          'is_synced': 0,
           'status': 1,
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),

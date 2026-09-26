@@ -22,7 +22,6 @@ mixin CurrencyNotesCrud on CommonCrud {
       ...note,
       ...getBusinessArgsMap(),
       'branch_id': note['branch_id'] ?? getCurrentBranchId(),
-      'is_synced': 0,
       'created_at': now,
       'updated_at': now,
     });
@@ -36,7 +35,6 @@ mixin CurrencyNotesCrud on CommonCrud {
       'currency_notes',
       {
         ...note,
-        'is_synced': 0,
         'updated_at': DateTime.now().toIso8601String(),
       },
       where: 'id = ?${getBusinessFilter()}',
@@ -52,7 +50,6 @@ mixin CurrencyNotesCrud on CommonCrud {
       'currency_notes',
       {
         'status': 0,
-        'is_synced': 0,
         'updated_at': DateTime.now().toIso8601String(),
       },
       where: 'id = ?${getBusinessFilter()}',

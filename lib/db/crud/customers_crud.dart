@@ -8,7 +8,7 @@ mixin CustomersCrud on CommonCrud {
     final db = await database;
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
-    
+
     final args = [...getBusinessArgs(), ...branchArgs];
 
     final results = await db.rawQuery(
@@ -22,7 +22,7 @@ mixin CustomersCrud on CommonCrud {
     final db = await database;
     final branchFilter = getBranchFilter();
     final branchArgs = getBranchArgs();
-    
+
     final args = [...getBusinessArgs(), ...branchArgs];
 
     return await db.rawQuery(
@@ -37,9 +37,8 @@ mixin CustomersCrud on CommonCrud {
       ...customer,
       ...Map.fromIterables(['business_id', 'user_id'], getBusinessArgs()),
       'branch_id': customer['branch_id'] ?? getCurrentBranchId(),
-      'is_synced': 0
     }, conflictAlgorithm: ConflictAlgorithm.replace);
-    
+
     DatabaseHelper.notifyDataChanged();
     return result;
   }
@@ -47,12 +46,12 @@ mixin CustomersCrud on CommonCrud {
   Future<int> updateCustomer(dynamic id, Map<String, dynamic> data) async {
     final db = await database;
     final result = await db.update(
-      'customers', 
-      {...data, 'is_synced': 0}, 
-      where: 'id = ?${getBusinessFilter()}', 
+      'customers',
+      {...data},
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()]
     );
-    
+
     DatabaseHelper.notifyDataChanged();
     return result;
   }
@@ -60,8 +59,8 @@ mixin CustomersCrud on CommonCrud {
   Future<Map<String, dynamic>?> getCustomer(dynamic id) async {
     final db = await database;
     final results = await db.query(
-      'customers', 
-      where: 'id = ?${getBusinessFilter()}', 
+      'customers',
+      where: 'id = ?${getBusinessFilter()}',
       whereArgs: [id, ...getBusinessArgs()]
     );
     return results.firstOrNull;

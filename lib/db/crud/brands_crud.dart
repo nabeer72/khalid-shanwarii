@@ -25,7 +25,6 @@ mixin BrandsCrud on CommonCrud {
       'business_id': BusinessConfig.instance.businessId,
       'branch_id': getSafeInt(brand['branch_id'] ?? getCurrentBranchId()),
       'user_id': getSafeInt(brand['user_id'] ?? BusinessConfig.instance.userId),
-      'is_synced': 0,
       'created_at': brand['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -38,7 +37,6 @@ mixin BrandsCrud on CommonCrud {
     final db = await database;
     final result = await db.update('brands', {
       'status': 0,
-      'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     }, where: 'id = ?${getBusinessFilter()}', whereArgs: [getSafeInt(id), ...getBusinessArgs()]);
     

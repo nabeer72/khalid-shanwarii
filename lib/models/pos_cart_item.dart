@@ -16,7 +16,6 @@ class POSCartItem {
   double quantity;
   double price;
   double _discount = 0;
-  double _discountRate = 0; // Discount per unit
   double subtotal;
   final bool isWeight;
   String discountType = 'fixed'; // 'fixed' or 'percentage'
@@ -30,7 +29,6 @@ class POSCartItem {
     if (discountType == 'fixed') {
       discountValue = value;
     }
-    _discountRate = quantity > 0 ? value / quantity : 0;
     updateSubtotal();
   }
 
@@ -51,7 +49,6 @@ class POSCartItem {
     this.discountValue = 0,
   }) : _discount = discount {
     if (discountValue == 0 && _discount != 0) discountValue = _discount;
-    _discountRate = quantity > 0 ? _discount / quantity : 0;
     if (subtotal == 0 && price != 0) {
       updateSubtotal();
     }
@@ -76,7 +73,6 @@ class POSCartItem {
   // Update quantity and scale discount proportionally
   void setQuantity(double newQty) {
     quantity = newQty;
-    // _discount = _discountRate * quantity; // Removed in favor of updateSubtotal logic
     updateSubtotal();
   }
 

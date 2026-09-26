@@ -21,7 +21,6 @@ class Stock {
   final String? tradeOff;
   final double carryExpense;
   final int status;
-  final int isSynced;
   final String? createdAt;
   final String? updatedAt;
   final String? deletedAt;
@@ -49,7 +48,6 @@ class Stock {
     this.tradeOff,
     this.carryExpense = 0,
     this.status = 1,
-    this.isSynced = 0,
     this.createdAt,
     this.updatedAt,
     this.deletedAt,
@@ -79,7 +77,6 @@ class Stock {
       tradeOff: map['trade_off'],
       carryExpense: (map['carry_expense'] ?? 0).toDouble(),
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 0,
       createdAt: map['created_at'],
       updatedAt: map['updated_at'],
       deletedAt: map['deleted_at'],
@@ -110,7 +107,6 @@ class Stock {
       'trade_off': tradeOff,
       'carry_expense': carryExpense,
       'status': status,
-      'is_synced': isSynced,
       'created_at': createdAt,
       'updated_at': updatedAt,
       'deleted_at': deletedAt,
@@ -142,7 +138,6 @@ class Stock {
       tradeOff: tradeOff,
       carryExpense: carryExpense,
       status: status,
-      isSynced: isSynced,
       createdAt: createdAt,
       updatedAt: updatedAt,
       deletedAt: deletedAt,

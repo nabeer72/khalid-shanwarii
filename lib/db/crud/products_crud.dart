@@ -60,7 +60,7 @@ mixin ProductsCrud on CommonCrud {
         UPDATE stocks SET tax = (
           SELECT CASE WHEN products.tax_enabled = 1 THEN products.tax_rate ELSE 0 END
           FROM products WHERE products.id = stocks.product_id
-        ), is_synced = 0
+        )
         WHERE (tax IS NULL OR tax = 0)
         AND product_id IN (SELECT id FROM products WHERE tax_enabled = 1 AND business_id = ?)
         AND business_id = ?
@@ -283,7 +283,6 @@ mixin ProductsCrud on CommonCrud {
                   metadata['discount_limit_type'] ?? 'percentage',
               'tax_enabled': metadata['tax_enabled'] ?? 0,
               'tax_rate': metadata['tax_rate'] ?? 0.0,
-              'is_synced': 0,
               'updated_at': DateTime.now().toIso8601String(),
             },
             where: 'id = ?',
@@ -293,7 +292,6 @@ mixin ProductsCrud on CommonCrud {
             'stocks',
             {
               'tax': stockTax,
-              'is_synced': 0,
               'updated_at': DateTime.now().toIso8601String(),
             },
             where: 'product_id = ? AND business_id = ?',
@@ -323,7 +321,6 @@ mixin ProductsCrud on CommonCrud {
               metadata['discount_limit_type'] ?? 'percentage',
           'tax_enabled': metadata['tax_enabled'] ?? 0,
           'tax_rate': metadata['tax_rate'] ?? 0.0,
-          'is_synced': 0,
           'updated_at': DateTime.now().toIso8601String(),
         });
       }
@@ -405,7 +402,6 @@ mixin ProductsCrud on CommonCrud {
             'packing': packing ?? matchingStocks.first['packing'],
             'user_id': uid,
             'updated_at': DateTime.now().toIso8601String(),
-            'is_synced': 0,
           },
           where: 'id = ?',
           whereArgs: [matchingId],
@@ -434,7 +430,6 @@ mixin ProductsCrud on CommonCrud {
           'pieces_per_pack': piecesPerPack,
           'packing': packing,
           'status': 1,
-          'is_synced': 0,
           'created_at': DateTime.now().toIso8601String(),
           'updated_at': DateTime.now().toIso8601String(),
         });
@@ -465,7 +460,6 @@ mixin ProductsCrud on CommonCrud {
             (latestStock?['sale_price'] as num?)?.toDouble() ?? 0.0,
         'new_sale_price': currentPrice,
         'remarks': remarks,
-        'is_synced': 0,
         'created_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       });
@@ -487,9 +481,8 @@ mixin ProductsCrud on CommonCrud {
 
   Future<void> toggleProductStatus(dynamic productId, int currentStatus) async {
     final db = await database;
-    final args = [productId?.toString(), ...getBusinessArgs()];
     await db.rawUpdate(
-        'UPDATE products SET status = ?, is_synced = 0, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
+        'UPDATE products SET status = ?, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
         [
           currentStatus == 1 ? 0 : 1,
           DateTime.now().toIso8601String(),
@@ -502,7 +495,7 @@ mixin ProductsCrud on CommonCrud {
   Future<void> toggleStockStatus(dynamic stockId, int currentStatus) async {
     final db = await database;
     await db.rawUpdate(
-        'UPDATE stocks SET status = ?, is_synced = 0, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
+        'UPDATE stocks SET status = ?, updated_at = ? WHERE id = ? ${getBusinessFilter()}',
         [
           currentStatus == 1 ? 0 : 1,
           DateTime.now().toIso8601String(),

@@ -52,9 +52,6 @@ class DatabaseHelper
   static final _dataChangeController = StreamController<void>.broadcast();
   static Stream<void> get dataStream => _dataChangeController.stream;
 
-  // Callback for top-level data changes (to trigger immediate sync)
-  static Future<void> Function()? onDataChanged;
-
   DatabaseHelper._init();
 
   @override
@@ -62,12 +59,9 @@ class DatabaseHelper
     return await DbInitializer.getDatabase();
   }
 
-  /// Notify that data has changed (should be called by CRUD mixins)
-  static void notifyDataChanged({bool triggerSync = true}) {
-    _dataChangeController.add(null); // Notify UI listeners
-    if (triggerSync && onDataChanged != null) {
-      onDataChanged!();
-    }
+  /// Notify listeners that local data has changed.
+  static void notifyDataChanged() {
+    _dataChangeController.add(null);
   }
 
   // Ensure stream is closed if helper is ever destroyed (singleton, so unlikely)

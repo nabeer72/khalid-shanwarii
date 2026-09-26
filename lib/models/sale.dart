@@ -14,7 +14,6 @@ class Sale {
   final int isReturn;
   final double totalTip;
   final int status;
-  final int isSynced;
   final int? shiftId;
   final String? createdAt;
   final String? updatedAt;
@@ -35,7 +34,6 @@ class Sale {
     this.isReturn = 0,
     this.totalTip = 0.0,
     this.status = 1,
-    this.isSynced = 0,
     this.shiftId,
     this.createdAt,
     this.updatedAt,
@@ -58,7 +56,6 @@ class Sale {
       isReturn: (map['is_return'] as num?)?.toInt() ?? 0,
       totalTip: (map['total_tip'] as num?)?.toDouble() ?? (map['tip'] as num?)?.toDouble() ?? 0.0,
       status: (map['status'] as num?)?.toInt() ?? 1,
-      isSynced: (map['is_synced'] as num?)?.toInt() ?? 0,
       shiftId: map['shift_id'] is int ? map['shift_id'] : int.tryParse(map['shift_id']?.toString() ?? ''),
       createdAt: map['created_at']?.toString(),
       updatedAt: map['updated_at']?.toString(),
@@ -82,7 +79,6 @@ class Sale {
       'is_return': isReturn,
       'total_tip': totalTip,
       'status': status,
-      'is_synced': isSynced,
       'shift_id': shiftId,
       'created_at': createdAt,
       'updated_at': updatedAt,

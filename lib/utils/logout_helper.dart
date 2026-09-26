@@ -5,12 +5,10 @@ import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/screens/login_screen.dart';
-import 'package:mobile_app/services/sync_service.dart';
 
 /// Logout entry point: multi-business users pick another business or sign out.
 class LogoutHelper {
   static final _theme = ThemeProvider.instance;
-  static final _syncService = SyncService();
 
   static String _businessTypeIcon(String? type) {
     if (type == 'garments') return '👕';
@@ -135,7 +133,6 @@ class LogoutHelper {
 
   static Future<void> _performSignOut(BuildContext context) async {
     try {
-      await _syncService.logout();
       AddProductController.clearGlobalState();
       MockDataStore.instance.clear();
       await DatabaseHelper.instance.clearSessionContext();

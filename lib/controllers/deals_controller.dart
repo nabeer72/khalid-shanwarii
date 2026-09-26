@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:mobile_app/db/mock_data.dart';
 
 import 'package:mobile_app/db/database_helper.dart';
 import 'package:mobile_app/models/deal.dart';
-import 'package:mobile_app/models/deal_item.dart';
 
 class DealsController with ChangeNotifier {
   List<Deal> _deals = [];

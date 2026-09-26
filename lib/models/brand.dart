@@ -5,7 +5,6 @@ class Brand {
   final dynamic userId;
   final String name;
   final int status;
-  final int isSynced;
   final String? createdAt;
   final String? updatedAt;
 
@@ -16,7 +15,6 @@ class Brand {
     this.userId,
     required this.name,
     this.status = 1,
-    this.isSynced = 0,
     this.createdAt,
     this.updatedAt,
   });
@@ -29,7 +27,6 @@ class Brand {
       userId: map['user_id'],
       name: map['name'] ?? '',
       status: map['status'] ?? 1,
-      isSynced: map['is_synced'] ?? 0,
       createdAt: map['created_at'],
       updatedAt: map['updated_at'],
     );
@@ -43,7 +40,6 @@ class Brand {
       'user_id': userId,
       'name': name,
       'status': status,
-      'is_synced': isSynced,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };

@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter/rendering.dart';
 import 'package:mobile_app/utils/keyboard_shortcuts.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
@@ -160,15 +159,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
   Widget build(BuildContext context) {
     final sale = widget.sale;
     final timestamp = DateTime.tryParse(sale['created_at'] ?? sale['timestamp'] ?? '');
-    // ignore: unused_local_variable
     final isReturn = sale['is_return'] == 1 || sale['isReturn'] == true;
     final total = (sale['total'] as num? ?? 0).toDouble();
     final discount = (sale['discount'] as num? ?? 0).toDouble();
-    final subTotal = (sale['sub_total'] ?? sale['subtotal'] as num? ?? 0).toDouble();
-    final tax = (sale['tax'] as num? ?? 0).toDouble();
-    final tip = (sale['total_tip'] ?? sale['tip'] as num? ?? 0).toDouble();
     final paymentMethod = (sale['payment_method'] ?? sale['paymentMethod'] ?? 'Cash').toString();
-    final paymentTypeId = sale['payment_type_id'] ?? sale['paymentTypeId'];
     final customer = sale['customer_name'] ?? sale['customerName'];
     
     // SAFE ID SUBSTRING
@@ -190,7 +184,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       child: Focus(
         autofocus: true,
         child: Scaffold(
-          backgroundColor: theme.isDark ? Colors.black : Colors.grey[200],
+          backgroundColor: theme.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -215,21 +209,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             child: Container(
             width: 380,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: theme.surface,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: const [
-                BoxShadow(color: Color(0x1A000000), blurRadius: 16, offset: Offset(0, 6)),
-              ],
+              border: Border.all(color: theme.cardBorder),
+              boxShadow: theme.cardShadow,
             ),
             child: Column(
               children: [
                 Container(
                   height: 5,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF1A73E8), Color(0xFF667eea)],
-                    ),
+                  decoration: BoxDecoration(
+                    color: theme.highlight,
                     borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
                   ),
                 ),
@@ -242,14 +232,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         height: 52,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF1A73E8), Color(0xFF764ba2)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
+                          color: theme.highlight,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFF1A73E8).withOpacity(0.35),
+                              color: theme.highlight.withOpacity(0.25),
                               blurRadius: 10,
                               offset: const Offset(0, 4),
                             ),
@@ -260,8 +246,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       const SizedBox(height: 12),
                       Text(
                         _storeName.toUpperCase(),
-                        style: const TextStyle(
-                          color: Color(0xFF111827),
+                        style: TextStyle(
+                          color: theme.textPrimary,
                           fontSize: 20,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 0.8,
@@ -279,8 +265,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                             Expanded(
                               child: Text(
                                 _storeAddress,
-                                style: const TextStyle(
-                                  color: Color(0xFF4B5563),
+                                style: TextStyle(
+                                  color: theme.textSecondary,
                                   fontSize: 12,
                                   height: 1.35,
                                   fontWeight: FontWeight.w500,
@@ -296,12 +282,12 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.phone_outlined, size: 13, color: Color(0xFF6B7280)),
+                            Icon(Icons.phone_outlined, size: 13, color: theme.textSecondary),
                             const SizedBox(width: 5),
                             Text(
                               _storePhone,
-                              style: const TextStyle(
-                                color: Color(0xFF374151),
+                              style: TextStyle(
+                                color: theme.textPrimary,
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -313,14 +299,14 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isReturn ? ThemeProvider.warning.withOpacity(0.15) : const Color(0xFFF3F4F6),
+                          color: isReturn ? ThemeProvider.warning.withOpacity(0.15) : theme.muted,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: isReturn ? ThemeProvider.warning.withOpacity(0.3) : const Color(0xFFE5E7EB)),
+                          border: Border.all(color: isReturn ? ThemeProvider.warning.withOpacity(0.3) : theme.divider),
                         ),
                         child: Text(
                           isReturn ? 'REFUND RECEIPT' : 'SALES RECEIPT',
                           style: TextStyle(
-                            color: isReturn ? ThemeProvider.warning : const Color(0xFF1A73E8),
+                            color: isReturn ? ThemeProvider.warning : theme.highlight,
                             fontSize: 11,
                             fontWeight: FontWeight.w800,
                             letterSpacing: 2,
@@ -328,17 +314,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         ),
                       ),
                       const SizedBox(height: 14),
-                      const Divider(color: Color(0xFF111827), thickness: 1.2, height: 1),
+                      Divider(color: theme.divider, thickness: 1.2, height: 1),
                       const SizedBox(height: 12),
 
                       // Meta Info Row 1: Bill No & Date
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Bill No: $receiptNumber', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text('Bill No: $receiptNumber', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
                           Text(
                             timestamp != null ? '${timestamp.month}/${timestamp.day}/${timestamp.year} ${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}:${timestamp.second.toString().padLeft(2, '0')} ${timestamp.hour >= 12 ? 'PM' : 'AM'}' : '',
-                            style: const TextStyle(color: Colors.black, fontSize: 11),
+                            style: TextStyle(color: theme.textPrimary, fontSize: 11),
                           ),
                         ],
                       ),
@@ -347,8 +333,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Casher: ${employee.toUpperCase()}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
-                          Text('Customer: ${customer ?? "Walk-In"}', style: const TextStyle(color: Colors.black, fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text('Casher: ${employee.toUpperCase()}', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text('Customer: ${customer ?? "Walk-In"}', style: TextStyle(color: theme.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       
@@ -358,7 +344,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
                       // Header & Items Section
                       if (_loadingItems)
-                        const Center(child: CircularProgressIndicator(color: Colors.black))
+                        Center(child: CircularProgressIndicator(color: theme.highlight))
                       else
                         Column(
                           children: [
@@ -374,21 +360,21 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                               children: [
                                 TableRow(
                                   children: [
-                                    const Text('Description',
-                                        style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
-                                    const Text('QTY',
+                                    Text('Description',
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    Text('QTY',
                                         textAlign: TextAlign.center,
-                                        style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-                                    const Text('Price',
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    Text('Price',
                                         textAlign: TextAlign.right,
-                                        style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
                                     if (hasItemDiscounts)
-                                      const Text('Disc',
+                                      Text('Disc',
                                           textAlign: TextAlign.right,
-                                          style: TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold)),
-                                    const Text('Total',
+                                        style: TextStyle(color: theme.textPrimary, fontSize: 10, fontWeight: FontWeight.bold)),
+                                    Text('Total',
                                         textAlign: TextAlign.right,
-                                        style: TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                                      style: TextStyle(color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               ],
@@ -420,23 +406,23 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                       child: Text(name.toUpperCase(),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                              color: Colors.black, fontSize: 11, fontWeight: FontWeight.w600)),
+                                            style: TextStyle(
+                                              color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.w600)),
                                     ),
                                     Text(BusinessConfig.instance.formatAmount(qty),
                                         textAlign: TextAlign.center,
-                                        style: const TextStyle(color: Colors.black, fontSize: 11)),
+                                        style: TextStyle(color: theme.textPrimary, fontSize: 11)),
                                     Text(BusinessConfig.instance.formatAmount(price),
                                         textAlign: TextAlign.right,
-                                        style: const TextStyle(color: Colors.black, fontSize: 11)),
+                                        style: TextStyle(color: theme.textPrimary, fontSize: 11)),
                                     if (hasItemDiscounts)
                                       Text(BusinessConfig.instance.formatAmount(disc),
                                           textAlign: TextAlign.right,
-                                          style: const TextStyle(color: Colors.black, fontSize: 11)),
+                                          style: TextStyle(color: theme.textPrimary, fontSize: 11)),
                                     Text(BusinessConfig.instance.formatAmount(subtotal),
                                         textAlign: TextAlign.right,
-                                        style: const TextStyle(
-                                            color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                                        style: TextStyle(
+                                          color: theme.textPrimary, fontSize: 11, fontWeight: FontWeight.bold)),
                                   ],
                                 );
                               }).toList(),
@@ -452,8 +438,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('[${_items.length}] Items', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-                          Text('[${BusinessConfig.instance.formatAmount(_items.fold<double>(0, (p, e) => p + (e['quantity'] as num? ?? 0)))}] Qty', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text('[${_items.length}] Items', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
+                          Text('[${BusinessConfig.instance.formatAmount(_items.fold<double>(0, (p, e) => p + (e['quantity'] as num? ?? 0)))}] Qty', style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.bold, fontSize: 12)),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -535,7 +521,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         const SizedBox(height: 12),
                         Text(
                           'You Saved: ${BusinessConfig.instance.formatAmount(discount)}',
-                          style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w900),
+                          style: TextStyle(color: theme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900),
                         ),
                         const SizedBox(height: 12),
                         const _DottedLine(),
@@ -545,14 +531,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF1A73E8).withOpacity(0.08),
-                              const Color(0xFF764ba2).withOpacity(0.06),
-                            ],
-                          ),
+                          color: theme.muted,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                          border: Border.all(color: theme.divider),
                         ),
                         child: Column(
                           children: [
@@ -560,18 +541,18 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                               _receiptFooter.isNotEmpty
                                   ? _receiptFooter
                                   : '*** Thanks For Your Kind Visit ***',
-                              style: const TextStyle(
-                                color: Color(0xFF111827),
+                              style: TextStyle(
+                                color: theme.textPrimary,
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
                               ),
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 6),
-                            const Text(
+                            Text(
                               'Powered by Khalid Shinwari',
                               style: TextStyle(
-                                color: Color(0xFF9CA3AF),
+                                color: theme.textHint,
                                 fontSize: 9,
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.3,
@@ -601,11 +582,12 @@ class _DashedLine extends StatelessWidget {
   const _DashedLine();
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
     return Row(
       children: List.generate(80, (i) => Expanded(
         child: Container(
           height: 1,
-          color: i.isEven ? Colors.black : Colors.transparent,
+          color: i.isEven ? theme.divider : Colors.transparent,
           margin: const EdgeInsets.symmetric(horizontal: 0.2),
         ),
       )),
@@ -617,11 +599,12 @@ class _DottedLine extends StatelessWidget {
   const _DottedLine();
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
     return Row(
       children: List.generate(120, (i) => Expanded(
         child: Container(
           height: 1.2,
-          color: i.isEven ? Colors.black : Colors.transparent,
+          color: i.isEven ? theme.divider : Colors.transparent,
           margin: const EdgeInsets.symmetric(horizontal: 0.3),
         ),
       )),
@@ -648,6 +631,7 @@ class _SummaryRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeProvider.instance;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
@@ -657,7 +641,7 @@ class _SummaryRow extends StatelessWidget {
             width: labelWidth,
             child: Text(label,
                 style: TextStyle(
-                    color: Colors.black,
+                    color: theme.textPrimary,
                     fontSize: fontSize,
                     fontWeight: isBold ? FontWeight.bold : FontWeight.normal)),
           ),
@@ -668,7 +652,7 @@ class _SummaryRow extends StatelessWidget {
                   ? TextAlign.left
                   : TextAlign.right,
               style: TextStyle(
-                  color: Colors.black,
+                  color: theme.textPrimary,
                   fontSize: fontSize,
                   fontWeight: isBold ? FontWeight.bold : FontWeight.normal),
               overflow: TextOverflow.ellipsis,

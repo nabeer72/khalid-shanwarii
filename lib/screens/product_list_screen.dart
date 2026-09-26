@@ -6,7 +6,6 @@ import 'package:mobile_app/models/stock.dart';
 import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/widgets/empty_state_icon.dart';
 import 'package:mobile_app/screens/add_product_screen.dart';
-import 'package:mobile_app/screens/pos_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -98,29 +97,12 @@ class _ProductListScreenState extends State<ProductListScreen> {
     }
   }
 
-  Future<void> _toggleFavorite(Product product) async {
-    if (product.id != null) {
-      await DatabaseHelper.instance
-          .toggleProductFavorite(product.id!, product.isFavorite);
-      _loadData(); // Refresh list and counts
-    }
-  }
-
   Future<void> _toggleStatus(Product product) async {
     if (product.id != null) {
       await DatabaseHelper.instance
           .toggleProductStatus(product.id!, product.status);
       _loadData();
     }
-  }
-
-  // ignore: unused_element
-  void _addToPOS(Product product) {
-    // This could navigate to POS and auto-add or just provide feedback
-    // For now, let's show a snackbar or navigate to POS
-    Navigator.push(
-            context, MaterialPageRoute(builder: (_) => const POSScreen()))
-        .then((_) => _loadData());
   }
 
   @override

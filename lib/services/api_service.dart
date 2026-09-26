@@ -17,12 +17,6 @@ class ApiService {
     return [];
   }
 
-  Future<dynamic> get(String path) async {
-    return null;
-  }
-  
-
-
   Future<bool> updateBankAccount(int id, Map<String, dynamic> data) async {
     return true;
   }
@@ -33,26 +27,6 @@ class ApiService {
 
 
 
-  Future<dynamic> getDeletionRequestStatus() async {
-    return null;
-  }
-
-  Future<dynamic> cancelDeletionRequest([dynamic data]) async {
-    return null;
-  }
-
-  Future<dynamic> submitDeletionRequest(dynamic data) async {
-    return null;
-  }
-
-  Future<bool> updateProfile(dynamic data) async {
-    return true;
-  }
-
-  Future<bool> submitFeedback(dynamic data) async {
-    return true;
-  }
-  
   Future<List<dynamic>> getUserBusinesses() async {
     return [];
   }

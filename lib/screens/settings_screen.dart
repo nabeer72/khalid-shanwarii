@@ -1,5 +1,3 @@
-// ignore_for_file: unused_element
-
 import 'dart:io';
 import 'package:file_selector_platform_interface/file_selector_platform_interface.dart';
 import 'package:flutter/material.dart';
@@ -7,11 +5,9 @@ import 'package:mobile_app/providers/theme_provider.dart';
 import 'package:mobile_app/db/db_initializer.dart';
 import 'package:mobile_app/db/mock_data.dart';
 import 'package:mobile_app/db/database_helper.dart';
-import 'package:mobile_app/data/currency_list.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'dart:convert';
 import 'package:mobile_app/widgets/pin_dialogs.dart';
-import 'package:mobile_app/services/sync_service.dart';
 import 'package:mobile_app/screens/home_screen.dart';
 import 'package:mobile_app/services/api_service.dart';
 
@@ -24,10 +20,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final theme = ThemeProvider.instance;
-  final SyncService _syncService = SyncService();
 
   List<Map<String, dynamic>> _businessTypes = [];
-  bool _businessTypesLoading = false;
   // Business and config state
   String _businessName = BusinessConfig.instance.businessName;
   String _businessAddress = BusinessConfig.instance.businessAddress;
@@ -81,7 +75,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadBusinessTypes() async {
-    _businessTypesLoading = true;
     try {
       final response = await ApiService().getBusinessTypes();
       if (response != null && response.statusCode == 200) {
@@ -113,19 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         {'id': 'electronics', 'name': 'Electronics', 'icon': '📱'},
       ];
     }
-    _businessTypesLoading = false;
     if (mounted) setState(() {});
-  }
-
-  Widget _buildTextField(
-      TextEditingController ctrl, String label, IconData icon,
-      {bool isRequired = false}) {
-    return TextField(
-      controller: ctrl,
-      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600),
-      decoration:
-          theme.glassInputDecoration(label, icon, isRequired: isRequired),
-    );
   }
 
   void _showEditBusinessDialog({int focusIndex = 0}) {
@@ -285,12 +266,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             await db.setSetting(
                                 'receipt_footer', _receiptFooter);
 
-                            if (BusinessConfig.instance.businessId != null) {
-                              await db.updateBusinessSyncStatus(
-                                  BusinessConfig.instance.businessId, 0);
-                            }
-                            DatabaseHelper.notifyDataChanged(
-                              triggerSync: false);
+                            DatabaseHelper.notifyDataChanged();
 
                             for (var node in focusNodes) {
                               node.dispose();
@@ -679,7 +655,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   1, // Default to 1 (General/Retail)
                               'owner_user_id': userId,
                               'status': 1,
-                              'is_synced': 0,
                               'created_at': now,
                               'updated_at': now,
                             });
@@ -688,8 +663,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             if (userId != null) {
                               await db.addUserBusiness(userId, bid);
                             }
-
-
 
                             if (mounted) {
                               Navigator.pop(ctx);
@@ -717,705 +690,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showCurrencyDialog() {
-    InputDecoration _dialogInputDecoration(String label, IconData icon,
-        {bool isRequired = false}) {
-      return InputDecoration(
-        label: isRequired
-            ? RichText(
-                text: TextSpan(
-                  text: label,
-                  style: TextStyle(color: theme.textSecondary),
-                  children: [
-                    TextSpan(
-                        text: ' *',
-                        style: TextStyle(
-                            color: theme.highlight,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
-            : Text(label, style: TextStyle(color: theme.textSecondary)),
-        labelStyle: TextStyle(color: theme.textSecondary),
-        prefixIcon: Icon(icon, color: theme.iconColor),
-        filled: true,
-        fillColor: theme.whiteAlpha(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-          borderSide: BorderSide(color: theme.highlight),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.highlight),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.highlight, width: 1.5),
-        ),
-      );
-    }
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        String query = '';
-        List<Currency> filteredList = currencyList;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              contentPadding: EdgeInsets.zero,
-              content: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                ),
-                width: 360,
-                height: MediaQuery.of(context).size.height * 0.6,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Select Currency',
-                        style: TextStyle(
-                            color: Color(0xFF1F2937),
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -0.5)),
-                    const SizedBox(height: 20),
-                    TextField(
-                      autofocus: true,
-                      style: TextStyle(
-                          color: theme.textPrimary,
-                          fontWeight: FontWeight.w600),
-                      decoration: _dialogInputDecoration(
-                          'Search currency...', Icons.search_rounded),
-                      onChanged: (val) {
-                        setDialogState(() {
-                          query = val.toLowerCase();
-                          filteredList = currencyList
-                              .where((c) =>
-                                  c.name.toLowerCase().contains(query) ||
-                                  c.code.toLowerCase().contains(query) ||
-                                  c.symbol.contains(query))
-                              .toList();
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Expanded(
-                      child: ListView.builder(
-                        itemCount: filteredList.length,
-                        itemBuilder: (ctx, i) {
-                          final currency = filteredList[i];
-                          final isSelected = BusinessConfig.instance.currency ==
-                              currency.symbol;
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: InkWell(
-                              onTap: () {
-                                setState(() => BusinessConfig
-                                    .instance.currency = currency.symbol);
-                                DatabaseHelper.instance
-                                    .saveCurrency(currency.symbol);
-                                Navigator.pop(ctx);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content: Text(
-                                            'Currency set to ${currency.name}'),
-                                        backgroundColor:
-                                            ThemeProvider.success));
-                              },
-                              borderRadius: BorderRadius.circular(
-                                  ThemeProvider.radiusList),
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? theme.highlight.withOpacity(0.1)
-                                      : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(
-                                      ThemeProvider.radiusList),
-                                  border: Border.all(
-                                      color: isSelected
-                                          ? theme.highlight.withOpacity(0.3)
-                                          : Colors.transparent),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: isSelected
-                                            ? theme.highlight
-                                            : const Color(0xFFF3F4F6),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Text(currency.symbol,
-                                          style: TextStyle(
-                                              color: isSelected
-                                                  ? Colors.white
-                                                  : const Color(0xFF1F2937),
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.bold)),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(currency.name,
-                                              style: const TextStyle(
-                                                  color: Color(0xFF1F2937),
-                                                  fontWeight: FontWeight.w800,
-                                                  fontSize: 14)),
-                                          Text(currency.code,
-                                              style: const TextStyle(
-                                                  color: Color(0xFF6B7280),
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w500)),
-                                        ],
-                                      ),
-                                    ),
-                                    if (isSelected)
-                                      const Icon(Icons.check_circle_rounded,
-                                          color: ThemeProvider.success,
-                                          size: 20),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(ctx),
-                            child: const Text('CANCEL',
-                                style: TextStyle(
-                                    color: Color(0xFF6B7280),
-                                    fontWeight: FontWeight.w900)),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: theme.highlight,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      ThemeProvider.radiusList)),
-                            ),
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              _showCustomCurrencyDialog();
-                            },
-                            icon: const Icon(Icons.edit_rounded, size: 16),
-                            label: const Text('CUSTOM',
-                                style: TextStyle(fontWeight: FontWeight.w900)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _showCustomCurrencyDialog() {
-    final customCtrl = TextEditingController();
-    InputDecoration _dialogInputDecoration(String label, IconData icon,
-        {bool isRequired = false}) {
-      return InputDecoration(
-        label: isRequired
-            ? RichText(
-                text: TextSpan(
-                  text: label,
-                  style: TextStyle(color: theme.textSecondary),
-                  children: [
-                    TextSpan(
-                        text: ' *',
-                        style: TextStyle(
-                            color: theme.highlight,
-                            fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
-            : Text(label, style: TextStyle(color: theme.textSecondary)),
-        labelStyle: TextStyle(color: theme.textSecondary),
-        prefixIcon: Icon(icon, color: theme.iconColor),
-        filled: true,
-        fillColor: theme.whiteAlpha(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(ThemeProvider.radiusInput),
-          borderSide: BorderSide(color: theme.highlight),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.highlight),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: theme.highlight, width: 1.5),
-        ),
-      );
-    }
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          width: 320, // Set specific width to fix the "too big" issue
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Custom Symbol',
-                  style: TextStyle(
-                      color: Color(0xFF1F2937),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: customCtrl,
-                autofocus: true,
-                style: TextStyle(
-                    color: theme.textPrimary, fontWeight: FontWeight.w600),
-                decoration: _dialogInputDecoration(
-                    'Enter symbol (e.g. ₿)', Icons.currency_exchange_rounded,
-                    isRequired: true),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('CANCEL',
-                          style: TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ThemeProvider.success,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ThemeProvider.radiusList)),
-                      ),
-                      onPressed: () {
-                        if (customCtrl.text.isNotEmpty) {
-                          setState(() => BusinessConfig.instance.currency =
-                              customCtrl.text);
-                          DatabaseHelper.instance.saveCurrency(customCtrl.text);
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text('Currency symbol updated'),
-                              backgroundColor: ThemeProvider.success));
-                        }
-                      },
-                      child: const Text('SAVE',
-                          style: TextStyle(fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showTaxDialog() {
-    final taxCtrl = TextEditingController(text: _taxRate.toString());
-
-    InputDecoration _dialogInputDecoration(String label, IconData icon,
-        {bool isRequired = false}) {
-      return InputDecoration(
-        label: isRequired
-            ? RichText(
-                text: TextSpan(
-                  text: label,
-                  style: const TextStyle(color: Color(0xFF6B7280)),
-                  children: const [
-                    TextSpan(
-                        text: ' *',
-                        style: TextStyle(
-                            color: Colors.red, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
-            : Text(label),
-        labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-        prefixIcon: Icon(icon, color: const Color(0xFF4B5563)),
-        filled: true,
-        fillColor: Colors.black.withOpacity(0.05),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFF1A73E8), width: 1.5),
-        ),
-      );
-    }
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('GST',
-                  style: TextStyle(
-                      color: Color(0xFF1F2937),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5)),
-              const SizedBox(height: 24),
-              TextField(
-                controller: taxCtrl,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                style: TextStyle(
-                    color: theme.textPrimary, fontWeight: FontWeight.w600),
-                decoration: _dialogInputDecoration(
-                    'Tax Percentage (%)', Icons.percent_rounded,
-                    isRequired: true),
-              ),
-              const SizedBox(height: 32),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: const Text('CANCEL',
-                          style: TextStyle(
-                              color: Color(0xFF6B7280),
-                              fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: ThemeProvider.success,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ThemeProvider.radiusList)),
-                      ),
-                      onPressed: () async {
-                        setState(() =>
-                            _taxRate = double.tryParse(taxCtrl.text) ?? 0.0);
-                        BusinessConfig.instance.taxRate = _taxRate;
-                        await DatabaseHelper.instance
-                            .setSetting('tax_rate', _taxRate.toString());
-                        Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                            content: Text('Tax rate updated to ${_taxRate}%'),
-                            backgroundColor: ThemeProvider.success));
-                      },
-                      child: const Text('UPDATE',
-                          style: TextStyle(fontWeight: FontWeight.w900)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showDeletionRequestDialog() async {
-    final api = ApiService();
-    
-    // Show a loading dialog immediately
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Center(child: CircularProgressIndicator(color: ThemeProvider.instance.highlight)),
-    );
-
-    bool isPending = false;
-    int? pendingRequestId;
-    
-    try {
-      final res = await api.getDeletionRequestStatus();
-      if (res?.statusCode == 200 && res?.data != null) {
-        final data = res?.data['data'] as List?;
-        if (data != null && data.isNotEmpty) {
-          final pendingReq = data.firstWhere((req) => req['status'] == 'pending', orElse: () => null);
-          if (pendingReq != null) {
-            isPending = true;
-            pendingRequestId = pendingReq['id'];
-          }
-        }
-      }
-    } catch (e) {
-      // Ignore error for status check
-    }
-
-    if (!mounted) return;
-    
-    // Close the loading dialog
-    Navigator.pop(context);
-
-    if (isPending && pendingRequestId != null) {
-      bool isSubmitting = false;
-      showDialog(
-        context: context,
-        builder: (ctx) => StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              contentPadding: EdgeInsets.zero,
-              content: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-                ),
-                width: 400,
-                child: Stack(
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('Pending Request',
-                            style: TextStyle(
-                                color: Color(0xFF1F2937),
-                                fontSize: 20,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: -0.5)),
-                        const SizedBox(height: 16),
-                        const Text('You have a pending account deletion request. Do you want to cancel it and keep your account?',
-                            style: TextStyle(color: Color(0xFF4B5563), fontSize: 14)),
-                        const SizedBox(height: 32),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: ThemeProvider.success,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                            ),
-                            onPressed: isSubmitting ? null : () async {
-                              setState(() => isSubmitting = true);
-                              try {
-                                await api.cancelDeletionRequest(pendingRequestId!);
-                                if (mounted) {
-                                  Navigator.pop(ctx);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Deletion request cancelled.'), backgroundColor: ThemeProvider.success));
-                                }
-                              } catch (e) {
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Failed to cancel request: $e'), backgroundColor: ThemeProvider.error));
-                                }
-                              } finally {
-                                if (mounted) setState(() => isSubmitting = false);
-                              }
-                            },
-                            child: isSubmitting 
-                                ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: ThemeProvider.instance.highlight, strokeWidth: 2))
-                                : const Text('CANCEL DELETION REQUEST', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                          ),
-                        ),
-                      ],
-                    ),
-                    Positioned(
-                      top: -12,
-                      right: -12,
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: Icon(Icons.close, color: ThemeProvider.instance.highlight),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-        ),
-      );
-      return;
-    }
-
-    final reasonCtrl = TextEditingController();
-    bool isSubmitting = false;
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            backgroundColor: Colors.white,
-            surfaceTintColor: Colors.white,
-            contentPadding: EdgeInsets.zero,
-            content: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-              ),
-              width: 400,
-              child: Stack(
-                children: [
-                  Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Delete Account',
-                          style: TextStyle(
-                              color: Color(0xFF1F2937),
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -0.5)),
-                      const SizedBox(height: 16),
-                      const Text('Are you sure you want to request account deletion? Your data will be permanently removed. This action takes 30 days to complete.',
-                          style: TextStyle(color: Color(0xFF4B5563), fontSize: 14)),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: reasonCtrl,
-                        style: const TextStyle(color: Color(0xFF1F2937), fontWeight: FontWeight.w600),
-                        decoration: InputDecoration(
-                          labelText: 'Reason (Optional)',
-                          labelStyle: const TextStyle(color: Color(0xFF6B7280)),
-                          filled: true,
-                          fillColor: const Color(0xFFF9FAFB),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: ThemeProvider.error, width: 1.5),
-                          ),
-                        ),
-                        maxLines: 3,
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: ThemeProvider.error,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
-                          ),
-                          onPressed: isSubmitting ? null : () async {
-                            setState(() => isSubmitting = true);
-                            try {
-                              await api.submitDeletionRequest(reasonCtrl.text.trim());
-                              if (mounted) {
-                                Navigator.pop(ctx);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Deletion request submitted.'), backgroundColor: ThemeProvider.success));
-                              }
-                            } catch (e) {
-                              if (mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Failed to submit request: $e'), backgroundColor: ThemeProvider.error));
-                              }
-                            } finally {
-                              if (mounted) setState(() => isSubmitting = false);
-                            }
-                          },
-                          child: isSubmitting 
-                              ? SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: ThemeProvider.instance.highlight, strokeWidth: 2))
-                              : const Text('SUBMIT REQUEST', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-                        ),
-                      ),
-                    ],
-                  ),
-                  Positioned(
-                    top: -12,
-                    right: -12,
-                    child: IconButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      icon: Icon(Icons.close, color: ThemeProvider.instance.highlight),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }
-      ),
-    );
-  }
-
   Future<void> _backupDatabase() async {
     try {
       final db = await DatabaseHelper.instance.database;
       final dbFile = File(db.path);
       if (!await dbFile.exists()) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Database file not found'), backgroundColor: ThemeProvider.error),
+          SnackBar(
+              content: Text('Database file not found'),
+              backgroundColor: ThemeProvider.error),
         );
         return;
       }
@@ -1423,7 +706,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         confirmButtonText: 'Select',
       );
       if (dirPath == null) return;
-      final timestamp = DateTime.now().toString().replaceAll(':', '-').replaceAll('.', '-');
+      final timestamp =
+          DateTime.now().toString().replaceAll(':', '-').replaceAll('.', '-');
       final backupFile = File('$dirPath/khalid_shinwari_backup_$timestamp.db');
       await DbInitializer.closeDatabase();
       try {
@@ -1442,7 +726,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Backup failed: $e'), backgroundColor: ThemeProvider.error),
+          SnackBar(
+              content: Text('Backup failed: $e'),
+              backgroundColor: ThemeProvider.error),
         );
       }
     }
@@ -1470,7 +756,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!await selectedFile.exists()) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('File not found'), backgroundColor: ThemeProvider.error),
+            SnackBar(
+                content: Text('File not found'),
+                backgroundColor: ThemeProvider.error),
           );
         }
         return;
@@ -1481,7 +769,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await selectedFile.copy(dbFile.path);
       await DbInitializer.resetDatabase();
       await DatabaseHelper.instance.loadSettings();
-      DatabaseHelper.notifyDataChanged(triggerSync: false);
+      DatabaseHelper.notifyDataChanged();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1493,7 +781,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Import failed: $e'), backgroundColor: ThemeProvider.error),
+          SnackBar(
+              content: Text('Import failed: $e'),
+              backgroundColor: ThemeProvider.error),
         );
       }
     }
@@ -1558,7 +848,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => _showEditBusinessDialog(focusIndex: 3),
                 showTrailing: false,
               ),
-
 
               const SizedBox(height: 24),
               const _SectionHeader(title: 'FINANCIAL CONFIG'),
@@ -1775,9 +1064,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               ),
 
-
-
-
               const _SectionHeader(title: 'SECURITY'),
               _SettingsTile(
                 icon: Icons.password_rounded,
@@ -1859,303 +1145,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-
-  void _showClearDataDialog() {
-    // ... (existing code, keeping for reference but adding new dialog below)
-  }
-
-  void _showManageStorageDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.transparent,
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          width: 300,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(24)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                    color: theme.highlight.withOpacity(0.1),
-                    shape: BoxShape.circle),
-                child: Icon(Icons.cloud_done_rounded,
-                    color: theme.highlight, size: 28),
-              ),
-              const SizedBox(height: 12),
-              const Text('Manage Storage',
-                  style: TextStyle(
-                      color: Color(0xFF1F2937),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900)),
-              const SizedBox(height: 6),
-              const Text(
-                  'Have you synced your local data with the cloud server?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ThemeProvider.radiusList)),
-                        side:
-                            BorderSide(color: theme.highlight.withOpacity(0.5)),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _performFullSync();
-                      },
-                      child: Text('NOT YET',
-                          style: TextStyle(
-                              color: const Color(0xFF1F2937),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: theme.highlight,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ThemeProvider.radiusList)),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(ctx);
-                        _confirmCleanup();
-                      },
-                      child: const Text('YES, SYNCED',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w900, fontSize: 11)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _performFullSync() async {
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Starting synchronization...'),
-        backgroundColor: ThemeProvider.info));
-    try {
-      await _syncService.syncAll();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            content: Text('Sync complete! Now you can safely cleanup.'),
-            backgroundColor: ThemeProvider.success));
-        _confirmCleanup();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Sync failed: $e'),
-            backgroundColor: ThemeProvider.error));
-      }
-    }
-  }
-
-  void _confirmCleanup() async {
-    // Check if there's still unsynced data
-    final hasUnsynced = await _syncService.hasUnsyncedData();
-    if (hasUnsynced && mounted) {
-      final proceed = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: Colors.transparent,
-          contentPadding: EdgeInsets.zero,
-          content: Container(
-            width: 300,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            decoration: BoxDecoration(
-                color: Colors.white, borderRadius: BorderRadius.circular(24)),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                      color: ThemeProvider.warning.withOpacity(0.1),
-                      shape: BoxShape.circle),
-                  child: const Icon(Icons.warning_amber_rounded,
-                      color: ThemeProvider.warning, size: 28),
-                ),
-                const SizedBox(height: 12),
-                const Text('Unsynced Data Detected',
-                    style: TextStyle(
-                        color: Color(0xFF1F2937),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900),
-                    textAlign: TextAlign.center),
-                const SizedBox(height: 6),
-                const Text(
-                    'Some records have not been synced yet. If you cleanup now, those records will NOT be deleted. Proceed?',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        color: Color(0xFF6B7280),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                  ThemeProvider.radiusList)),
-                          side: const BorderSide(color: Color(0xFF9CA3AF)),
-                        ),
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: const Text('CANCEL',
-                            style: TextStyle(
-                                color: Color(0xFF1F2937),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 11)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: ThemeProvider.warning,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(
-                                  ThemeProvider.radiusList)),
-                        ),
-                        onPressed: () => Navigator.pop(ctx, true),
-                        child: const Text('PROCEED',
-                            style: TextStyle(
-                                fontWeight: FontWeight.w900, fontSize: 11)),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-      if (proceed != true) return;
-    }
-
-    if (!mounted) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.transparent,
-        contentPadding: EdgeInsets.zero,
-        content: Container(
-          width: 300,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          decoration: BoxDecoration(
-              color: Colors.white, borderRadius: BorderRadius.circular(24)),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                    color: ThemeProvider.error.withOpacity(0.1),
-                    shape: BoxShape.circle),
-                child: const Icon(Icons.delete_sweep_rounded,
-                    color: ThemeProvider.error, size: 28),
-              ),
-              const SizedBox(height: 12),
-              const Text('Confirm Cleanup',
-                  style: TextStyle(
-                      color: Color(0xFF1F2937),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900)),
-              const SizedBox(height: 6),
-              const Text(
-                  'This will remove synced transaction records older than one week. You can still view them online.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500)),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ThemeProvider.radiusList)),
-                        side: const BorderSide(color: Color(0xFF9CA3AF)),
-                      ),
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('CANCEL',
-                          style: TextStyle(
-                              color: Color(0xFF1F2937),
-                              fontWeight: FontWeight.w900,
-                              fontSize: 11)),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        backgroundColor: ThemeProvider.error,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(
-                                ThemeProvider.radiusList)),
-                      ),
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text('CLEANUP',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w900, fontSize: 11)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
-    if (confirmed == true && mounted) {
-      final deletedCount = await DatabaseHelper.instance.cleanupSyncedRecords();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Cleanup complete! $deletedCount records removed.'),
-          backgroundColor: ThemeProvider.success,
-        ));
-      }
-    }
-  }
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -2192,7 +1181,6 @@ class _SettingsTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback onTap;
-  final Color? titleColor;
   final bool showTrailing;
 
   const _SettingsTile({
@@ -2200,8 +1188,6 @@ class _SettingsTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
-    // ignore: unused_element_parameter
-    this.titleColor,
     this.showTrailing = true,
   });
 
@@ -2222,12 +1208,13 @@ class _SettingsTile extends StatelessWidget {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(ThemeProvider.radiusList)),
+                  borderRadius:
+                      BorderRadius.circular(ThemeProvider.radiusList)),
               child: Icon(icon, color: theme.highlight, size: 22),
             ),
             title: Text(title,
                 style: TextStyle(
-                    color: titleColor ?? theme.textPrimary,
+                    color: theme.textPrimary,
                     fontWeight: FontWeight.w800,
                     fontSize: 14)),
             subtitle: Text(subtitle,
@@ -2242,7 +1229,8 @@ class _SettingsTile extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: theme.highlight.withOpacity(0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: theme.highlight.withOpacity(0.1)),
+                      border:
+                          Border.all(color: theme.highlight.withOpacity(0.1)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,

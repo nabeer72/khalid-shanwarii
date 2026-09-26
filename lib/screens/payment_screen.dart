@@ -304,7 +304,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'payment_method': _selectedPayment,
         'payment_type_id': paymentTypeId,
         'status': 1,
-        'is_synced': 0,
         'shift_id': activeShift?['id'],
         'created_at': DateTime.now().toIso8601String(),
       };
@@ -317,7 +316,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'price': item['price'],
           'sub_total': item['sub_total'] ?? item['subtotal'],
           'discount': item['discount'] ?? 0,
-          'is_synced': 0,
         };
       }).toList();
 
@@ -337,7 +335,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           'payment_type_id': paymentTypeId,
           'reason': 'Refund',
           'status': 1,
-          'is_synced': 0,
           'shift_id': activeShift?['id'],
         };
         final returnItems = widget.cart.map((item) {
@@ -427,7 +424,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'payment_method': _selectedPayment,
         'payment_type_id': paymentTypeId,
         'status': 1,
-        'is_synced': 0,
         'created_at': DateTime.now().toIso8601String(),
         'items': widget.cart
             .map((item) => {
@@ -826,10 +822,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  // Keep old method for compat — now unused but left to avoid removing any referenced code
-  Widget _buildPaymentMethods({bool isMobile = false}) =>
-      _buildMiddlePanelContent();
-
   Widget _buildSummary(bool isWide) {
     return Container(
       constraints: isWide ? const BoxConstraints.expand() : null,
@@ -1152,8 +1144,10 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         TextField(
                           autofocus: true,
                           style: TextStyle(color: theme.textPrimary),
-                          decoration: theme.glassInputDecoration(
-                              'Search customer...', Icons.search),
+                            decoration: theme
+                              .glassInputDecoration(
+                                'Search customer...', Icons.search)
+                              .copyWith(fillColor: Colors.transparent),
                           onChanged: (v) => setDialogState(() => query = v),
                         ),
                         const SizedBox(height: 12),
@@ -1636,6 +1630,7 @@ class _PaymentMethodButton extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         decoration: theme.glassDecoration.copyWith(
           color: selected ? theme.highlight : theme.whiteAlpha(0.03),
+          boxShadow: const [],
           border: Border.all(
               color: selected ? theme.highlight : theme.cardBorder, width: 1.5),
           borderRadius: BorderRadius.circular(10),

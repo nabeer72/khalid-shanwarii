@@ -26,7 +26,6 @@ mixin PaymentTypesCrud on CommonCrud {
     final result = await db.insert('payment_types', {
       ...pt,
       'business_id': getSafeInt(pt['business_id'] ?? BusinessConfig.instance.businessId),
-      'is_synced': 0,
       'created_at': pt['created_at'] ?? now,
       'updated_at': now,
     }, conflictAlgorithm: ConflictAlgorithm.replace);
@@ -39,7 +38,6 @@ mixin PaymentTypesCrud on CommonCrud {
     final db = await database;
     final result = await db.update('payment_types', {
       'status': 0,
-      'is_synced': 0,
       'updated_at': DateTime.now().toIso8601String(),
     }, where: 'id = ?${getBusinessFilter()}', whereArgs: [getSafeInt(id), ...getBusinessArgs()]);
     
