@@ -309,13 +309,23 @@ class _PaymentScreenState extends State<PaymentScreen> {
       };
 
       final saleItems = widget.cart.map((item) {
+        final isDeal = item['is_deal'] == 1 ||
+            item['is_deal'] == true ||
+            item['isDeal'] == true;
         return {
-          'product_id': item['id'] ?? item['productId'],
-          'stock_id': item['stock_id'],
+          'product_id': isDeal ? null : item['id'] ?? item['productId'],
+          'stock_id': isDeal ? null : item['stock_id'],
           'quantity': item['quantity'],
           'price': item['price'],
           'sub_total': item['sub_total'] ?? item['subtotal'],
           'discount': item['discount'] ?? 0,
+          'item_type': isDeal ? 'deal' : 'product',
+          'deal_id': isDeal
+              ? item['deal_id'] ??
+                  item['dealId'] ??
+                  item['id'] ??
+                  item['productId']
+              : null,
         };
       }).toList();
 
@@ -1144,9 +1154,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         TextField(
                           autofocus: true,
                           style: TextStyle(color: theme.textPrimary),
-                            decoration: theme
+                          decoration: theme
                               .glassInputDecoration(
-                                'Search customer...', Icons.search)
+                                  'Search customer...', Icons.search)
                               .copyWith(fillColor: Colors.transparent),
                           onChanged: (v) => setDialogState(() => query = v),
                         ),

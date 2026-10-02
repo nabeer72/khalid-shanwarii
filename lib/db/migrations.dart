@@ -6,6 +6,19 @@ import 'tables.dart';
 class DbMigrations {
   static Future<void> upgradeDB(
       Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 86) {
+      final saleItemColumns = await db.rawQuery('PRAGMA table_info(sale_items)');
+      final columnNames = saleItemColumns.map((column) => column['name']).toSet();
+
+      if (!columnNames.contains('item_type')) {
+        await db.execute(
+            "ALTER TABLE sale_items ADD COLUMN item_type TEXT DEFAULT 'product'");
+      }
+      if (!columnNames.contains('deal_id')) {
+        await db.execute('ALTER TABLE sale_items ADD COLUMN deal_id INTEGER');
+      }
+    }
+
     if (oldVersion < 85) {
       if (kDebugMode)
         print(

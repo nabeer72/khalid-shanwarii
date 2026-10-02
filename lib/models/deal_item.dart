@@ -3,10 +3,11 @@ class DealItem {
   final int dealId;
   final int productId;
   final double quantity;
-  final double unitPrice; // the normal selling price of the product when added to deal
+  final double
+      unitPrice; // the normal selling price of the product when added to deal
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  
+
   // UI Convenience fields (joined from products table)
   final String? productName;
   final double? productPrice;
@@ -28,20 +29,26 @@ class DealItem {
   });
 
   factory DealItem.fromMap(Map<String, dynamic> map) {
+    final currentStock = (map['current_stock'] as num?)?.toDouble();
     return DealItem(
       id: (map['id'] as num?)?.toInt() ?? 0,
       dealId: (map['deal_id'] as num?)?.toInt() ?? 0,
       productId: (map['product_id'] as num?)?.toInt() ?? 0,
       quantity: (map['quantity'] as num?)?.toDouble() ?? 1.0,
       unitPrice: (map['unit_price'] as num?)?.toDouble() ?? 0.0,
-      createdAt: map['created_at'] != null ? DateTime.tryParse(map['created_at']) : null,
-      updatedAt: map['updated_at'] != null ? DateTime.tryParse(map['updated_at']) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.tryParse(map['created_at'])
+          : null,
+      updatedAt: map['updated_at'] != null
+          ? DateTime.tryParse(map['updated_at'])
+          : null,
       productName: (map['product_name'] as String?)?.trim().isNotEmpty == true
           ? map['product_name'] as String
           : 'Product #${(map['product_id'] as num?)?.toInt() ?? 0}',
       productPrice: (map['product_price'] as num?)?.toDouble(),
       barcode: (map['barcode'] as String?),
-      currentStock: (map['current_stock'] as num?)?.toDouble() ?? 0.0,
+      currentStock:
+          currentStock != null && currentStock > 0 ? currentStock : null,
     );
   }
 

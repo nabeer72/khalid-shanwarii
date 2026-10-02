@@ -226,6 +226,8 @@ class DbTables {
         price REAL DEFAULT 0,
         sub_total REAL DEFAULT 0,
         discount REAL DEFAULT 0,
+        item_type TEXT DEFAULT 'product',
+        deal_id INTEGER,
         branch_id INTEGER,
         is_synced INTEGER DEFAULT 0,
         FOREIGN KEY (sale_id) REFERENCES sales(id),

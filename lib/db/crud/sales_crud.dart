@@ -219,8 +219,16 @@ mixin SalesCrud on CommonCrud {
     }
 
     if (categoryId != null) {
-      catFilter = ' AND p.category_id = ?';
-      args.add(categoryId);
+      catFilter = ''' AND (
+        p.category_id = ? OR EXISTS (
+          SELECT 1
+          FROM deal_items category_di
+          JOIN products category_p ON category_p.id = category_di.product_id
+          WHERE category_di.deal_id = si.deal_id
+            AND category_p.category_id = ?
+        )
+      )''';
+      args.addAll([categoryId, categoryId]);
     }
 
     return await db.rawQuery('''
@@ -230,14 +238,45 @@ mixin SalesCrud on CommonCrud {
         COALESCE(si.sub_total, si.price * si.quantity) as subtotal,
         COALESCE(si.discount, 0) as discount,
         si.branch_id,
-        p.name as product_name,
-        COALESCE(st.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0) as purchase_price,
+        CASE
+          WHEN si.item_type = 'deal' OR si.deal_id IS NOT NULL THEN
+            COALESCE(d.name, 'Deal') || ' (' || COALESCE((
+              SELECT GROUP_CONCAT(
+                COALESCE(deal_product.name, 'Product #' || deal_item.product_id)
+                || CASE WHEN deal_item.quantity = 1 THEN ''
+                  ELSE ' x ' || CAST(deal_item.quantity * si.quantity AS TEXT)
+                END, ', '
+              )
+              FROM deal_items deal_item
+              LEFT JOIN products deal_product ON deal_product.id = deal_item.product_id
+              WHERE deal_item.deal_id = si.deal_id
+            ), 'Items unavailable') || ')'
+          ELSE COALESCE(p.name, 'Unknown')
+        END as product_name,
+        CASE
+          WHEN si.item_type = 'deal' OR si.deal_id IS NOT NULL THEN COALESCE((
+            SELECT SUM(
+              COALESCE((
+                SELECT deal_stock.cost_price
+                FROM stocks deal_stock
+                WHERE deal_stock.product_id = deal_item.product_id
+                  AND deal_stock.cost_price > 0
+                ORDER BY deal_stock.id DESC
+                LIMIT 1
+              ), 0) * deal_item.quantity
+            )
+            FROM deal_items deal_item
+            WHERE deal_item.deal_id = si.deal_id
+          ), 0)
+          ELSE COALESCE(st.cost_price, (SELECT cost_price FROM stocks WHERE product_id = si.product_id AND cost_price > 0 ORDER BY id DESC LIMIT 1), 0)
+        END as purchase_price,
         COALESCE(c.name, 'Uncategorized') as category_name,
         s.created_at,
         COALESCE(u.name, 'Unknown') as employee_name
       FROM sale_items si
       JOIN sales s ON si.sale_id = s.id AND s.is_return = 0 AND s.status = 1
       LEFT JOIN products p ON si.product_id = p.id
+      LEFT JOIN deals d ON d.id = si.deal_id
       LEFT JOIN stocks st ON si.stock_id = st.id
       LEFT JOIN categories c ON p.category_id = c.id
       LEFT JOIN users u ON s.staff_id = u.id
@@ -246,11 +285,59 @@ mixin SalesCrud on CommonCrud {
     ''', args);
   }
 
+  Future<List<Map<String, dynamic>>> getDetailedDealSales(
+      {String? startTime, String? endTime}) async {
+    final db = await database;
+    final branchFilter =
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
+    final branchArgs = getBranchArgs();
+    var dateFilter = '';
+    final args = <dynamic>[...getBusinessArgs(), ...branchArgs];
+
+    if (startTime != null && endTime != null) {
+      dateFilter = ' AND s.created_at BETWEEN ? AND ?';
+      args.addAll([startTime, endTime]);
+    }
+
+    return db.rawQuery('''
+      SELECT
+        si.id,
+        si.sale_id,
+        si.deal_id,
+        COALESCE(d.name, 'Unknown Deal') as deal_name,
+        COALESCE(si.quantity, 0) as total_qty,
+        COALESCE(si.price, 0) as price,
+        COALESCE(si.sub_total, si.price * si.quantity) + COALESCE(si.discount, 0) as total_gross,
+        COALESCE(si.discount, 0) as total_discount,
+        COALESCE(si.sub_total, si.price * si.quantity) as total_net,
+        s.created_at,
+        COALESCE((
+          SELECT GROUP_CONCAT(
+            COALESCE(p.name, 'Product #' || di.product_id)
+            || CASE WHEN di.quantity = 1 THEN ''
+              ELSE ' x ' || CAST(di.quantity * si.quantity AS TEXT)
+            END, ', '
+          )
+          FROM deal_items di
+          LEFT JOIN products p ON p.id = di.product_id
+          WHERE di.deal_id = si.deal_id
+        ), 'Items unavailable') as contents
+      FROM sale_items si
+      JOIN sales s ON si.sale_id = s.id AND s.is_return = 0 AND s.status = 1
+      LEFT JOIN deals d ON d.id = si.deal_id
+      WHERE ${getBusinessFilter().replaceAll('business_id', 's.business_id').replaceAll('user_id', 's.user_id').replaceFirst(' AND ', '')}$branchFilter
+        AND si.item_type = 'deal'
+        AND si.deal_id IS NOT NULL
+        $dateFilter
+      ORDER BY s.created_at DESC
+    ''', args);
+  }
+
   Future<List<Map<String, dynamic>>> getCategorySalesSummary(
       {int? categoryId, String? startTime, String? endTime}) async {
     final db = await database;
     final branchFilter =
-      getBranchFilter().replaceAll('branch_id', 's.branch_id');
+        getBranchFilter().replaceAll('branch_id', 's.branch_id');
     final branchArgs = getBranchArgs();
 
     String dateFilter = '';

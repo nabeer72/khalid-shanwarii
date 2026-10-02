@@ -68,49 +68,58 @@ class CreateDealController with ChangeNotifier {
     return (savings / normalTotal) * 100;
   }
 
-  void addProduct(Product product, Stock stock) {
+  void addProduct(Product product, Stock? stock) {
+    final stockLimit =
+        stock != null && stock.quantity > 0 ? stock.quantity : null;
     // Check if already added
     final existingIndex = _items.indexWhere((i) => i.productId == product.id);
     if (existingIndex >= 0) {
+      final existingItem = _items[existingIndex];
+      if (stockLimit != null && existingItem.quantity >= stockLimit) return;
+      final nextQuantity = existingItem.quantity + 1;
       _items[existingIndex] = DealItem(
-        id: _items[existingIndex].id,
+        id: existingItem.id,
         dealId: 0,
         productId: product.id,
-        quantity: _items[existingIndex].quantity + 1,
-        unitPrice: _items[existingIndex].unitPrice,
+        quantity: stockLimit == null
+            ? nextQuantity
+            : nextQuantity.clamp(0, stockLimit).toDouble(),
+        unitPrice: stock?.salePrice ?? product.latestPrice,
         productName: product.name,
-        currentStock: stock.quantity,
+        currentStock: stockLimit,
       );
     } else {
       _items.add(DealItem(
         id: 0,
         dealId: 0,
         productId: product.id,
-        quantity: 1,
-        unitPrice: product.latestPrice,
+        quantity: stockLimit != null && stockLimit < 1 ? stockLimit : 1,
+        unitPrice: stock?.salePrice ?? product.latestPrice,
         productName: product.name,
-        currentStock: stock.quantity,
+        currentStock: stockLimit,
       ));
     }
     notifyListeners();
   }
 
   void updateQuantity(int productId, double newQty) {
+    final itemIndex = _items.indexWhere((item) => item.productId == productId);
+    if (itemIndex < 0) return;
+    final item = _items[itemIndex];
+    if (item.currentStock != null && newQty > item.currentStock!) return;
+
     if (newQty <= 0) {
       _items.removeWhere((i) => i.productId == productId);
     } else {
-      final idx = _items.indexWhere((i) => i.productId == productId);
-      if (idx >= 0) {
-        _items[idx] = DealItem(
-          id: _items[idx].id,
-          dealId: 0,
-          productId: _items[idx].productId,
-          quantity: newQty,
-          unitPrice: _items[idx].unitPrice,
-          productName: _items[idx].productName,
-          currentStock: _items[idx].currentStock,
-        );
-      }
+      _items[itemIndex] = DealItem(
+        id: item.id,
+        dealId: 0,
+        productId: item.productId,
+        quantity: newQty,
+        unitPrice: item.unitPrice,
+        productName: item.productName,
+        currentStock: item.currentStock,
+      );
     }
     notifyListeners();
   }

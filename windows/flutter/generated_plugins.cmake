@@ -6,6 +6,8 @@ list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   file_selector_windows
   flutter_secure_storage_windows
+  flutter_xprinter_sdk
+  permission_handler_windows
   printing
   screen_retriever_windows
   share_plus

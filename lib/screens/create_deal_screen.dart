@@ -175,8 +175,7 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                                 },
                                 style: theme.primaryButtonStyle,
                                 child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     const Icon(Icons.save_rounded,
                                         color: Colors.white),
@@ -265,7 +264,7 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                     );
                     if (result != null) {
                       controller.addProduct(result['product'] as Product,
-                          result['stock'] as Stock);
+                          result['stock'] as Stock?);
                     }
                   },
                   child: Padding(
@@ -411,13 +410,17 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                                   ),
                                 ),
                               Text(
-                                'Stock: ${(item.currentStock ?? 0).toStringAsFixed(item.currentStock != null && item.currentStock!.truncateToDouble() == item.currentStock! ? 0 : 2)}',
+                                item.currentStock == null ||
+                                        item.currentStock! <= 0
+                                    ? 'No stock - manual sale'
+                                    : 'Stock: ${item.currentStock!.toStringAsFixed(item.currentStock!.truncateToDouble() == item.currentStock! ? 0 : 2)}',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: (item.currentStock ?? 0) > 0
+                                  color: item.currentStock != null &&
+                                          item.currentStock! > 0
                                       ? ThemeProvider.success
-                                      : ThemeProvider.error,
+                                      : ThemeProvider.warning,
                                 ),
                               ),
                             ],
@@ -478,12 +481,21 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                               ),
                             ),
                             IconButton(
+                              tooltip: item.currentStock != null &&
+                                      item.currentStock! > 0 &&
+                                      item.quantity >= item.currentStock!
+                                  ? 'Maximum available stock reached'
+                                  : 'Increase quantity',
                               icon:
                                   const Icon(Icons.add_circle_outline_rounded),
                               iconSize: 26,
                               color: theme.highlight,
-                              onPressed: () => controller.updateQuantity(
-                                  item.productId, item.quantity + 1),
+                              onPressed: item.currentStock != null &&
+                                      item.currentStock! > 0 &&
+                                      item.quantity >= item.currentStock!
+                                  ? null
+                                  : () => controller.updateQuantity(
+                                      item.productId, item.quantity + 1),
                             ),
                           ],
                         ),

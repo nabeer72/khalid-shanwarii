@@ -92,6 +92,13 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                       color: theme.accent,
                       onTap: _handlePrintProductWise,
                     ),
+                    _buildReportCard(
+                      title: 'Deals Report',
+                      subtitle: 'Deal sales and included items',
+                      icon: Icons.card_giftcard_rounded,
+                      color: ThemeProvider.success,
+                      onTap: _handlePrintDealsReport,
+                    ),
                   ]),
                 ),
               ),
@@ -1200,6 +1207,67 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
     }
   }
 
+  Future<void> _handlePrintDealsReport() async {
+    final result = await _showReportOptionsDialog<String>(
+      title: 'Deals Sales Report',
+      labelMapping: (value) => value,
+    );
+
+    if (result == null) return;
+
+    final start =
+        (result['startDate'] as DateTime).toIso8601String().split('T')[0] +
+            'T00:00:00';
+    final end =
+        (result['endDate'] as DateTime).toIso8601String().split('T')[0] +
+            'T23:59:59';
+
+    setState(() => _generatingReportTitle = 'Deals Report');
+    try {
+      final deals = await DatabaseHelper.instance.getDetailedDealSales(
+        startTime: start,
+        endTime: end,
+      );
+      final pdf = await _generateSummaryPdf(
+        'Deals Sales Report',
+        [
+          {
+            'title': 'SOLD DEALS AND INCLUDED ITEMS',
+            'headers': [
+              'Date',
+              'Deal',
+              'Included Items',
+              'Deals Sold',
+              'Gross',
+              'Discount',
+              'Net',
+            ],
+            'keys': [
+              'created_at',
+              'deal_name',
+              'contents',
+              'total_qty',
+              'total_gross',
+              'total_discount',
+              'total_net',
+            ],
+            'data': deals
+                .map((deal) => {
+                      ...deal,
+                      'created_at':
+                          deal['created_at']?.toString().split('T')[0] ?? '',
+                    })
+                .toList(),
+          },
+        ],
+        subtitle: 'Period: ${start.split('T')[0]} to ${end.split('T')[0]}',
+      );
+      _showPreview(pdf, 'Deals Sales Report');
+    } finally {
+      if (mounted) setState(() => _generatingReportTitle = null);
+    }
+  }
+
   Future<void> _handlePrintStockReport({bool onlyLow = false}) async {
     setState(() =>
         _generatingReportTitle = onlyLow ? 'Low Stock Alert' : 'Current Stock');
@@ -1298,7 +1366,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
         DateFormat('dd MMM yyyy â€¢ HH:mm a').format(DateTime.now());
     final reportNum =
         'REP-${DateFormat('yyyyMMdd').format(DateTime.now())}-${business.businessId ?? "001"}';
-    final primaryColor = PdfColor.fromHex('#8B6914'); // Gold brand color (theme)
+    final primaryColor =
+        PdfColor.fromHex('#8B6914'); // Gold brand color (theme)
 
     return pw.Container(
         margin: const pw.EdgeInsets.only(bottom: 20),
@@ -1705,7 +1774,8 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
 
           final finalNetAmount = totalSalesNet - retNet;
           final expensesToSubtract = periodExpenses ?? 0.0;
-          final finalProfit = totalSalesProfit - totalReturnsProfit - expensesToSubtract;
+          final finalProfit =
+              totalSalesProfit - totalReturnsProfit - expensesToSubtract;
 
           final summaryContent = pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.stretch,
