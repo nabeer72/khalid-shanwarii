@@ -1,4 +1,4 @@
-// lib/screens/suppliers_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:mobile_app/controllers/suppliers_controller.dart';
 import 'package:mobile_app/db/mock_data.dart';
@@ -55,22 +55,27 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
 
           return AlertDialog(
             backgroundColor: theme.surface,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
             title: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   controller.isEdit ? 'Edit Supplier' : 'New Supplier',
-                  style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, fontSize: 18),
+                  style: TextStyle(
+                      color: theme.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18),
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(ctx),
-                  icon: Icon(Icons.close_rounded, color: theme.textSecondary, size: 20),
+                  icon: Icon(Icons.close_rounded,
+                      color: theme.textSecondary, size: 20),
                 ),
               ],
             ),
             content: SizedBox(
-              width: 450,
+              width: ThemeProvider.responsiveDialogWidth(context, 450),
               child: SingleChildScrollView(
                 child: Form(
                   key: _formKey,
@@ -84,7 +89,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         label: 'Supplier Name',
                         icon: Icons.business_rounded,
                         isRequired: true,
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Name is required'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       _buildTextField(
@@ -100,7 +107,9 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         icon: Icons.phone_rounded,
                         type: TextInputType.phone,
                         isRequired: true,
-                        validator: (v) => v == null || v.trim().isEmpty ? 'Phone is required' : null,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Phone is required'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       _buildTextField(
@@ -137,11 +146,21 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       context: ctx,
                       builder: (c) => AlertDialog(
                         backgroundColor: theme.surface,
-                        title: Text('Delete Supplier?', style: TextStyle(color: theme.textPrimary)),
-                        content: Text('This action cannot be undone.', style: TextStyle(color: theme.textSecondary)),
+                        title: Text('Delete Supplier?',
+                            style: TextStyle(color: theme.textPrimary)),
+                        content: Text('This action cannot be undone.',
+                            style: TextStyle(color: theme.textSecondary)),
                         actions: [
-                          TextButton(onPressed: () => Navigator.pop(c, false), child: Text('CANCEL', style: TextStyle(color: theme.textSecondary))),
-                          TextButton(onPressed: () => Navigator.pop(c, true), child: const Text('DELETE', style: TextStyle(color: ThemeProvider.error))),
+                          TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: Text('CANCEL',
+                                  style:
+                                      TextStyle(color: theme.textSecondary))),
+                          TextButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              child: const Text('DELETE',
+                                  style:
+                                      TextStyle(color: ThemeProvider.error))),
                         ],
                       ),
                     );
@@ -151,18 +170,28 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                       _controller.refreshSuppliers();
                     }
                   },
-                  child: const Text('DELETE', style: TextStyle(color: ThemeProvider.error, fontWeight: FontWeight.w800, fontSize: 12)),
+                  child: const Text('DELETE',
+                      style: TextStyle(
+                          color: ThemeProvider.error,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12)),
                 ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text('CANCEL', style: TextStyle(color: theme.textSecondary, fontWeight: FontWeight.w800, fontSize: 12)),
+                child: Text('CANCEL',
+                    style: TextStyle(
+                        color: theme.textSecondary,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12)),
               ),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: theme.highlight,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
                 ),
                 onPressed: controller.isLoading
                     ? null
@@ -174,10 +203,17 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                         }
                       },
                 child: controller.isLoading
-                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
                     : Text(
                         controller.saveButtonLabel,
-                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 12, letterSpacing: 0.5),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                            letterSpacing: 0.5),
                       ),
               ),
             ],
@@ -215,11 +251,15 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
       controller: controller,
       keyboardType: type,
       maxLines: maxLines,
-      style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
+      style: TextStyle(
+          color: theme.textPrimary, fontWeight: FontWeight.w600, fontSize: 13),
       validator: validator,
-      decoration: theme.glassInputDecoration(label, icon, isRequired: isRequired).copyWith(
+      decoration: theme
+          .glassInputDecoration(label, icon, isRequired: isRequired)
+          .copyWith(
             isDense: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
           ),
     );
   }
@@ -232,7 +272,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: theme.textPrimary,
-        title: const Text('Suppliers', style: TextStyle(fontWeight: FontWeight.w900)),
+        title: const Text('Suppliers',
+            style: TextStyle(fontWeight: FontWeight.w900)),
       ),
       body: theme.glassBackground(
         child: SafeArea(
@@ -256,7 +297,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                           const SizedBox(height: 8),
                           Text(
                             'Tap the + button to add your first supplier',
-                            style: TextStyle(color: theme.textHint, fontSize: 13),
+                            style:
+                                TextStyle(color: theme.textHint, fontSize: 13),
                           ),
                         ],
                       ),
@@ -271,7 +313,8 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                           decoration: theme.glassListDecoration,
                           child: ListTile(
                             isThreeLine: true,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 4),
                             onTap: () => _handleAddEdit(supplier),
                             title: Text(
                               supplier.name,
@@ -288,12 +331,18 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                 children: [
                                   Text(
                                     '${supplier.contactPerson ?? 'No Contact'} | ${supplier.phone ?? 'No Phone'}',
-                                    style: TextStyle(color: theme.textSecondary, fontSize: 11, fontWeight: FontWeight.w500),
+                                    style: TextStyle(
+                                        color: theme.textSecondary,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
                                     'RUNNING: ${BusinessConfig.instance.currencyDisplay}${supplier.openingAmount.toStringAsFixed(2)}',
-                                    style: TextStyle(color: theme.textHint, fontSize: 10, fontWeight: FontWeight.w800),
+                                    style: TextStyle(
+                                        color: theme.textHint,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800),
                                   ),
                                 ],
                               ),
@@ -305,14 +354,19 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
                                 Text(
                                   '${BusinessConfig.instance.currencyDisplay}${supplier.creditBalance.toStringAsFixed(2)}',
                                   style: TextStyle(
-                                    color: supplier.creditBalance > 0 ? ThemeProvider.error : theme.highlight,
+                                    color: supplier.creditBalance > 0
+                                        ? ThemeProvider.error
+                                        : theme.highlight,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 13,
                                   ),
                                 ),
                                 Text(
                                   'CREDIT BALANCE',
-                                  style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
+                                  style: TextStyle(
+                                      color: theme.textHint,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w800),
                                 ),
                               ],
                             ),
@@ -325,7 +379,7 @@ class _SuppliersScreenState extends State<SuppliersScreen> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => _handleAddEdit(),
         backgroundColor: theme.highlight,
-        elevation: 8,
+        elevation: 0,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );

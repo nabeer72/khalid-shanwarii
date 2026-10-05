@@ -222,7 +222,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.5)),
-        elevation: 8,
+        elevation: 0,
       ),
     );
   }

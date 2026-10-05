@@ -22,10 +22,12 @@ void main() async {
     await windowManager.maximize();
   }
 
-  // Initialize database for non-web platforms
-  if (!kIsWeb) {
+  // Initialize database and app settings before deciding the launch route.
+  try {
     await initializeDatabase();
     await DatabaseHelper.instance.loadSettings();
+  } catch (_) {
+    // Keep the app usable even if settings cannot be loaded yet.
   }
 
   runApp(const MyApp());
@@ -93,7 +95,81 @@ class _MyAppState extends State<MyApp> {
             ),
             useMaterial3: true,
             scaffoldBackgroundColor: theme.background,
+            inputDecorationTheme: InputDecorationTheme(
+              filled: true,
+              fillColor: theme.isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : const Color(0xFFF8FAFC),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.divider, width: 1),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.divider, width: 1),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: theme.highlight, width: 1.5),
+              ),
+              hintStyle: TextStyle(color: theme.textHint),
+              labelStyle: TextStyle(color: theme.textSecondary),
+            ),
+            searchBarTheme: SearchBarThemeData(
+              elevation: const WidgetStatePropertyAll(0),
+              shadowColor: const WidgetStatePropertyAll(Colors.transparent),
+              surfaceTintColor: WidgetStatePropertyAll(
+                  theme.isDark ? Colors.transparent : Colors.white),
+              backgroundColor: WidgetStatePropertyAll(
+                theme.isDark
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : const Color(0xFFF8FAFC),
+              ),
+              side: WidgetStatePropertyAll(
+                BorderSide(color: theme.divider, width: 1),
+              ),
+              shape: WidgetStatePropertyAll(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                shadowColor: Colors.transparent,
+              ),
+            ),
+            floatingActionButtonTheme: const FloatingActionButtonThemeData(
+              elevation: 0,
+              focusElevation: 0,
+              hoverElevation: 0,
+              highlightElevation: 0,
+            ),
+            cardTheme: const CardThemeData(
+              elevation: 0,
+              shadowColor: Colors.transparent,
+            ),
+            appBarTheme: const AppBarTheme(
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              shadowColor: Colors.transparent,
+            ),
+            bottomSheetTheme: const BottomSheetThemeData(
+              elevation: 0,
+              modalElevation: 0,
+              shadowColor: Colors.transparent,
+            ),
+            popupMenuTheme: const PopupMenuThemeData(elevation: 0),
+            drawerTheme: const DrawerThemeData(
+              elevation: 0,
+              shadowColor: Colors.transparent,
+            ),
             dialogTheme: DialogThemeData(
+              elevation: 0,
+              shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8)),
             ),

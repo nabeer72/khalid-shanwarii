@@ -32,8 +32,10 @@ AdminQuietInstCmd=
 UserQuietInstCmd=
 FILE0="package.zip"
 FILE1="setup.bat"
+FILE2="vc_redist.x64.exe"
 [SourceFiles]
 SourceFiles0=.\
 [SourceFiles0]
 %FILE0%=
 %FILE1%=
+%FILE2%=

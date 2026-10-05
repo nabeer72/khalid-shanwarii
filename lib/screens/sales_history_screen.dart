@@ -312,15 +312,6 @@ class _SalesHistoryScreenState extends State<SalesHistoryScreen> {
             color: active ? theme.highlight : Colors.transparent,
             borderRadius: BorderRadius.circular(ThemeProvider.radiusList -
                 2), // Slightly less to fit inside padding
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: theme.highlight.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
           ),
           child: Center(
             child: Text(
@@ -359,14 +350,6 @@ class _FilterChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
           border: Border.all(
               color: selected ? theme.highlight : theme.whiteAlpha(0.1)),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                      color: theme.highlight.withOpacity(0.3),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4))
-                ]
-              : null,
         ),
         child: Text(label,
             style: TextStyle(

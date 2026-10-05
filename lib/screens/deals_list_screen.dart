@@ -423,7 +423,7 @@ class _DealsListScreenState extends State<DealsListScreen> {
         floatingActionButton: Builder(
           builder: (ctx) => FloatingActionButton.extended(
             backgroundColor: theme.primary,
-            elevation: 6,
+            elevation: 0,
             icon: const Icon(Icons.add, color: Colors.white),
             label: const Text(
               'NEW DEAL',

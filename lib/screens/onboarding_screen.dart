@@ -47,33 +47,30 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final compact = width < 360;
+    final buttonMaxWidth = width < 600 ? width - 32 : 420.0;
+
     return Scaffold(
       body: Stack(
         children: [
-          // Background
           theme.glassBackground(
             child: PageView.builder(
               controller: _pageController,
               itemCount: _onboardingPages.length,
               onPageChanged: (int page) {
-                setState(() {
-                  _currentPage = page;
-                });
+                setState(() => _currentPage = page);
               },
-              itemBuilder: (context, index) {
-                return OnboardingPageWidget(
-                  data: _onboardingPages[index],
-                  isLastPage: index == _onboardingPages.length - 1,
-                );
-              },
+              itemBuilder: (context, index) => OnboardingPageWidget(
+                data: _onboardingPages[index],
+                isLastPage: index == _onboardingPages.length - 1,
+              ),
             ),
           ),
-          
-          // Top Skip Button
           if (_currentPage < _onboardingPages.length - 1)
             Positioned(
               top: MediaQuery.of(context).padding.top + 10,
-              right: 20,
+              right: 16,
               child: TextButton(
                 onPressed: _finishOnboarding,
                 child: Text(
@@ -81,44 +78,43 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   style: TextStyle(
                     color: theme.textSecondary,
                     fontWeight: FontWeight.w600,
+                    fontSize: compact ? 13 : 14,
                   ),
                 ),
               ),
             ),
-
-          // Bottom Navigation
           Positioned(
-            bottom: 50,
-            left: 20,
-            right: 20,
-            child: Column(
-              children: [
-                // Indicators
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(
-                    _onboardingPages.length,
-                    (index) => Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 4),
-                      height: 8,
-                      width: _currentPage == index ? 24 : 8,
-                      decoration: BoxDecoration(
-                        color: _currentPage == index ? theme.highlight : theme.textSecondary.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(4),
+            bottom: 28,
+            left: 16,
+            right: 16,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: buttonMaxWidth),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(
+                        _onboardingPages.length,
+                        (index) => AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          height: 8,
+                          width: _currentPage == index ? 24 : 8,
+                          decoration: BoxDecoration(
+                            color: _currentPage == index
+                                ? theme.highlight
+                                : theme.textSecondary.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                
-                // Action Button
-                Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
+                    const SizedBox(height: 22),
+                    SizedBox(
                       width: double.infinity,
-                      height: 56,
+                      height: compact ? 52 : 56,
                       child: ElevatedButton(
                         onPressed: () {
                           if (_currentPage < _onboardingPages.length - 1) {
@@ -139,7 +135,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           ),
                         ),
                         child: Text(
-                          _currentPage == _onboardingPages.length - 1 ? 'Get Started' : 'Next',
+                          _currentPage == _onboardingPages.length - 1
+                              ? 'Get Started'
+                              : 'Next',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
@@ -148,9 +146,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -173,38 +171,37 @@ class OnboardingPageWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
     final size = MediaQuery.of(context).size;
-    final isDesktop = size.width > 800; // Rough check for desktop/windows
+    final isDesktop = size.width > 800;
+    final iconSize = isDesktop
+        ? 200.0
+        : (size.width < 360 ? 120.0 : size.width * 0.42).clamp(120.0, 200.0);
+    final textScale = size.width < 360 ? 0.9 : 1.0;
 
     return Center(
       child: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
+        padding: EdgeInsets.symmetric(horizontal: size.width < 360 ? 20 : 40),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 100), // Top padding for scrolling
-              // Icon with premium glass effect
+              const SizedBox(height: 72),
               Container(
-                width: isDesktop ? 200 : size.width * 0.5,
-                height: isDesktop ? 200 : size.width * 0.5,
+                width: iconSize,
+                height: iconSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: data.gradient.map((c) => c.withOpacity(0.2)).toList(),
+                    colors: data.gradient
+                        .map((c) => c.withValues(alpha: 0.2))
+                        .toList(),
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(
-                    color: data.gradient.first.withOpacity(0.4),
+                    color: data.gradient.first.withValues(alpha: 0.4),
                     width: 2,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: data.gradient.first.withOpacity(0.3),
-                      blurRadius: 30,
-                      spreadRadius: 5,
-                    ),
-                  ],
                 ),
                 child: Center(
                   child: ShaderMask(
@@ -215,39 +212,36 @@ class OnboardingPageWidget extends StatelessWidget {
                     ).createShader(bounds),
                     child: Icon(
                       data.icon,
-                      size: isDesktop ? 100 : size.width * 0.25,
+                      size: isDesktop ? 100 : iconSize * 0.45,
                       color: Colors.white,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 60),
-              
-              // Text Content
+              const SizedBox(height: 28),
               Text(
                 data.title,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: theme.textPrimary,
-                  fontSize: isDesktop ? 32 : 28,
+                  fontSize: (isDesktop ? 32 : 28) * textScale,
                   fontWeight: FontWeight.w900,
                   letterSpacing: -0.5,
                   height: 1.2,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               Text(
                 data.description,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: theme.textSecondary,
-                  fontSize: isDesktop ? 18 : 16,
+                  fontSize: (isDesktop ? 18 : 16) * textScale,
                   fontWeight: FontWeight.w500,
                   height: 1.5,
                 ),
               ),
-              // Dynamic spacer that shrinks on small heights
-              SizedBox(height: isDesktop ? 100 : size.height * 0.2), 
+              SizedBox(height: isDesktop ? 100 : size.height * 0.12),
             ],
           ),
         ),

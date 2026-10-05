@@ -284,7 +284,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: Colors.transparent,
           child: Container(
-            width: 450,
+            width: ThemeProvider.responsiveDialogWidth(context, 450),
             constraints: const BoxConstraints(maxHeight: 700),
             padding: const EdgeInsets.all(24),
             decoration: theme.glassDecoration.copyWith(
@@ -554,7 +554,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                   borderRadius: BorderRadius.circular(20)),
               backgroundColor: Colors.transparent,
               child: Container(
-                width: 450,
+                width: ThemeProvider.responsiveDialogWidth(context, 450),
                 padding: const EdgeInsets.all(24),
                 decoration: theme.glassDecoration.copyWith(
                   borderRadius: BorderRadius.circular(20),
@@ -789,7 +789,7 @@ class _ReportsPrintingScreenState extends State<ReportsPrintingScreen> {
                   borderRadius: BorderRadius.circular(16)),
               backgroundColor: theme.surface,
               child: Container(
-                width: 350,
+                width: ThemeProvider.responsiveDialogWidth(context, 350),
                 constraints: const BoxConstraints(maxHeight: 500),
                 padding: const EdgeInsets.all(20),
                 child: Column(

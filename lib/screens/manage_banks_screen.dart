@@ -572,8 +572,10 @@ class _AccountsListDialogState extends State<_AccountsListDialog> {
       title: Text('Accounts: ${widget.bank.name}',
           style: TextStyle(color: theme.textPrimary)),
       content: SizedBox(
-        width: 400,
-        height: 500,
+        width: ThemeProvider.responsiveDialogWidth(context, 400),
+        height: (MediaQuery.sizeOf(context).height * 0.7)
+            .clamp(0.0, 500.0)
+            .toDouble(),
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: theme.highlight))
             : Column(

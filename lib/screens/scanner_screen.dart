@@ -37,6 +37,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final frameSize = (MediaQuery.sizeOf(context).width - 48)
+        .clamp(120.0, 250.0)
+        .toDouble();
+
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -100,16 +104,10 @@ class _ScannerScreenState extends State<ScannerScreen> {
           IgnorePointer(
             child: Center(
               child: Container(
-                width: 250,
-                height: 250,
+                width: frameSize,
+                height: frameSize,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withAlpha(150),
-                      spreadRadius: 2000,
-                    ),
-                  ],
                 ),
               ),
             ),
@@ -117,8 +115,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
           // Scanner Overlay (Visual Cue - Red Layer)
           Center(
             child: Container(
-              width: 250,
-              height: 250,
+              width: frameSize,
+              height: frameSize,
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.red, width: 2),
                 borderRadius: BorderRadius.circular(12),
@@ -188,13 +186,6 @@ class _ScanningLineState extends State<_ScanningLine> with SingleTickerProviderS
             width: 2,
             decoration: BoxDecoration(
               color: Colors.red,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withAlpha(200),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-              ],
             ),
           ),
         );

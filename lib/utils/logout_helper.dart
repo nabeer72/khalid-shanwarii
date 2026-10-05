@@ -111,7 +111,8 @@ class LogoutHelper {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: TextStyle(color: _theme.textSecondary)),
+            child:
+                Text('Cancel', style: TextStyle(color: _theme.textSecondary)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
@@ -172,7 +173,7 @@ class LogoutHelper {
             color: Colors.white,
             borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
           ),
-          width: 450,
+          width: ThemeProvider.responsiveDialogWidth(context, 450),
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(ctx).size.height * 0.75,
           ),
@@ -226,9 +227,7 @@ class LogoutHelper {
                           ),
                         ),
                         child: ListTile(
-                          onTap: isCurrent
-                              ? null
-                              : () => Navigator.pop(ctx, b),
+                          onTap: isCurrent ? null : () => Navigator.pop(ctx, b),
                           leading: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
@@ -237,7 +236,8 @@ class LogoutHelper {
                                   : const Color(0xFFF3F4F6),
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: Text(icon, style: const TextStyle(fontSize: 18)),
+                            child: Text(icon,
+                                style: const TextStyle(fontSize: 18)),
                           ),
                           title: Text(
                             b['name'] ?? 'Unnamed Business',

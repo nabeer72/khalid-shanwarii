@@ -237,7 +237,7 @@ class _LoginScreenState extends State<LoginScreen>
             borderRadius: BorderRadius.circular(ThemeProvider.radiusDialog),
             boxShadow: theme.cardShadow,
           ),
-          width: 450,
+          width: ThemeProvider.responsiveDialogWidth(context, 450),
           constraints: const BoxConstraints(maxHeight: 540),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1103,13 +1103,6 @@ class _LoginScreenState extends State<LoginScreen>
                     decoration: BoxDecoration(
                       color: ThemeProvider.error,
                       shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: ThemeProvider.error.withOpacity(0.35),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: const Icon(Icons.close_rounded,
                         size: 14, color: Colors.white),

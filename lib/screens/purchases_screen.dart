@@ -541,7 +541,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               ],
             ),
             content: SizedBox(
-              width: 450,
+              width: ThemeProvider.responsiveDialogWidth(context, 450),
               child: SingleChildScrollView(
                 child: Form(
                   key: _formKey,
@@ -909,7 +909,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               ],
             ),
             content: SizedBox(
-              width: 400,
+              width: ThemeProvider.responsiveDialogWidth(context, 400),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1095,11 +1095,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
                             decoration: BoxDecoration(
                               color: theme.surface,
                               borderRadius: BorderRadius.circular(8),
-                              boxShadow: [
-                                BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 8),
-                              ],
                               border: Border.all(
                                   color: theme.highlight.withOpacity(0.1)),
                             ),
@@ -1500,7 +1495,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
 
           final result = await showMenu<dynamic>(
             context: context,
-            elevation: 8,
+            elevation: 0,
             color: theme.surface.withOpacity(0.9),
             shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -1572,17 +1567,11 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
             return Dialog(
               backgroundColor: Colors.transparent,
               child: Container(
-                width: 350,
+                width: ThemeProvider.responsiveDialogWidth(context, 350),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4)),
-                  ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1837,13 +1826,6 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
       floatingActionButton: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(ThemeProvider.radiusList),
-          boxShadow: [
-            BoxShadow(
-              color: theme.highlight.withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
         ),
         child: FloatingActionButton.extended(
           onPressed: () => _openAddPurchaseScreen(),

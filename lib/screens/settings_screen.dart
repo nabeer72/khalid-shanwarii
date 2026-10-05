@@ -186,7 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             ),
-            width: 400,
+            width: ThemeProvider.responsiveDialogWidth(context, 400),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -316,7 +316,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             ),
-            width: 450,
+            width: ThemeProvider.responsiveDialogWidth(context, 450),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,7 +494,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               color: Colors.white,
               borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
             ),
-            width: 400,
+            width: ThemeProvider.responsiveDialogWidth(context, 400),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -854,7 +854,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SettingsSwitch(
                 icon: Icons.percent_rounded,
                 title: 'Enable Tax',
-                subtitle: 'Apply GST/tax to all purchases',
+                subtitle: 'Tax will be applied to all sales',
                 value: _enableTax,
                 onChanged: (v) async {
                   setState(() {

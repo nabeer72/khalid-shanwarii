@@ -193,13 +193,6 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                   end: Alignment.bottomRight,
                                 ),
                                 borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: theme.highlight.withOpacity(0.3),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
                               ),
                               child: Material(
                                 color: Colors.transparent,
@@ -393,7 +386,7 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
                 ),
-                width: 400,
+                width: ThemeProvider.responsiveDialogWidth(context, 400),
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -653,11 +646,6 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                        color: Colors.black.withOpacity(0.1),
-                                        blurRadius: 8),
-                                  ],
                                   border: Border.all(
                                       color: theme.highlight.withOpacity(0.1)),
                                 ),
@@ -864,13 +852,6 @@ class _AddPurchaseScreenState extends State<AddPurchaseScreen> {
                                 end: Alignment.bottomRight,
                               ),
                               borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.highlight.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
                             ),
                             child: Material(
                               color: Colors.transparent,
@@ -1436,7 +1417,7 @@ class _SaveButton extends StatelessWidget {
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16)),
                 elevation: isDisabled ? 0 : 8,
-                shadowColor: theme.highlight.withOpacity(0.5),
+                shadowColor: Colors.transparent,
               ),
               onPressed: onPressed,
               child: Text(

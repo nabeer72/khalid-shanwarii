@@ -388,7 +388,7 @@ class _POSScreenState extends State<POSScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: Colors.transparent,
         child: Container(
-          width: 380,
+          width: ThemeProvider.responsiveDialogWidth(context, 380),
           padding: const EdgeInsets.all(20),
           decoration: theme.glassDecoration.copyWith(
             borderRadius: BorderRadius.circular(16),
@@ -665,7 +665,7 @@ class _POSScreenState extends State<POSScreen>
                   titlePadding: EdgeInsets.zero,
                   contentPadding: EdgeInsets.zero,
                   content: SizedBox(
-                    width: 450,
+                    width: ThemeProvider.responsiveDialogWidth(context, 450),
                     height: MediaQuery.of(context).size.height * 0.7,
                     child: Column(
                       children: [
@@ -881,7 +881,7 @@ class _POSScreenState extends State<POSScreen>
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           backgroundColor: Colors.transparent,
           child: Container(
-            width: 350,
+            width: ThemeProvider.responsiveDialogWidth(context, 350),
             padding: const EdgeInsets.all(20),
             decoration: theme.glassDecoration.copyWith(
               borderRadius: BorderRadius.circular(16),
@@ -1069,6 +1069,8 @@ class _POSScreenState extends State<POSScreen>
   void _goToPayment() async {
     if (_controller.cart.isEmpty) return;
 
+    _controller.calculateTotals();
+
     if (BusinessConfig.instance.enableGlobalDiscount &&
         _controller.isDiscountRestricted) {
       await _showDiscountExceededDialog();
@@ -1110,7 +1112,7 @@ class _POSScreenState extends State<POSScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         backgroundColor: theme.surface,
         child: Container(
-          width: 300,
+          width: ThemeProvider.responsiveDialogWidth(context, 300),
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1206,7 +1208,7 @@ class _POSScreenState extends State<POSScreen>
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.6),
                 child: SizedBox(
-                  width: 350,
+                  width: ThemeProvider.responsiveDialogWidth(context, 350),
                   child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -1342,19 +1344,13 @@ class _POSScreenState extends State<POSScreen>
       alignment: Alignment.center,
       child: Container(
         height: 120,
-        width: 400,
+        width: ThemeProvider.responsiveDialogWidth(context, 400),
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: theme.surface,
           borderRadius: BorderRadius.circular(12),
           border:
               Border.all(color: theme.highlight.withOpacity(0.5), width: 1.5),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4)),
-          ],
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(12),
@@ -1472,7 +1468,7 @@ class _POSScreenState extends State<POSScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: Colors.transparent,
         child: Container(
-          width: 400,
+          width: ThemeProvider.responsiveDialogWidth(context, 400),
           padding: const EdgeInsets.all(24),
           decoration: theme.glassDecoration.copyWith(
             borderRadius: BorderRadius.circular(16),
@@ -1604,7 +1600,7 @@ class _POSScreenState extends State<POSScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: Colors.transparent,
         child: Container(
-          width: 400,
+          width: ThemeProvider.responsiveDialogWidth(context, 400),
           padding: const EdgeInsets.all(24),
           decoration: theme.glassDecoration.copyWith(
             borderRadius: BorderRadius.circular(16),
@@ -1851,7 +1847,8 @@ class _POSScreenState extends State<POSScreen>
                             child: Align(
                               alignment: Alignment.centerRight,
                               child: SizedBox(
-                                width: 350,
+                                width: ThemeProvider.responsiveDialogWidth(
+                                    context, 350),
                                 child: POSQuickAddPanel(
                                   onClose: _toggleQuickAddProduct,
                                   onSuccess: _onProductQuickAdded,
@@ -1953,7 +1950,7 @@ class _POSScreenState extends State<POSScreen>
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 280),
                     child: Material(
-                      elevation: 12,
+                      elevation: 0,
                       color: Colors.transparent,
                       child: Container(
                         decoration: theme.glassDecoration.copyWith(

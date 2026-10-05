@@ -100,7 +100,9 @@ class _SalesScreenState extends State<SalesScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
-        height: 400,
+        height: (MediaQuery.sizeOf(context).height * 0.6)
+            .clamp(0.0, 400.0)
+            .toDouble(),
         decoration: const BoxDecoration(
           color: Color(0xFF16213E),
           borderRadius: BorderRadius.vertical(top: Radius.circular(ThemeProvider.radiusCard)),

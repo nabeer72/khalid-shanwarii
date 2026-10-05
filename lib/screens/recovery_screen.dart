@@ -207,7 +207,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
               ],
             ),
             content: SizedBox(
-              width: 450,
+              width: ThemeProvider.responsiveDialogWidth(context, 450),
               child: SingleChildScrollView(
                 child: Form(
                   key: formKey,
@@ -663,15 +663,6 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
           decoration: BoxDecoration(
             color: active ? theme.highlight : Colors.transparent,
             borderRadius: BorderRadius.circular(ThemeProvider.radiusList - 2),
-            boxShadow: active
-                ? [
-                    BoxShadow(
-                      color: theme.highlight.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )
-                  ]
-                : null,
           ),
           child: Center(
             child: Text(
@@ -1006,12 +997,6 @@ class _SearchableCustomerDropdownState
               decoration: BoxDecoration(
                 color: theme.surface,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5))
-                ],
                 border: Border.all(color: theme.whiteAlpha(0.1)),
               ),
               child: filtered.isEmpty

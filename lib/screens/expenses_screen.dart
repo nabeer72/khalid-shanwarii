@@ -126,7 +126,7 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
               ],
             ),
             content: SizedBox(
-              width: 450,
+              width: ThemeProvider.responsiveDialogWidth(context, 450),
               child: SingleChildScrollView(
                 child: Form(
                   key: _formKey,

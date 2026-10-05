@@ -238,20 +238,6 @@ class _StockReportScreenState extends State<StockReportScreen> {
             color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
             width: onTap != null && _showOnlyLowStock && title == 'Low Stock' ? 2.5 : 1.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withOpacity(theme.isDark ? 0.12 : 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-            BoxShadow(
-              color: theme.isDark
-                  ? Colors.black26
-                  : Colors.black.withOpacity(0.02),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

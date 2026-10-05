@@ -106,72 +106,18 @@ class ThemeProvider extends ChangeNotifier {
   Color get toggleActiveColor => _isDark ? success : const Color(0xFF02401E);
   Color get switchActiveColor => toggleActiveColor;
 
-  // Layered shadows — light mode = soft/diffused; dark mode = subtle elevation
-  List<BoxShadow> get cardShadow => _isDark
-      ? const [
-          BoxShadow(
-            color: Color(0x55000000),
-            blurRadius: 18,
-            offset: Offset(0, 6),
-          ),
-          BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 6,
-            offset: Offset(0, 2),
-          ),
-        ]
-      : const [
-          BoxShadow(
-            color: Color(0x1E000000),
-            blurRadius: 24,
-            offset: Offset(0, 10),
-            spreadRadius: -8,
-          ),
-          BoxShadow(
-            color: Color(0x0C000000),
-            blurRadius: 6,
-            offset: Offset(0, 3),
-          ),
-        ];
+  // Flat surfaces without elevation shadows.
+  List<BoxShadow> get cardShadow => const [];
 
-  List<BoxShadow> get tileShadow => _isDark
-      ? const [
-          BoxShadow(
-            color: Color(0x33000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
-        ]
-      : const [
-          BoxShadow(
-            color: Color(0x18000000),
-            blurRadius: 12,
-            offset: Offset(0, 5),
-            spreadRadius: -6,
-          ),
-        ];
+  List<BoxShadow> get tileShadow => const [];
 
-  List<BoxShadow> get buttonShadow => [
-        BoxShadow(
-          color: highlight.withOpacity(_isDark ? 0.30 : 0.25),
-          blurRadius: _isDark ? 14 : 18,
-          offset: const Offset(0, 6),
-          spreadRadius: _isDark ? 0 : -3,
-        ),
-      ];
+  List<BoxShadow> get buttonShadow => const [];
 
-  List<BoxShadow> get insetShadow => [
-        BoxShadow(
-          color: whiteAlpha(_isDark ? 0.04 : 0.08),
-          blurRadius: 0,
-          spreadRadius: 0,
-          offset: const Offset(0, 1),
-        ),
-      ];
+  List<BoxShadow> get insetShadow => const [];
 
   // ---------- Decoration Helpers ----------
 
-  // Elevated card: surface color + radius 16 + layered shadow + subtle border
+  // Card surface with radius 16 and a subtle border.
   BoxDecoration get elevatedCardDecoration => BoxDecoration(
         color: card,
         borderRadius: BorderRadius.circular(radiusCard),
@@ -179,7 +125,7 @@ class ThemeProvider extends ChangeNotifier {
         boxShadow: cardShadow,
       );
 
-  // Tile-style decoration for list rows (lighter shadow, radius 12)
+  // Tile-style decoration for list rows with radius 12.
   BoxDecoration get elevatedTileDecoration => BoxDecoration(
         color: card,
         borderRadius: BorderRadius.circular(radiusList),
@@ -217,16 +163,19 @@ class ThemeProvider extends ChangeNotifier {
     double radius = radiusPill,
   }) {
     return BoxDecoration(
-      color: hollow ? Colors.transparent : color.withOpacity(_isDark ? 0.25 : 0.12),
+      color: hollow
+          ? Colors.transparent
+          : color.withOpacity(_isDark ? 0.25 : 0.12),
       borderRadius: BorderRadius.circular(radius),
-      border: Border.all(color: hollow ? color : color.withOpacity(0.35), width: 1.2),
+      border: Border.all(
+          color: hollow ? color : color.withOpacity(0.35), width: 1.2),
     );
   }
 
-  // Glassmorphism-style card (kept for backwards compatibility; now elevated)
+  // Glassmorphism-style card (kept for backwards compatibility).
   BoxDecoration get glassDecoration => elevatedCardDecoration;
 
-  // Glassmorphism list tile (kept for backwards compatibility; now tile elevation)
+  // Glassmorphism list tile (kept for backwards compatibility).
   BoxDecoration get glassListDecoration => elevatedTileDecoration;
 
   // Circle container with tinted background + border
@@ -236,13 +185,6 @@ class ThemeProvider extends ChangeNotifier {
       color: c.withOpacity(_isDark ? 0.18 : 0.10),
       shape: BoxShape.circle,
       border: Border.all(color: c.withOpacity(0.25), width: 1.0),
-      boxShadow: [
-        BoxShadow(
-          color: c.withOpacity(_isDark ? 0.20 : 0.10),
-          blurRadius: 10,
-          offset: const Offset(0, 3),
-        ),
-      ],
     );
   }
 
@@ -281,9 +223,8 @@ class ThemeProvider extends ChangeNotifier {
       fontSize: 14,
       fontWeight: FontWeight.w600,
     );
-    final fillColor = _isDark
-        ? Colors.white.withOpacity(0.04)
-        : const Color(0xFFF8FAFC);
+    final fillColor =
+        _isDark ? Colors.white.withOpacity(0.04) : const Color(0xFFF8FAFC);
 
     return InputDecoration(
       label: isRequired
@@ -308,8 +249,7 @@ class ThemeProvider extends ChangeNotifier {
       filled: true,
       fillColor: fillColor,
       isDense: false,
-      contentPadding:
-          const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
+      contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 16),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusInput),
         borderSide: BorderSide(color: divider, width: 1.0),
@@ -342,7 +282,7 @@ class ThemeProvider extends ChangeNotifier {
       disabledBackgroundColor: highlight.withOpacity(0.45),
       disabledForegroundColor: Colors.white.withOpacity(0.8),
       elevation: 0,
-      shadowColor: highlight,
+      shadowColor: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       textStyle: TextStyle(
         fontSize: fontButton,
@@ -353,12 +293,8 @@ class ThemeProvider extends ChangeNotifier {
         borderRadius: BorderRadius.circular(radiusInput),
       ),
     ).copyWith(
-      elevation: MaterialStateProperty.resolveWith((states) {
-        if (states.contains(MaterialState.hovered)) return 4;
-        if (states.contains(MaterialState.pressed)) return 0;
-        return 2;
-      }),
-      shadowColor: MaterialStateProperty.all(highlight),
+      elevation: const WidgetStatePropertyAll(0),
+      shadowColor: const WidgetStatePropertyAll(Colors.transparent),
     );
   }
 
@@ -413,6 +349,15 @@ class ThemeProvider extends ChangeNotifier {
   // Responsive helper
   static bool isWideScreen(BuildContext context) =>
       MediaQuery.of(context).size.width > 600;
+
+  static double responsiveDialogWidth(
+    BuildContext context,
+    double maxWidth, {
+    double horizontalInset = 80,
+  }) {
+    final availableWidth = MediaQuery.sizeOf(context).width - horizontalInset;
+    return availableWidth.clamp(0.0, maxWidth).toDouble();
+  }
 
   // Helper for contrast layer (white in dark, black in light)
   Color whiteAlpha(double opacity) => _isDark

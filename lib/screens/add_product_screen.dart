@@ -984,7 +984,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         final result = await showMenu<dynamic>(
           context: context,
           color: theme.surface,
-          elevation: 8,
+          elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: theme.highlight.withOpacity(0.2), width: 1),
@@ -1336,12 +1336,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
             decoration: BoxDecoration(
               color: theme.surface,
               borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15)),
-              ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(24),
@@ -1573,12 +1567,6 @@ class _AddProductScreenState extends State<AddProductScreen> {
                     padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                     decoration: BoxDecoration(
                       color: theme.surface,
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, -5))
-                      ],
                     ),
                     child: ElevatedButton(
                       onPressed: () {

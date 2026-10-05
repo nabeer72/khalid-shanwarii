@@ -929,10 +929,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     label: 'Subtotal',
                     value:
                         '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.subtotal)}'),
-                _SummaryRow(
-                    label: 'Tax',
-                    value:
-                        '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
+                if (BusinessConfig.instance.enableTax)
+                  _SummaryRow(
+                      label:
+                          'Tax (${BusinessConfig.instance.taxRate.toStringAsFixed(1)}%)',
+                      value:
+                          '${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(widget.tax)}'),
                 if (widget.discount > 0)
                   _SummaryRow(
                       label: 'Discount',
@@ -1037,11 +1039,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   shape: RoundedRectangleBorder(
                       borderRadius:
                           BorderRadius.circular(ThemeProvider.radiusList)),
-                  elevation: 4,
-                  shadowColor: (widget.isReturn
-                          ? ThemeProvider.warning
-                          : ThemeProvider.success)
-                      .withOpacity(0.3),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
                 ),
               ),
             ),
@@ -1146,7 +1145,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.6),
                 child: SizedBox(
-                  width: 350,
+                  width: ThemeProvider.responsiveDialogWidth(context, 350),
                   child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,

@@ -88,7 +88,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
               ],
             ),
             content: SizedBox(
-              width: 450,
+              width: ThemeProvider.responsiveDialogWidth(context, 450),
               child: SingleChildScrollView(
                 child: Form(
                   key: _formKey,
@@ -489,7 +489,7 @@ class _CustomerListScreenState extends State<CustomerListScreen> {
                 color: Colors.white,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.5)),
-        elevation: 8,
+        elevation: 0,
       ),
     );
   }

@@ -115,7 +115,7 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
             ],
           ),
           content: SizedBox(
-            width: 400,
+            width: ThemeProvider.responsiveDialogWidth(context, 400),
             child: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -513,10 +513,6 @@ class _BankManagementScreenState extends State<BankManagementScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            boxShadow: const [
-              BoxShadow(
-                  color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))
-            ],
           ),
           padding: const EdgeInsets.all(20),
           child: SingleChildScrollView(

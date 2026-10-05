@@ -304,14 +304,6 @@ class _ShortcutHelpIconState extends State<ShortcutHelpIcon>
                     shape: BoxShape.circle,
                     color: const Color(0xFFE94560)
                         .withOpacity(_blinkAnimation.value),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFE94560)
-                            .withOpacity(_blinkAnimation.value * 0.5),
-                        blurRadius: 6,
-                        spreadRadius: 1,
-                      ),
-                    ],
                   ),
                 ),
               ),

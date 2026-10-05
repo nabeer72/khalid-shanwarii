@@ -356,14 +356,6 @@ class _CreateDealScreenState extends State<CreateDealScreen> {
                           colors: ThemeProvider.gradientGold,
                         ),
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: ThemeProvider.gradientGold.first
-                                .withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
                       ),
                       child: const Center(
                         child: Text('🎁', style: TextStyle(fontSize: 24)),

@@ -329,6 +329,8 @@ class AddProductController with ChangeNotifier {
       {'name': 'Plate', 'short_name': 'plt'},
       {'name': 'Nan', 'short_name': 'nan'},
       {'name': 'Roti', 'short_name': 'roti'},
+      {'name': 'Salad', 'short_name': 'salad'},
+      {'name': 'Raita', 'short_name': 'raita'},
     ];
 
     if (allUnits.isEmpty) {
@@ -355,6 +357,8 @@ class AddProductController with ChangeNotifier {
         '2 Liter',
         'Small Bottle',
         'Large Bottle',
+        'Salad',
+        'Raita',
       ];
       bool addedNew = false;
       for (var requiredUnit in requiredUnits) {
