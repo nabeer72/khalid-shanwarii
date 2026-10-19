@@ -62,7 +62,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
       : 0;
   Customer? _selectedCustomer;
   bool _processing = false;
-  bool _generateReceipt = BusinessConfig.instance.autoReceipt;
   bool _openCashDrawer = BusinessConfig.instance.openCashDrawer;
   List<Map<String, dynamic>> _currencyNotes = [];
 
@@ -168,7 +167,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  void _processPayment() async {
+  void _processPayment({required bool showReceipt}) async {
     if (_processing) return;
 
     // Validate partial/credit payment requires customer
@@ -457,27 +456,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (_openCashDrawer) _handleOpenCashDrawer();
 
       if (mounted) {
-        if (_generateReceipt) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-                builder: (_) => ReceiptScreen(sale: saleForReceipt)),
-          );
-        } else {
-          Navigator.of(context).pop();
-          if (widget.isReturn) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Refund completed!'),
-                  backgroundColor: ThemeProvider.success),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text('Sale completed successfully!'),
-                  backgroundColor: ThemeProvider.success),
-            );
-          }
-        }
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => ReceiptScreen(
+              sale: saleForReceipt,
+              autoPrint: !showReceipt,
+              closeAfterPrint: !showReceipt,
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -519,7 +506,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
             });
           }
         },
-        onF9: () => setState(() => _generateReceipt = !_generateReceipt),
         onF10: () => setState(() => _openCashDrawer = !_openCashDrawer),
       ),
       child: Scaffold(
@@ -547,7 +533,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               } else if (event.logicalKey == LogicalKeyboardKey.backspace) {
                 _onDialTap('⌫');
               } else if (event.logicalKey == LogicalKeyboardKey.enter) {
-                _processPayment();
+                _processPayment(showReceipt: true);
               } else if (event.logicalKey == LogicalKeyboardKey.arrowDown ||
                   event.logicalKey == LogicalKeyboardKey.arrowRight) {
                 _cyclePaymentMethod(1);
@@ -561,7 +547,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 820;
+                  final isWide = constraints.maxWidth >= 1000;
                   if (isWide) {
                     return Padding(
                       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
@@ -813,13 +799,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
           child: Column(
             children: [
               _buildOptionToggle(
-                label: 'Receipt',
-                icon: Icons.receipt_long_rounded,
-                value: _generateReceipt,
-                onChanged: (v) => setState(() => _generateReceipt = v ?? false),
-              ),
-              const SizedBox(height: 4),
-              _buildOptionToggle(
                 label: 'Cash Drawer',
                 icon: Icons.door_sliding_rounded,
                 value: _openCashDrawer,
@@ -1004,51 +983,71 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
           ),
 
-          // Complete button
+          // Complete the sale with an explicit receipt action.
           Padding(
             padding: const EdgeInsets.all(16),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
-                label: Text(
-                  widget.isReturn
-                      ? 'PROCESS REFUND'
-                      : _selectedPayment == 'Credit'
-                          ? (_amountTendered > 0
-                              ? 'PAY ${BusinessConfig.instance.currencyDisplay} ${BusinessConfig.instance.formatAmount(_amountTendered)} + ADD CREDIT'
-                              : 'ADD FULL AMOUNT TO CREDIT')
-                          : 'COMPLETE TRANSACTION',
-                  style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.3),
+            child: Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.print_rounded, size: 19),
+                      label: const Text('DIRECT PRINT'),
+                      onPressed: _canCompletePayment
+                          ? () => _processPayment(showReceipt: false)
+                          : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: ThemeProvider.success,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
                 ),
-                onPressed: (_processing ||
-                        (!widget.isReturn &&
-                            _isTenderedMethod &&
-                            _amountTendered < _grandTotal))
-                    ? null
-                    : _processPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.isReturn
-                      ? ThemeProvider.warning
-                      : ThemeProvider.success,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(ThemeProvider.radiusList)),
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.receipt_long_rounded, size: 19),
+                      label: const Text('SHOW RECEIPT'),
+                      onPressed: _canCompletePayment
+                          ? () => _processPayment(showReceipt: true)
+                          : null,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.textPrimary,
+                        side: BorderSide(color: theme.cardBorder),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                                ThemeProvider.radiusList)),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
       ),
     );
   }
+
+  bool get _canCompletePayment =>
+      !_processing &&
+      (widget.isReturn ||
+          !_isTenderedMethod ||
+          _amountTendered >= _grandTotal);
 
   void _handleOpenCashDrawer() {
     // Hardware integration for cash drawer would go here.

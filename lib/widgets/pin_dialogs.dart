@@ -183,7 +183,10 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
       backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400, maxHeight: 500),
+        constraints: BoxConstraints(
+          maxWidth: ThemeProvider.responsiveDialogWidth(context, 400),
+          maxHeight: MediaQuery.sizeOf(context).height * 0.8,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -281,7 +284,9 @@ class _SetupPinDialogState extends State<_SetupPinDialog> {
       backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(ThemeProvider.radiusCard)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
+        constraints: BoxConstraints(
+          maxWidth: ThemeProvider.responsiveDialogWidth(context, 400),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(
@@ -403,7 +408,9 @@ class _EnterPinDialogState extends State<_EnterPinDialog> {
       backgroundColor: theme.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
+        constraints: BoxConstraints(
+          maxWidth: ThemeProvider.responsiveDialogWidth(context, 400),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: SingleChildScrollView(

@@ -44,7 +44,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
       Set<dynamic> noStock = {};
       try {
         final units = await DatabaseHelper.instance.getUnits();
-        const noStockShortNames = {'kg', 'g', 'L', 'l', 'plt', 'nan', 'roti'};
+        const noStockShortNames = {
+          'kg',
+          'g',
+          'l',
+          'plt',
+          'nan',
+          'roti',
+          'chai'
+        };
         const noStockFullNames = {
           'kilogram',
           'gram',
@@ -52,7 +60,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
           'litre',
           'plate',
           'nan',
-          'roti'
+          'roti',
+          'chai'
         };
         for (final u in units) {
           final sn = (u['short_name'] ?? '').toString().trim().toLowerCase();

@@ -549,68 +549,79 @@ class _SupplierPaybackScreenState extends State<SupplierPaybackScreen> {
               // Search & Tab Toggle Row
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        decoration: theme.glassDecoration.copyWith(
-                          borderRadius:
-                              BorderRadius.circular(ThemeProvider.radiusList),
-                          color: theme.isDark
-                              ? Colors.white.withOpacity(0.05)
-                              : Colors.white.withOpacity(0.2),
-                        ),
-                        child: TextField(
-                          controller: _searchCtrl,
-                          onChanged: (v) => setState(() => _searchQuery = v),
-                          style: TextStyle(
-                              color: theme.textPrimary,
-                              fontWeight: FontWeight.w500),
-                          decoration: InputDecoration(
-                            hintText: _isHistoryView
-                                ? 'Search history...'
-                                : 'Search supplier...',
-                            hintStyle: TextStyle(
-                                color: theme.textHint,
-                                fontWeight: FontWeight.w400),
-                            prefixIcon: Icon(Icons.search_rounded,
-                                color: theme.iconColor),
-                            suffixIcon: _searchQuery.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(Icons.close_rounded,
-                                        size: 18, color: theme.iconColor),
-                                    onPressed: () {
-                                      _searchCtrl.clear();
-                                      setState(() => _searchQuery = '');
-                                    },
-                                  )
-                                : null,
-                            border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    children: [
+                      SizedBox(
+                        width: constraints.maxWidth >= 500
+                            ? constraints.maxWidth - 212
+                            : constraints.maxWidth,
+                        child: Container(
+                          decoration: theme.glassDecoration.copyWith(
+                            borderRadius:
+                                BorderRadius.circular(ThemeProvider.radiusList),
+                            color: theme.isDark
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.white.withOpacity(0.2),
+                          ),
+                          child: TextField(
+                            controller: _searchCtrl,
+                            onChanged: (v) => setState(() => _searchQuery = v),
+                            style: TextStyle(
+                                color: theme.textPrimary,
+                                fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: _isHistoryView
+                                  ? 'Search history...'
+                                  : 'Search supplier...',
+                              hintStyle: TextStyle(
+                                  color: theme.textHint,
+                                  fontWeight: FontWeight.w400),
+                              prefixIcon: Icon(Icons.search_rounded,
+                                  color: theme.iconColor),
+                              suffixIcon: _searchQuery.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(Icons.close_rounded,
+                                          size: 18, color: theme.iconColor),
+                                      onPressed: () {
+                                        _searchCtrl.clear();
+                                        setState(() => _searchQuery = '');
+                                      },
+                                    )
+                                  : null,
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
-                      height: 40,
-                      width: 200,
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: theme.whiteAlpha(0.05),
-                        borderRadius:
-                            BorderRadius.circular(ThemeProvider.radiusList),
-                        border: Border.all(color: theme.whiteAlpha(0.1)),
+                      SizedBox(
+                        width: constraints.maxWidth < 212
+                            ? constraints.maxWidth
+                            : 200,
+                        child: Container(
+                          height: 40,
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: theme.whiteAlpha(0.05),
+                            borderRadius:
+                                BorderRadius.circular(ThemeProvider.radiusList),
+                            border: Border.all(color: theme.whiteAlpha(0.1)),
+                          ),
+                          child: Row(
+                            children: [
+                              _buildTabButton('Outstanding', !_isHistoryView),
+                              _buildTabButton('History', _isHistoryView),
+                            ],
+                          ),
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          _buildTabButton('Outstanding', !_isHistoryView),
-                          _buildTabButton('History', _isHistoryView),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
 

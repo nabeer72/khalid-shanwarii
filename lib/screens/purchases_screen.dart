@@ -183,7 +183,7 @@ class _PurchasesScreenState extends State<PurchasesScreen> {
               ],
             ),
             content: SizedBox(
-              width: 500,
+              width: ThemeProvider.responsiveDialogWidth(ctx, 500),
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,

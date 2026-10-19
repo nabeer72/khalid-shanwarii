@@ -553,10 +553,17 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
               // Search & Tab Toggle Row
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Container(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    alignment: WrapAlignment.spaceBetween,
+                    children: [
+                      SizedBox(
+                        width: constraints.maxWidth >= 500
+                            ? constraints.maxWidth - 212
+                            : constraints.maxWidth,
+                        child: Container(
                         decoration: theme.glassDecoration.copyWith(
                           borderRadius:
                               BorderRadius.circular(ThemeProvider.radiusList),
@@ -594,12 +601,14 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                                 horizontal: 16, vertical: 12),
                           ),
                         ),
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Container(
+                      SizedBox(
+                        width: constraints.maxWidth < 212
+                            ? constraints.maxWidth
+                            : 200,
+                        child: Container(
                       height: 40,
-                      width: 200,
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: theme.whiteAlpha(0.05),
@@ -613,8 +622,10 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                           _buildTabButton('History', _isHistoryView),
                         ],
                       ),
-                    ),
-                  ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
 

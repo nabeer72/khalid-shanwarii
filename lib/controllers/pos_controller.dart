@@ -119,7 +119,15 @@ class POSController with ChangeNotifier {
           'foot',
           'yard'
         };
-        const noStockShortNames = {'kg', 'g', 'L', 'l', 'plt', 'nan', 'roti'};
+        const noStockShortNames = {
+          'kg',
+          'g',
+          'l',
+          'plt',
+          'nan',
+          'roti',
+          'chai'
+        };
         const noStockFullNames = {
           'kilogram',
           'gram',
@@ -127,7 +135,8 @@ class POSController with ChangeNotifier {
           'litre',
           'plate',
           'nan',
-          'roti'
+          'roti',
+          'chai'
         };
         _weightUnitIds = <dynamic>{};
         _noStockUnitIds = <dynamic>{};
@@ -230,10 +239,7 @@ class POSController with ChangeNotifier {
                 .firstOrNull;
             if (subCat != null &&
                 subCat.parentId?.toString() == _selectedCategory) {
-              final count = _products
-                  .where((p2) => p2.subCategoryId?.toString() == pscid)
-                  .length;
-              if (count <= 1) return true; // Show directly if 1 or 0 items
+              return false;
             }
           } else if (pcid == _selectedCategory) {
             return true; // Direct category match with no subcategory
@@ -294,8 +300,8 @@ class POSController with ChangeNotifier {
 
     MockDataStore.instance.addToRecent(product.id);
 
-    if (existingIndex >= 0 && !isWeight) {
-      // Quantity bump on existing row — keep the green on whichever row is already marked
+    if (existingIndex >= 0) {
+      // Repeated weight scans add their entered weight to the existing row.
       _cart[existingIndex].quantity += qty;
       _cart[existingIndex].updateSubtotal();
     } else {

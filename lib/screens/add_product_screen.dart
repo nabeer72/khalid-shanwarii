@@ -973,7 +973,12 @@ class _AddProductScreenState extends State<AddProductScreen> {
         final size = box.size;
         final screenWidth = MediaQuery.of(context).size.width;
 
-        final dropdownWidth = (size.width > 300) ? size.width : 300.0;
+        final availableWidth =
+            (screenWidth - 32).clamp(1.0, double.infinity).toDouble();
+        final dropdownWidth =
+            (size.width > 300 ? size.width : 300.0)
+                .clamp(1.0, availableWidth)
+                .toDouble();
 
         double left = pos.dx;
         if (left + dropdownWidth > screenWidth - 16) {
@@ -1330,9 +1335,9 @@ class _AddProductScreenState extends State<AddProductScreen> {
           insetPadding:
               const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           child: Container(
-            width:
-                MediaQuery.of(context).size.width > 500 ? 400 : double.infinity,
-            height: 550,
+            width: ThemeProvider.responsiveDialogWidth(context, 400),
+            height:
+                (MediaQuery.sizeOf(context).height * 0.8).clamp(0.0, 550.0),
             decoration: BoxDecoration(
               color: theme.surface,
               borderRadius: BorderRadius.circular(24),

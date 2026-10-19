@@ -33,6 +33,8 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final frameSize =
+        (MediaQuery.sizeOf(context).width - 48).clamp(120.0, 250.0).toDouble();
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
@@ -84,8 +86,8 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> {
           // Scan overlay
           Center(
             child: Container(
-              width: 250,
-              height: 250,
+              width: frameSize,
+              height: frameSize,
               decoration: BoxDecoration(
                 border: Border.all(color: ThemeProvider.success, width: 3),
                 borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),

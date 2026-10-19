@@ -54,7 +54,7 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
           title: Text(bank == null ? 'Add Bank' : 'Edit Bank',
               style: TextStyle(color: theme.textPrimary)),
           content: SizedBox(
-            width: 500,
+            width: ThemeProvider.responsiveDialogWidth(context, 500),
             child: SingleChildScrollView(
               child: Form(
                 key: formKey,
@@ -288,7 +288,10 @@ class _ManageBanksScreenState extends State<ManageBanksScreen> {
       backgroundColor: Colors.transparent,
       child: Container(
         width: MediaQuery.of(context).size.width * 0.9,
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+        constraints: BoxConstraints(
+          maxWidth: 600,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.9,
+        ),
         decoration: BoxDecoration(
           color: theme.background,
           borderRadius: BorderRadius.circular(16),

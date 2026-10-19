@@ -52,8 +52,10 @@ class DbInitializer {
       sqfliteFfiInit();
       final dbFactory = databaseFactoryFfi;
 
-      final dbPath = await dbFactory.getDatabasesPath();
-      final path = join(dbPath, filePath);
+      final databaseDirectory =
+          Directory(join(dirname(Platform.resolvedExecutable), 'database'));
+      await databaseDirectory.create(recursive: true);
+      final path = join(databaseDirectory.path, filePath);
 
     // For now, skip encryption on desktop (to avoid OpenSSL dependency)
     final db = await dbFactory.openDatabase(

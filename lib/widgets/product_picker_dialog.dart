@@ -106,13 +106,15 @@ class _ProductPickerDialogState extends State<ProductPickerDialog> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final maxHeight = MediaQuery.sizeOf(context).height * 0.82;
+          final dialogWidth =
+              ThemeProvider.responsiveDialogWidth(context, 540);
           return ConstrainedBox(
             constraints: BoxConstraints(
-              maxWidth: 540,
+              maxWidth: dialogWidth,
               maxHeight: maxHeight,
             ),
             child: SizedBox(
-              width: 540,
+              width: dialogWidth,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(22, 20, 22, 18),
                 child: Column(

@@ -15,7 +15,7 @@ class ShortcutsHelpDialog {
         backgroundColor: Colors.transparent,
         insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Container(
-          width: 520,
+          width: ThemeProvider.responsiveDialogWidth(context, 520),
           constraints: const BoxConstraints(maxHeight: 620),
           decoration: theme.glassDecoration,
           child: Column(
@@ -81,7 +81,7 @@ class ShortcutsHelpDialog {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _sectionTitle('POS Screen', Icons.point_of_sale_rounded,
-                         theme.highlight, theme),
+                          theme.highlight, theme),
                       const SizedBox(height: 8),
                       _shortcutTile('F1', 'Clear Cart',
                           Icons.remove_shopping_cart_rounded, theme),
@@ -107,12 +107,10 @@ class ShortcutsHelpDialog {
                       _sectionTitle('Payment Screen', Icons.payment_rounded,
                           theme.highlight, theme),
                       const SizedBox(height: 8),
-                      _shortcutTile('Enter', 'Complete Transaction',
+                      _shortcutTile('Enter', 'Show Receipt',
                           Icons.check_circle_rounded, theme),
                       _shortcutTile('F8', 'Exact Total',
                           Icons.price_check_rounded, theme),
-                      _shortcutTile(
-                          'F9', 'Toggle Receipt', Icons.receipt_rounded, theme),
                       _shortcutTile(
                           'F10', 'Cash Drawer', Icons.point_of_sale, theme),
                       _shortcutTile('← → ↑ ↓', 'Switch Payment Method',

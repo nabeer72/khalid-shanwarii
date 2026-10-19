@@ -17,8 +17,15 @@ import 'package:image/image.dart' as img;
 
 class ReceiptScreen extends StatefulWidget {
   final Map<String, dynamic> sale;
+  final bool autoPrint;
+  final bool closeAfterPrint;
 
-  const ReceiptScreen({super.key, required this.sale});
+  const ReceiptScreen({
+    super.key,
+    required this.sale,
+    this.autoPrint = false,
+    this.closeAfterPrint = false,
+  });
 
   @override
   State<ReceiptScreen> createState() => _ReceiptScreenState();
@@ -70,6 +77,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       setState(() {
         _items = List<Map<String, dynamic>>.from(widget.sale['items']);
       });
+      _queueAutoPrint();
       return;
     }
 
@@ -97,11 +105,21 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
             _items = dbItems;
             _loadingItems = false;
           });
+          _queueAutoPrint();
         }
       } catch (e) {
         if (mounted) setState(() => _loadingItems = false);
       }
     }
+  }
+
+  void _queueAutoPrint() {
+    if (!widget.autoPrint) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_loadingItems) {
+        _handlePrint(closeAfterPrint: widget.closeAfterPrint);
+      }
+    });
   }
 
   Future<Uint8List?> _captureReceiptImage() async {
@@ -153,15 +171,164 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     return pdf;
   }
 
-  Future<Uint8List> _buildScreenReceiptPdf(PdfPageFormat format) async {
+  bool get _isReturnReceipt =>
+      widget.sale['is_return'] == 1 || widget.sale['isReturn'] == true;
+
+  String get _kitchenToken {
+    final rawId = widget.sale['id']?.toString() ?? 'N/A';
+    return rawId.length > 8
+        ? rawId.substring(0, 8).toUpperCase()
+        : rawId.padLeft(4, '0').toUpperCase();
+  }
+
+  Future<Uint8List?> _captureKitchenSlipImage() async {
+    if (_items.isEmpty) return null;
+
+    const imageWidth = 576;
+    const horizontalMargin = 24.0;
+    const quantityColumnWidth = 112.0;
+    const columnGap = 16.0;
+    const fontSize = 22.0;
+    const rowPadding = 16.0;
+    const rowSpacing = 8.0;
+    final nameMaxWidth =
+        imageWidth - horizontalMargin * 2 - quantityColumnWidth - columnGap;
+    final rows = <({TextPainter name, TextPainter quantity, double height})>[];
+    final tokenPainter = TextPainter(
+      text: TextSpan(
+        text: 'TOKEN: $_kitchenToken',
+        style: const TextStyle(
+          color: Colors.black,
+          fontSize: 30,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout(maxWidth: imageWidth - horizontalMargin * 2);
+    var imageHeight = horizontalMargin + tokenPainter.height + rowSpacing;
+
+    for (final item in _items) {
+      final name = (item['product_name'] ?? item['name'] ?? 'Item').toString();
+      final rawQuantity = item['quantity'];
+      final quantity = rawQuantity is num
+          ? rawQuantity.toDouble()
+          : double.tryParse(rawQuantity?.toString() ?? '') ?? 0;
+      final namePainter = TextPainter(
+        text: TextSpan(
+          text: name,
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: nameMaxWidth);
+      final quantityPainter = TextPainter(
+        text: TextSpan(
+          text: BusinessConfig.instance.formatAmount(quantity),
+          style: const TextStyle(
+            color: Colors.black,
+            fontSize: fontSize,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      )..layout(maxWidth: quantityColumnWidth);
+      final rowHeight = (namePainter.height > quantityPainter.height
+              ? namePainter.height
+              : quantityPainter.height) +
+          rowPadding;
+      rows.add(
+          (name: namePainter, quantity: quantityPainter, height: rowHeight));
+      imageHeight += rowHeight + rowSpacing;
+    }
+    imageHeight += horizontalMargin - rowSpacing;
+
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(
+      recorder,
+      ui.Rect.fromLTWH(0, 0, imageWidth.toDouble(), imageHeight),
+    );
+    canvas.drawRect(
+      ui.Rect.fromLTWH(0, 0, imageWidth.toDouble(), imageHeight),
+      ui.Paint()..color = Colors.white,
+    );
+
+    tokenPainter.paint(
+      canvas,
+      ui.Offset((imageWidth - tokenPainter.width) / 2, horizontalMargin),
+    );
+    var top = horizontalMargin + tokenPainter.height + rowSpacing;
+    for (final row in rows) {
+      row.name.paint(
+        canvas,
+        ui.Offset(horizontalMargin, top + rowPadding / 2),
+      );
+      row.quantity.paint(
+        canvas,
+        ui.Offset(
+          imageWidth - horizontalMargin - row.quantity.width,
+          top + rowPadding / 2,
+        ),
+      );
+      top += row.height + rowSpacing;
+    }
+
+    final image =
+        await recorder.endRecording().toImage(imageWidth, imageHeight.ceil());
+    try {
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw StateError('Could not encode the kitchen slip image.');
+      }
+      return byteData.buffer.asUint8List(
+        byteData.offsetInBytes,
+        byteData.lengthInBytes,
+      );
+    } finally {
+      image.dispose();
+    }
+  }
+
+  Future<Uint8List> _buildCustomerReceiptPdf(PdfPageFormat format) async {
     _logPrintDebug('Capturing the on-screen receipt design for printing.');
     final pdf = await _captureReceiptAsPdf(format: format);
     if (pdf == null) {
       throw StateError('Could not capture the receipt shown on screen.');
     }
     final bytes = await pdf.save();
-    _logPrintDebug('Screen-design PDF generated: ${bytes.length} bytes.');
+    _logPrintDebug(
+        'Customer receipt PDF generated: ${bytes.length} bytes.');
     return bytes;
+  }
+
+  Future<Uint8List> _buildKitchenSlipPdf(PdfPageFormat format) async {
+    final imageBytes = await _captureKitchenSlipImage();
+    if (imageBytes == null) {
+      throw StateError('Could not capture the kitchen token.');
+    }
+    final kitchenImage = img.decodeImage(imageBytes);
+    if (kitchenImage == null) {
+      throw StateError('Could not decode the kitchen token image.');
+    }
+    final pageWidth = format.width.isFinite && format.width > 0
+        ? format.width
+        : PdfPageFormat.roll80.width;
+    final pageHeight = pageWidth * kitchenImage.height / kitchenImage.width;
+    final pdf = pw.Document()
+      ..addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat(pageWidth, pageHeight, marginAll: 0),
+          build: (_) => pw.Image(
+            pw.MemoryImage(imageBytes),
+            width: pageWidth,
+            height: pageHeight,
+            fit: pw.BoxFit.fill,
+          ),
+        ),
+      );
+    return pdf.save();
   }
 
   void _logPrintDebug(String message) {
@@ -173,29 +340,35 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     if (kDebugMode) debugPrintStack(stackTrace: stackTrace);
   }
 
-  Future<void> _handlePrint() async {
+  Future<void> _handlePrint({bool closeAfterPrint = false}) async {
     if (_loadingItems || _isPrinting) return;
     setState(() => _isPrinting = true);
+    var printCompleted = false;
     _logPrintDebug(
         'Print requested on ${Platform.operatingSystem}; ${_items.length} item(s) loaded.');
     try {
       if (Platform.isAndroid) {
-        await _printToBluetoothPrinter();
-        return;
+        printCompleted = await _printToBluetoothPrinter();
+      } else if (Platform.isWindows) {
+        printCompleted = await _printToWindowsPrinter();
+      } else {
+        final sale = widget.sale;
+        final invoiceId =
+            sale['invoice_number'] ?? sale['id']?.toString() ?? 'receipt';
+        await Printing.layoutPdf(
+          name: 'Receipt_$invoiceId',
+          format: PdfPageFormat.roll80,
+          onLayout: _buildCustomerReceiptPdf,
+        );
+        if (!_isReturnReceipt) {
+          await Printing.layoutPdf(
+            name: 'Kitchen_Token_$invoiceId',
+            format: PdfPageFormat.roll80,
+            onLayout: _buildKitchenSlipPdf,
+          );
+        }
+        printCompleted = true;
       }
-      if (Platform.isWindows) {
-        await _printToWindowsPrinter();
-        return;
-      }
-
-      final sale = widget.sale;
-      final invoiceId =
-          sale['invoice_number'] ?? sale['id']?.toString() ?? 'receipt';
-      await Printing.layoutPdf(
-        name: 'Receipt_$invoiceId',
-        format: PdfPageFormat.roll80,
-        onLayout: _buildScreenReceiptPdf,
-      );
     } catch (e, stackTrace) {
       _logPrintFailure('print request', e, stackTrace);
       if (mounted) {
@@ -209,16 +382,19 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     } finally {
       if (mounted) setState(() => _isPrinting = false);
     }
+    if (printCompleted && closeAfterPrint && mounted) {
+      Navigator.of(context).pop();
+    }
   }
 
-  Future<void> _printToWindowsPrinter() async {
+  Future<bool> _printToWindowsPrinter() async {
     _logPrintDebug('Loading installed Windows printers.');
     final printers = await Printing.listPrinters();
     _logPrintDebug(
         'Found ${printers.length} Windows printer(s): ${printers.map((printer) => '${printer.name} (available=${printer.isAvailable})').join(', ')}');
     final availablePrinters =
         printers.where((printer) => printer.isAvailable).toList();
-    if (!mounted) return;
+    if (!mounted) return false;
     if (availablePrinters.isEmpty) {
       throw StateError(
           'No available Windows printers found. Install the printer driver and confirm it appears in Windows Settings.');
@@ -232,7 +408,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     );
     if (printer == null || !mounted) {
       _logPrintDebug('Windows printer selection was cancelled.');
-      return;
+      return false;
     }
 
     final sale = widget.sale;
@@ -244,21 +420,35 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       name: 'Receipt_$invoiceId',
       format: PdfPageFormat.roll80,
       usePrinterSettings: true,
-      onLayout: _buildScreenReceiptPdf,
+      onLayout: _buildCustomerReceiptPdf,
     );
     _logPrintDebug('Windows direct print completed: $printed.');
     if (!printed) {
       throw StateError(
           'Windows could not send the receipt to ${printer.name}.');
     }
+    if (!_isReturnReceipt) {
+      final tokenPrinted = await Printing.directPrintPdf(
+        printer: printer,
+        name: 'Kitchen_Token_$invoiceId',
+        format: PdfPageFormat.roll80,
+        usePrinterSettings: true,
+        onLayout: _buildKitchenSlipPdf,
+      );
+      if (!tokenPrinted) {
+        throw StateError(
+            'The customer receipt printed, but the kitchen token could not be sent to ${printer.name}.');
+      }
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Receipt sent to ${printer.name}')),
+        SnackBar(content: Text('Receipt and kitchen token sent to ${printer.name}')),
       );
     }
+    return true;
   }
 
-  Future<void> _printToBluetoothPrinter() async {
+  Future<bool> _printToBluetoothPrinter() async {
     _logPrintDebug('Requesting Bluetooth scan/connect permissions.');
     final permissions = await [
       Permission.bluetoothScan,
@@ -272,7 +462,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
 
     _logPrintDebug('Loading paired Bluetooth devices.');
     final devices = await XprinterBluetooth.getBondedDevices();
-    if (!mounted) return;
+    if (!mounted) return false;
     _logPrintDebug(
         'Found ${devices.length} paired device(s): ${devices.map((device) => device.name.isEmpty ? '(unnamed)' : device.name).join(', ')}');
     if (devices.isEmpty) {
@@ -289,7 +479,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     );
     if (printer == null || !mounted) {
       _logPrintDebug('Printer selection was cancelled or screen was closed.');
-      return;
+      return false;
     }
 
     var stage = 'Bluetooth connection';
@@ -309,9 +499,10 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       _logPrintDebug('Receipt output completed.');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Receipt sent to printer')),
+          const SnackBar(content: Text('Receipt and kitchen token sent to printer')),
         );
       }
+      return true;
     } catch (error, stackTrace) {
       _logPrintFailure(stage, error, stackTrace);
       rethrow;
@@ -332,6 +523,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     if (screenImage == null) {
       throw StateError('Could not capture the receipt shown on screen.');
     }
+    final kitchenImage =
+        _isReturnReceipt ? null : await _captureKitchenSlipImage();
 
     var stage = 'thermal image preparation';
     try {
@@ -355,6 +548,17 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         throw StateError('Could not prepare the receipt for thermal printing.');
       }
 
+      final kitchenPrinterImage = kitchenImage == null
+          ? null
+          : XprinterImageLoader.fromBytes(
+              bytes: kitchenImage,
+              targetWidthDots: 576,
+              mode: XprinterImageMode.threshold,
+            );
+      if (kitchenImage != null && kitchenPrinterImage == null) {
+        throw StateError('Could not prepare the kitchen slip for printing.');
+      }
+
       stage = 'printer initialization';
       _logPrintDebug('Initializing printer for screen-design raster output.');
       await PosPrinter.initialize();
@@ -367,6 +571,19 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
         alignment: XprinterAlignment.center,
         widthDots: XprinterLayout.widthDots,
       );
+      if (kitchenPrinterImage != null) {
+        stage = 'customer receipt feed and cut';
+        await PosPrinter.feedLine(3);
+        await PosPrinter.cutPaper();
+        stage = 'kitchen slip transfer';
+        _logPrintDebug('Sending kitchen slip image.');
+        await PosPrinter.printBitmap(
+          kitchenPrinterImage,
+          alignment: XprinterAlignment.center,
+          widthDots: XprinterLayout.widthDots,
+        );
+        stage = 'kitchen token feed and cut';
+      }
       stage = 'paper feed and cut';
       await PosPrinter.feedLine(3);
       await PosPrinter.cutPaper();
@@ -623,8 +840,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isCompact = constraints.maxWidth < 360;
-          final receiptWidth = (constraints.maxWidth - (isCompact ? 24 : 32))
-              .clamp(280.0, 380.0);
+          final receiptWidth = (constraints.maxWidth - (isCompact ? 16 : 32))
+              .clamp(0.0, 380.0)
+              .toDouble();
 
           return Focus(
             autofocus: true,
@@ -836,7 +1054,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                     spacing: 8,
                                     runSpacing: 6,
                                     children: [
-                                      Text('Casher: ${employee.toUpperCase()}',
+                                      Text('Cashier: $employee',
                                           style: TextStyle(
                                               color: theme.textPrimary,
                                               fontSize: 12,
@@ -853,7 +1071,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                     mainAxisAlignment:
                                         MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Text('Casher: ${employee.toUpperCase()}',
+                                      Text('Cashier: $employee',
                                           style: TextStyle(
                                               color: theme.textPrimary,
                                               fontSize: 13,
@@ -1050,7 +1268,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                       ),
                                       if (tax.abs() > 0.005)
                                         _SummaryRow(
-                                          label: 'Tax (${taxRate.toStringAsFixed(1)}%):',
+                                          label:
+                                              'Tax (${taxRate.toStringAsFixed(1)}%):',
                                           value: BusinessConfig.instance
                                               .formatAmount(tax),
                                           alignment: MainAxisAlignment.start,
@@ -1120,7 +1339,8 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                                             ),
                                             if (tax.abs() > 0.005)
                                               _SummaryRow(
-                                                label: 'Tax (${taxRate.toStringAsFixed(1)}%):',
+                                                label:
+                                                    'Tax (${taxRate.toStringAsFixed(1)}%):',
                                                 value: BusinessConfig.instance
                                                     .formatAmount(tax),
                                                 alignment:

@@ -680,16 +680,30 @@ class _LoginScreenState extends State<LoginScreen>
                         ],
                       )
                     : Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 32),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              _buildHeroPanel(isWide: isWide),
-                              const SizedBox(height: 28),
-                              _buildAuthColumn(),
-                            ],
+                        child: LayoutBuilder(
+                          builder: (context, constraints) =>
+                              SingleChildScrollView(
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: constraints.maxHeight,
+                              ),
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal:
+                                      constraints.maxWidth < 360 ? 16 : 24,
+                                  vertical: 32,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    _buildHeroPanel(isWide: isWide),
+                                    const SizedBox(height: 28),
+                                    _buildAuthColumn(),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ),

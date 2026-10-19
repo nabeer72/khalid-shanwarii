@@ -22,13 +22,6 @@ class POSProductGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ThemeProvider.instance;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final gridColumns = screenWidth > 1400
-        ? 8
-        : (screenWidth > 1100
-            ? 7
-            : (screenWidth > 800 ? 6 : (screenWidth > 500 ? 4 : 3)));
-
     final filteredProducts = controller.filteredProducts;
     final int itemCount = controller.selectedCategory == 'deals'
         ? controller.deals.length
@@ -38,17 +31,28 @@ class POSProductGrid extends StatelessWidget {
       return _buildEmptyState(theme);
     }
 
-    return GridView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: gridColumns,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.05,
-      ),
-      itemCount: itemCount,
-      itemBuilder: (ctx, i) {
-        return _buildGridItem(ctx, i, filteredProducts, theme);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableWidth = constraints.maxWidth;
+        final gridColumns = availableWidth > 1000
+            ? 7
+            : (availableWidth > 760
+                ? 6
+                : (availableWidth > 560 ? 4 : (availableWidth > 360 ? 3 : 2)));
+
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: gridColumns,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: availableWidth < 360 ? 0.9 : 1.05,
+          ),
+          itemCount: itemCount,
+          itemBuilder: (ctx, i) {
+            return _buildGridItem(ctx, i, filteredProducts, theme);
+          },
+        );
       },
     );
   }
@@ -61,11 +65,7 @@ class POSProductGrid extends StatelessWidget {
         controller.selectedCategory != 'recent' &&
         controller.selectedCategory != 'all') {
       final subCats = controller.subCategories.where((c) {
-        if (c.parentId?.toString() != controller.selectedCategory) return false;
-        final pCount = controller.products
-            .where((p) => p.subCategoryId?.toString() == c.id.toString())
-            .length;
-        return pCount > 1;
+        return c.parentId?.toString() == controller.selectedCategory;
       }).toList();
       count += subCats.length;
     }
@@ -91,11 +91,7 @@ class POSProductGrid extends StatelessWidget {
         controller.selectedCategory != 'recent' &&
         controller.selectedCategory != 'all') {
       final subCats = controller.subCategories.where((c) {
-        if (c.parentId?.toString() != controller.selectedCategory) return false;
-        final pCount = controller.products
-            .where((p) => p.subCategoryId?.toString() == c.id.toString())
-            .length;
-        return pCount > 1;
+        return c.parentId?.toString() == controller.selectedCategory;
       }).toList();
       if (index < subCats.length) {
         return _buildSubCategoryTile(subCats[index], theme);

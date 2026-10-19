@@ -17,13 +17,18 @@ class _StockReportScreenState extends State<StockReportScreen> {
   final theme = ThemeProvider.instance;
   bool _isLoading = true;
   List<Map<String, dynamic>> _products = [];
+  Set<dynamic> _noStockUnitIds = {};
   bool _showOnlyLowStock = false;
-  
+
   // Summary Stats
   double _totalCostValue = 0;
   double _totalSalesValue = 0;
   int _totalItems = 0;
   int _lowStockCount = 0;
+
+  bool _isNoStockProduct(Product product) {
+    return product.unitId != null && _noStockUnitIds.contains(product.unitId);
+  }
 
   @override
   void initState() {
@@ -34,18 +39,54 @@ class _StockReportScreenState extends State<StockReportScreen> {
   Future<void> _loadData() async {
     try {
       final productsData = await DatabaseHelper.instance.getProducts();
-      
+      final unitsData = await DatabaseHelper.instance.getUnits();
+      const noStockShortNames = {
+        'kg',
+        'g',
+        'l',
+        'plt',
+        'nan',
+        'roti',
+        'chai',
+      };
+      const noStockFullNames = {
+        'kilogram',
+        'gram',
+        'liter',
+        'litre',
+        'plate',
+        'nan',
+        'roti',
+        'chai',
+      };
+      final noStockUnitIds = <dynamic>{};
+      for (final unit in unitsData) {
+        final shortName =
+            (unit['short_name'] ?? '').toString().trim().toLowerCase();
+        final name = (unit['name'] ?? '').toString().trim().toLowerCase();
+        if (noStockShortNames.contains(shortName) ||
+            noStockFullNames.contains(name)) {
+          noStockUnitIds.add(unit['id']);
+        }
+      }
+
       double costVal = 0;
       double salesVal = 0;
       int totalItems = 0;
       int lowStockItems = 0;
 
       final List<Product> products = productsData.map((pData) {
-        final stocksData = List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
-        return Product.fromMap(pData, stocks: stocksData.map<Stock>((s) => Stock.fromMap(s)).toList());
+        final stocksData =
+            List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
+        return Product.fromMap(pData,
+            stocks: stocksData.map<Stock>((s) => Stock.fromMap(s)).toList());
       }).toList();
 
       for (var product in products) {
+        if (product.unitId != null && noStockUnitIds.contains(product.unitId)) {
+          continue;
+        }
+
         for (var s in product.stocks) {
           if (s.quantity > 0) {
             costVal += (s.quantity * s.costPrice);
@@ -53,7 +94,7 @@ class _StockReportScreenState extends State<StockReportScreen> {
             totalItems += s.quantity.toInt();
           }
         }
-        
+
         if (product.totalStock <= product.stockLimit) {
           lowStockItems++;
         }
@@ -61,7 +102,9 @@ class _StockReportScreenState extends State<StockReportScreen> {
 
       if (mounted) {
         setState(() {
-          _products = productsData; // Keeping raw data for the list or map to Product
+          _noStockUnitIds = noStockUnitIds;
+          _products =
+              productsData; // Keeping raw data for the list or map to Product
           _totalCostValue = costVal;
           _totalSalesValue = salesVal;
           _totalItems = totalItems;
@@ -86,7 +129,10 @@ class _StockReportScreenState extends State<StockReportScreen> {
         elevation: 0,
         title: Text(
           'Stock Report',
-          style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+          style: TextStyle(
+              color: theme.textPrimary,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.5),
         ),
         leading: BackButton(color: theme.textPrimary),
       ),
@@ -110,10 +156,25 @@ class _StockReportScreenState extends State<StockReportScreen> {
                           mainAxisSpacing: 12,
                         ),
                         children: [
-                          _buildSummaryCard('Cost Value', _totalCostValue, Icons.account_balance_wallet_rounded, theme.highlight),
-                          _buildSummaryCard('Sales Value', _totalSalesValue, Icons.insights_rounded, theme.secondary),
-                          _buildSummaryCard('Total Items', _totalItems.toDouble(), Icons.inventory_2_rounded, ThemeProvider.warning, isCurrency: false),
-                          _buildSummaryCard('Low Stock', _lowStockCount.toDouble(), Icons.notification_important_rounded, ThemeProvider.error, isCurrency: false, onTap: () {
+                          _buildSummaryCard(
+                              'Cost Value',
+                              _totalCostValue,
+                              Icons.account_balance_wallet_rounded,
+                              theme.highlight),
+                          _buildSummaryCard('Sales Value', _totalSalesValue,
+                              Icons.insights_rounded, theme.secondary),
+                          _buildSummaryCard(
+                              'Total Items',
+                              _totalItems.toDouble(),
+                              Icons.inventory_2_rounded,
+                              ThemeProvider.warning,
+                              isCurrency: false),
+                          _buildSummaryCard(
+                              'Low Stock',
+                              _lowStockCount.toDouble(),
+                              Icons.notification_important_rounded,
+                              ThemeProvider.error,
+                              isCurrency: false, onTap: () {
                             setState(() {
                               _showOnlyLowStock = !_showOnlyLowStock;
                             });
@@ -122,95 +183,141 @@ class _StockReportScreenState extends State<StockReportScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      Text('Inventory Details', 
-                          style: TextStyle(color: theme.textPrimary, fontSize: 16, fontWeight: FontWeight.w900, letterSpacing: -0.5)),
+                      Text('Inventory Details',
+                          style: TextStyle(
+                              color: theme.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.5)),
                       const SizedBox(height: 12),
 
                       // Product List
-                      Builder(
-                        builder: (context) {
-                          final displayedProducts = _showOnlyLowStock 
-                              ? _products.where((pData) {
-                                  final stocksData = List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
-                                  final p = Product.fromMap(pData, stocks: stocksData.map<Stock>((s) => Stock.fromMap(s)).toList());
-                                  return p.totalStock <= p.stockLimit;
-                                }).toList()
-                              : _products;
-                              
-                          return ListView.builder(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: displayedProducts.length,
-                            itemBuilder: (context, index) {
-                              final pData = displayedProducts[index];
-                          final stocksData = List<Map<String, dynamic>>.from(pData['stocks'] ?? []);
-                          final p = Product.fromMap(pData, stocks: stocksData.map<Stock>((s) => Stock.fromMap(s)).toList());
-                          
-                          final stock = p.totalStock.toInt();
-                          final isLow = p.totalStock <= p.stockLimit;
-                          
-                          double totalCostVal = 0;
-                          for (var s in p.stocks) {
-                            totalCostVal += (s.quantity * s.costPrice);
-                          }
+                      Builder(builder: (context) {
+                        final displayedProducts = _showOnlyLowStock
+                            ? _products.where((pData) {
+                                final stocksData =
+                                    List<Map<String, dynamic>>.from(
+                                        pData['stocks'] ?? []);
+                                final p = Product.fromMap(pData,
+                                    stocks: stocksData
+                                        .map<Stock>((s) => Stock.fromMap(s))
+                                        .toList());
+                                return !_isNoStockProduct(p) &&
+                                    p.totalStock <= p.stockLimit;
+                              }).toList()
+                            : _products;
 
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 8),
-                            decoration: theme.glassListDecoration,
-                            child: ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(p.name, 
-                                        style: TextStyle(color: theme.textPrimary, fontWeight: FontWeight.w800, fontSize: 14)),
-                                  ),
-                                  if (isLow)
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: ThemeProvider.error.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: ThemeProvider.error.withOpacity(0.2)),
-                                      ),
-                                      child: const Text('LOW STOCK', 
-                                          style: TextStyle(color: ThemeProvider.error, fontSize: 7, fontWeight: FontWeight.w900)),
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: displayedProducts.length,
+                          itemBuilder: (context, index) {
+                            final pData = displayedProducts[index];
+                            final stocksData = List<Map<String, dynamic>>.from(
+                                pData['stocks'] ?? []);
+                            final p = Product.fromMap(pData,
+                                stocks: stocksData
+                                    .map<Stock>((s) => Stock.fromMap(s))
+                                    .toList());
+
+                            final isNoStock = _isNoStockProduct(p);
+                            final stock = p.totalStock.toInt();
+                            final isLow =
+                                !isNoStock && p.totalStock <= p.stockLimit;
+
+                            double totalCostVal = 0;
+                            if (!isNoStock) {
+                              for (var s in p.stocks) {
+                                totalCostVal += (s.quantity * s.costPrice);
+                              }
+                            }
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              decoration: theme.glassListDecoration,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 14, vertical: 4),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(p.name,
+                                          style: TextStyle(
+                                              color: theme.textPrimary,
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14)),
                                     ),
-                                ],
-                              ),
-                              subtitle: Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: Text(
-                                  'Stock: $stock | Batches: ${p.stocks.length} | Price: ${p.priceRange}',
-                                  style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                                    if (isLow)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: ThemeProvider.error
+                                              .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(4),
+                                          border: Border.all(
+                                              color: ThemeProvider.error
+                                                  .withOpacity(0.2)),
+                                        ),
+                                        child: const Text('LOW STOCK',
+                                            style: TextStyle(
+                                                color: ThemeProvider.error,
+                                                fontSize: 7,
+                                                fontWeight: FontWeight.w900)),
+                                      ),
+                                  ],
                                 ),
-                              ),
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${BusinessConfig.instance.currencyDisplay} ${totalCostVal.toStringAsFixed(2)}',
-                                    style: TextStyle(color: theme.highlight, fontWeight: FontWeight.w900, fontSize: 13),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Text(
+                                    isNoStock
+                                        ? 'Stock: Not tracked | Price: ${p.priceRange}'
+                                        : 'Stock: $stock | Batches: ${p.stocks.length} | Price: ${p.priceRange}',
+                                    style: TextStyle(
+                                        color: theme.textSecondary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500),
                                   ),
-                                  Text(
-                                    'TOTAL COST VALUE',
-                                    style: TextStyle(color: theme.textHint, fontSize: 8, fontWeight: FontWeight.w800),
-                                  ),
-                                ],
-                              ),
+                                ),
+                                trailing: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      isNoStock
+                                          ? 'Not tracked'
+                                          : '${BusinessConfig.instance.currencyDisplay} ${totalCostVal.toStringAsFixed(2)}',
+                                      style: TextStyle(
+                                          color: theme.highlight,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 13),
+                                    ),
+                                    Text(
+                                      isNoStock
+                                          ? 'NON-STOCK ITEM'
+                                          : 'TOTAL COST VALUE',
+                                      style: TextStyle(
+                                          color: theme.textHint,
+                                          fontSize: 8,
+                                          fontWeight: FontWeight.w800),
+                                    ),
+                                  ],
+                                ),
                                 onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => AddPurchaseScreen(preSelectedProductId: pData['id'] as int?)),
-                                );
-                              },
-                            ),
-                          );
-                        },
-                          );
-                        }
-                      ),
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) => AddPurchaseScreen(
+                                            preSelectedProductId:
+                                                pData['id'] as int?)),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -219,55 +326,67 @@ class _StockReportScreenState extends State<StockReportScreen> {
     );
   }
 
-  Widget _buildSummaryCard(String title, double value, IconData icon, Color color, {bool isCurrency = true, VoidCallback? onTap}) {
+  Widget _buildSummaryCard(
+      String title, double value, IconData icon, Color color,
+      {bool isCurrency = true, VoidCallback? onTap}) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withOpacity(theme.isDark ? 0.15 : 0.12),
-              color.withOpacity(theme.isDark ? 0.05 : 0.02),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(theme.isDark ? 0.15 : 0.12),
+                color.withOpacity(theme.isDark ? 0.05 : 0.02),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
+            border: Border.all(
+              color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
+              width: onTap != null && _showOnlyLowStock && title == 'Low Stock'
+                  ? 2.5
+                  : 1.5,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 22),
+              ),
+              const SizedBox(height: 14),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    isCurrency
+                        ? '${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(0)}'
+                        : value.toInt().toString(),
+                    style: TextStyle(
+                        color: theme.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.5),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(title.toUpperCase(),
+                  style: TextStyle(
+                      color: theme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.0)),
             ],
           ),
-          borderRadius: BorderRadius.circular(ThemeProvider.radiusCard),
-          border: Border.all(
-            color: color.withOpacity(theme.isDark ? 0.3 : 0.4),
-            width: onTap != null && _showOnlyLowStock && title == 'Low Stock' ? 2.5 : 1.5,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: color, size: 22),
-            ),
-          const SizedBox(height: 14),
-          Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                isCurrency 
-                    ? '${BusinessConfig.instance.currencyDisplay} ${value.toStringAsFixed(0)}' 
-                    : value.toInt().toString(),
-                style: TextStyle(color: theme.textPrimary, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
-              ),
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(title.toUpperCase(), 
-              style: TextStyle(color: theme.textSecondary, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0)),
-        ],
-      ),
-    ));
+        ));
   }
 }

@@ -126,13 +126,11 @@ class POSKeyboardShortcuts {
   static Map<ShortcutActivator, VoidCallback> getPaymentBindings({
     required VoidCallback onEscape,
     required VoidCallback onF8,
-    required VoidCallback onF9,
     required VoidCallback onF10,
   }) {
     return {
       const SingleActivator(LogicalKeyboardKey.escape): onEscape,
       const SingleActivator(LogicalKeyboardKey.f8): onF8,
-      const SingleActivator(LogicalKeyboardKey.f9): onF9,
       const SingleActivator(LogicalKeyboardKey.f10): onF10,
     };
   }

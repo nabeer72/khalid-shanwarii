@@ -532,19 +532,20 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Widget _buildSummaryCards() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-    return GridView(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: isTablet ? 4 : 2,
-        mainAxisExtent: isTablet ? 120 : 132,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-      ),
-      children: [
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = (constraints.maxWidth / 170).floor().clamp(1, 4);
+        return GridView(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisExtent: constraints.maxWidth < 360 ? 116 : 132,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          children: [
         _SummaryCard(
             title: 'Gross Sales',
             value: _totalSales,
@@ -566,7 +567,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             icon: Icons.shopping_basket_rounded,
             color: theme.highlight,
             isCurrency: true),
-      ],
+          ],
+        );
+      },
     );
   }
 
